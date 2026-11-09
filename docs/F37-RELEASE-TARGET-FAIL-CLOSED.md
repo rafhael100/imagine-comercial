@@ -36,7 +36,7 @@ Nenhum dado pessoal real, chamada remota, custo, lançamento ou merge na `main`.
 
 O comando `npm run build:protected` executa `scripts/build-protected-release.mjs` e **somente funciona** com alvo `staging` ou `production` e `IMAGINE_CATALOG_REQUIRE_SIGNED=1`. Ele não realiza publicação:
 
-1. Remove evidências de revisão anteriores para impedir uso de recibo obsoleto, mesmo se a configuração atual for inválida.
+1. Remove **evidências anteriores e a árvore `dist/` anterior antes de validar quaisquer entradas**, para impedir que um erro de configuração deixe um pacote antigo aparentemente publicável. Esse comportamento é deliberadamente destrutivo apenas no diretório local `dist/`; executá-lo em um workspace descartável do pipeline.
 2. Exige arquivos locais regulares de envelope e chave pública (com limites de tamanho), keyId esperado e os pins exatos de releaseId e SHA-256.
 3. Verifica assinatura Ed25519 e os pins **antes** da compilação, apaga o `dist/` anterior e executa `astro build` com os mesmos inputs protegidos.
 4. Recusa links simbólicos na árvore compilada, arquivos inesperados ou faltantes, e compara os metadados assinados com HTML, canonical e texto compilado.
