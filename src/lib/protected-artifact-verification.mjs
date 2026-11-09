@@ -45,9 +45,14 @@ export function verifyProtectedArtifact({
   });
   if(intent.target==='review')throw new Error('protected artifact: review target not verifiable');
   requireDigest(expectedTreeSha256,'tree');
-  if(!record(review) || Object.keys(review).length!==allowedFields.size ||
-     !Object.keys(review).every(k=>allowedFields.has(k)))
-    throw new Error('protected artifact: exact REVIEW-ONLY schema required');
+  const isPlain=record(review);
+  const fields=isPlain?Object.keys(review):[];
+  if(!isPlain || fields.length!==allowedFields.size ||
+     !fields.every(k=>allowedFields.has(k))) {
+    // Report diagnostic counts only, never echo fields or untrusted values.
+    throw new Error('protected artifact: exact REVIEW-ONLY schema required (plain='+
+      isPlain+', fields='+fields.length+', expected='+allowedFields.size+')');
+  }
   if(review.schema!==schema || review.mode!==reviewMode ||
      review.target!==intent.target || review.deploymentPerformed!==false)
     throw new Error('protected artifact: target or review mode mismatched');
