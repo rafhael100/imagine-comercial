@@ -20,6 +20,8 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 - Executar node scripts/prepare-release-review.mjs somente após build: relatório SHA-256 REVIEW-ONLY fora do diretório dist.
 - Laboratório Cloudflare Workerd é apenas loopback, usa regras 301 simuladas e diretório temporário; nenhuma regra para produção.
 - F24: o verificador signed-build-review confere assinatura, pins e conteúdo HTML real; o relatório NÃO autoriza deploy, não verifica grants e não comprova MFA.
+- F25: quando o build for destinado a testar publicação assinada, definir IMAGINE_CATALOG_REQUIRE_SIGNED=1; nunca permitir fallback editorial nesse cenário. O indicador sozinho não autoriza deploy e não pode vir de solicitação do cliente.
+- CI F25 Comercial: https://github.com/rafhael100/imagine-comercial/actions/runs/42657373288 (99/99 testes, SEO 35/35). Portal PHP→Astro: https://github.com/rafhael100/imagine-portal/actions/runs/42657709386 (assinatura real do fixture PHP, falha fechada testada).
 - Evidências atuais: Comercial CI F24 #42644178104 (96/96 Node e 35/35 SEO); Portal PHP→Astro #42644779243 aprovado com dados sintéticos.
 - Nenhum teste de laboratório prova ranking, tráfego, indexação Google ou checkout/fiscal real.
 

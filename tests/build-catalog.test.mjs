@@ -118,3 +118,42 @@ test('release digest binds the exact signed payload bytes',()=>{
     expectedPayloadSha256:payloadSha256(current)
   }).releaseId,sample().releaseId);
 });
+
+
+test('F25 signed-required mode blocks silent fallback when all release inputs vanish',()=>{
+  assert.throws(
+    ()=>loadBuildServices({IMAGINE_CATALOG_REQUIRE_SIGNED:'1'}),
+    /signed catalog required; refusing curated fallback/
+  );
+  assert.throws(
+    ()=>loadBuildServices({
+      IMAGINE_CATALOG_REQUIRE_SIGNED:'1',IMAGINE_CATALOG_ENVELOPE_FILE:''
+    }),
+    /signed catalog required; refusing curated fallback/
+  );
+  assert.throws(
+    ()=>loadBuildServices({
+      IMAGINE_CATALOG_REQUIRE_SIGNED:'1',
+      IMAGINE_CATALOG_EXPECTED_RELEASE_ID:'release_20261109_20'
+    }),
+    /required together/
+  );
+});
+test('F25 signed-required mode accepts only a fully verified pinned signed release',()=>{
+  withFiles(signed(sample()),env=>{
+    assert.equal(loadBuildServices({...env,IMAGINE_CATALOG_REQUIRE_SIGNED:'1'})
+      .find(x=>x.slug==='landing-pages').title,'Landing Pages empresariais atualizadas no CMS');
+    assert.throws(()=>loadBuildServices({...env,
+      IMAGINE_CATALOG_REQUIRE_SIGNED:'1',
+      IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:'0'.repeat(64)
+    }),/payload digest/);
+  });
+});
+test('F25 rejects misspelled/ambiguous signed-required values',()=>{
+  for(const value of ['yes','true','TRUE','on','2',0,true,false]) {
+    assert.throws(()=>loadBuildServices({IMAGINE_CATALOG_REQUIRE_SIGNED:value}),
+      /invalid signed-required mode/);
+  }
+  assert.equal(loadBuildServices({IMAGINE_CATALOG_REQUIRE_SIGNED:'0'}),services);
+  assert.equal(loadBuildServices({IMAGINE_CATALOG_REQUIRE_SIGNED:''}),services);
+});

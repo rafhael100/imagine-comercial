@@ -103,3 +103,12 @@ Este bloco é o retrato atual e **substitui os números históricos das seções
 - [PR Portal #151](https://github.com/rafhael100/imagine-portal/pull/151): verificação cruzada **PHP signer → PostgreSQL de laboratório → Astro Comercial F24**, com commit do Comercial pinado em `9f36f770e8b19b37f9f5ac44ed84f5ae88e3d022`.
 - [CI Portal PHP→Astro F24 aprovado](https://github.com/rafhael100/imagine-portal/actions/runs/42644779243): paridade de catálogo e HTML, digest SHA-256 e rejeição de conteúdo adulterado; dados e chaves descartáveis. A prova não implica homologação de deploy ou autorização real.
 - **Gates ainda abertos:** sessão/MFA/grants reais do Portal, aprovação editorial transacional, revogação e receipt de publicação no destino, chaves operacionais, homologação de staging, inventário GSC e redirects por URL, termos/portfólio/contratos/checkout/fiscal e aprovação humana para main, DNS e produção. Sem alterações produtivas ou fornecedores pagos.
+
+
+## Rodada F25 — modo obrigatório para compilação assinada (09/11/2026)
+
+- [Comercial PR #25](https://github.com/rafhael100/imagine-comercial/pull/25): `IMAGINE_CATALOG_REQUIRE_SIGNED=1` exige assinatura Ed25519, chave pública, keyId, releaseId e hash esperados **mesmo quando todos os cinco campos desaparecem**; falha fechada e não compila silenciosamente o catálogo editorial.
+- [CI Comercial aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/42657373288): **99/99 testes Comercial** e **35/35 SEO Engine**, build Astro real, teste de recusa por configuração totalmente ausente, pin divergente e QA navegador.
+- [Portal PR #153](https://github.com/rafhael100/imagine-portal/pull/153): integração cruzada PHP→PostgreSQL 18→Astro usando commit F25 fixado e indicador obrigatório. [CI cross-repo aprovado](https://github.com/rafhael100/imagine-portal/actions/runs/42657709386), incluindo recusa explícita de fallback, alteração de hash e verificação do HTML assinado.
+- Este modo é apenas uma intenção fornecida por um pipeline externo de confiança: **não substitui** grants de uma identidade autenticada, MFA, permissão segregada no Portal, serviço de publicação protegido, antifraude/revogação durável ou recibo de entrega. Não foi construído publicador operacional.
+- Código permanece empilhado em PRs draft, `main` e domínio produtivo inalterados; nenhum deploy ou contratação extra. Próximo trabalho concreto requer consolidar a cadeia de branches, ligar publicação operacional à autoridade real do Portal e homologar staging protegido antes de promover um release.
