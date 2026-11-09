@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { services } from '../src/data/services.mjs';
 
 const read = path => readFileSync(join('dist', path), 'utf8');
-const paths = ['index.html', 'contato/index.html', 'servicos/index.html',
+const paths = ['index.html', 'contato/index.html', 'sobre/index.html', 'servicos/index.html',
   'conteudos/landing-page-ou-site/index.html',
   ...services.map(s => 'servicos/' + s.slug + '/index.html')];
 

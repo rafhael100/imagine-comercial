@@ -124,6 +124,7 @@ export const sitePages = Object.freeze([
   { path: '/', label: 'Início' },
   { path: '/servicos/', label: 'Soluções' },
   { path: '/contato/', label: 'Contato' },
+  { path: '/sobre/', label: 'Sobre a Imagine' },
   { path: '/conteudos/landing-page-ou-site/', label: 'Landing Page ou site?' },
   ...services.map(service => ({ path: '/servicos/' + service.slug + '/', label: service.label }))
 ]);

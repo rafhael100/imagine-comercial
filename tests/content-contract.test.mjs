@@ -70,3 +70,16 @@ test('sitemap uses the curated page list with no hardcoded thousands of local pa
   assert.ok(source.includes('toAbsoluteUrl'));
   assert.doesNotMatch(source, /for\s*\(.*(?:municipio|cidade)/i);
 });
+
+test('about page is part of the curated sitemap and public navigation', () => {
+  assert.ok(sitePages.some(p => p.path === '/sobre/'));
+  assert.ok(read('src/layouts/BaseLayout.astro').includes('href="/sobre/"'));
+});
+
+test('JSON-LD safely escapes HTML delimiters and Portal login is HTTPS-restricted', () => {
+  const layout = read('src/layouts/BaseLayout.astro');
+  assert.ok(layout.includes('serializeJsonLd'));
+  assert.ok(layout.includes("replace(/</g,"));
+  assert.ok(layout.includes("candidate.protocol === 'https:'"));
+  assert.ok(layout.includes("host.endsWith('.imaginecomunicacao.com.br')"));
+});
