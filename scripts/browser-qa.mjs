@@ -87,7 +87,13 @@ try {
     assert.ok(emailHref?.includes(encodeURIComponent('Landing Pages')),'Email service context');
     await page.locator('#service-choice').selectOption('onepage');
     assert.ok((await page.locator('#contact-whatsapp').getAttribute('href'))?.includes('Onepage'),'Changing service updates CTA');
-    assert.deepEqual(errors,[],viewport.label+' runtime errors');
+    // Controle de indexabilidade: caminhos inválidos devem retornar 404 real, não 200.
+    const notFoundResponse=await page.goto(host+'/pagina-inexistente-de-teste-f11/',{waitUntil:'load',timeout});
+    assert.equal(notFoundResponse?.status(),404,viewport.label+': missing route must return HTTP 404');
+    assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'noindex,nofollow');
+    assert.equal(await page.locator('link[rel="canonical"]').count(),0,viewport.label+': error document has no canonical');
+    assert.ok(await page.locator('a[href="/servicos/"]').count()>=1,viewport.label+': 404 navigates back to services');
+        assert.deepEqual(errors,[],viewport.label+' runtime errors');
     await context.close();
   }
   console.log('Browser QA passed:',sitePages.length,'mobile routes, 6 desktop routes, axe WCAG 2.1 A/AA for 3 pages per viewport.');

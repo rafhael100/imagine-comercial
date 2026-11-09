@@ -64,18 +64,18 @@ const service = serviceName ? {
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="robots" content={noindex ? 'noindex,nofollow' : 'index,follow'} />
-    <link rel="canonical" href={canonical} />
+    {!noindex && <link rel="canonical" href={canonical} />}
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
     <meta property="og:site_name" content="Imagine Comunicação Digital" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
-    <script type="application/ld+json" set:html={serializeJsonLd(organization)} />
-    <script type="application/ld+json" set:html={serializeJsonLd(webPage)} />
-    {bread && <script type="application/ld+json" set:html={serializeJsonLd(bread)} />}
-    {service && <script type="application/ld+json" set:html={serializeJsonLd(service)} />}
-    {articleData && <script type="application/ld+json" set:html={serializeJsonLd(articleData)} />}
+    {!noindex && <meta property="og:url" content={canonical} />}
+    {!noindex && <script type="application/ld+json" set:html={serializeJsonLd(organization)} />}
+    {!noindex && <script type="application/ld+json" set:html={serializeJsonLd(webPage)} />}
+    {!noindex && bread && <script type="application/ld+json" set:html={serializeJsonLd(bread)} />}
+    {!noindex && service && <script type="application/ld+json" set:html={serializeJsonLd(service)} />}
+    {!noindex && articleData && <script type="application/ld+json" set:html={serializeJsonLd(articleData)} />}
     <style is:global>
       :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #182438; background: #fff; font-synthesis: none; scroll-behavior: smooth; }
       * { box-sizing: border-box; }
