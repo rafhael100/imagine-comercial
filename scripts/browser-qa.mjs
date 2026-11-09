@@ -43,7 +43,14 @@ try {
     const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1});
     const page=await context.newPage();
     const errors=[];
+    const unexpectedRequests=[];
     page.on('pageerror',error=>errors.push(error.message));
+    page.on('request',request=>{
+      if(request.method()!=='GET'||new URL(request.url()).origin!==host){
+        // Keep only method and origin; never log URL query, email or PII.
+        unexpectedRequests.push(request.method()+' '+new URL(request.url()).origin);
+      }
+    });
     const routes = viewport.label==='mobile'
       ? sitePages.map(p=>p.path)
       : ['/', '/servicos/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
@@ -95,7 +102,18 @@ try {
     assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'noindex,nofollow');
     assert.equal(await page.locator('link[rel="canonical"]').count(),0,viewport.label+': error document has no canonical');
     assert.ok(await page.locator('a[href="/servicos/"]').count()>=1,viewport.label+': 404 navigates back to services');
-        assert.deepEqual(errors,[],viewport.label+' runtime errors');
+    // F31 — no cookie, local/session storage, POST or third-party requests
+    // may occur during an unapproved lead intake/CRM preview.
+    const privacy=await page.evaluate(()=>({
+      cookies:document.cookie,
+      localStorageEntries:localStorage.length,
+      sessionStorageEntries:sessionStorage.length
+    }));
+    assert.deepEqual(privacy,{cookies:'',localStorageEntries:0,sessionStorageEntries:0},
+      viewport.label+': public site must not persist contact data or track visitors');
+    assert.deepEqual(unexpectedRequests,[],
+      viewport.label+': no external request or POST without approved consent/backend');
+    assert.deepEqual(errors,[],viewport.label+' runtime errors');
     await context.close();
   }
   console.log('Browser QA passed:',sitePages.length,'mobile routes, 6 desktop routes, axe WCAG 2.1 A/AA for 3 pages per viewport.');

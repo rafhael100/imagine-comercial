@@ -23,6 +23,13 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 - F25: quando o build for destinado a testar publicação assinada, definir IMAGINE_CATALOG_REQUIRE_SIGNED=1; nunca permitir fallback editorial nesse cenário. O indicador sozinho não autoriza deploy e não pode vir de solicitação do cliente.
 - F26: auditor GSC CSV exclusivamente local/sintético; executar `node scripts/review-gsc-inventory.mjs --synthetic` no CI. CSV REAL GSC contém dados potencialmente sensíveis e NÃO deve ser enviado ao GitHub público nem a artifacts; usar `--file` apenas em ambiente privado. A saída não autoriza nem cria redirects 301.
 - Antes da migração, tratar todas as URLs não catalogadas, variants com query/encoding e conteúdo jurídico em HOLD; exigir GSC real, crawl e revisão por URL.
+- F27: cruzamento GSC × crawler apenas em dados sintéticos no CI; comparar por host/path sem unificar variantes com query omitida. Não aprovar 301 automaticamente.
+- F28: perfil de segurança HTTP só existe como `_headers` em cópia temporária do Workerd local; nunca criar `public/_headers` ou `dist/_headers` em PR de revisão.
+- F29: link Portal apenas de build confiável, hosts HTTPS exatos e sem query/fragmento/credenciais; `resolvePortalLoginLink` retorna vazio e oculta link inválido. Não ampliar allowlist sem revisão.
+- F30: `lead-intake-lab.mjs` é apenas contrato sintético sem rede, dados reais ou gravação durável. Consentimento booleano em teste NÃO prova cumprimento LGPD.
+- F31: páginas Astro públicas não devem importar o mock F30 nem enviar dados pessoais. Testes Node/Chromium verificam ausência de formulário, POST, cookies, storage e requests externos enquanto API/privacidade não forem aprovados.
+- CI atual acumulado: [F31 #42679446452](https://github.com/rafhael100/imagine-comercial/actions/runs/42679446452) — 138/138 Comercial + 35/35 SEO e browser; integração prévia F0-F30 com [CI geral](https://github.com/rafhael100/imagine-comercial/actions/runs/42679033130), [Workerd](https://github.com/rafhael100/imagine-comercial/actions/runs/42679033209) e [Lighthouse local](https://github.com/rafhael100/imagine-comercial/actions/runs/42679033372) verdes.
+
 - CI F25 Comercial: https://github.com/rafhael100/imagine-comercial/actions/runs/42657373288 (99/99 testes, SEO 35/35). Portal PHP→Astro: https://github.com/rafhael100/imagine-portal/actions/runs/42657709386 (assinatura real do fixture PHP, falha fechada testada).
 - Evidências atuais: Comercial CI F24 #42644178104 (96/96 Node e 35/35 SEO); Portal PHP→Astro #42644779243 aprovado com dados sintéticos.
 - Nenhum teste de laboratório prova ranking, tráfego, indexação Google ou checkout/fiscal real.
