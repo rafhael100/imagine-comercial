@@ -79,5 +79,5 @@ Este bloco é o retrato atual e **substitui os números históricos das seções
 - [PR #21](https://github.com/rafhael100/imagine-comercial/pull/21): validação 1:1 de canonical, `og:url`, `robots` e sitemap do HTML Astro gerado, evitando divergência de rotas, URLs extras, duplicação de canonical e `noindex` inadvertido.
 - Testes de contrato com fixtures sintéticos: `tests/seo-output-contract.test.mjs`; verificador real: `scripts/verify-dist.mjs`; documentação: `docs/F21-INTEGRIDADE-CANONICAL-SITEMAP.md`.
 - F20 CI corrigido e **aprovado**: https://github.com/rafhael100/imagine-comercial/actions/runs/42628077878.
-- **CI de F21 aguarda validação**, não considerar verificado até haver execução completa.
+- **CI de F21 aprovado**: https://github.com/rafhael100/imagine-comercial/actions/runs/42628813778 — Node, Astro build, verificação 1:1 do sitemap, auditor SEO Engine, catálogo assinado e QA em navegador. A validação não comprova resultados do Google em campo.
 - **Nenhum merge em main, staging público, release, redirect 301 efetivo, DNS ou publicação**. Gate de revisão humana e integração Portal permanecem pendentes.
