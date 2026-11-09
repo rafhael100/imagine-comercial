@@ -91,9 +91,12 @@ test('F27 suppresses query tokens on both sources and keeps variant as HOLD',()=
     'Address,Status Code\nhttps://imaginecomunicacao.com.br/fale-conosco.html?token=another-secret,200\n'
   );
   const compared=crossCheckGscAndCrawl(g,c);
-  assert.equal(compared.observedOnBoth,1);
+  assert.equal(compared.observedOnBoth,0);
+  assert.equal(compared.gscOnly.length,1);
+  assert.equal(compared.crawlOnly.length,1);
+  assert.equal(compared.unmatchablePrivacyVariants,2);
   assert.equal(compared.candidatesWithTwoSourceEvidence.length,0);
-  assert.equal(compared.conflictingHttpEvidence.length,1);
+  assert.equal(compared.conflictingHttpEvidence.length,0);
   assert.doesNotMatch(JSON.stringify({g,c,compared}),/a-secret|another-secret/);
 });
 test('F27 cross-source refuses missing/unvalidated inputs',()=>{
