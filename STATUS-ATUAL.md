@@ -94,3 +94,12 @@ Este bloco é o retrato atual e **substitui os números históricos das seções
 - [CI geral F23 aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/42630522268): testes Node, build Astro, integração com SEO Engine e QA Chromium.
 - Encadeamento atual até F23 em **PRs draft**. Nenhum merge em main, mudança de domínio, redirect ativo, deploy ou gasto com fornecedor.
 - Gates de lançamento: aprovação editorial e jurídica, inventário integral GSC/301, marca/portfólio/licenças, CMS Portal com AuthN/AuthZ e MFA efetivos, operação transacional e recuperação, checkout/fiscal, staging privado e autorização expressa de DNS/produção.
+
+
+## Rodada F24 — 09/11/2026
+
+- [PR Comercial #24](https://github.com/rafhael100/imagine-comercial/pull/24): verificação de lote Ed25519 assinado, pins de releaseId e SHA-256, catálogo editorial permitido, metadados e resumo **no HTML Astro gerado**, com digest da árvore SHA-256 de arquivos F22. Somente laboratório, sem chave privada no repositório.
+- [CI Comercial F24 aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/42644178104): **96/96 testes Node Comercial**, **35/35 SEO Engine**, build Astro, prova negativa de assinatura adulterada, versão/hash incorretos e título/HTML alterado, além do QA.
+- [PR Portal #151](https://github.com/rafhael100/imagine-portal/pull/151): verificação cruzada **PHP signer → PostgreSQL de laboratório → Astro Comercial F24**, com commit do Comercial pinado em `9f36f770e8b19b37f9f5ac44ed84f5ae88e3d022`.
+- [CI Portal PHP→Astro F24 aprovado](https://github.com/rafhael100/imagine-portal/actions/runs/42644779243): paridade de catálogo e HTML, digest SHA-256 e rejeição de conteúdo adulterado; dados e chaves descartáveis. A prova não implica homologação de deploy ou autorização real.
+- **Gates ainda abertos:** sessão/MFA/grants reais do Portal, aprovação editorial transacional, revogação e receipt de publicação no destino, chaves operacionais, homologação de staging, inventário GSC e redirects por URL, termos/portfólio/contratos/checkout/fiscal e aprovação humana para main, DNS e produção. Sem alterações produtivas ou fornecedores pagos.

@@ -11,24 +11,34 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 - Credenciais, tokens e dados pessoais não pertencem a repositórios públicos.
 - Nenhum teste offline ou build serve como prova de ranking, de tráfego ou de homologação de produção.
 
-## Validação
-- `npm test` (Node 22+): contratos e testes sintéticos.
-- `npm install --no-audit --no-fund && npm run build` (ambiente autorizado).
-- `node scripts/verify-dist.mjs`.
-- CI revisa auditor SEO externo por commit fixo no workflow, com relatório de erros e avisos do HTML compilado.
-- Não alegar Lighthouse/CWV, acessibilidade no navegador ou teste de checkout executados quando não foram.
+## Validação — código de laboratório ainda sem produção
+- Node >=22.12; executar npm test e npm ci --no-audit --no-fund antes de npm run build.
+- Executar node scripts/verify-dist.mjs: 15 rotas públicas, canonical/robots/OG, sitemap e página 404.
+- CI usa Imagine SEO Engine em SHA revisado e falha em avisos SEO relevantes; não mudar para referência móvel.
+- Executar npm run test:browser em CI com Chromium/axe; não confundir com CWV de campo.
+- Executar node scripts/test-build-catalog.mjs somente após build: chaves Ed25519 efêmeras de CI, rejeição de adulteração e restauração do HTML editorial.
+- Executar node scripts/prepare-release-review.mjs somente após build: relatório SHA-256 REVIEW-ONLY fora do diretório dist.
+- Laboratório Cloudflare Workerd é apenas loopback, usa regras 301 simuladas e diretório temporário; nenhuma regra para produção.
+- F24: o verificador signed-build-review confere assinatura, pins e conteúdo HTML real; o relatório NÃO autoriza deploy, não verifica grants e não comprova MFA.
+- Evidências atuais: Comercial CI F24 #42644178104 (96/96 Node e 35/35 SEO); Portal PHP→Astro #42644779243 aprovado com dados sintéticos.
+- Nenhum teste de laboratório prova ranking, tráfego, indexação Google ou checkout/fiscal real.
 
 ## Estrutura
-- `src/data/services.mjs` e `src/data/articles.mjs`: catálogo/editorial *temporário*, não preços oficiais.
-- `src/pages/servicos/[slug].astro`, `src/pages/conteudos/[slug].astro`: páginas indexáveis curadas.
-- `src/lib/published-catalog.mjs`: valida snapshots públicos offline, não autoriza emissor.
-- `src/lib/publication-sequence.mjs`: protege ordem de publicação em simulação.
-- `src/data/legacy-urls.mjs` e `src/lib/redirect-plan.mjs`: inventário parcial e **modo dry-run**, sem redirecionamentos reais.
+- src/data/services.mjs e src/data/articles.mjs: catálogo editorial provisório, SEM preços oficiais.
+- src/pages/servicos/[slug].astro e src/pages/conteudos/[slug].astro: páginas indexáveis curadas.
+- src/lib/published-catalog.mjs e verify-signed-catalog.mjs: esquema público e assinatura; não autorizam emissor.
+- src/lib/build-catalog.mjs e release-pin.mjs: atualização somente de metadados permitidos, com releaseId e SHA-256 obrigatórios.
+- src/lib/signed-build-review.mjs: prova sintética de correspondência assinatura → HTML → hash do pacote, não recibo de entrega.
+- src/lib/release-review.mjs: relatório SHA-256 do build, SEM assinatura operacional.
+- src/lib/seo-output-contract.mjs: canonical, robots, sitemap e Open Graph coerentes.
+- src/lib/publication-sequence.mjs: ordenação sintética, sem transação real.
+- src/data/legacy-urls.mjs e src/lib/redirect-plan.mjs: inventário parcial e dry-run, sem redirects ativos.
+- STATUS-ATUAL.md: consultar seção cronológica mais recente; seções antigas servem para histórico e podem conter passos já concluídos.
 
 ## Próximas tarefas prioritárias
-1. Auditoria integral do domínio atual e migração 1:1 antes de trocar URLs.
-2. Revisão comercial e editorial, imagens originais autorizadas, portfólio e política de privacidade.
-3. Testes reais em navegador mobile/desktop, acessibilidade, CWV e proteção staging.
-4. Gerar lockfile, determinar build reprodutível e governança de dependências.
-5. Contratos Portal CMS e checkout em ambiente isolado, com autenticação e gates.
-6. Homologação do lançamento apenas após decisão humana exclusiva.
+1. Revisar a cadeia completa de PRs draft antes de qualquer integração na main; não presumir que passar no CI equivale a autorização de merge.
+2. Coordenar com Portal a autenticação/MFA/grants reais, revogação, outbox idempotente e recibo do destino. Não copiar permissões sintéticas para produção.
+3. Auditoria completa do domínio atual usando GSC e crawl; homologar redirecionamentos 1:1 individualmente.
+4. Revisão editorial, identidade visual, licenças, portfólio, termos e política de privacidade.
+5. Staging privado homologado, testes de segurança, CWV reais, checkout/contratos/fiscal; dependerá de autorização para infraestrutura e publicação.
+6. Somente após decisão humana explícita: merge main, DNS, Cloudflare e produção.
