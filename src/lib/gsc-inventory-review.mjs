@@ -72,6 +72,13 @@ function pagePath(value) {
     throw new Error('GSC CSV: invalid URL cell');
   const input=value.trim();
   if(/[<>]/.test(input))throw new Error('GSC CSV: HTML in URL cell');
+  // WHATWG URL normalizes dot segments (including encoded ones); refuse them
+  // before parsing so a malicious source cannot silently become a different URL.
+  const rawWithoutQuery=input.split(/[?#]/,1)[0];
+  if(/(?:^|\/)\.{1,2}(?=\/|$)/.test(rawWithoutQuery) ||
+     /%(?:2e|2f|5c)/i.test(rawWithoutQuery)) {
+    throw new Error('GSC CSV: traversal or encoded slash in source URL');
+  }
   let url;
   try {
     url=new URL(input,'https://imaginecomunicacao.com.br');
