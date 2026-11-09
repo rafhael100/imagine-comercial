@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { services } from '../data/services.mjs';
+---
+<BaseLayout
+  title="Contato e orçamento | Imagine Comunicação Digital"
+  description="Entre em contato com a Imagine Comunicação Digital para conversar sobre criação de sites, Landing Pages e performance digital."
+  pathname="/contato/"
+  breadcrumb={[{label:'Contato',path:'/contato/'}]}
+>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Entre em contato</p>
+      <h1>Conte seu objetivo. Vamos encontrar o próximo passo.</h1>
+      <p class="lead">Escolha o canal de sua preferência para falar com a Imagine. O formulário integrado ao Portal será disponibilizado após homologação.</p>
+      <div class="contact-choice">
+        <label for="service-choice">Qual solução você procura?</label>
+        <select id="service-choice" name="servico" autocomplete="off">
+          <option value="">Ainda quero orientação</option>
+          {services.map(s => <option value={s.slug}>{s.label}</option>)}
+        </select>
+        <p id="service-help">Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.</p>
+      </div>
+      <div class="cta-row">
+        <a class="cta" id="contact-whatsapp" href="https://wa.me/5585996632689?text=Ol%C3%A1%2C%20gostaria%20de%20conhecer%20os%20servi%C3%A7os%20da%20Imagine." target="_blank" rel="noopener noreferrer">Conversar pelo WhatsApp</a>
+        <a class="cta cta-secondary" id="contact-email" href="mailto:imagine@imaginecomunicacao.com.br?subject=Contato%20Imagine">Enviar e-mail</a>
+      </div>
+    </div>
+  </section>
+  <section class="section section-soft">
+    <div class="shell">
+      <h2>Nossos canais de atendimento</h2>
+      <div class="cards">
+        <article class="card"><h3>E-mail</h3><p><a href="mailto:imagine@imaginecomunicacao.com.br">imagine@imaginecomunicacao.com.br</a></p></article>
+        <article class="card"><h3>Telefone e WhatsApp</h3><p><a href="tel:+558530329525">(85) 3032-9525</a><br /><a href="https://wa.me/5585996632689" target="_blank" rel="noopener noreferrer">WhatsApp: (85) 9 9663-2689</a></p></article>
+        <article class="card"><h3>Atendimento</h3><p>Segunda a sexta, das 8h às 12h e das 14h às 18h (horário informado no site atual).</p></article>
+      </div>
+      <p>Os canais acima constam no site público atual da Imagine. Devem ser reconfirmados antes da substituição do domínio.</p>
+    </div>
+  </section>
+  <script>
+    // Somente dados estáticos de serviço: sem cookies, fetch, rastreamento ou PII.
+    const choice = document.querySelector<HTMLSelectElement>('#service-choice');
+    const whatsapp = document.querySelector<HTMLAnchorElement>('#contact-whatsapp');
+    const email = document.querySelector<HTMLAnchorElement>('#contact-email');
+    if (choice && whatsapp && email) {
+      const allowed = [...choice.options].map(option => option.value);
+      const requested = window.location.hash.slice(1);
+      if (allowed.includes(requested)) choice.value = requested;
+      const update = () => {
+        const selected = choice.selectedOptions[0];
+        const label = selected?.value ? selected.textContent?.trim() : '';
+        const whatsappMessage = label
+          ? 'Olá, gostaria de solicitar uma proposta para ' + label + ' da Imagine.'
+          : 'Olá, gostaria de conhecer os serviços da Imagine.';
+        const emailSubject = label ? 'Proposta Imagine - ' + label : 'Contato Imagine';
+        whatsapp.href = 'https://wa.me/5585996632689?text=' + encodeURIComponent(whatsappMessage);
+        email.href = 'mailto:imagine@imaginecomunicacao.com.br?subject=' + encodeURIComponent(emailSubject);
+      };
+      choice.addEventListener('change', update);
+      update();
+    }
+  </script>
+  <style>
+    .contact-choice { max-width: 490px; margin-top: 30px; }
+    .contact-choice label { display: block; font-weight: 800; margin-bottom: 8px; }
+    .contact-choice select { width: 100%; min-height: 48px; padding: 10px 14px; border: 1px solid #9aafc5; border-radius: 10px; font: inherit; background: white; color: #182438; }
+    .contact-choice p { margin: 8px 0 0; font-size: .85rem; color: #536680; }
+  </style>
+</BaseLayout>

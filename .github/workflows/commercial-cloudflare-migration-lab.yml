@@ -1,0 +1,38 @@
+name: Imagine Comercial - Cloudflare Workerd em loopback
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/cloudflare-migration-preview.mjs'
+      - 'scripts/preview-cloudflare-migration.mjs'
+      - 'scripts/test-workers-local-migration.mjs'
+      - 'config/wrangler-static-assets-candidate.json'
+      - '.github/workflows/commercial-cloudflare-migration-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate_workers:
+    name: Workers local - 301/404 sem deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout leitura
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Dependencias travadas do Astro
+        run: npm ci --no-audit --no-fund
+      - name: Compilar paginas publicas
+        run: npm run build
+      - name: Simular e revisar candidatos, sem _redirects real
+        run: node scripts/preview-cloudflare-migration.mjs
+      - name: Executar apenas Workerd local por Wrangler fixado
+        run: node scripts/test-workers-local-migration.mjs
