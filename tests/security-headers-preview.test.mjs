@@ -5,8 +5,11 @@ import {createSecurityHeadersPreview,localHeaderProfile} from '../src/lib/securi
 
 test('F28 candidate header profile is deterministic and limited to four defensive settings',()=>{
   const text=createSecurityHeadersPreview();
-  assert.equal(text,createSecurityHeadersPreview([...localHeaderProfile].reverse()).split('\n')
-    .filter(Boolean).length>0?text:text); // Always exercise alternate order without assuming ordering
+  assert.equal(text,createSecurityHeadersPreview());
+  const reordered=createSecurityHeadersPreview([...localHeaderProfile].reverse());
+  for(const [name,value] of localHeaderProfile){
+    assert.ok(reordered.includes('  '+name+': '+value));
+  }
   for(const [name,value] of localHeaderProfile){
     assert.ok(text.includes('  '+name+': '+value));
   }
