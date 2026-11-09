@@ -14,7 +14,7 @@ const host = 'http://127.0.0.1:' + port;
 const artifacts = 'artifacts/browser';
 const timeout = 45000;
 let browser;
-const server = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', String(port)], {
+const server = spawn(process.execPath, ['node_modules/astro/astro.js', 'preview', '--host', '127.0.0.1', '--port', String(port)], {
   stdio: ['ignore', 'pipe', 'pipe'], env: {...process.env, PUBLIC_PORTAL_LOGIN_URL:''}
 });
 let serverOutput = '';
@@ -48,6 +48,7 @@ try {
       ? sitePages.map(p=>p.path)
       : ['/', '/servicos/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
     for(const route of routes) {
+      console.log('Browser QA',viewport.label,route);
       const response=await page.goto(host+route,{waitUntil:'load',timeout});
       assert.equal(response?.status(),200,viewport.label+': '+route+' HTTP');
       assert.equal(await page.locator('h1').count(),1,viewport.label+': '+route+' single H1');
