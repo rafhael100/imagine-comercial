@@ -4,6 +4,7 @@
  * Não substitui crawler/GSC ou prova de que um destino externo está no ar.
  */
 import {sitePages,services} from '../data/services.mjs';
+import {resolvePortalLoginLink} from './portal-login-link.mjs';
 
 const base='http://127.0.0.1:4328';
 const destinations=new Set(sitePages.map(x=>x.path));
@@ -49,14 +50,15 @@ function safeExternalChannel(url, channel) {
  * links = attributes extracted from a real browser DOM, not guessed from
  * source templates; allowed routes are the exact curated Astro sitemap.
  * @param {Array<{href:string,target?:string,rel?:string}>} links
- * @param {{currentPath:string,fragmentIds?:string[]}} options
+ * @param {{currentPath:string,fragmentIds?:string[],approvedPortalLoginUrl?:string}} options
  */
-export function reviewPublicLinks(links,{currentPath,fragmentIds=[]}={}) {
+export function reviewPublicLinks(links,{currentPath,fragmentIds=[],approvedPortalLoginUrl=''}={}) {
   if(!Array.isArray(links) || typeof currentPath!=='string' ||
      !(destinations.has(currentPath)||currentPath==='/404/')) {
     throw new Error('F32 link audit: validated source route required');
   }
   const ids=new Set(fragmentIds);
+  const approvedPortalLink=resolvePortalLoginLink(approvedPortalLoginUrl);
   const summary={checked:0,internal:0,external:0,sameDocument:0};
   links.forEach((item,index)=>{
     const href=item?.href;
@@ -97,7 +99,9 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[]}={}) {
     if(!/^(https|mailto|tel):/i.test(href))
       failure(currentPath,index,'unapproved URL scheme or relative link');
     const channel=url.protocol;
-    if(!safeExternalChannel(url,channel))
+    const exactApprovedPortal=approvedPortalLink!=='' &&
+      href===approvedPortalLink && channel==='https:';
+    if(!exactApprovedPortal && !safeExternalChannel(url,channel))
       failure(currentPath,index,'external destination not in reviewed channel allowlist');
     if((item.target||'').toLowerCase()==='_blank') {
       const rel=new Set(String(item.rel||'').toLowerCase().split(/\s+/));

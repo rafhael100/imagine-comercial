@@ -86,3 +86,34 @@ test('F32 skip-to-content on 404 is valid but the 404 itself stays out of sitema
   assert.equal(review(['#conteudo'],'/404/').sameDocument,1);
   assert.throws(()=>review(['/404/']),/internal route missing from sitemap/);
 });
+
+test('F33: a configured official Portal login URL is allowed only if exact',()=>{
+  const approved='https://portal.imaginecomunicacao.com.br/login';
+  assert.equal(reviewPublicLinks([{href:approved}],{
+    currentPath:'/',approvedPortalLoginUrl:approved
+  }).external,1);
+  assert.throws(()=>review([approved]),/external destination not in reviewed channel allowlist/);
+  for(const changed of [
+    approved+'?next=https://evil.invalid/',
+    'https://evil.imaginecomunicacao.com.br/login',
+    'https://portal.imaginecomunicacao.com.br/other-login',
+    'http://portal.imaginecomunicacao.com.br/login'
+  ]) {
+    assert.throws(()=>reviewPublicLinks([{href:changed}],{
+      currentPath:'/',approvedPortalLoginUrl:approved
+    }),/external destination not in reviewed channel allowlist|unapproved URL scheme/);
+  }
+});
+
+test('F33: an untrusted configured value cannot broaden link destinations',()=>{
+  const bad='https://portal.imaginecomunicacao.com.br.evil.invalid/login';
+  assert.throws(()=>reviewPublicLinks([{href:bad}],{
+    currentPath:'/',approvedPortalLoginUrl:bad
+  }),/external destination not in reviewed channel allowlist/);
+  assert.throws(()=>reviewPublicLinks([{
+    href:'https://portal.imaginecomunicacao.com.br/login',
+    target:'_blank',rel:'noopener'
+  }],{
+    currentPath:'/',approvedPortalLoginUrl:'https://portal.imaginecomunicacao.com.br/login'
+  }),/new tab lacks noopener noreferrer/);
+});
