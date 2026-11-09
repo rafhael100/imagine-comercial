@@ -10,9 +10,15 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node scripts/browser-qa.mjs",
+    "check:dist": "node scripts/verify-dist.mjs"
   },
   "dependencies": {
     "astro": "7.4.7"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "@axe-core/playwright": "4.11.0"
   }
 }

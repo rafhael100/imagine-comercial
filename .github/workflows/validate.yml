@@ -1,4 +1,4 @@
-name: Imagine Comercial - SEO e build
+name: Imagine Comercial - SEO, build e navegador
 
 on:
   push:
@@ -12,9 +12,9 @@ permissions:
 
 jobs:
   validar:
-    name: Validar conteudo e gerar site
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
+    name: Testes, auditor SEO e QA visual
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
     steps:
       - name: Obter codigo
         uses: actions/checkout@v4
@@ -22,20 +22,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
       - name: Testar contratos sem dependencias
         run: npm test
-      - name: Instalar dependencias (sem deploy)
-        run: npm install --no-audit --no-fund
+      - name: Instalar dependencias reproduziveis
+        run: npm ci --no-audit --no-fund
       - name: Gerar paginas Astro
         run: npm run build
       - name: Validar HTML gerado, sitemap e robots
         run: node scripts/verify-dist.mjs
-      - name: Obter auditor SEO independente (commit fixo)
+      - name: Obter auditor SEO independente em SHA fixo
         uses: actions/checkout@v4
         with:
           repository: rafhael100/imagine-seo-engine
           ref: 5d6639841594ab8e9ad2d813f2e7797a57c7afd4
           path: .qa/seo-engine
           persist-credentials: false
-      - name: Auditar SEO técnico do HTML compilado
+      - name: Auditar SEO do HTML compilado
         run: node .qa/seo-engine/scripts/audit-dist.mjs dist
+      - name: Instalar Chromium para QA de navegador
+        run: npx playwright install --with-deps chromium
+      - name: Testar responsividade e WCAG no navegador
+        run: npm run test:browser
+      - name: Salvar capturas do ambiente de testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagine-comercial-browser-screenshots
+          path: artifacts/browser/*.png
+          if-no-files-found: ignore
+          retention-days: 14
