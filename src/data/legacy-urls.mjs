@@ -25,6 +25,10 @@ export const legacyUrls = Object.freeze([
     reason: 'Necessária versão em inglês e política de portfólio.'
   },
   {
+    from: '/en-us/termos-de-uso.html', to: null, status: 'hold',
+    reason: 'Página legada de termos/privacidade em inglês. Preservação e política de dados exigem validação jurídica e versão equivalente.'
+  },
+  {
     from: '/en-us/contact-us.html', to: null, status: 'hold',
     reason: 'Necessária preservação adequada do conteúdo em inglês.'
   }

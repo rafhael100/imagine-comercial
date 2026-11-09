@@ -42,3 +42,13 @@ Auditoria SEO da migração e estabilização de dependências/preview protegido
 - O site de produção permanece inalterado; nenhum pagamento, API CMS real, Search Console/GA4, DNS ou acesso financeiro ativado. Não alegar que este PR habilitou checkout ou indexação real.
 - F6/F7 possuem capturas visuais de homepage e Landing Page no GitHub Actions; o design é preliminar, aguardando revisão da identidade visual real, conteúdo comercial e condições oficiais.
 - Próximos gates críticos: publicação transacional autenticada e aprovada do Portal; inventário SEO completo; revisão de políticas/consentimento, ofertas, checkout, pagamentos e NFS-e antes de eventual produção.
+
+## Rodada F9–F13 — 09/11/2026
+- F9 PR #11: compilação Astro consome títulos, descrições e resumos de catálogo público assinado (dados de teste), com falha fechada para assinatura adulterada. CI: 51/51 testes.
+- F10 PR #12: contato contextual por serviço, WhasApp/e-mail, sem envio de leads ao Portal. CI: 54/54 testes.
+- F11 PR #13: página de erro HTTP 404 verdadeira, noindex e fora do sitemap. CI: 58/58 testes.
+- F12 PR #14: orçamentos de peso de HTML, JavaScript, CSS e imagens; build, QA e auditor SEO aprovados. Referência: https://github.com/rafhael100/imagine-comercial/actions/runs/42576141045
+- F13 PR #15: atualização do inventário de URLs públicas e preservação dos termos/privacidade legados (hold), sem regras 301 aplicadas.
+- Toda a pilha permanece em PRs de rascunho e branches de desenvolvimento, com **main, domínio, DNS e produção preservados**.
+- O CMS do Portal ainda NÃO publica dados reais; não há checkout, formulário CRM, rastreamento real, licença de imagens/portfólio homologadas ou política de privacidade migrada.
+- Para lançamento continuam necessários inventário real de URLs e Search Console, fluxo do Portal autenticado/autorizações, homologação legal/fiscal/comercial, staging protegido e aprovação exclusiva para deploy/DNS.

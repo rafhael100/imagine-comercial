@@ -55,3 +55,14 @@ test('cannot report a bundle with zero HTML pages as ready',async()=>{
     assert.ok(r.warnings.some(x=>x.type==='missing_html'));
   });
 });
+
+test('counts executable JavaScript embedded inside HTML while excluding schema.org JSON-LD',async()=>{
+  const html='<html><head><script type="application/ld+json">{"@context":"https://schema.org"}</script></head>'+
+    '<body><script>let x="'+('a'.repeat(40))+'";</script></body></html>';
+  await withBuild({'index.html':html},async root=>{
+    const result=await checkStaticBudgets(root,{maxJsFileBytes:20,maxTotalJsBytes:30});
+    assert.ok(result.metrics.inlineJsBytes>=40);
+    assert.ok(result.warnings.some(x=>x.type==='inline_js_oversize'));
+    assert.ok(result.warnings.some(x=>x.type==='total_js_oversize'));
+  });
+});
