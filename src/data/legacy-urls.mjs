@@ -25,7 +25,7 @@ export const legacyUrls = Object.freeze([
   {
     from: '/o-que-fazemos/facebook-instagram-ads.html',
     to: '/servicos/gestao-meta-ads/', status: 'candidate',
-    reason: 'URL ligada no menu de anúncios Meta; conteúdo não foi recuperado nesta auditoria e exige validação HTTP/editorial.'
+    reason: 'Página Meta encontrada no menu e conteúdo público consultado em 09/11/2026; ainda exige validação HTTP atual, equivalência editorial e autorização para 301.'
   },
   {
     from: '/o-que-fazemos/criacao-de-loja-virtual.html',
@@ -50,7 +50,7 @@ export const legacyUrls = Object.freeze([
   {
     from: '/o-que-fazemos/marketplace-mercado-livre.html',
     to: null, status: 'hold',
-    reason: 'URL presente na navegação legada, mas verificação HTTP não concluída; sem serviço equivalente homologado.'
+    reason: 'Página Marketplace Mercado Livre e conteúdo visíveis em consulta pública de 09/11/2026; status HTTP atual ainda não comprovado e não há serviço equivalente homologado.'
   },
   {
     from: '/clientes.html', to: null, status: 'hold',
