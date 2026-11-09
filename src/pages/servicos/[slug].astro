@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { services } from '../../data/services.mjs';
+
+export function getStaticPaths() {
+  return services.map(s => ({ params: { slug: s.slug }, props: { s } }));
+}
+const { s } = Astro.props;
+const pathname = '/servicos/' + s.slug + '/';
+---
+<BaseLayout
+  title={s.title}
+  description={s.description}
+  pathname={pathname}
+  serviceName={s.label}
+  breadcrumb={[{label:'Soluções',path:'/servicos/'},{label:s.label,path:pathname}]}
+>
+  <div class="shell breadcrumbs"><a href="/">Início</a> / <a href="/servicos/">Soluções</a> / <span aria-current="page">{s.label}</span></div>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">{s.eyebrow}</p>
+      <h1>{s.heading}</h1>
+      <p class="lead">{s.intro}</p>
+      <div class="cta-row">
+        <a class="cta" href="/contato/">Solicitar uma proposta</a>
+        <a class="cta cta-secondary" href="/servicos/">Comparar soluções</a>
+      </div>
+    </div>
+  </section>
+  <section class="section shell">
+    <span class="kicker">Nossa abordagem</span>
+    <h2>Planejamento antes de execução.</h2>
+    <p class="lead">{s.approach}</p>
+    <div class="cards">
+      {s.details.map(([heading, body]) => (
+        <article class="card"><h3>{heading}</h3><p>{body}</p></article>
+      ))}
+    </div>
+  </section>
+  <section class="section section-soft">
+    <div class="shell">
+      <span class="kicker">Perguntas frequentes</span>
+      <h2>Dúvidas sobre {s.label.toLowerCase()}</h2>
+      {s.faqs.map(([question, answer]) => (
+        <details><summary>{question}</summary><p>{answer}</p></details>
+      ))}
+    </div>
+  </section>
+  <section class="section section-dark">
+    <div class="shell">
+      <h2>Vamos conversar sobre o seu projeto?</h2>
+      <p>Envie o objetivo da sua empresa para a Imagine e receba orientações sobre os próximos passos. Valores e condições comerciais serão confirmados na proposta oficial.</p>
+      <a class="cta" href="/contato/">Entrar em contato</a>
+    </div>
+  </section>
+</BaseLayout>

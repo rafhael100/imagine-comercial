@@ -1,30 +1,38 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { services, sitePages, toAbsoluteUrl } from '../src/data/services.mjs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
-test('layout has canonical, description, robots and structured data', () => {
+test('layout exposes canonical, meta description, robots and structured data', () => {
   const html = read('src/layouts/BaseLayout.astro');
-  for (const required of ['rel="canonical"', 'name="description"', 'name="robots"', 'application/ld+json', 'lang="pt-BR"']) {
-    assert.ok(html.includes(required), required);
+  for (const expected of ['rel="canonical"', 'name="description"', 'name="robots"', 'application/ld+json', 'lang="pt-BR"']) {
+    assert.ok(html.includes(expected), expected);
   }
 });
 
-test('service landing page has specific title, H1 and internal link', () => {
-  const page = read('src/pages/servicos/landing-pages.astro');
-  assert.match(page, /Criação de Landing Pages \| Imagine/);
-  assert.match(page, /<h1>/);
-  assert.match(page, /href="\/#processo"/);
+test('landing page content has a title, H1 and action through the curated template', () => {
+  const page = services.find(service => service.slug === 'landing-pages');
+  assert.ok(page, 'landing page catalog entry missing');
+  assert.match(page.title, /Landing Pages/);
+  assert.ok(page.heading.length > 20);
+  const template = read('src/pages/servicos/[slug].astro');
+  assert.ok(template.includes('<h1>{s.heading}</h1>'));
+  assert.ok(template.includes('href="/contato/"'));
 });
 
-test('sitemap only includes authored public pages', () => {
+test('sitemap uses authoritative published routes and excludes private paths', () => {
   const sitemap = read('src/pages/sitemap.xml.ts');
-  assert.match(sitemap, /servicos\/landing-pages/);
-  assert.doesNotMatch(sitemap, /checkout|\/admin|\/clientes/);
+  assert.match(sitemap, /sitePages/);
+  assert.ok(sitePages.some(p => p.path === '/servicos/landing-pages/'));
+  for (const { path } of sitePages) {
+    assert.match(toAbsoluteUrl(path), /^https:\/\/imaginecomunicacao\.com\.br\//);
+    assert.doesNotMatch(path, /\/admin\/|\/checkout\/|\/portal\//);
+  }
 });
 
-test('no production payment or portal address is hardcoded', () => {
+test('portal URL remains optional until integration is homologated', () => {
   const layout = read('src/layouts/BaseLayout.astro');
   assert.ok(layout.includes('PUBLIC_PORTAL_LOGIN_URL'));
   assert.doesNotMatch(layout, /asaas\.com|focusnfe\.com|portal\.imaginecomunicacao\.com\.br/);

@@ -1,0 +1,32 @@
+name: Imagine Comercial - SEO e build
+
+on:
+  push:
+    branches:
+      - feat/f1-public-pages-cro-seo-2026-11-09
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    name: Validar conteudo e gerar site
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Obter codigo
+        uses: actions/checkout@v4
+      - name: Configurar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar contratos sem dependencias
+        run: npm test
+      - name: Instalar dependencias (sem deploy)
+        run: npm install --no-audit --no-fund
+      - name: Gerar paginas Astro
+        run: npm run build
+      - name: Validar HTML gerado, sitemap e robots
+        run: node scripts/verify-dist.mjs
