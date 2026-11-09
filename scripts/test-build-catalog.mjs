@@ -4,11 +4,12 @@
  * Chaves de teste são geradas em memória; nenhum segredo entra no repositório.
  */
 import { generateKeyPairSync, sign, createHash } from 'node:crypto';
-import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
+import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
 
 const label='Landing Pages empresariais atualizadas no CMS';
 const description='Descrição pública validada por assinatura durante o build Astro, utilizada apenas como demonstração sem dados de clientes.';
@@ -41,12 +42,43 @@ delete buildEnv.IMAGINE_CATALOG_TRUSTED_KEY_ID;
 delete buildEnv.IMAGINE_CATALOG_EXPECTED_RELEASE_ID;
 delete buildEnv.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256;
 const astro='node_modules/.bin/astro';
+function readDistFiles(dir='dist',prefix='') {
+  const out=[];
+  for(const entry of readdirSync(dir,{withFileTypes:true})){
+    const rel=prefix?prefix+'/'+entry.name:entry.name;
+    const path=join(dir,entry.name);
+    if(entry.isDirectory())out.push(...readDistFiles(path,rel));
+    else if(entry.isFile())out.push({path:rel,bytes:readFileSync(path)});
+    else throw new Error('F24: unsupported dist entry '+rel);
+  }
+  return out;
+}
 try {
   execFileSync(astro,['build'],{env,stdio:'pipe',timeout:60000});
   const built=readFileSync('dist/servicos/landing-pages/index.html','utf8');
   assert.ok(built.includes(label),'Build must use signed metadata title');
   assert.ok(built.includes(description),'Build must use signed public intro');
   assert.ok(!built.includes('portal_test_ci_01'),'Public HTML must not expose signing key ID');
+  // F24: o lote assinado precisa produzir os mesmos metadados da página entregue,
+  // e o digest precisa refletir os bytes do pacote compilado, não só o JSON.
+  const signedFiles=readDistFiles();
+  const proof=createSignedBuildReview(signedFiles,envelope,
+    new Map([[envelope.keyId,pem]]),{
+      expectedReleaseId:snapshot.releaseId,
+      expectedPayloadSha256:env.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256
+    });
+  assert.equal(proof.releaseId,snapshot.releaseId);
+  assert.equal(proof.verifiedServiceCount,1);
+  assert.match(proof.treeSha256,/^[a-f0-9]{64}$/);
+  const tamperedFiles=signedFiles.map(file=>file.path==='servicos/landing-pages/index.html'
+    ? {...file,bytes:Buffer.from(file.bytes.toString('utf8').replace(label,'Texto adulterado'))}
+    : file);
+  assert.throws(()=>createSignedBuildReview(tamperedFiles,envelope,
+    new Map([[envelope.keyId,pem]]),{
+      expectedReleaseId:snapshot.releaseId,
+      expectedPayloadSha256:env.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256
+    }),/HTML title differs|description differs|intro differs/);
+  console.log('F24 signed HTML/build binding verified, SHA-256:',proof.treeSha256);
 
   // Com assinatura válida, um lote de publicação inesperado deve falhar.
   assert.throws(
