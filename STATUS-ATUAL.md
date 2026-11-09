@@ -27,3 +27,11 @@ Astro 7 SEO-first; projeto independente do Portal e do SEO Engine. Site atual `i
 
 ## Próximo recorte recomendado
 Auditoria SEO da migração e estabilização de dependências/preview protegido, seguida de contrato de publicação autenticada com Portal e QA responsivo.
+
+## Rodada F6/F7 — 09/11/2026
+- PR #8: https://github.com/rafhael100/imagine-comercial/pull/8 — package-lock gerado, npm ci reproduzível, Chromium 24.04, axe WCAG 2.1 A/AA, capturas de browser.
+- PR #9: https://github.com/rafhael100/imagine-comercial/pull/9 — hero comercial ilustrado em HTML/CSS, CTA primário de proposta, seis serviços com links da homepage.
+- CI real mais recente: https://github.com/rafhael100/imagine-comercial/actions/runs/42565153025 — 37/37 testes Node passaram, 15 páginas HTML auditadas com 0 erros e 0 avisos no auditor offline, 15 rotas móveis e 6 desktop carregadas, testes axe WCAG nas páginas selecionadas sem violações detectadas. Capturas de mobile e desktop anexadas ao workflow.
+- A versão ensaiada é estática e não publicada. Sem dados reais de tráfego, benchmark Google Lighthouse/CWV de campo, cadastro, carrinho, CMS real ou checkout financeiro homologados.
+- Bloqueios seguintes: autenticação/autorização do publicador Portal, APIs e preços oficiais, URLs atuais completas e migração 301, revisão visual e conteúdo real com identidade oficial, privacidade e mensuração com consentimento, staging protegido, testes financeiros/fiscais e autorização de produção.
+- CI temporário de geração de package-lock foi **removido** após registrar lock em branch. Não conceder auto-merge de PRs draft.
