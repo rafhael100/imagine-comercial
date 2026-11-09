@@ -51,6 +51,13 @@ function readApprovedFile(path, maxBytes, label) {
 }
 
 export function loadBuildServices(env = process.env) {
+  // Explicit intent from the trusted build orchestrator; never inferred from a
+  // user-facing URL, repository data or signed payload itself.
+  const requireSigned = env.IMAGINE_CATALOG_REQUIRE_SIGNED;
+  if (requireSigned !== undefined && requireSigned !== '' &&
+      requireSigned !== '0' && requireSigned !== '1') {
+    throw new Error('build catalog: invalid signed-required mode');
+  }
   const envelopePath = env.IMAGINE_CATALOG_ENVELOPE_FILE;
   const keyPath = env.IMAGINE_CATALOG_PUBLIC_KEY_FILE;
   const keyId = env.IMAGINE_CATALOG_TRUSTED_KEY_ID;
@@ -58,7 +65,12 @@ export function loadBuildServices(env = process.env) {
   const payloadHash = env.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256;
   const provided = [envelopePath, keyPath, keyId, releaseId, payloadHash]
     .filter(x => x !== undefined && x !== '');
-  if (provided.length === 0) return curatedServices;
+  if (provided.length === 0) {
+    if (requireSigned === '1') {
+      throw new Error('build catalog: signed catalog required; refusing curated fallback');
+    }
+    return curatedServices;
+  }
   if (provided.length !== 5 || !KEY_ID.test(keyId)) {
     throw new Error('build catalog: envelope, public key, key ID, release ID and SHA-256 required together');
   }
