@@ -35,3 +35,7 @@ Uma exportação `Pages.csv` não substitui sitemap histórico, rastreamento do 
 Antes de qualquer regra 301 em produção: aprovação de cada par origem/destino, verificação do conteúdo equivalente, lista de HOLD, gestão de idiomas, tratamento dos termos e portfólio, homologação de canonical/sitemap/404/redirects no staging, aprovação humana separada e procedimento de rollback.
 
 Nenhuma mudança em `main`, DNS, Cloudflare, redirecionamentos ativos, fornecedor pago ou cliente foi feita por esta fase.
+
+## Proteções adicionais
+
+A verificação da URL também rejeita explicitamente os segmentos `/./` e `/../`, inclusive o equivalente com codificação percent-encoding, ANTES da normalização feita pelo parser de URL. Isso impede atribuir inadvertidamente uma URL manipulada a um caminho diferente do fornecido na exportação. A importação permanece apenas de revisão; regras de redirecionamento não são geradas.
