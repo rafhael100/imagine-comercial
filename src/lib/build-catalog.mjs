@@ -6,6 +6,7 @@
 import { readFileSync, lstatSync } from 'node:fs';
 import { services as curatedServices } from '../data/services.mjs';
 import { verifySignedCatalog } from './verify-signed-catalog.mjs';
+import { enforceReleasePin } from './release-pin.mjs';
 
 const MAX_ENVELOPE_BYTES = 2 * 1024 * 1024;
 const MAX_PUBKEY_BYTES = 16 * 1024;
@@ -53,16 +54,22 @@ export function loadBuildServices(env = process.env) {
   const envelopePath = env.IMAGINE_CATALOG_ENVELOPE_FILE;
   const keyPath = env.IMAGINE_CATALOG_PUBLIC_KEY_FILE;
   const keyId = env.IMAGINE_CATALOG_TRUSTED_KEY_ID;
-  const provided = [envelopePath, keyPath, keyId].filter(x => x !== undefined && x !== '');
+  const releaseId = env.IMAGINE_CATALOG_EXPECTED_RELEASE_ID;
+  const payloadHash = env.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256;
+  const provided = [envelopePath, keyPath, keyId, releaseId, payloadHash]
+    .filter(x => x !== undefined && x !== '');
   if (provided.length === 0) return curatedServices;
-  if (provided.length !== 3 || !KEY_ID.test(keyId)) {
-    throw new Error('build catalog: signed envelope, public key and key ID required together');
+  if (provided.length !== 5 || !KEY_ID.test(keyId)) {
+    throw new Error('build catalog: envelope, public key, key ID, release ID and SHA-256 required together');
   }
   // Conteúdo e chave pública injetados SOMENTE por ambiente de build autorizado.
   const envelope = JSON.parse(readApprovedFile(envelopePath, MAX_ENVELOPE_BYTES, 'envelope'));
   const publicKey = readApprovedFile(keyPath, MAX_PUBKEY_BYTES, 'public key');
   const snapshot = verifySignedCatalog(envelope, new Map([[keyId, publicKey]]));
   if (envelope.keyId !== keyId) throw new Error('build catalog: key ID mismatch');
+  enforceReleasePin(snapshot, envelope, {
+    expectedReleaseId: releaseId, expectedPayloadSha256: payloadHash
+  });
   return mergeApprovedServiceMetadata(curatedServices, snapshot);
 }
 

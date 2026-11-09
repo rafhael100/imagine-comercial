@@ -3,7 +3,7 @@
  * comprovar atualização do HTML, rejeitar assinatura falsificada e restaurar build normal.
  * Chaves de teste são geradas em memória; nenhum segredo entra no repositório.
  */
-import { generateKeyPairSync, sign } from 'node:crypto';
+import { generateKeyPairSync, sign, createHash } from 'node:crypto';
 import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -31,11 +31,15 @@ writeFileSync(keyPath,pem);
 writeFileSync(envelopePath,JSON.stringify(envelope));
 const env={...process.env,IMAGINE_CATALOG_ENVELOPE_FILE:envelopePath,
   IMAGINE_CATALOG_PUBLIC_KEY_FILE:keyPath,
-  IMAGINE_CATALOG_TRUSTED_KEY_ID:'portal_test_ci_01'};
+  IMAGINE_CATALOG_TRUSTED_KEY_ID:'portal_test_ci_01',
+  IMAGINE_CATALOG_EXPECTED_RELEASE_ID:snapshot.releaseId,
+  IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:createHash('sha256').update(bytes).digest('hex')};
 const buildEnv={...process.env};
 delete buildEnv.IMAGINE_CATALOG_ENVELOPE_FILE;
 delete buildEnv.IMAGINE_CATALOG_PUBLIC_KEY_FILE;
 delete buildEnv.IMAGINE_CATALOG_TRUSTED_KEY_ID;
+delete buildEnv.IMAGINE_CATALOG_EXPECTED_RELEASE_ID;
+delete buildEnv.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256;
 const astro='node_modules/.bin/astro';
 try {
   execFileSync(astro,['build'],{env,stdio:'pipe',timeout:60000});
@@ -44,13 +48,20 @@ try {
   assert.ok(built.includes(description),'Build must use signed public intro');
   assert.ok(!built.includes('portal_test_ci_01'),'Public HTML must not expose signing key ID');
 
+  // Com assinatura válida, um lote de publicação inesperado deve falhar.
+  assert.throws(
+    ()=>execFileSync(astro,['build'],{
+      env:{...env,IMAGINE_CATALOG_EXPECTED_RELEASE_ID:'release_unapproved_ci'},
+      stdio:'pipe',timeout:60000
+    }),/Command failed|status/
+  );
   envelope.signatureBase64=Buffer.alloc(64,4).toString('base64');
   writeFileSync(envelopePath,JSON.stringify(envelope));
   assert.throws(
     ()=>execFileSync(astro,['build'],{env,stdio:'pipe',timeout:60000}),
     /Command failed|status/
   );
-  console.log('F9 signed-build verification passed: real metadata applied; altered signature rejected.');
+  console.log('F14 signed-build verification passed: approved release applied; wrong pin and altered signature rejected.');
 } finally {
   // Se uma build com assinatura inválida truncou dist/, restaurar resultado público padrão.
   try{execFileSync(astro,['build'],{env:buildEnv,stdio:'pipe',timeout:60000});}
