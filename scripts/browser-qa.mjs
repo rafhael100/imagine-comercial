@@ -14,7 +14,7 @@ const host = 'http://127.0.0.1:' + port;
 const artifacts = 'artifacts/browser';
 const timeout = 45000;
 let browser;
-const server = spawn(process.execPath, ['node_modules/astro/astro.js', 'preview', '--host', '127.0.0.1', '--port', String(port)], {
+const server = spawn('node_modules/.bin/astro', ['preview', '--host', '127.0.0.1', '--port', String(port)], {
   stdio: ['ignore', 'pipe', 'pipe'], env: {...process.env, PUBLIC_PORTAL_LOGIN_URL:''}
 });
 let serverOutput = '';
