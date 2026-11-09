@@ -81,3 +81,16 @@ Este bloco é o retrato atual e **substitui os números históricos das seções
 - F20 CI corrigido e **aprovado**: https://github.com/rafhael100/imagine-comercial/actions/runs/42628077878.
 - **CI de F21 aprovado**: https://github.com/rafhael100/imagine-comercial/actions/runs/42628813778 — Node, Astro build, verificação 1:1 do sitemap, auditor SEO Engine, catálogo assinado e QA em navegador. A validação não comprova resultados do Google em campo.
 - **Nenhum merge em main, staging público, release, redirect 301 efetivo, DNS ou publicação**. Gate de revisão humana e integração Portal permanecem pendentes.
+
+
+## Rodada F22 — 09/11/2026
+- [PR #22](https://github.com/rafhael100/imagine-comercial/pull/22): inventário determinístico SHA-256 e manifesto **REVIEW-ONLY** do build estático, sem criar pacote de deploy. Bloqueia arquivos não homologados, regras Cloudflare, symlinks e HTML inesperado.
+- [CI F22 aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/42630059498): 91/91 testes Comercial, 35/35 SEO Engine, build Astro e navegador aprovados. Inventário de 19 arquivos e 15 HTML públicos, total de 162905 bytes; digest de laboratório SHA-256 `1d822d1eb32106b4914e8563739784db5009b0a25f03ba72d7bb07db2f04dced`. Artefato de revisão com retenção de sete dias.
+- O digest **não é assinatura do publicador**, não garante procedência e não constitui autorização de publicação.
+
+## Rodada F23 — 09/11/2026
+- [PR #23](https://github.com/rafhael100/imagine-comercial/pull/23): expansão do teste HTTP em Cloudflare Workerd **somente local** para todas as 15 rotas públicas, com metadados canônicos/robots/OG e arquivos sitemap.xml/robots.txt.
+- [CI Workerd F23 aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/42630522286): 5 respostas 301 de candidatos ativados apenas numa cópia descartável, 15 respostas HTTP 200, 2 arquivos SEO e 11 respostas 404 com noindex e sem canonical.
+- [CI geral F23 aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/42630522268): testes Node, build Astro, integração com SEO Engine e QA Chromium.
+- Encadeamento atual até F23 em **PRs draft**. Nenhum merge em main, mudança de domínio, redirect ativo, deploy ou gasto com fornecedor.
+- Gates de lançamento: aprovação editorial e jurídica, inventário integral GSC/301, marca/portfólio/licenças, CMS Portal com AuthN/AuthZ e MFA efetivos, operação transacional e recuperação, checkout/fiscal, staging privado e autorização expressa de DNS/produção.
