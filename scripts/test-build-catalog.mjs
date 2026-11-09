@@ -4,7 +4,7 @@
  * Chaves de teste são geradas em memória; nenhum segredo entra no repositório.
  */
 import { generateKeyPairSync, sign, createHash } from 'node:crypto';
-import { mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -126,6 +126,10 @@ try {
         env:cliEnv,stdio:'pipe',timeout:120000
       }),/Command failed|status/);
   }
+  assert.equal(existsSync('dist'),false,
+    'F37 invalid protected run must never leave an older publishable dist tree');
+  assert.equal(existsSync('artifacts/protected-build-review/PROTECTED-BUILD-REVIEW-ONLY.json'),
+    false,'F37 invalid protected run must never leave stale verification evidence');
   console.log('F37 protected CLI refused review, unsigned production and disabled signing mode.');
 
   // F37: alvo staging/production declarado nunca faz fallback editorial
