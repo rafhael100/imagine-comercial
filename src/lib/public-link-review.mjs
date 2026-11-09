@@ -75,7 +75,13 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[]}={}) {
          href.split(/[/?#]/).some(x=>x==='.'||x==='..')) {
         failure(currentPath,index,'unsafe or ambiguous internal URL');
       }
-      if(!destinations.has(url.pathname))failure(currentPath,index,'internal route missing from sitemap');
+      // 404 is deliberately noindex and absent from the public sitemap.
+      // Its local skip-to-content anchor is valid, but linking to /404/
+      // from another page must never be treated as a public route.
+      const local404Anchor=currentPath==='/404/' && href.startsWith('#') &&
+        url.pathname==='/404/';
+      if(!destinations.has(url.pathname) && !local404Anchor)
+        failure(currentPath,index,'internal route missing from sitemap');
       if(url.hash) {
         const fragment=url.hash.slice(1);
         if(url.pathname==='/contato/' && intents.has(fragment)) {
