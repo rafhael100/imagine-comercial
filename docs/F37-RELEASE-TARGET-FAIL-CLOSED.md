@@ -31,3 +31,28 @@ Valores como `prod`, `STAGING`, `true`, `0`, strings com espaços ou tipos não 
 Por este motivo, o código não adiciona deployment workflow, credenciais, artefatos `_redirects`/`_headers` de produção nem atalhos de publicação. Os gates de GSC/crawl real, CRM e LGPD, preços/contratos, VPS de homologação e autorização exclusiva para merge/DNS/Cloudflare seguem pendentes.
 
 Nenhum dado pessoal real, chamada remota, custo, lançamento ou merge na `main`.
+
+## Entry point de build protegido e prova dos arquivos
+
+O comando `npm run build:protected` executa `scripts/build-protected-release.mjs` e **somente funciona** com alvo `staging` ou `production` e `IMAGINE_CATALOG_REQUIRE_SIGNED=1`. Ele não realiza publicação:
+
+1. Remove evidências de revisão anteriores para impedir uso de recibo obsoleto, mesmo se a configuração atual for inválida.
+2. Exige arquivos locais regulares de envelope e chave pública (com limites de tamanho), keyId esperado e os pins exatos de releaseId e SHA-256.
+3. Verifica assinatura Ed25519 e os pins **antes** da compilação, apaga o `dist/` anterior e executa `astro build` com os mesmos inputs protegidos.
+4. Recusa links simbólicos na árvore compilada, arquivos inesperados ou faltantes, e compara os metadados assinados com HTML, canonical e texto compilado.
+5. Produz apenas `artifacts/protected-build-review/PROTECTED-BUILD-REVIEW-ONLY.json` com alvo declarado, releaseId, keyId público, SHA-256 do catálogo, SHA-256 da árvore compilada e contagem de páginas verificadas. Ele **não cria atestação assinada por chave operacional, recibo externo, publicação ou rollback remoto**.
+
+Comando previsto para futuro orquestrador protegido, após receber artefatos e autorizações do Portal (não executar com dados reais no GitHub público):
+
+```bash
+IMAGINE_RELEASE_TARGET=staging \\
+IMAGINE_CATALOG_REQUIRE_SIGNED=1 \\
+IMAGINE_CATALOG_ENVELOPE_FILE=/caminho/privado/catalogo.json \\
+IMAGINE_CATALOG_PUBLIC_KEY_FILE=/caminho/privado/issuer.pub.pem \\
+IMAGINE_CATALOG_TRUSTED_KEY_ID=portal_key_aprovada \\
+IMAGINE_CATALOG_EXPECTED_RELEASE_ID=release_validado \\
+IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256=<sha256_validado> \\
+npm run build:protected
+```
+
+O exemplo acima é **apenas documental** e não inclui chaves, valores, sessão nem aprovação reais. O E2E de CI executa o mesmo entry point apenas com chaves e dados sintéticos descartáveis e comprova recusa em modo `review`, produção sem assinatura e staging/produção com flag desativada.
