@@ -19,7 +19,7 @@ test('landing page content has a title, H1 and action through the curated templa
   assert.ok(page.heading.length > 20);
   const template = read('src/pages/servicos/[slug].astro');
   assert.ok(template.includes('<h1>{s.heading}</h1>'));
-  assert.ok(template.includes('href="/contato/"'));
+  assert.ok(template.includes("href={'/contato/#' + s.slug}"));
 });
 
 test('sitemap uses authoritative published routes and excludes private paths', () => {

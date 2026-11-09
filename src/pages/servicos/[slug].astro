@@ -22,7 +22,7 @@ const pathname = '/servicos/' + s.slug + '/';
       <h1>{s.heading}</h1>
       <p class="lead">{s.intro}</p>
       <div class="cta-row">
-        <a class="cta" href="/contato/">Solicitar uma proposta</a>
+        <a class="cta" href={'/contato/#' + s.slug}>Solicitar uma proposta</a>
         <a class="cta cta-secondary" href="/servicos/">Comparar soluções</a>
       </div>
     </div>
@@ -50,7 +50,7 @@ const pathname = '/servicos/' + s.slug + '/';
     <div class="shell">
       <h2>Vamos conversar sobre o seu projeto?</h2>
       <p>Envie o objetivo da sua empresa para a Imagine e receba orientações sobre os próximos passos. Valores e condições comerciais serão confirmados na proposta oficial.</p>
-      <a class="cta" href="/contato/">Entrar em contato</a>
+      <a class="cta" href={'/contato/#' + s.slug}>Entrar em contato</a>
     </div>
   </section>
 </BaseLayout>

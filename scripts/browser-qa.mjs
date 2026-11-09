@@ -76,6 +76,17 @@ try {
         }
       }
     }
+    // Jornada comercial: um clique deve manter o serviço de origem sem requisição ao Portal.
+    await page.goto(host+'/servicos/landing-pages/',{waitUntil:'load',timeout});
+    await page.locator('a.cta[href="/contato/#landing-pages"]').first().click();
+    await page.waitForURL(host+'/contato/#landing-pages');
+    assert.equal(await page.locator('#service-choice').inputValue(),'landing-pages','Contact intent is preselected');
+    const wa=await page.locator('#contact-whatsapp').getAttribute('href');
+    assert.equal(new URL(wa).searchParams.get('text')?.includes('Landing Pages'),true,'WhatsApp service context');
+    const emailHref=await page.locator('#contact-email').getAttribute('href');
+    assert.ok(emailHref?.includes(encodeURIComponent('Landing Pages')),'Email service context');
+    await page.locator('#service-choice').selectOption('onepage');
+    assert.ok((await page.locator('#contact-whatsapp').getAttribute('href'))?.includes('Onepage'),'Changing service updates CTA');
     assert.deepEqual(errors,[],viewport.label+' runtime errors');
     await context.close();
   }
