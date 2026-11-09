@@ -1,0 +1,100 @@
+name: Imagine Comercial - SEO, build e navegador
+
+on:
+  push:
+    branches:
+      - feat/f1-public-pages-cro-seo-2026-11-09
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    name: Testes, auditor SEO e QA visual
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Obter codigo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configurar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Testar contratos sem dependencias
+        run: npm test
+      - name: Instalar dependencias reproduziveis
+        run: npm ci --no-audit --no-fund
+      - name: Gerar paginas Astro
+        run: npm run build
+      - name: Validar HTML gerado, sitemap e robots
+        run: node scripts/verify-dist.mjs
+      - name: Obter auditor SEO independente em SHA fixo
+        uses: actions/checkout@v4
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: 238acb0772dc7597f23ce3fd1761d68be1d35179
+          path: .qa/seo-engine
+          persist-credentials: false
+      - name: Executar testes da versao fixada do Imagine SEO Engine
+        run: npm --prefix .qa/seo-engine test
+      - name: Auditar SEO do HTML compilado
+        run: node .qa/seo-engine/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings
+      - name: Comprovar consumo real de catálogo assinado no build
+        run: node scripts/test-build-catalog.mjs
+      - name: Conferir HTML padrão após restaurar a compilação
+        run: node scripts/verify-dist.mjs
+      - name: Verificar orcamento de arquivos estaticos
+        run: node scripts/check-asset-budgets.mjs dist
+      - name: Simular migração de URLs legadas, sem aplicar redirecionamentos
+        run: node scripts/preview-cloudflare-migration.mjs
+      - name: Salvar apenas relatorio de revisao de redirects
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagine-migration-REVIEW-ONLY
+          path: artifacts/migration-preview/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Auditar exportacao GSC estritamente sintetica (offline, sem 301)
+        run: node scripts/review-gsc-inventory.mjs --synthetic
+      - name: Guardar somente relatorio GSC com dados sinteticos
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagine-gsc-SYNTHETIC-REVIEW-ONLY
+          path: artifacts/gsc-review/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Confrontar GSC e crawl de teste, sem 301 e sem dados reais
+        run: node scripts/review-seo-two-sources.mjs --synthetic
+      - name: Guardar evidencia dupla SEO SOMENTE sintetica
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagine-seo-two-source-SYNTHETIC-REVIEW-ONLY
+          path: artifacts/seo-two-source-review/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Instalar Chromium para QA de navegador
+        run: npx playwright install --with-deps chromium
+      - name: Testar responsividade e WCAG no navegador
+        run: npm run test:browser
+      - name: Preparar inventario SHA-256 do build para revisao offline (sem deploy)
+        run: node scripts/prepare-release-review.mjs
+      - name: Armazenar somente manifesto REVIEW-ONLY de integridade
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagine-comercial-release-REVIEW-ONLY
+          path: artifacts/release-review/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Salvar capturas do ambiente de testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagine-comercial-browser-screenshots
+          path: artifacts/browser/*.png
+          if-no-files-found: ignore
+          retention-days: 14
