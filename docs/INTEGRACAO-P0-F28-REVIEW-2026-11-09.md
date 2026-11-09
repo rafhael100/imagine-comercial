@@ -28,3 +28,11 @@ Referência: 09/11/2026. **Este documento não autoriza merge em main, deploy, t
 6. Aprovação humana exclusiva para merge `main`, publicar em Cloudflare, alterar DNS e ativar 301/headers produtivos.
 
 **Sem despesas novas, acesso remoto, credenciais, clientes reais, publicação ou auto-merge nesta etapa.** O código é candidato de revisão acumulada, não lançamento concluído.
+
+
+## CI do candidato de integração — evidência validada
+
+- [Pipeline integrada #42674394469](https://github.com/rafhael100/imagine-comercial/actions/runs/42674394469): **124/124 testes Comercial e 35/35 SEO Engine** aprovados; Astro, QA Chromium, auditoria SEO, pin/snapshot assinado e ensaios GSC/crawl **sintéticos**.
+- [Cloudflare Workerd local #42674394560](https://github.com/rafhael100/imagine-comercial/actions/runs/42674394560): 15 HTML HTTP 200, 11 HTTP 404, 5 redirects 301 somente simulados, dois ativos SEO, quatro cabeçalhos defensivos presentes em todas as 15 páginas públicas. **Zero deployments**.
+- O primeiro run Lighthouse desta branch (#42674394715) foi marcado failure **sem qualquer job criado**, portanto não comprova falha de visual nem permite afirmar baseline do commit atual. Como referência histórica, o [Lighthouse local anterior #42659272718](https://github.com/rafhael100/imagine-comercial/actions/runs/42659272718) passou com notas 100/100/100 em duas páginas, sem substituir uma nova execução nem CWV reais de campo.
+- A consolidação segue em PR draft, com todos os gates G01–G07 bloqueados. Não interpretar CI sintético como publicação ou homologação de staging.
