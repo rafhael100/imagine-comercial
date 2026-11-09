@@ -52,3 +52,17 @@ Auditoria SEO da migração e estabilização de dependências/preview protegido
 - Toda a pilha permanece em PRs de rascunho e branches de desenvolvimento, com **main, domínio, DNS e produção preservados**.
 - O CMS do Portal ainda NÃO publica dados reais; não há checkout, formulário CRM, rastreamento real, licença de imagens/portfólio homologadas ou política de privacidade migrada.
 - Para lançamento continuam necessários inventário real de URLs e Search Console, fluxo do Portal autenticado/autorizações, homologação legal/fiscal/comercial, staging protegido e aprovação exclusiva para deploy/DNS.
+
+
+## Consolidação P0 — Integração Comercial/SEO atualizada (09/11/2026)
+Este bloco é o retrato atual e **substitui os números históricos das seções anteriores**; os relatos antigos permanecem para rastreabilidade.
+
+- **Tecnologia:** Astro 7 estático por padrão. Repositório de aquisição pública independente do Portal e do SEO Engine.
+- **PRs:** F0/F1/F2–F19 em rascunho, encadeados por base; última ponta [PR #19](https://github.com/rafhael100/imagine-comercial/pull/19). A `main` contém somente a fundação documental; **não declarar o site integrado/lançado**.
+- **Motor SEO P1:** checkout em SHA fixo `238acb0772dc7597f23ce3fd1761d68be1d35179` (SEO-F5), e o CI do site executa também os testes do próprio motor, não apenas sua auditoria HTML.
+- **Evidências integradas:** [CI Comercial + SEO](https://github.com/rafhael100/imagine-comercial/actions/runs/42620760030) — **78/78 testes do site e 35/35 do SEO Engine**, build Astro, auditor SEO e QA Chromium (15 rotas mobile e 6 desktop) aprovados; [Workerd local](https://github.com/rafhael100/imagine-comercial/actions/runs/42620759992) aprovado. São execuções de laboratório, não testes reais de produção.
+- **Performance:** Lighthouse mobile local de homepage e Landing Pages teve 100 em desempenho, acessibilidade e SEO na [rodada validada](https://github.com/rafhael100/imagine-comercial/actions/runs/42583567496), sem garantia de CrUX/CWV de campo ou ranking.
+- **Migração:** inventário parcial de **5 candidatas e 10 HOLD**, incluindo oito URLs de serviços antigas adicionadas em F19. Apenas simulação de 5 respostas 301, 2 páginas 200 e 11 respostas 404 no Workerd local; **nenhum `_redirects` real**.
+- **Compatibilidade com Portal:** a [integração laboratório PHP→PostgreSQL→Astro](https://github.com/rafhael100/imagine-portal/actions/runs/42621077771) consumiu commit do site `365a6be1ac2a16f9eb39522ceb0c308e05f75302`, com 78 testes comerciais e 35 testes SEO aprovados; nenhuma autenticação/conta real.
+- **Gates de lançamento:** resolver autenticador Portal/MFA/grants frescos, fluxo transacional de publicação e confirmação de entrega, checkout e fiscal homologados, marca/oferta/privacidade/licenças, inventário Search Console e URLs/301 completos, staging protegido e aprovação exclusiva de deploy e DNS.
+- **Autoridade:** sem merge em `main`, deploy Cloudflare/VPS, alteração DNS, dados reais de clientes ou fornecedores pagos sem aprovação específica.

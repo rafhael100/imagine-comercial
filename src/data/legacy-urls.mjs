@@ -13,6 +13,46 @@ export const legacyUrls = Object.freeze([
     reason: 'Página institucional legada; revisar eventuais dados históricos e alegações antes da migração.'
   },
   {
+    from: '/o-que-fazemos/criacao-de-sites-institucional.html',
+    to: '/servicos/criacao-de-sites/', status: 'candidate',
+    reason: 'Página institucional antiga ligada no menu; avaliar equivalência do novo serviço sem copiar alegações históricas.'
+  },
+  {
+    from: '/o-que-fazemos/google-ads-anuncios.html',
+    to: '/servicos/gestao-google-ads/', status: 'candidate',
+    reason: 'Página Google Ads antiga ligada no menu; mesma intenção principal, mas conteúdo e escopo exigem revisão.'
+  },
+  {
+    from: '/o-que-fazemos/facebook-instagram-ads.html',
+    to: '/servicos/gestao-meta-ads/', status: 'candidate',
+    reason: 'URL ligada no menu de anúncios Meta; conteúdo não foi recuperado nesta auditoria e exige validação HTTP/editorial.'
+  },
+  {
+    from: '/o-que-fazemos/criacao-de-loja-virtual.html',
+    to: null, status: 'hold',
+    reason: 'Loja virtual não possui página de serviço equivalente homologada no catálogo Astro atual; evitar redirecionar para site institucional.'
+  },
+  {
+    from: '/o-que-fazemos/youtube-ads-anuncios.html',
+    to: null, status: 'hold',
+    reason: 'Serviço antigo específico de YouTube Ads sem página correspondente homologada; revisar escopo antes de redirecionar.'
+  },
+  {
+    from: '/o-que-fazemos/linkedin-ads-anuncios.html',
+    to: null, status: 'hold',
+    reason: 'Serviço antigo LinkedIn Ads não está no catálogo novo; não confundir com gestão Meta ou Google Ads.'
+  },
+  {
+    from: '/o-que-fazemos/marketplace-amazon.html',
+    to: null, status: 'hold',
+    reason: 'Marketplace Amazon é categoria diferente dos produtos novos; exige decisão sobre continuidade comercial.'
+  },
+  {
+    from: '/o-que-fazemos/marketplace-mercado-livre.html',
+    to: null, status: 'hold',
+    reason: 'URL presente na navegação legada, mas verificação HTTP não concluída; sem serviço equivalente homologado.'
+  },
+  {
     from: '/clientes.html', to: null, status: 'hold',
     reason: 'Aguardando portfólio com autorizações de divulgação; não redirecionar para a homepage.'
   },
