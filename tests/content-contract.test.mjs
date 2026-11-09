@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { services, sitePages, toAbsoluteUrl } from '../src/data/services.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
+import {contactChannels} from '../src/data/contact-channels.mjs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
@@ -60,8 +61,10 @@ test('all service pages are generated from one curated service catalog', () => {
 
 test('contact uses traceable public channels and no unapproved live capture', () => {
   const source = read('src/pages/contato.astro');
-  assert.ok(source.includes('imagine@imaginecomunicacao.com.br'));
-  assert.ok(source.includes('tel:+558530329525'));
+  assert.ok(source.includes('contactChannels.email'));
+  assert.ok(source.includes('contactChannels.phoneE164'));
+  assert.equal(contactChannels.email,'imagine@imaginecomunicacao.com.br');
+  assert.equal(contactChannels.phoneE164,'+558530329525');
   assert.doesNotMatch(source, /<form|method="post"|fetch\(/);
 });
 
