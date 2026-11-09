@@ -11,6 +11,10 @@ import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
 
+if (process.env.IMAGINE_RELEASE_TARGET &&
+    process.env.IMAGINE_RELEASE_TARGET!=='review') {
+  throw new Error('F37: synthetic CI test must not run as staging/production task');
+}
 const label='Landing Pages empresariais atualizadas no CMS';
 const description='Descrição pública validada por assinatura durante o build Astro, utilizada apenas como demonstração sem dados de clientes.';
 const {privateKey,publicKey}=generateKeyPairSync('ed25519');
@@ -35,7 +39,8 @@ const env={...process.env,IMAGINE_CATALOG_ENVELOPE_FILE:envelopePath,
   IMAGINE_CATALOG_TRUSTED_KEY_ID:'portal_test_ci_01',
   IMAGINE_CATALOG_EXPECTED_RELEASE_ID:snapshot.releaseId,
   IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:createHash('sha256').update(bytes).digest('hex'),
-  IMAGINE_CATALOG_REQUIRE_SIGNED:'1'};
+  IMAGINE_CATALOG_REQUIRE_SIGNED:'1',
+  IMAGINE_RELEASE_TARGET:'staging'};
 const buildEnv={...process.env};
 delete buildEnv.IMAGINE_CATALOG_ENVELOPE_FILE;
 delete buildEnv.IMAGINE_CATALOG_PUBLIC_KEY_FILE;
@@ -43,6 +48,7 @@ delete buildEnv.IMAGINE_CATALOG_TRUSTED_KEY_ID;
 delete buildEnv.IMAGINE_CATALOG_EXPECTED_RELEASE_ID;
 delete buildEnv.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256;
 delete buildEnv.IMAGINE_CATALOG_REQUIRE_SIGNED;
+delete buildEnv.IMAGINE_RELEASE_TARGET;
 const astro='node_modules/.bin/astro';
 function readDistFiles(dir='dist',prefix='') {
   const out=[];
@@ -94,6 +100,21 @@ try {
     env:missingAll,stdio:'pipe',timeout:60000
   }),/Command failed|status/);
   console.log('F25 signed-required mode rejected fully missing catalog configuration.');
+
+  // F37: alvo staging/production declarado nunca faz fallback editorial
+  // e exige que o modo signed-required tenha sido explicitamente ativado.
+  for(const target of ['staging','production']){
+    assert.throws(()=>execFileSync(astro,['build'],{
+      env:{...buildEnv,IMAGINE_RELEASE_TARGET:target},
+      stdio:'pipe',timeout:60000
+    }),/Command failed|status/);
+    assert.throws(()=>execFileSync(astro,['build'],{
+      env:{...env,IMAGINE_RELEASE_TARGET:target,
+        IMAGINE_CATALOG_REQUIRE_SIGNED:'0'},
+      stdio:'pipe',timeout:60000
+    }),/Command failed|status/);
+  }
+  console.log('F37 protected Astro builds rejected omitted signing intent and editorial fallback.');
 
   // Com assinatura válida, um lote de publicação inesperado deve falhar.
   assert.throws(
