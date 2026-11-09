@@ -66,6 +66,7 @@ export function reviewLegacyCrawlCsv(content,{inventory=legacyUrls}={}) {
     rows:Object.freeze(rows)
   });
 }
+const comparable = item => !item.queryOrFragmentSuppressed && !item.unusualPath;
 const matchKey = item => item.host+'\0'+item.from+'\0'+
   Boolean(item.queryOrFragmentSuppressed)+'\0'+Boolean(item.unusualPath);
 
@@ -74,11 +75,13 @@ export function crossCheckGscAndCrawl(gsc,crawl) {
      crawl?.schema!=='imagine.comercial.crawl-inventory-review.v1' ||
      !Array.isArray(gsc.rows)||!Array.isArray(crawl.rows))
     throw new Error('cross-source: validated GSC and crawl reviews required');
-  const mapGsc=new Map(gsc.rows.map(x=>[matchKey(x),x]));
-  const mapCrawl=new Map(crawl.rows.map(x=>[matchKey(x),x]));
-  const onlyGsc=gsc.rows.filter(x=>!mapCrawl.has(matchKey(x)));
-  const onlyCrawl=crawl.rows.filter(x=>!mapGsc.has(matchKey(x)));
-  const both=crawl.rows.filter(x=>mapGsc.has(matchKey(x)));
+  // A query é omitida por privacidade; duas variantes com parâmetros
+  // diferentes NÃO podem contar como a mesma evidência apenas pelo path.
+  const mapGsc=new Map(gsc.rows.filter(comparable).map(x=>[matchKey(x),x]));
+  const mapCrawl=new Map(crawl.rows.filter(comparable).map(x=>[matchKey(x),x]));
+  const onlyGsc=gsc.rows.filter(x=>!comparable(x)||!mapCrawl.has(matchKey(x)));
+  const onlyCrawl=crawl.rows.filter(x=>!comparable(x)||!mapGsc.has(matchKey(x)));
+  const both=crawl.rows.filter(x=>comparable(x)&&mapGsc.has(matchKey(x)));
   const candidateEvidence=both.filter(x=>x.statusCode===200 &&
     !x.queryOrFragmentSuppressed&&!x.unusualPath &&
     mapGsc.get(matchKey(x))?.state==='legacy_candidate_requires_approval');
@@ -91,6 +94,8 @@ export function crossCheckGscAndCrawl(gsc,crawl) {
     gscCount:gsc.uniqueRows,
     crawlCount:crawl.uniqueRows,
     observedOnBoth:both.length,
+    unmatchablePrivacyVariants:gsc.rows.filter(x=>!comparable(x)).length+
+      crawl.rows.filter(x=>!comparable(x)).length,
     gscOnly:Object.freeze(onlyGsc.map(safeEvidence)),
     crawlOnly:Object.freeze(onlyCrawl.map(x=>({
       ...safeEvidence(x),statusCode:x.statusCode
