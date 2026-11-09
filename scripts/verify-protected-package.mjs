@@ -52,7 +52,7 @@ const envelope=JSON.parse(localFile(env.IMAGINE_CATALOG_ENVELOPE_FILE,2*1024*102
 const publicKey=localFile(env.IMAGINE_CATALOG_PUBLIC_KEY_FILE,16*1024,'public key');
 const expectedKeyId=env.IMAGINE_CATALOG_TRUSTED_KEY_ID;
 const verified=verifyProtectedArtifact({
-  files:readTree(),report,envelope,
+  files:readTree(),review:report,envelope,
   trustKeys:new Map([[expectedKeyId,publicKey]]),
   expectedKeyId,
   expectedTarget:env.IMAGINE_RELEASE_TARGET,
