@@ -57,6 +57,8 @@ try {
       const canonical=await page.locator('link[rel="canonical"]').getAttribute('href');
       assert.equal(canonical,'https://imaginecomunicacao.com.br'+route,viewport.label+': '+route+' canonical');
       assert.equal(await page.locator('main#conteudo').count(),1,route+' main landmark');
+      assert.equal(await page.locator('a.nav-cta').count(),0,
+        viewport.label+': Portal link must stay hidden without approved build URL');
       assert.equal(await page.locator('a[href="/servicos/"]').count()>=1,true,route+' internal service navigation');
       const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
       if (overflow>2) {

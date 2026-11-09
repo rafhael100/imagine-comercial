@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { services, sitePages, toAbsoluteUrl } from '../src/data/services.mjs';
+import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
@@ -80,6 +81,9 @@ test('JSON-LD safely escapes HTML delimiters and Portal login is HTTPS-restricte
   const layout = read('src/layouts/BaseLayout.astro');
   assert.ok(layout.includes('serializeJsonLd'));
   assert.ok(layout.includes("replace(/</g,"));
-  assert.ok(layout.includes("candidate.protocol === 'https:'"));
-  assert.ok(layout.includes("host.endsWith('.imaginecomunicacao.com.br')"));
+  assert.ok(layout.includes('resolvePortalLoginLink(import.meta.env.PUBLIC_PORTAL_LOGIN_URL)'));
+  assert.equal(resolvePortalLoginLink('http://portal.imaginecomunicacao.com.br/login'),'');
+  assert.equal(resolvePortalLoginLink('https://evil.imaginecomunicacao.com.br/login'),'');
+  assert.equal(resolvePortalLoginLink('https://portal.imaginecomunicacao.com.br/login'),
+    'https://portal.imaginecomunicacao.com.br/login');
 });

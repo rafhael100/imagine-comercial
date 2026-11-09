@@ -1,5 +1,6 @@
 ---
 import { toAbsoluteUrl } from '../data/services.mjs';
+import { resolvePortalLoginLink } from '../lib/portal-login-link.mjs';
 interface Props {
   title: string;
   description: string;
@@ -11,18 +12,8 @@ interface Props {
 }
 const { title, description, pathname, noindex = false, breadcrumb = [], serviceName, articleTitle } = Astro.props;
 const canonical = toAbsoluteUrl(pathname, Astro.site?.toString());
-// URLs externas de autenticação só podem apontar para a propriedade oficial da Imagine.
-const portalCandidate = import.meta.env.PUBLIC_PORTAL_LOGIN_URL || '';
-const portalLoginUrl = (() => {
-  try {
-    const candidate = new URL(portalCandidate);
-    const host = candidate.hostname.toLowerCase();
-    const authorized = host === 'imaginecomunicacao.com.br' || host.endsWith('.imaginecomunicacao.com.br');
-    return candidate.protocol === 'https:' && authorized ? candidate.toString() : '';
-  } catch {
-    return '';
-  }
-})();
+// O atalho é opcional e aparece somente se a URL passa pelo allowlist.
+const portalLoginUrl = resolvePortalLoginLink(import.meta.env.PUBLIC_PORTAL_LOGIN_URL);
 // Evita encerramento de <script> em conteúdo futuramente proveniente de CMS.
 const serializeJsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
 const organization = {
