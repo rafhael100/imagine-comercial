@@ -15,6 +15,15 @@ import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
 const outputDir='artifacts/protected-build-review';
 // Clear old evidence even when the current request has invalid inputs.
 rmSync(outputDir,{recursive:true,force:true});
+// Do not leave an older dist tree behind if the compiler fails to start.
+try{
+  const stat=lstatSync('dist');
+  if(stat.isSymbolicLink()||!stat.isDirectory())
+    throw new Error('protected build: unexpected dist filesystem entry');
+}catch(error){
+  if(error.code!=='ENOENT')throw error;
+}
+rmSync('dist',{recursive:true,force:true});
 const intent=assertBuildReleaseIntent(process.env);
 if(!intent.signedRequired || intent.target==='review')
   throw new Error('protected build: staging or production target and signed mode required');
@@ -43,15 +52,6 @@ const pins={
 const snapshot=verifySignedCatalog(envelope,trustKeys);
 enforceReleasePin(snapshot,envelope,pins);
 
-// Do not leave an older dist tree behind if the compiler fails to start.
-try{
-  const stat=lstatSync('dist');
-  if(stat.isSymbolicLink()||!stat.isDirectory())
-    throw new Error('protected build: unexpected dist filesystem entry');
-}catch(error){
-  if(error.code!=='ENOENT')throw error;
-}
-rmSync('dist',{recursive:true,force:true});
 
 const astro='node_modules/.bin/astro';
 try{
