@@ -54,7 +54,7 @@ test('all service pages are generated from one curated service catalog', () => {
   assert.ok(source.includes('getStaticPaths'));
   assert.ok(source.includes('services.map'));
   assert.ok(source.includes('serviceName={s.label}'));
-  assert.ok(source.includes('href="/contato/"'));
+  assert.ok(source.includes("href={'/contato/#' + s.slug}"));
 });
 
 test('contact uses traceable public channels and no unapproved live capture', () => {
