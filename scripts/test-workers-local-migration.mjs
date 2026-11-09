@@ -8,6 +8,7 @@ import {tmpdir} from 'node:os';
 import {resolve,join} from 'node:path';
 import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
+import {legacyUrls} from '../src/data/legacy-urls.mjs';
 
 const root=await mkdtemp(join(tmpdir(),'imagine-workers-migration-'));
 const configPath=join(root,'wrangler.json');
@@ -56,10 +57,11 @@ try{
   runner.stderr.on('data',b=>{logs=(logs+b.toString()).slice(-12000)});
   await waitReady();
 
-  for(const [old,target] of [
-    ['/fale-conosco.html','/contato/'],
-    ['/agencia-imagine-comunicacao-digital.html','/sobre/']
-  ]){
+  const candidates=legacyUrls.filter(x=>x.status==='candidate');
+  const held=legacyUrls.filter(x=>x.status==='hold');
+  assert.equal(candidates.length,5);
+  assert.equal(held.length,10);
+  for(const {from:old,to:target} of candidates){
     const response=await probe(old);
     assert.equal(response.status,301,old+' must use real Worker 301');
     assert.equal(new URL(response.headers.get('location'),base).pathname,target,old+' target');
@@ -69,8 +71,7 @@ try{
   const contact=await probe('/contato/');
   assert.equal(contact.status,200,'Target page should be accessible');
   for(const blocked of [
-    '/clientes.html','/en-us/','/en-us/termos-de-uso.html',
-    '/uma-rota-f16-inexistente.html'
+    ...held.map(x=>x.from),'/uma-rota-f19-inexistente.html'
   ]){
     const response=await probe(blocked);
     assert.equal(response.status,404,blocked+' must not become a soft-404/redirect');
@@ -78,7 +79,7 @@ try{
     assert.ok(/página não encontrada|página que você procura/i.test(html),
       blocked+' should render custom 404 page');
   }
-  console.log('Cloudflare workerd LOCAL passed: 2 x 301, 2 x 200, 4 x 404; zero deployments.');
+  console.log('Cloudflare workerd LOCAL passed: 5 x 301, 2 x 200, 11 x 404; zero deployments.');
 } finally{
   if(runner?.pid){
     try{process.kill(-runner.pid,'SIGTERM')}catch{}

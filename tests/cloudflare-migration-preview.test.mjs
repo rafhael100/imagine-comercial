@@ -7,9 +7,15 @@ const reason='Equivalência editorial ainda requer revisão individual dos respo
 test('candidate 301 responses are simulation-only; held URLs and 404 remain protected',()=>{
   const plan=createMigrationReview(legacyUrls);
   assert.equal(plan.mode,'SIMULATED_CANDIDATES_NOT_APPROVED_OR_DEPLOYABLE');
-  assert.equal(plan.candidateCount,2);
-  assert.equal(plan.heldCount,5);
+  assert.equal(plan.candidateCount,5);
+  assert.equal(plan.heldCount,10);
   assert.deepEqual(simulateMigrationRequest('/fale-conosco.html',plan),{status:301,location:'/contato/'});
+  assert.deepEqual(simulateMigrationRequest('/o-que-fazemos/criacao-de-sites-institucional.html',plan),
+    {status:301,location:'/servicos/criacao-de-sites/'});
+  assert.deepEqual(simulateMigrationRequest('/o-que-fazemos/google-ads-anuncios.html',plan),
+    {status:301,location:'/servicos/gestao-google-ads/'});
+  assert.deepEqual(simulateMigrationRequest('/o-que-fazemos/facebook-instagram-ads.html',plan),
+    {status:301,location:'/servicos/gestao-meta-ads/'});
   for(const held of plan.heldPaths){
     assert.notEqual(simulateMigrationRequest(held,plan).status,301);
     assert.ok(!plan.candidateRules.includes(held+' '));
