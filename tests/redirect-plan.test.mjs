@@ -39,3 +39,12 @@ test('hold cannot silently point at content and plans are immutable',()=>{
   assert.ok(Object.isFrozen(result.entries));
   assert.ok(Object.isFrozen(result.active));
 });
+
+test('legacy privacy/terms page remains protected from an unrelated redirect',()=>{
+  const item=legacyUrls.find(e=>e.from==='/en-us/termos-de-uso.html');
+  assert.ok(item);
+  assert.equal(item.to,null);
+  assert.equal(item.status,'hold');
+  const plan=validateRedirectPlan(legacyUrls);
+  assert.ok(!toCloudflareRedirectRules(plan).includes('termos-de-uso'));
+});
