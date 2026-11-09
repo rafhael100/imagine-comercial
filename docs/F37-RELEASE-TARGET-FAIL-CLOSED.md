@@ -38,7 +38,7 @@ O comando `npm run build:protected` executa `scripts/build-protected-release.mjs
 
 1. Remove **evidências anteriores e a árvore `dist/` anterior antes de validar quaisquer entradas**, para impedir que um erro de configuração deixe um pacote antigo aparentemente publicável. Esse comportamento é deliberadamente destrutivo apenas no diretório local `dist/`; executá-lo em um workspace descartável do pipeline.
 2. Exige arquivos locais regulares de envelope e chave pública (com limites de tamanho), keyId esperado e os pins exatos de releaseId e SHA-256.
-3. Verifica assinatura Ed25519 e os pins **antes** da compilação, apaga o `dist/` anterior e executa `astro build` com os mesmos inputs protegidos.
+3. Verifica assinatura Ed25519 e os pins **antes** da compilação; executa `astro build` com os mesmos inputs protegidos. Se a compilação ou a auditoria posterior falhar, um `finally` também apaga qualquer `dist/` parcial e a prova de revisão, não apenas o pacote anterior.
 4. Recusa links simbólicos na árvore compilada, arquivos inesperados ou faltantes, e compara os metadados assinados com HTML, canonical e texto compilado.
 5. Produz apenas `artifacts/protected-build-review/PROTECTED-BUILD-REVIEW-ONLY.json` com alvo declarado, releaseId, keyId público, SHA-256 do catálogo, SHA-256 da árvore compilada e contagem de páginas verificadas. Ele **não cria atestação assinada por chave operacional, recibo externo, publicação ou rollback remoto**.
 
