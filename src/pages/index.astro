@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+const title = 'Imagine Comunicação Digital | Sites e soluções digitais';
+const description = 'Soluções digitais para empresas: Landing Pages, Onepages e gestão de campanhas. Conheça como a Imagine trabalha.';
+---
+<BaseLayout title={title} description={description} pathname="/">
+  <section class="shell hero">
+    <p class="eyebrow">Imagine Comunicação Digital</p>
+    <h1>Tecnologia e presença digital para negócios que querem crescer.</h1>
+    <p class="lead">Criamos páginas profissionais e ajudamos empresas a estruturar sua presença digital com soluções orientadas a objetivos comerciais.</p>
+    <a class="cta" href="/servicos/landing-pages/">Conheça nossas Landing Pages</a>
+  </section>
+  <section id="solucoes" class="shell section">
+    <h2>Soluções para sua empresa</h2>
+    <div class="cards">
+      <article class="card"><h3>Landing Pages</h3><p>Páginas com objetivo comercial definido, conteúdo claro e caminhos de conversão.</p><a href="/servicos/landing-pages/">Saiba mais sobre Landing Pages</a></article>
+      <article class="card"><h3>Onepages</h3><p>Apresentação institucional organizada em uma única página.</p><p>Informações comerciais detalhadas em preparação.</p></article>
+      <article class="card"><h3>Performance</h3><p>Planejamento e acompanhamento de campanhas digitais.</p><p>Informações de contratação em preparação.</p></article>
+    </div>
+  </section>
+  <section id="processo" class="shell section">
+    <h2>Um processo claro, do briefing à aprovação.</h2>
+    <p>O planejamento, os materiais, as revisões e a aprovação de cada projeto serão acompanhados pelo Portal Imagine, conforme o serviço contratado.</p>
+  </section>
+</BaseLayout>

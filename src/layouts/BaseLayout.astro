@@ -1,0 +1,72 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  pathname: string;
+  noindex?: boolean;
+}
+const { title, description, pathname, noindex = false } = Astro.props;
+const canonical = new URL(pathname, Astro.site ?? 'https://imaginecomunicacao.com.br').toString();
+const portalLoginUrl = import.meta.env.PUBLIC_PORTAL_LOGIN_URL || '';
+const org = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Imagine Comunicação Digital',
+  url: 'https://imaginecomunicacao.com.br/',
+};
+---
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content={noindex ? 'noindex,nofollow' : 'index,follow'} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <script type="application/ld+json" set:html={JSON.stringify(org)} />
+    <style is:global>
+      :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #17202e; background: #fbfcfe; font-synthesis: none; }
+      * { box-sizing: border-box; }
+      body { margin: 0; line-height: 1.6; }
+      a { color: inherit; }
+      .shell { width: min(1120px, calc(100% - 32px)); margin-inline: auto; }
+      .header { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; padding-block: 20px; }
+      .brand { font-size: 1.4rem; letter-spacing: -.055em; font-weight: 800; text-decoration: none; }
+      nav { display: flex; flex-wrap: wrap; gap: 22px; font-size: .92rem; }
+      nav a { text-decoration: none; }
+      nav a:hover, nav a:focus-visible { text-decoration: underline; }
+      .hero { padding-block: clamp(48px, 9vw, 110px); }
+      .eyebrow { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .13em; color: #135da4; }
+      h1 { line-height: 1.12; font-size: clamp(2.25rem, 5.5vw, 4.6rem); letter-spacing: -.055em; margin: 14px 0; max-width: 850px; }
+      h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.2; letter-spacing: -.035em; }
+      p { max-width: 720px; }
+      .lead { font-size: 1.2rem; color: #3f4e63; }
+      .cta { display: inline-block; padding: 12px 22px; background: #153d67; color: white; border-radius: 10px; text-decoration: none; font-weight: 700; }
+      .cta:focus-visible, a:focus-visible { outline: 3px solid #efae46; outline-offset: 4px; }
+      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding-block: 24px 60px; }
+      .card { border: 1px solid #d9e0e8; border-radius: 15px; padding: 24px; background: white; }
+      .card h3 { margin-top: 0; }
+      .section { padding-block: 32px 56px; }
+      footer { padding-block: 28px; border-top: 1px solid #d9e0e8; color: #4d5c70; font-size: .875rem; }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+    </style>
+  </head>
+  <body>
+    <header class="shell header">
+      <a class="brand" href="/" aria-label="Imagine — Página inicial">imagine.</a>
+      <nav aria-label="Navegação principal">
+        <a href="/#solucoes">Soluções</a>
+        <a href="/servicos/landing-pages/">Landing Pages</a>
+        <a href="/#processo">Como trabalhamos</a>
+        {portalLoginUrl && <a href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}
+      </nav>
+    </header>
+    <main id="conteudo"><slot /></main>
+    <footer><div class="shell">© {new Date().getFullYear()} Imagine Comunicação Digital. Página em desenvolvimento.</div></footer>
+  </body>
+</html>
