@@ -8,6 +8,7 @@ import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
+import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 
 const port = 4328;
 const host = 'http://127.0.0.1:' + port;
@@ -67,6 +68,14 @@ try {
       assert.equal(await page.locator('a.nav-cta').count(),0,
         viewport.label+': Portal link must stay hidden without approved build URL');
       assert.equal(await page.locator('a[href="/servicos/"]').count()>=1,true,route+' internal service navigation');
+      const anchors=await page.locator('a[href]').evaluateAll(elements=>elements.map(el=>({
+        href:el.getAttribute('href'),target:el.getAttribute('target')||'',
+        rel:el.getAttribute('rel')||''
+      })));
+      const fragmentIds=await page.locator('[id]').evaluateAll(elements=>elements.map(el=>el.id));
+      const linkReport=reviewPublicLinks(anchors,{currentPath:route,fragmentIds});
+      assert.ok(linkReport.checked>=6,route+': expected connected internal navigation');
+
       const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
       if (overflow>2) {
         const offenders=await page.evaluate(() => [...document.querySelectorAll('body *')].map(el=>({
@@ -102,6 +111,13 @@ try {
     assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),'noindex,nofollow');
     assert.equal(await page.locator('link[rel="canonical"]').count(),0,viewport.label+': error document has no canonical');
     assert.ok(await page.locator('a[href="/servicos/"]').count()>=1,viewport.label+': 404 navigates back to services');
+    reviewPublicLinks(
+      await page.locator('a[href]').evaluateAll(elements=>elements.map(el=>({
+        href:el.getAttribute('href'),target:el.getAttribute('target')||'',
+        rel:el.getAttribute('rel')||''
+      }))),
+      {currentPath:'/404/',fragmentIds:await page.locator('[id]').evaluateAll(elements=>elements.map(el=>el.id))}
+    );
     // F31 — no cookie, local/session storage, POST or third-party requests
     // may occur during an unapproved lead intake/CRM preview.
     const privacy=await page.evaluate(()=>({
@@ -116,7 +132,7 @@ try {
     assert.deepEqual(errors,[],viewport.label+' runtime errors');
     await context.close();
   }
-  console.log('Browser QA passed:',sitePages.length,'mobile routes, 6 desktop routes, axe WCAG 2.1 A/AA for 3 pages per viewport.');
+  console.log('Browser QA passed:',sitePages.length,'mobile routes, 6 desktop routes, verified internal/external links and anchors, axe WCAG 2.1 A/AA for 3 pages per viewport.');
 } finally {
   if(browser) await browser.close();
   server.kill('SIGTERM');
