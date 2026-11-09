@@ -61,10 +61,11 @@ export function validateSyntheticLeadDraft(input) {
  */
 export class SyntheticLeadInbox {
   #receipts=new Map();
-  submit(draft,idempotencyKey) {
+  submit(input,idempotencyKey) {
     if(!uuidV4.test(idempotencyKey))throw new Error('lead: invalid idempotency UUID');
-    if(!draft||draft.schema!=='imagine.comercial.lead-draft.v1')
-      throw new Error('lead: validated draft required');
+    // Never trust a caller-supplied "validated" schema or consent assertion.
+    // Revalidate the complete public input at the point of consumption.
+    const draft=validateSyntheticLeadDraft(input);
     const canonical=JSON.stringify(draft);
     const old=this.#receipts.get(idempotencyKey);
     if(old) {
