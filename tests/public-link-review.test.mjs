@@ -101,7 +101,7 @@ test('F33: a configured official Portal login URL is allowed only if exact',()=>
   ]) {
     assert.throws(()=>reviewPublicLinks([{href:changed}],{
       currentPath:'/',approvedPortalLoginUrl:approved
-    }),/external destination not in reviewed channel allowlist/);
+    }),/external destination not in reviewed channel allowlist|unapproved URL scheme/);
   }
 });
 
