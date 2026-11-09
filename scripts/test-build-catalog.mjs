@@ -160,6 +160,14 @@ try {
     ()=>execFileSync(astro,['build'],{env,stdio:'pipe',timeout:60000}),
     /Command failed|status/
   );
+  assert.throws(()=>execFileSync(process.execPath,
+    ['scripts/build-protected-release.mjs'],{
+      env,stdio:'pipe',timeout:120000
+    }),/Command failed|status/);
+  assert.equal(existsSync('dist'),false,
+    'F37 invalid signing proof must leave no dist tree');
+  assert.equal(existsSync('artifacts/protected-build-review/PROTECTED-BUILD-REVIEW-ONLY.json'),
+    false,'F37 invalid signing proof must leave no stale review artifact');
   console.log('F14 signed-build verification passed: approved release applied; wrong pin and altered signature rejected.');
 } finally {
   // Se uma build com assinatura inválida truncou dist/, restaurar resultado público padrão.
