@@ -46,6 +46,15 @@ jobs:
         run: node scripts/verify-dist.mjs
       - name: Verificar orcamento de arquivos estaticos
         run: node scripts/check-asset-budgets.mjs dist
+      - name: Simular migração de URLs legadas, sem aplicar redirecionamentos
+        run: node scripts/preview-cloudflare-migration.mjs
+      - name: Salvar apenas relatorio de revisao de redirects
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagine-migration-REVIEW-ONLY
+          path: artifacts/migration-preview/
+          retention-days: 7
+          if-no-files-found: error
       - name: Instalar Chromium para QA de navegador
         run: npx playwright install --with-deps chromium
       - name: Testar responsividade e WCAG no navegador
