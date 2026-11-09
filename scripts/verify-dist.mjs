@@ -20,9 +20,17 @@ for (const path of paths) {
 for (const path of ['sitemap.xml', 'robots.txt']) {
   assert.ok(existsSync(join('dist', path)), 'Build missing SEO file: ' + path);
 }
+const notFoundPath = '404.html';
+assert.ok(existsSync(join('dist', notFoundPath)), 'Build missing custom 404 document');
+const notFound = read(notFoundPath);
+assert.match(notFound, /name="robots" content="noindex,nofollow"/);
+assert.doesNotMatch(notFound, /rel="canonical"/, '404 must not claim a canonical indexable URL');
+assert.doesNotMatch(notFound, /application\/ld\+json/, '404 must not claim public indexable structured data');
+assert.match(notFound, /href="\/servicos\/"/);
+assert.match(notFound, /href="\/contato\/"/);
 const sitemap = read('sitemap.xml');
 for (const service of services) {
   assert.ok(sitemap.includes('/servicos/' + service.slug + '/'), 'Missing sitemap route: ' + service.slug);
 }
-assert.doesNotMatch(sitemap, /\/checkout\/|\/admin\/|\/portal\//);
+assert.doesNotMatch(sitemap, /\/checkout\/|\/admin\/|\/portal\/|\/404\//);
 console.log('Built SEO routes validated:', paths.length, 'HTML pages and sitemap/robots');
