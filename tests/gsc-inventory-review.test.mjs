@@ -112,3 +112,16 @@ test('F26: manifest has no deployment instructions, 301, or approved statuses',(
   assert.ok(Object.isFrozen(result));
   assert.ok(Object.isFrozen(result.rows));
 });
+
+test('F26: refuses URL-normalization path traversal, including percent-encoded segments',()=>{
+  for(const bad of [
+    '/../clientes.html',
+    'https://imaginecomunicacao.com.br/a/./clientes.html',
+    'https://imaginecomunicacao.com.br/a/%2e%2e/clientes.html',
+    'https://imaginecomunicacao.com.br/a/%2fsecret.html',
+    'https://imaginecomunicacao.com.br/a/%5csecret.html'
+  ]){
+    assert.throws(()=>reviewGscPagesCsv('Page\n'+bad+'\n'),
+      /traversal or encoded slash/);
+  }
+});
