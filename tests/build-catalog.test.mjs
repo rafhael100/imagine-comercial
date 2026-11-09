@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
+import { payloadSha256, enforceReleasePin } from '../src/lib/release-pin.mjs';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -36,7 +37,9 @@ function withFiles(envelope, fn) {
   const env={
     IMAGINE_CATALOG_ENVELOPE_FILE:envelopeFile,
     IMAGINE_CATALOG_PUBLIC_KEY_FILE:keyFile,
-    IMAGINE_CATALOG_TRUSTED_KEY_ID:keyId
+    IMAGINE_CATALOG_TRUSTED_KEY_ID:keyId,
+    IMAGINE_CATALOG_EXPECTED_RELEASE_ID:sample().releaseId,
+    IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:payloadSha256(envelope)
   };
   try {return fn(env);} finally{rmSync(dir,{force:true,recursive:true});}
 }
@@ -87,4 +90,31 @@ test('merge rejects duplicate services and unknown paths as additional guard',()
     title:'Página com título novo para a Imagine',description:'Descrição aprovada para o conteúdo comercial de uma Landing Page empresarial.'};
   assert.throws(()=>mergeApprovedServiceMetadata(services,{items:[item,item]}),/duplicate slug/);
   assert.throws(()=>mergeApprovedServiceMetadata(services,{items:[{...item,path:'/servicos/onepage/'}]}),/invalid approved path/);
+});
+
+test('build refuses valid signed data unless both trusted release pins exist',()=>{
+  withFiles(signed(sample()),env=>{
+    assert.throws(()=>loadBuildServices({...env,IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:''}),/required together/);
+    assert.throws(()=>loadBuildServices({...env,IMAGINE_CATALOG_EXPECTED_RELEASE_ID:''}),/required together/);
+    assert.throws(()=>loadBuildServices({
+      IMAGINE_CATALOG_EXPECTED_RELEASE_ID:'release_20261109_20'
+    }),/required together/);
+  });
+});
+test('build rejects a correctly signed but unapproved different release',()=>{
+  withFiles(signed(sample()),env=>{
+    assert.throws(()=>loadBuildServices({...env,IMAGINE_CATALOG_EXPECTED_RELEASE_ID:'release_wrong_99'}),/unexpected release ID/);
+    assert.throws(()=>loadBuildServices({...env,IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:'0'.repeat(64)}),/payload digest/);
+  });
+});
+test('release digest binds the exact signed payload bytes',()=>{
+  const current=signed(sample()), different=signed({
+    ...sample(),releaseId:'release_20261109_20',
+    items:[{...sample().items[0],version:2}]
+  });
+  assert.notEqual(payloadSha256(current),payloadSha256(different));
+  assert.equal(enforceReleasePin(sample(),current,{
+    expectedReleaseId:sample().releaseId,
+    expectedPayloadSha256:payloadSha256(current)
+  }).releaseId,sample().releaseId);
 });
