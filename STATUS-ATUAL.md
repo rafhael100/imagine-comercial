@@ -35,3 +35,10 @@ Auditoria SEO da migração e estabilização de dependências/preview protegido
 - A versão ensaiada é estática e não publicada. Sem dados reais de tráfego, benchmark Google Lighthouse/CWV de campo, cadastro, carrinho, CMS real ou checkout financeiro homologados.
 - Bloqueios seguintes: autenticação/autorização do publicador Portal, APIs e preços oficiais, URLs atuais completas e migração 301, revisão visual e conteúdo real com identidade oficial, privacidade e mensuração com consentimento, staging protegido, testes financeiros/fiscais e autorização de produção.
 - CI temporário de geração de package-lock foi **removido** após registrar lock em branch. Não conceder auto-merge de PRs draft.
+
+## Marco F8 — 09/11/2026
+- PR #10: https://github.com/rafhael100/imagine-comercial/pull/10 — verificador Ed25519 offline dos snapshots públicos do catálogo do Portal, com chave pública autorizada e chaves de teste descartáveis. Não faz autenticação editorial nem deploy.
+- Execução CI verificada: https://github.com/rafhael100/imagine-comercial/actions/runs/42565543554 — 44/44 testes Node aprovados, compilação Astro aprovada, auditor SEO independente sem erros, QA Chromium em 15 rotas mobile + 6 desktop, axe WCAG 2.1 A/AA nas rotas selecionadas.
+- O site de produção permanece inalterado; nenhum pagamento, API CMS real, Search Console/GA4, DNS ou acesso financeiro ativado. Não alegar que este PR habilitou checkout ou indexação real.
+- F6/F7 possuem capturas visuais de homepage e Landing Page no GitHub Actions; o design é preliminar, aguardando revisão da identidade visual real, conteúdo comercial e condições oficiais.
+- Próximos gates críticos: publicação transacional autenticada e aprovada do Portal; inventário SEO completo; revisão de políticas/consentimento, ofertas, checkout, pagamentos e NFS-e antes de eventual produção.
