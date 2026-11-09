@@ -62,7 +62,19 @@ function readDistFiles(dir='dist',prefix='') {
   return out;
 }
 try {
-  execFileSync(astro,['build'],{env,stdio:'pipe',timeout:60000});
+  // O ensaio assinado precisa atravessar o entrypoint do futuro release
+  // build, não apenas chamar Astro diretamente (F37).
+  execFileSync(process.execPath,['scripts/build-protected-release.mjs'],{
+    env,stdio:'pipe',timeout:120000
+  });
+  const protectedProof=JSON.parse(readFileSync(
+    'artifacts/protected-build-review/PROTECTED-BUILD-REVIEW-ONLY.json','utf8'
+  ));
+  assert.equal(protectedProof.target,'staging');
+  assert.equal(protectedProof.releaseId,snapshot.releaseId);
+  assert.equal(protectedProof.deploymentPerformed,false);
+  assert.match(protectedProof.mode,/NOT_AUTHORIZED_FOR_DEPLOY/);
+  assert.match(protectedProof.compiledTreeSha256,/^[a-f0-9]{64}$/);
   const built=readFileSync('dist/servicos/landing-pages/index.html','utf8');
   assert.ok(built.includes(label),'Build must use signed metadata title');
   assert.ok(built.includes(description),'Build must use signed public intro');
@@ -100,6 +112,21 @@ try {
     env:missingAll,stdio:'pipe',timeout:60000
   }),/Command failed|status/);
   console.log('F25 signed-required mode rejected fully missing catalog configuration.');
+
+  // Nem o CLI de build protegido pode ser executado em modo review nem
+  // com produção declarada mas sem intenção signed-required explícita.
+  for(const cliEnv of [
+    buildEnv,
+    {...buildEnv,IMAGINE_RELEASE_TARGET:'production'},
+    {...env,IMAGINE_RELEASE_TARGET:'production',
+      IMAGINE_CATALOG_REQUIRE_SIGNED:'0'}
+  ]){
+    assert.throws(()=>execFileSync(process.execPath,
+      ['scripts/build-protected-release.mjs'],{
+        env:cliEnv,stdio:'pipe',timeout:120000
+      }),/Command failed|status/);
+  }
+  console.log('F37 protected CLI refused review, unsigned production and disabled signing mode.');
 
   // F37: alvo staging/production declarado nunca faz fallback editorial
   // e exige que o modo signed-required tenha sido explicitamente ativado.
