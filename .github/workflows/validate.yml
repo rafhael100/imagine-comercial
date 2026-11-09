@@ -17,11 +17,11 @@ jobs:
     timeout-minutes: 18
     steps:
       - name: Obter codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Configurar Node 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '22'
           cache: npm
@@ -34,7 +34,7 @@ jobs:
       - name: Validar HTML gerado, sitemap e robots
         run: node scripts/verify-dist.mjs
       - name: Obter auditor SEO independente em SHA fixo
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: rafhael100/imagine-seo-engine
           ref: 238acb0772dc7597f23ce3fd1761d68be1d35179
@@ -53,7 +53,7 @@ jobs:
       - name: Simular migração de URLs legadas, sem aplicar redirecionamentos
         run: node scripts/preview-cloudflare-migration.mjs
       - name: Salvar apenas relatorio de revisao de redirects
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: imagine-migration-REVIEW-ONLY
           path: artifacts/migration-preview/
@@ -62,7 +62,7 @@ jobs:
       - name: Auditar exportacao GSC estritamente sintetica (offline, sem 301)
         run: node scripts/review-gsc-inventory.mjs --synthetic
       - name: Guardar somente relatorio GSC com dados sinteticos
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: imagine-gsc-SYNTHETIC-REVIEW-ONLY
           path: artifacts/gsc-review/
@@ -71,7 +71,7 @@ jobs:
       - name: Confrontar GSC e crawl de teste, sem 301 e sem dados reais
         run: node scripts/review-seo-two-sources.mjs --synthetic
       - name: Guardar evidencia dupla SEO SOMENTE sintetica
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: imagine-seo-two-source-SYNTHETIC-REVIEW-ONLY
           path: artifacts/seo-two-source-review/
@@ -84,7 +84,7 @@ jobs:
       - name: Preparar inventario SHA-256 do build para revisao offline (sem deploy)
         run: node scripts/prepare-release-review.mjs
       - name: Armazenar somente manifesto REVIEW-ONLY de integridade
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: imagine-comercial-release-REVIEW-ONLY
           path: artifacts/release-review/
@@ -92,7 +92,7 @@ jobs:
           if-no-files-found: error
       - name: Salvar capturas do ambiente de testes
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: imagine-comercial-browser-screenshots
           path: artifacts/browser/*.png
