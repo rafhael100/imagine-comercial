@@ -157,3 +157,21 @@ test('F25 rejects misspelled/ambiguous signed-required values',()=>{
   assert.equal(loadBuildServices({IMAGINE_CATALOG_REQUIRE_SIGNED:'0'}),services);
   assert.equal(loadBuildServices({IMAGINE_CATALOG_REQUIRE_SIGNED:''}),services);
 });
+
+
+test('F37 — protected staging and production accept a fully verified signed pinned release',()=>{
+  withFiles(signed(sample()),env=>{
+    for(const target of ['staging','production']){
+      const published=loadBuildServices({
+        ...env,IMAGINE_RELEASE_TARGET:target,IMAGINE_CATALOG_REQUIRE_SIGNED:'1'
+      });
+      assert.equal(published.find(x=>x.slug==='landing-pages').title,
+        'Landing Pages empresariais atualizadas no CMS');
+      assert.throws(()=>loadBuildServices({
+        ...env,IMAGINE_RELEASE_TARGET:target,
+        IMAGINE_CATALOG_REQUIRE_SIGNED:'1',
+        IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:'a'.repeat(64)
+      }),/payload digest/);
+    }
+  });
+});
