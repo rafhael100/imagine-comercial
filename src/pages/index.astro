@@ -1,25 +1,61 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-const title = 'Imagine Comunicação Digital | Sites e soluções digitais';
-const description = 'Soluções digitais para empresas: Landing Pages, Onepages e gestão de campanhas. Conheça como a Imagine trabalha.';
+import { services } from '../data/services.mjs';
+const title = 'Criação de sites e performance digital | Imagine';
+const description = 'Sites, Landing Pages e estratégia de anúncios para empresas que buscam presença digital profissional. Conheça as soluções da Imagine.';
+const featured = services.filter(s => ['criacao-de-sites','landing-pages','gestao-google-ads'].includes(s.slug));
 ---
 <BaseLayout title={title} description={description} pathname="/">
-  <section class="shell hero">
-    <p class="eyebrow">Imagine Comunicação Digital</p>
-    <h1>Tecnologia e presença digital para negócios que querem crescer.</h1>
-    <p class="lead">Criamos páginas profissionais e ajudamos empresas a estruturar sua presença digital com soluções orientadas a objetivos comerciais.</p>
-    <a class="cta" href="/servicos/landing-pages/">Conheça nossas Landing Pages</a>
-  </section>
-  <section id="solucoes" class="shell section">
-    <h2>Soluções para sua empresa</h2>
-    <div class="cards">
-      <article class="card"><h3>Landing Pages</h3><p>Páginas com objetivo comercial definido, conteúdo claro e caminhos de conversão.</p><a href="/servicos/landing-pages/">Saiba mais sobre Landing Pages</a></article>
-      <article class="card"><h3>Onepages</h3><p>Apresentação institucional organizada em uma única página.</p><p>Informações comerciais detalhadas em preparação.</p></article>
-      <article class="card"><h3>Performance</h3><p>Planejamento e acompanhamento de campanhas digitais.</p><p>Informações de contratação em preparação.</p></article>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Tecnologia + comunicação digital</p>
+      <h1>Sua empresa mais forte no digital começa por uma estratégia clara.</h1>
+      <p class="lead">A Imagine une desenvolvimento de sites, páginas comerciais e gestão de campanhas para ajudar empresas a apresentar suas soluções e criar oportunidades.</p>
+      <div class="cta-row">
+        <a class="cta" href="/servicos/">Conhecer as soluções</a>
+        <a class="cta cta-secondary" href="/contato/">Solicitar uma proposta</a>
+      </div>
     </div>
   </section>
-  <section id="processo" class="shell section">
-    <h2>Um processo claro, do briefing à aprovação.</h2>
-    <p>O planejamento, os materiais, as revisões e a aprovação de cada projeto serão acompanhados pelo Portal Imagine, conforme o serviço contratado.</p>
+  <section class="section shell">
+    <span class="kicker">Soluções Imagine</span>
+    <h2>Uma presença digital construída para o seu negócio.</h2>
+    <p class="lead">Cada objetivo exige uma combinação diferente entre apresentação, conteúdo, experiência e divulgação.</p>
+    <div class="cards">
+      {featured.map(s => (
+        <article class="card">
+          <p class="eyebrow">{s.eyebrow}</p>
+          <h3>{s.label}</h3>
+          <p>{s.intro}</p>
+          <a href={'/servicos/' + s.slug + '/'} aria-label={'Conheça ' + s.label}>Conheça a solução</a>
+        </article>
+      ))}
+    </div>
+    <a class="text-link" href="/servicos/">Veja todos os serviços</a>
+  </section>
+  <section class="section section-soft">
+    <div class="shell">
+      <span class="kicker">Processo transparente</span>
+      <h2>Da estratégia ao acompanhamento.</h2>
+      <div class="cards">
+        <article class="card"><h3>1. Diagnóstico</h3><p>Entendimento do negócio, do público e das oportunidades.</p></article>
+        <article class="card"><h3>2. Planejamento</h3><p>Escolha do formato, da mensagem e dos objetivos do projeto.</p></article>
+        <article class="card"><h3>3. Implementação</h3><p>Produção e acompanhamento das etapas conforme o serviço contratado.</p></article>
+        <article class="card"><h3>4. Evolução</h3><p>Revisão de resultados e oportunidades de melhoria.</p></article>
+      </div>
+    </div>
+  </section>
+  <section class="section shell">
+    <span class="kicker">Entenda antes de contratar</span>
+    <h2>Landing Page ou site: qual escolher?</h2>
+    <p class="lead">A escolha depende do objetivo, da quantidade de conteúdo e do caminho que você quer oferecer aos visitantes.</p>
+    <a class="cta cta-secondary" href="/conteudos/landing-page-ou-site/">Ler nosso guia</a>
+  </section>
+  <section class="section section-dark">
+    <div class="shell">
+      <h2>Seu próximo projeto merece um plano claro.</h2>
+      <p>Converse com a Imagine sobre o seu objetivo e conheça os formatos disponíveis.</p>
+      <a class="cta" href="/contato/">Entrar em contato</a>
+    </div>
   </section>
 </BaseLayout>

@@ -1,72 +1,131 @@
 ---
+import { toAbsoluteUrl } from '../data/services.mjs';
 interface Props {
   title: string;
   description: string;
   pathname: string;
   noindex?: boolean;
+  breadcrumb?: { label: string; path: string }[];
+  serviceName?: string;
 }
-const { title, description, pathname, noindex = false } = Astro.props;
-const canonical = new URL(pathname, Astro.site ?? 'https://imaginecomunicacao.com.br').toString();
+const { title, description, pathname, noindex = false, breadcrumb = [], serviceName } = Astro.props;
+const canonical = toAbsoluteUrl(pathname, Astro.site?.toString());
 const portalLoginUrl = import.meta.env.PUBLIC_PORTAL_LOGIN_URL || '';
-const org = {
+const organization = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
+  '@id': 'https://imaginecomunicacao.com.br/#organization',
   name: 'Imagine Comunicação Digital',
-  url: 'https://imaginecomunicacao.com.br/',
+  url: 'https://imaginecomunicacao.com.br/'
 };
+const webPage = {
+  '@context': 'https://schema.org', '@type': 'WebPage',
+  name: title, description, url: canonical, inLanguage: 'pt-BR',
+  isPartOf: { '@type': 'WebSite', name: 'Imagine Comunicação Digital', url: 'https://imaginecomunicacao.com.br/' }
+};
+const bread = breadcrumb.length ? {
+  '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Início', item: toAbsoluteUrl('/') },
+    ...breadcrumb.map((x, index) => ({ '@type': 'ListItem', position: index + 2, name: x.label, item: toAbsoluteUrl(x.path) }))
+  ]
+} : null;
+const service = serviceName ? {
+  '@context': 'https://schema.org', '@type': 'Service',
+  name: serviceName, description,
+  provider: { '@id': 'https://imaginecomunicacao.com.br/#organization' }
+} : null;
 ---
 <!doctype html>
 <html lang="pt-BR">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111a2d" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="robots" content={noindex ? 'noindex,nofollow' : 'index,follow'} />
     <link rel="canonical" href={canonical} />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="Imagine Comunicação Digital" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <script type="application/ld+json" set:html={JSON.stringify(org)} />
+    <script type="application/ld+json" set:html={JSON.stringify(organization)} />
+    <script type="application/ld+json" set:html={JSON.stringify(webPage)} />
+    {bread && <script type="application/ld+json" set:html={JSON.stringify(bread)} />}
+    {service && <script type="application/ld+json" set:html={JSON.stringify(service)} />}
     <style is:global>
-      :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #17202e; background: #fbfcfe; font-synthesis: none; }
+      :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #182438; background: #fff; font-synthesis: none; scroll-behavior: smooth; }
       * { box-sizing: border-box; }
       body { margin: 0; line-height: 1.6; }
       a { color: inherit; }
-      .shell { width: min(1120px, calc(100% - 32px)); margin-inline: auto; }
-      .header { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; padding-block: 20px; }
-      .brand { font-size: 1.4rem; letter-spacing: -.055em; font-weight: 800; text-decoration: none; }
-      nav { display: flex; flex-wrap: wrap; gap: 22px; font-size: .92rem; }
+      .shell { width: min(1160px, calc(100% - 36px)); margin-inline: auto; }
+      .skip-link { position: absolute; top: -100px; left: 12px; padding: 10px; background: white; color: #152944; z-index: 99; }
+      .skip-link:focus { top: 10px; }
+      .header { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; padding-block: 20px; }
+      .brand { font-size: 1.7rem; letter-spacing: -.08em; font-weight: 850; text-decoration: none; color: #102340; }
+      nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(12px, 2vw, 24px); font-size: .91rem; font-weight: 650; }
       nav a { text-decoration: none; }
-      nav a:hover, nav a:focus-visible { text-decoration: underline; }
-      .hero { padding-block: clamp(48px, 9vw, 110px); }
-      .eyebrow { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .13em; color: #135da4; }
-      h1 { line-height: 1.12; font-size: clamp(2.25rem, 5.5vw, 4.6rem); letter-spacing: -.055em; margin: 14px 0; max-width: 850px; }
-      h2 { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.2; letter-spacing: -.035em; }
-      p { max-width: 720px; }
-      .lead { font-size: 1.2rem; color: #3f4e63; }
-      .cta { display: inline-block; padding: 12px 22px; background: #153d67; color: white; border-radius: 10px; text-decoration: none; font-weight: 700; }
-      .cta:focus-visible, a:focus-visible { outline: 3px solid #efae46; outline-offset: 4px; }
-      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding-block: 24px 60px; }
-      .card { border: 1px solid #d9e0e8; border-radius: 15px; padding: 24px; background: white; }
-      .card h3 { margin-top: 0; }
-      .section { padding-block: 32px 56px; }
-      footer { padding-block: 28px; border-top: 1px solid #d9e0e8; color: #4d5c70; font-size: .875rem; }
-      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+      nav a:hover, nav a:focus-visible, .text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+      .nav-cta { border-radius: 9px; background: #eaf3ff; padding: 9px 14px; }
+      .eyebrow { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .14em; color: #1873c9; }
+      h1 { font-size: clamp(2.4rem, 5.6vw, 4.9rem); line-height: 1.1; letter-spacing: -.065em; margin: 14px 0 20px; max-width: 930px; }
+      h2 { font-size: clamp(1.6rem, 3.2vw, 2.5rem); line-height: 1.17; letter-spacing: -.045em; margin: 0 0 16px; }
+      h3 { line-height: 1.35; font-size: 1.18rem; }
+      p { max-width: 760px; }
+      .lead { font-size: clamp(1.08rem, 1.6vw, 1.3rem); color: #4b5c74; line-height: 1.72; }
+      .hero { padding-block: clamp(58px, 8vw, 112px); background: radial-gradient(ellipse at 92% 15%, #e6f2ff 0%, transparent 48%), #fff; }
+      .hero .lead { max-width: 720px; }
+      .section { padding-block: clamp(45px, 7vw, 85px); }
+      .section-soft { background: #f3f7fc; }
+      .section-dark { background: #111e34; color: white; }
+      .section-dark p { color: #d5e2f4; }
+      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 18px; margin-top: 32px; }
+      .card { padding: clamp(22px, 2.5vw, 34px); border: 1px solid #dce6f2; background: white; border-radius: 17px; box-shadow: 0 14px 32px rgb(25 45 70 / 3%); }
+      .card p { color: #526178; }
+      .card a { color: #0b5ea9; font-weight: 700; text-underline-offset: 4px; }
+      .kicker { font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: #166bb6; font-weight: 800; }
+      .cta { display: inline-block; min-height: 48px; padding: 12px 22px; border-radius: 10px; background: #1467bb; color: white; font-weight: 750; text-decoration: none; text-align: center; }
+      .cta:hover { background: #0e5094; }
+      .cta-secondary { background: transparent; color: #155c9d; border: 1px solid #9bc7eb; }
+      .cta-secondary:hover { background: #eaf3ff; }
+      .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+      .bullets { padding-left: 22px; max-width: 740px; }
+      .bullets li + li { margin-top: 9px; }
+      .breadcrumbs { font-size: .88rem; color: #54647e; padding-top: 20px; }
+      .breadcrumbs a { text-underline-offset: 3px; }
+      details { border-bottom: 1px solid #d5deea; padding-block: 18px; max-width: 860px; }
+      summary { cursor: pointer; font-weight: 700; }
+      details p { color: #526178; }
+      footer { padding-block: 34px; border-top: 1px solid #e2e9f2; color: #526178; font-size: .9rem; }
+      .footer-grid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; align-items: start; }
+      .footer-grid a { text-underline-offset: 3px; }
+      :focus-visible { outline: 3px solid #f8b840; outline-offset: 4px; }
+      @media (max-width: 620px) { .header { align-items: flex-start; } nav { gap: 12px; } .cta-row a { width: 100%; } .section { padding-block: 42px; } }
+      @media (prefers-reduced-motion: reduce) { :root { scroll-behavior: auto; } }
     </style>
   </head>
   <body>
+    <a href="#conteudo" class="skip-link">Ir para o conteúdo</a>
     <header class="shell header">
       <a class="brand" href="/" aria-label="Imagine — Página inicial">imagine.</a>
       <nav aria-label="Navegação principal">
-        <a href="/#solucoes">Soluções</a>
+        <a href="/servicos/">Soluções</a>
         <a href="/servicos/landing-pages/">Landing Pages</a>
-        <a href="/#processo">Como trabalhamos</a>
-        {portalLoginUrl && <a href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}
+        <a href="/conteudos/landing-page-ou-site/">Conteúdos</a>
+        <a href="/contato/">Contato</a>
+        {portalLoginUrl && <a class="nav-cta" href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}
       </nav>
     </header>
     <main id="conteudo"><slot /></main>
-    <footer><div class="shell">© {new Date().getFullYear()} Imagine Comunicação Digital. Página em desenvolvimento.</div></footer>
+    <footer>
+      <div class="shell footer-grid">
+        <div><strong>Imagine Comunicação Digital</strong><div>Sites, tecnologia e performance digital.</div></div>
+        <div><a href="/servicos/">Soluções</a> · <a href="/contato/">Contato</a></div>
+        <div>© {new Date().getFullYear()} Imagine Comunicação Digital.</div>
+      </div>
+    </footer>
   </body>
 </html>
