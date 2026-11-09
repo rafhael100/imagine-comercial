@@ -81,3 +81,8 @@ test('F32 validates declared source route, link input and relative href',()=>{
   assert.throws(()=>review([{}]),/invalid href/);
   assert.throws(()=>review(['contato/']),/relative link/);
 });
+
+test('F32 skip-to-content on 404 is valid but the 404 itself stays out of sitemap',()=>{
+  assert.equal(review(['#conteudo'],'/404/').sameDocument,1);
+  assert.throws(()=>review(['/404/']),/internal route missing from sitemap/);
+});
