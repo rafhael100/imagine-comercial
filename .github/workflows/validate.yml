@@ -30,3 +30,12 @@ jobs:
         run: npm run build
       - name: Validar HTML gerado, sitemap e robots
         run: node scripts/verify-dist.mjs
+      - name: Obter auditor SEO independente (commit fixo)
+        uses: actions/checkout@v4
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: 5d6639841594ab8e9ad2d813f2e7797a57c7afd4
+          path: .qa/seo-engine
+          persist-credentials: false
+      - name: Auditar SEO técnico do HTML compilado
+        run: node .qa/seo-engine/scripts/audit-dist.mjs dist
