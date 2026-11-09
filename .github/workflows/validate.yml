@@ -44,6 +44,8 @@ jobs:
         run: node scripts/test-build-catalog.mjs
       - name: Conferir HTML padrão após restaurar a compilação
         run: node scripts/verify-dist.mjs
+      - name: Verificar orcamento de arquivos estaticos
+        run: node scripts/check-asset-budgets.mjs dist
       - name: Instalar Chromium para QA de navegador
         run: npx playwright install --with-deps chromium
       - name: Testar responsividade e WCAG no navegador
