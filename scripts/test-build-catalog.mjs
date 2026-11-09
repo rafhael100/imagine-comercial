@@ -34,13 +34,15 @@ const env={...process.env,IMAGINE_CATALOG_ENVELOPE_FILE:envelopePath,
   IMAGINE_CATALOG_PUBLIC_KEY_FILE:keyPath,
   IMAGINE_CATALOG_TRUSTED_KEY_ID:'portal_test_ci_01',
   IMAGINE_CATALOG_EXPECTED_RELEASE_ID:snapshot.releaseId,
-  IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:createHash('sha256').update(bytes).digest('hex')};
+  IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:createHash('sha256').update(bytes).digest('hex'),
+  IMAGINE_CATALOG_REQUIRE_SIGNED:'1'};
 const buildEnv={...process.env};
 delete buildEnv.IMAGINE_CATALOG_ENVELOPE_FILE;
 delete buildEnv.IMAGINE_CATALOG_PUBLIC_KEY_FILE;
 delete buildEnv.IMAGINE_CATALOG_TRUSTED_KEY_ID;
 delete buildEnv.IMAGINE_CATALOG_EXPECTED_RELEASE_ID;
 delete buildEnv.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256;
+delete buildEnv.IMAGINE_CATALOG_REQUIRE_SIGNED;
 const astro='node_modules/.bin/astro';
 function readDistFiles(dir='dist',prefix='') {
   const out=[];
@@ -79,6 +81,19 @@ try {
       expectedPayloadSha256:env.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256
     }),/HTML title differs|description differs|intro differs/);
   console.log('F24 signed HTML/build binding verified, SHA-256:',proof.treeSha256);
+
+  // F25: mesmo que todos os campos da configuração desapareçam da execução,
+  // a intenção signed-required precisa impedir retorno ao catálogo editorial.
+  const missingAll={...env};
+  for(const name of ['IMAGINE_CATALOG_ENVELOPE_FILE',
+    'IMAGINE_CATALOG_PUBLIC_KEY_FILE','IMAGINE_CATALOG_TRUSTED_KEY_ID',
+    'IMAGINE_CATALOG_EXPECTED_RELEASE_ID','IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256']){
+    delete missingAll[name];
+  }
+  assert.throws(()=>execFileSync(astro,['build'],{
+    env:missingAll,stdio:'pipe',timeout:60000
+  }),/Command failed|status/);
+  console.log('F25 signed-required mode rejected fully missing catalog configuration.');
 
   // Com assinatura válida, um lote de publicação inesperado deve falhar.
   assert.throws(
