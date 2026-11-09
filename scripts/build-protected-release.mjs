@@ -1,0 +1,95 @@
+/**
+ * F37b — build Astro protegido e revisão assinada dos bytes compilados.
+ *
+ * Comando offline, sem rede, chave privada, autorização ou implantação.
+ * Não converte um build sintético em release autorizado.
+ */
+import {execFileSync} from 'node:child_process';
+import {readFileSync,readdirSync,lstatSync,rmSync,mkdirSync,writeFileSync} from 'node:fs';
+import {join,posix} from 'node:path';
+import {assertBuildReleaseIntent} from '../src/lib/build-release-target.mjs';
+import {verifySignedCatalog} from '../src/lib/verify-signed-catalog.mjs';
+import {enforceReleasePin} from '../src/lib/release-pin.mjs';
+import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
+
+const intent=assertBuildReleaseIntent(process.env);
+if(!intent.signedRequired || intent.target==='review')
+  throw new Error('protected build: staging or production target and signed mode required');
+
+function localFile(name,maxBytes) {
+  const path=process.env[name];
+  if(typeof path!=='string' || !path || path.includes('\0'))
+    throw new Error('protected build: required local input missing: '+name);
+  const stat=lstatSync(path);
+  if(!stat.isFile() || stat.isSymbolicLink() || stat.size>maxBytes)
+    throw new Error('protected build: local input unsafe: '+name);
+  return readFileSync(path,'utf8');
+}
+
+const envelope=JSON.parse(localFile('IMAGINE_CATALOG_ENVELOPE_FILE',2*1024*1024));
+const publicKey=localFile('IMAGINE_CATALOG_PUBLIC_KEY_FILE',16*1024);
+const keyId=process.env.IMAGINE_CATALOG_TRUSTED_KEY_ID;
+if(typeof keyId!=='string' || envelope.keyId!==keyId)
+  throw new Error('protected build: trusted key ID mismatch');
+const trustKeys=new Map([[keyId,publicKey]]);
+const pins={
+  expectedReleaseId:process.env.IMAGINE_CATALOG_EXPECTED_RELEASE_ID,
+  expectedPayloadSha256:process.env.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256
+};
+// Verify signed bytes and both exact pins BEFORE invoking the compiler.
+const snapshot=verifySignedCatalog(envelope,trustKeys);
+enforceReleasePin(snapshot,envelope,pins);
+
+const outputDir='artifacts/protected-build-review';
+rmSync(outputDir,{recursive:true,force:true});
+// Do not leave an older dist tree behind if the compiler fails to start.
+try{
+  const stat=lstatSync('dist');
+  if(stat.isSymbolicLink()||!stat.isDirectory())
+    throw new Error('protected build: unexpected dist filesystem entry');
+}catch(error){
+  if(error.code!=='ENOENT')throw error;
+}
+rmSync('dist',{recursive:true,force:true});
+
+const astro='node_modules/.bin/astro';
+try{
+  execFileSync(astro,['build'],{
+    env:process.env,stdio:'pipe',timeout:120000
+  });
+}catch{
+  throw new Error('protected build: Astro compilation failed, release not verified');
+}
+function readTree(dir='dist',relative='') {
+  const out=[];
+  for(const entry of readdirSync(dir,{withFileTypes:true})){
+    const path=join(dir,entry.name);
+    const rel=relative?posix.join(relative,entry.name):entry.name;
+    if(entry.isSymbolicLink())throw new Error('protected build: output symlink prohibited');
+    if(entry.isDirectory())out.push(...readTree(path,rel));
+    else if(entry.isFile())out.push({path:rel,bytes:readFileSync(path)});
+    else throw new Error('protected build: unsupported output file');
+  }
+  return out;
+}
+const proof=createSignedBuildReview(readTree(),envelope,trustKeys,pins);
+if(proof.releaseId!==snapshot.releaseId || proof.verifiedServiceCount<1)
+  throw new Error('protected build: signed HTML verification incomplete');
+const report=Object.freeze({
+  schema:'imagine.comercial.protected-build-review.v1',
+  mode:'OFFLINE_SIGNED_BUILD_REVIEW_NOT_AUTHORIZED_FOR_DEPLOY',
+  target:intent.target,
+  releaseId:proof.releaseId,
+  keyId:proof.keyId,
+  catalogPayloadSha256:proof.payloadSha256,
+  compiledTreeSha256:proof.treeSha256,
+  outputFiles:proof.fileCount,
+  verifiedServiceCount:proof.verifiedServiceCount,
+  deploymentPerformed:false
+});
+mkdirSync(outputDir,{recursive:true});
+writeFileSync(join(outputDir,'PROTECTED-BUILD-REVIEW-ONLY.json'),
+  JSON.stringify(report,null,2)+'\n',{mode:0o600});
+console.log('Protected Astro build verified (REVIEW ONLY; zero deployments):',
+  JSON.stringify({target:report.target,releaseId:report.releaseId,
+    files:report.outputFiles,verifiedServiceCount:report.verifiedServiceCount}));
