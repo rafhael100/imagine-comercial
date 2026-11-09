@@ -21,6 +21,8 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 - Laboratório Cloudflare Workerd é apenas loopback, usa regras 301 simuladas e diretório temporário; nenhuma regra para produção.
 - F24: o verificador signed-build-review confere assinatura, pins e conteúdo HTML real; o relatório NÃO autoriza deploy, não verifica grants e não comprova MFA.
 - F25: quando o build for destinado a testar publicação assinada, definir IMAGINE_CATALOG_REQUIRE_SIGNED=1; nunca permitir fallback editorial nesse cenário. O indicador sozinho não autoriza deploy e não pode vir de solicitação do cliente.
+- F26: auditor GSC CSV exclusivamente local/sintético; executar `node scripts/review-gsc-inventory.mjs --synthetic` no CI. CSV REAL GSC contém dados potencialmente sensíveis e NÃO deve ser enviado ao GitHub público nem a artifacts; usar `--file` apenas em ambiente privado. A saída não autoriza nem cria redirects 301.
+- Antes da migração, tratar todas as URLs não catalogadas, variants com query/encoding e conteúdo jurídico em HOLD; exigir GSC real, crawl e revisão por URL.
 - CI F25 Comercial: https://github.com/rafhael100/imagine-comercial/actions/runs/42657373288 (99/99 testes, SEO 35/35). Portal PHP→Astro: https://github.com/rafhael100/imagine-portal/actions/runs/42657709386 (assinatura real do fixture PHP, falha fechada testada).
 - Evidências atuais: Comercial CI F24 #42644178104 (96/96 Node e 35/35 SEO); Portal PHP→Astro #42644779243 aprovado com dados sintéticos.
 - Nenhum teste de laboratório prova ranking, tráfego, indexação Google ou checkout/fiscal real.
