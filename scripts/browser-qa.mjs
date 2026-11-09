@@ -9,10 +9,12 @@ import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
+import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
 
 const port = 4328;
 const host = 'http://127.0.0.1:' + port;
 const artifacts = 'artifacts/browser';
+const approvedPortalLoginUrl=resolvePortalLoginLink(process.env.PUBLIC_PORTAL_LOGIN_URL || '');
 const timeout = 45000;
 let browser;
 const server = spawn('node_modules/.bin/astro', ['preview', '--host', '127.0.0.1', '--port', String(port)], {
@@ -65,15 +67,20 @@ try {
       const canonical=await page.locator('link[rel="canonical"]').getAttribute('href');
       assert.equal(canonical,'https://imaginecomunicacao.com.br'+route,viewport.label+': '+route+' canonical');
       assert.equal(await page.locator('main#conteudo').count(),1,route+' main landmark');
-      assert.equal(await page.locator('a.nav-cta').count(),0,
-        viewport.label+': Portal link must stay hidden without approved build URL');
+      const portalLink=page.locator('a.nav-cta');
+      assert.equal(await portalLink.count(),approvedPortalLoginUrl?1:0,
+        viewport.label+': Portal link must match explicit approved build URL');
+      if(approvedPortalLoginUrl) {
+        assert.equal(await portalLink.getAttribute('href'),approvedPortalLoginUrl,
+          viewport.label+': approved Portal link must be exact');
+      }
       assert.equal(await page.locator('a[href="/servicos/"]').count()>=1,true,route+' internal service navigation');
       const anchors=await page.locator('a[href]').evaluateAll(elements=>elements.map(el=>({
         href:el.getAttribute('href'),target:el.getAttribute('target')||'',
         rel:el.getAttribute('rel')||''
       })));
       const fragmentIds=await page.locator('[id]').evaluateAll(elements=>elements.map(el=>el.id));
-      const linkReport=reviewPublicLinks(anchors,{currentPath:route,fragmentIds});
+      const linkReport=reviewPublicLinks(anchors,{currentPath:route,fragmentIds,approvedPortalLoginUrl});
       assert.ok(linkReport.checked>=6,route+': expected connected internal navigation');
 
       const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
@@ -116,7 +123,8 @@ try {
         href:el.getAttribute('href'),target:el.getAttribute('target')||'',
         rel:el.getAttribute('rel')||''
       }))),
-      {currentPath:'/404/',fragmentIds:await page.locator('[id]').evaluateAll(elements=>elements.map(el=>el.id))}
+      {currentPath:'/404/',fragmentIds:await page.locator('[id]').evaluateAll(elements=>elements.map(el=>el.id)),
+       approvedPortalLoginUrl}
     );
     // F31 — no cookie, local/session storage, POST or third-party requests
     // may occur during an unapproved lead intake/CRM preview.
