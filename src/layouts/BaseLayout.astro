@@ -7,8 +7,9 @@ interface Props {
   noindex?: boolean;
   breadcrumb?: { label: string; path: string }[];
   serviceName?: string;
+  articleTitle?: string;
 }
-const { title, description, pathname, noindex = false, breadcrumb = [], serviceName } = Astro.props;
+const { title, description, pathname, noindex = false, breadcrumb = [], serviceName, articleTitle } = Astro.props;
 const canonical = toAbsoluteUrl(pathname, Astro.site?.toString());
 // URLs externas de autenticação só podem apontar para a propriedade oficial da Imagine.
 const portalCandidate = import.meta.env.PUBLIC_PORTAL_LOGIN_URL || '';
@@ -43,6 +44,11 @@ const bread = breadcrumb.length ? {
     ...breadcrumb.map((x, index) => ({ '@type': 'ListItem', position: index + 2, name: x.label, item: toAbsoluteUrl(x.path) }))
   ]
 } : null;
+const articleData = articleTitle ? {
+  '@context': 'https://schema.org', '@type': 'Article', headline: articleTitle,
+  inLanguage: 'pt-BR', mainEntityOfPage: canonical,
+  publisher: { '@id': 'https://imaginecomunicacao.com.br/#organization' }
+} : null;
 const service = serviceName ? {
   '@context': 'https://schema.org', '@type': 'Service',
   name: serviceName, description,
@@ -69,6 +75,7 @@ const service = serviceName ? {
     <script type="application/ld+json" set:html={serializeJsonLd(webPage)} />
     {bread && <script type="application/ld+json" set:html={serializeJsonLd(bread)} />}
     {service && <script type="application/ld+json" set:html={serializeJsonLd(service)} />}
+    {articleData && <script type="application/ld+json" set:html={serializeJsonLd(articleData)} />}
     <style is:global>
       :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #182438; background: #fff; font-synthesis: none; scroll-behavior: smooth; }
       * { box-sizing: border-box; }
@@ -127,7 +134,7 @@ const service = serviceName ? {
       <nav aria-label="Navegação principal">
         <a href="/servicos/">Soluções</a>
         <a href="/servicos/landing-pages/">Landing Pages</a>
-        <a href="/conteudos/landing-page-ou-site/">Conteúdos</a>
+        <a href="/conteudos/">Conteúdos</a>
         <a href="/sobre/">Sobre</a>
         <a href="/contato/">Contato</a>
         {portalLoginUrl && <a class="nav-cta" href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}

@@ -4,9 +4,8 @@ import { join } from 'node:path';
 import { services } from '../src/data/services.mjs';
 
 const read = path => readFileSync(join('dist', path), 'utf8');
-const paths = ['index.html', 'contato/index.html', 'sobre/index.html', 'servicos/index.html',
-  'conteudos/landing-page-ou-site/index.html',
-  ...services.map(s => 'servicos/' + s.slug + '/index.html')];
+import { sitePages } from '../src/data/services.mjs';
+const paths = sitePages.map(p=>p.path==='/' ? 'index.html' : p.path.slice(1)+'index.html');
 
 for (const path of paths) {
   assert.ok(existsSync(join('dist', path)), 'Build missing HTML: ' + path);

@@ -1,0 +1,8 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { articles } from '../../data/articles.mjs';
+---
+<BaseLayout title="Conteúdos sobre sites, SEO e performance | Imagine" description="Guias sobre criação de sites, Landing Pages, SEO e campanhas digitais para ajudar empresas a planejar sua presença online." pathname="/conteudos/" breadcrumb={[{label:'Conteúdos',path:'/conteudos/'}]}>
+  <section class="hero"><div class="shell"><p class="eyebrow">Guias Imagine</p><h1>Informações para decisões digitais melhores.</h1><p class="lead">Conteúdos sobre criação de sites, páginas comerciais, SEO e anúncios. Explore os assuntos e conheça as soluções relacionadas.</p></div></section>
+  <section class="section shell"><div class="cards">{articles.map(article=><article class="card"><p class="eyebrow">{article.eyebrow}</p><h2>{article.heading}</h2><p>{article.intro}</p><a href={'/conteudos/'+article.slug+'/'} aria-label={'Ler: '+article.heading}>Ler guia completo</a></article>)}</div></section>
+</BaseLayout>
