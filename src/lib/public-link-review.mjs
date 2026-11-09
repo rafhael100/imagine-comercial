@@ -5,14 +5,15 @@
  */
 import {sitePages,services} from '../data/services.mjs';
 import {resolvePortalLoginLink} from './portal-login-link.mjs';
+import {contactChannels} from '../data/contact-channels.mjs';
 
 const base='http://127.0.0.1:4328';
 const destinations=new Set(sitePages.map(x=>x.path));
 const intents=new Set(services.map(x=>x.slug));
 const waHost='wa.me';
-const waPath='/5585996632689';
-const emailAddress='imagine@imaginecomunicacao.com.br';
-const officePhone='+558530329525';
+const waPath='/'+contactChannels.whatsappE164;
+const emailAddress=contactChannels.email;
+const officePhone=contactChannels.phoneE164;
 
 function failure(currentPath, index, reason) {
   // Never echo the untrusted href: URL queries can contain private tokens.
