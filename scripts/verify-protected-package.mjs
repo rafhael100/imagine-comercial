@@ -20,7 +20,11 @@ function localFile(path,max,label) {
     throw new Error('protected artifact: unsafe '+label+' file');
   return readFileSync(path,'utf8');
 }
+let totalFiles=0,totalBytes=0;
 function readTree(folder='dist',relative='') {
+  const root=lstatSync(folder);
+  if(!root.isDirectory()||root.isSymbolicLink())
+    throw new Error('protected artifact: unsafe package directory');
   const items=readdirSync(folder,{withFileTypes:true});
   const result=[];
   for(const item of items){
@@ -29,10 +33,12 @@ function readTree(folder='dist',relative='') {
     const stat=lstatSync(full);
     if(stat.isSymbolicLink())throw new Error('protected artifact: symlink in package');
     if(stat.isDirectory())result.push(...readTree(full,name));
-    else if(stat.isFile()&&stat.size<=10*1024*1024)
+    else if(stat.isFile()&&stat.size<=10*1024*1024){
+      totalFiles++;totalBytes+=stat.size;
+      if(totalFiles>500||totalBytes>50*1024*1024)
+        throw new Error('protected artifact: package size limits exceeded');
       result.push({path:name,bytes:readFileSync(full)});
-    else throw new Error('protected artifact: unexpected package entry');
-    if(result.length>500)throw new Error('protected artifact: too many files');
+    }else throw new Error('protected artifact: unexpected package entry');
   }
   return result;
 }
