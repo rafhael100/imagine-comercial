@@ -7,6 +7,7 @@ import { readFileSync, lstatSync } from 'node:fs';
 import { services as curatedServices } from '../data/services.mjs';
 import { verifySignedCatalog } from './verify-signed-catalog.mjs';
 import { enforceReleasePin } from './release-pin.mjs';
+import { assertBuildReleaseIntent } from './build-release-target.mjs';
 
 const MAX_ENVELOPE_BYTES = 2 * 1024 * 1024;
 const MAX_PUBKEY_BYTES = 16 * 1024;
@@ -51,13 +52,9 @@ function readApprovedFile(path, maxBytes, label) {
 }
 
 export function loadBuildServices(env = process.env) {
-  // Explicit intent from the trusted build orchestrator; never inferred from a
-  // user-facing URL, repository data or signed payload itself.
-  const requireSigned = env.IMAGINE_CATALOG_REQUIRE_SIGNED;
-  if (requireSigned !== undefined && requireSigned !== '' &&
-      requireSigned !== '0' && requireSigned !== '1') {
-    throw new Error('build catalog: invalid signed-required mode');
-  }
+  // A target declarado como staging/production nunca usa fallback editorial
+  // nem pode ser interpretado como autorização de publicação.
+  const intent=assertBuildReleaseIntent(env);
   const envelopePath = env.IMAGINE_CATALOG_ENVELOPE_FILE;
   const keyPath = env.IMAGINE_CATALOG_PUBLIC_KEY_FILE;
   const keyId = env.IMAGINE_CATALOG_TRUSTED_KEY_ID;
@@ -66,7 +63,7 @@ export function loadBuildServices(env = process.env) {
   const provided = [envelopePath, keyPath, keyId, releaseId, payloadHash]
     .filter(x => x !== undefined && x !== '');
   if (provided.length === 0) {
-    if (requireSigned === '1') {
+    if (intent.signedRequired) {
       throw new Error('build catalog: signed catalog required; refusing curated fallback');
     }
     return curatedServices;
