@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { buildServices as services } from '../../lib/build-catalog.mjs';
+---
+<BaseLayout
+  title="Soluções digitais para empresas | Imagine"
+  description="Conheça soluções da Imagine para criação de sites, Landing Pages, Onepages e gestão de Google Ads e Meta Ads."
+  pathname="/servicos/"
+  breadcrumb={[{ label: 'Soluções', path: '/servicos/' }]}
+>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Nossos serviços</p>
+      <h1>Soluções digitais com objetivos comerciais definidos.</h1>
+      <p class="lead">Conheça formatos de presença digital e gestão de mídia para empresas em diferentes momentos de crescimento.</p>
+    </div>
+  </section>
+  <section class="section shell">
+    <div class="cards">
+      {services.map(s => (
+        <article class="card">
+          <p class="eyebrow">{s.eyebrow}</p>
+          <h2>{s.label}</h2>
+          <p>{s.intro}</p>
+          <a href={'/servicos/' + s.slug + '/'} aria-label={'Conhecer ' + s.label}>Conhecer serviço</a>
+        </article>
+      ))}
+    </div>
+  </section>
+  <section class="section section-dark">
+    <div class="shell"><h2>Precisa de orientação?</h2><p>Podemos ajudar a escolher o formato adequado ao seu objetivo.</p><a class="cta" href="/contato/">Fale com a Imagine</a></div>
+  </section>
+</BaseLayout>
