@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {sitePages,toAbsoluteUrl} from '../src/data/services.mjs';
 import {verifyIndexablePage,verifySitemapUrls,verifyRobotsSitemap} from '../src/lib/seo-output-contract.mjs';
+import {createSecurityHeadersPreview,localHeaderProfile} from '../src/lib/security-headers-preview.mjs';
 
 const root=await mkdtemp(join(tmpdir(),'imagine-workers-migration-'));
 const configPath=join(root,'wrangler.json');
@@ -37,6 +38,8 @@ try{
   await cp(resolve('dist'),join(root,'dist'),{recursive:true});
   await copyFile('artifacts/migration-preview/REVIEW-ONLY-redirects.preview.txt',
     join(root,'dist/_redirects'));
+  // F28: _headers exists ONLY inside disposable Workerd lab copy.
+  await writeFile(join(root,'dist/_headers'),createSecurityHeadersPreview());
   await writeFile(configPath,JSON.stringify({
     name:'imagine-migration-local-only',
     compatibility_date:'2026-11-09',
@@ -75,6 +78,10 @@ try{
     assert.equal(response.status,200,publicPath+' should respond HTTP 200 on Workerd');
     assert.match(response.headers.get('content-type')||'',/text\/html/i,
       publicPath+' must be served as HTML');
+    for(const [name,value] of localHeaderProfile){
+      assert.equal(response.headers.get(name),value,
+        publicPath+' expected local-only security header '+name);
+    }
     const html=await response.text();
     verifyIndexablePage(html,toAbsoluteUrl(publicPath));
   }
@@ -98,7 +105,7 @@ try{
     assert.doesNotMatch(html,/<link rel="canonical"/,
       blocked+' should not assert a canonical URL');
   }
-  console.log('Cloudflare workerd LOCAL passed: '+candidates.length+' x 301, '+sitePages.length+' x 200, 2 SEO assets, '+(held.length+1)+' x 404; zero deployments.');
+  console.log('Cloudflare workerd LOCAL passed: '+candidates.length+' x 301, '+sitePages.length+' x 200, 2 SEO assets, '+(held.length+1)+' x 404; 4 reviewed headers on every public HTML; zero deployments.');
 } finally{
   if(runner?.pid){
     try{process.kill(-runner.pid,'SIGTERM')}catch{}
