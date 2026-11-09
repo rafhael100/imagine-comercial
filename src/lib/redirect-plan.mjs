@@ -6,6 +6,10 @@ import { sitePages } from '../data/services.mjs';
 
 const validPath = /^\/(?:(?:[a-zA-Z0-9._~-]+)\/)*[a-zA-Z0-9._~-]*$/;
 const states = new Set(['candidate', 'hold', 'approved']);
+// Redirecionamentos legados não podem sequestrar rotas canônicas nem arquivos
+// essenciais de indexação, mesmo quando o manifesto marca uma linha como HOLD.
+const protectedPaths = new Set(['/robots.txt', '/sitemap.xml', '/404.html']);
+const hasDotSegments = path => path.split('/').some(segment => segment === '.' || segment === '..');
 
 export function validateRedirectPlan(entries, {publicPaths = sitePages.map(x=>x.path)} = {}) {
   if (!Array.isArray(entries) || entries.length > 10000) throw new Error('redirects: array required, <=10000 entries');
@@ -19,7 +23,11 @@ export function validateRedirectPlan(entries, {publicPaths = sitePages.map(x=>x.
     if (fields.some(key=> !['from','to','status','reason'].includes(key))) throw new Error(label + ': unsupported field');
     if (typeof entry.from !== 'string' || !validPath.test(entry.from) || entry.from.includes('//') ||
         entry.from.startsWith('/./') || entry.from.includes('/../') || entry.from === '/' ||
-        /[*?#\\]/.test(entry.from)) throw new Error(label + ': invalid source');
+        /[*?#\\]/.test(entry.from) || hasDotSegments(entry.from)) throw new Error(label + ': invalid source');
+    if (known.has(entry.from) || protectedPaths.has(entry.from) ||
+        entry.from === '/.well-known' || entry.from.startsWith('/.well-known/')) {
+      throw new Error(label + ': source conflicts with a published or reserved route');
+    }
     if (froms.has(entry.from)) throw new Error(label + ': duplicate source');
     froms.add(entry.from);
     if (!states.has(entry.status)) throw new Error(label + ': invalid state');
