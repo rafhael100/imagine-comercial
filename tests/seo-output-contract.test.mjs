@@ -40,10 +40,10 @@ test('F21 compara sitemap com catálogo exato e identifica URLs faltantes ou dup
 
 test('F21 valida declaração única do sitemap em robots.txt', () => {
   const expected = home + 'sitemap.xml';
-  assert.equal(verifyRobotsSitemap('User-agent: *\\nAllow: /\\nSitemap: ' +
-    expected + '\\n', expected), true);
-  assert.throws(() => verifyRobotsSitemap('User-agent: *\\nAllow: /\\n', expected),
+  assert.equal(verifyRobotsSitemap('User-agent: *\nAllow: /\nSitemap: ' +
+    expected + '\n', expected), true);
+  assert.throws(() => verifyRobotsSitemap('User-agent: *\nAllow: /\n', expected),
     /exactly one sitemap/);
-  assert.throws(() => verifyRobotsSitemap('Sitemap: https://outro.example/sitemap.xml\\n', expected),
+  assert.throws(() => verifyRobotsSitemap('Sitemap: https://outro.example/sitemap.xml\n', expected),
     /Expected values to be strictly equal/);
 });
