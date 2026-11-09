@@ -24,12 +24,12 @@ test('rejects homepage wildcard rules, duplicates and ambiguous states',()=>{
   assert.throws(()=>validateRedirectPlan([approved('/a.html','/sobre/'),approved('/a.html','/contato/')]), /duplicate source/);
   assert.throws(()=>validateRedirectPlan([{from:'/a.html',to:'/sobre/',status:'unknown',reason:'Revisão com contexto suficiente.'}]), /invalid state/);
 });
-test('rejects redirect chains and self redirects',()=>{
+test('rejects redirects that form chains, self loops or collide with public routes',()=>{
   assert.throws(()=>validateRedirectPlan([
     approved('/a.html','/contato/'),
     approved('/contato/','/sobre/')
-  ]), /chain or loop/);
-  assert.throws(()=>validateRedirectPlan([approved('/sobre/','/sobre/')]), /self redirect/);
+  ]), /chain or loop|source conflicts with a published or reserved route/);
+  assert.throws(()=>validateRedirectPlan([approved('/sobre/','/sobre/')]), /self redirect|source conflicts with a published or reserved route/);
 });
 test('hold cannot silently point at content and plans are immutable',()=>{
   assert.throws(()=>validateRedirectPlan([
