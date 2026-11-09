@@ -66,3 +66,10 @@ Este bloco é o retrato atual e **substitui os números históricos das seções
 - **Compatibilidade com Portal:** a [integração laboratório PHP→PostgreSQL→Astro](https://github.com/rafhael100/imagine-portal/actions/runs/42621077771) consumiu commit do site `365a6be1ac2a16f9eb39522ceb0c308e05f75302`, com 78 testes comerciais e 35 testes SEO aprovados; nenhuma autenticação/conta real.
 - **Gates de lançamento:** resolver autenticador Portal/MFA/grants frescos, fluxo transacional de publicação e confirmação de entrega, checkout e fiscal homologados, marca/oferta/privacidade/licenças, inventário Search Console e URLs/301 completos, staging protegido e aprovação exclusiva de deploy e DNS.
 - **Autoridade:** sem merge em `main`, deploy Cloudflare/VPS, alteração DNS, dados reais de clientes ou fornecedores pagos sem aprovação específica.
+
+
+## Rodada F20 — 09/11/2026
+- [PR #20](https://github.com/rafhael100/imagine-comercial/pull/20) — validação adicional de segurança de origem dos redirects legados. Um manifesto não pode sequestrar rotas já presentes em `sitePages`, `robots.txt`, `sitemap.xml`, `404.html` ou `/.well-known/`.
+- Testes novos em `tests/redirect-source-safety.test.mjs` cobrem colisões inclusive em status HOLD/candidate, segmentos dot e regressão positiva. Detalhes em `docs/F20-PROTECAO-ROTAS-ATUAIS-SEO.md`.
+- **Status de validação:** testes recém-submetidos; confirmar resultado do CI do PR #20 antes de afirmar aprovação. Nenhuma regra 301 real foi escrita, nenhum merge em `main`, publicação ou alteração do domínio.
+- Gates pendentes mantidos: inventário completo GSC, revisão jurídica/editorial, autenticação/MFA e autorização transacional do Portal, staging e aprovação exclusiva da publicação.
