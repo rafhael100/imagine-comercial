@@ -40,6 +40,10 @@ jobs:
           persist-credentials: false
       - name: Auditar SEO do HTML compilado
         run: node .qa/seo-engine/scripts/audit-dist.mjs dist
+      - name: Comprovar consumo real de catálogo assinado no build
+        run: node scripts/test-build-catalog.mjs
+      - name: Conferir HTML padrão após restaurar a compilação
+        run: node scripts/verify-dist.mjs
       - name: Instalar Chromium para QA de navegador
         run: npx playwright install --with-deps chromium
       - name: Testar responsividade e WCAG no navegador

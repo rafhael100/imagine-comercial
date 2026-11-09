@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroVisual from '../components/HeroVisual.astro';
-import { services } from '../data/services.mjs';
+import { buildServices as services } from '../lib/build-catalog.mjs';
 const title = 'Criação de sites e performance digital | Imagine';
 const description = 'Sites, Landing Pages e estratégia de anúncios para empresas que buscam presença digital profissional. Conheça as soluções da Imagine.';
 const featured = services.filter(s => ['criacao-de-sites','landing-pages','gestao-google-ads'].includes(s.slug));

@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { services } from '../../data/services.mjs';
+import { buildServices as services } from '../../lib/build-catalog.mjs';
 
 export function getStaticPaths() {
   return services.map(s => ({ params: { slug: s.slug }, props: { s } }));
