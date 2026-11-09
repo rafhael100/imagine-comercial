@@ -13,7 +13,7 @@ const allowedHosts=new Set(['imaginecomunicacao.com.br','www.imaginecomunicacao.
 const canonicalPages=new Set(sitePages.map(page=>page.path));
 const headerAliases=new Set(['page','pages','top pages','top page','url','urls',
   'pagina','paginas','pagina principal','paginas principais','principais paginas']);
-const normalizedHeader = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+export const normalizedHeader = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
   .toLowerCase().trim().replace(/\s+/g,' ');
 
 export function parseCsvStrict(content) {
@@ -66,7 +66,7 @@ export function parseCsvStrict(content) {
   return rows;
 }
 
-function pagePath(value) {
+export function parseObservedPage(value) {
   if(typeof value!=='string' || value.length>4096 || !value.trim() ||
      value.includes('\\') || /[\r\n\0]/.test(value))
     throw new Error('GSC CSV: invalid URL cell');
@@ -111,7 +111,7 @@ export function reviewGscPagesCsv(content,{inventory=legacyUrls}={}){
   const index=matches[0], legacy=new Map(inventory.map(e=>[e.from,e]));
   const seen=new Set(), results=[];
   for(const row of rows.slice(1)){
-    const page=pagePath(row[index]);
+    const page=parseObservedPage(row[index]);
     const key=page.host+'\0'+page.from+'\0'+page.hasQuery+'\0'+page.unusualPath;
     if(seen.has(key))continue;
     seen.add(key);
