@@ -58,7 +58,15 @@ try {
       assert.equal(await page.locator('main#conteudo').count(),1,route+' main landmark');
       assert.equal(await page.locator('a[href="/servicos/"]').count()>=1,true,route+' internal service navigation');
       const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
-      assert.ok(overflow<=2,viewport.label+': '+route+' horizontal overflow '+overflow);
+      if (overflow>2) {
+        const offenders=await page.evaluate(() => [...document.querySelectorAll('body *')].map(el=>({
+          tag:el.tagName.toLowerCase(),className:typeof el.className==='string'?el.className:'',
+          text:(el.textContent||'').trim().slice(0,70),
+          right:Math.round(el.getBoundingClientRect().right),
+          width:Math.round(el.getBoundingClientRect().width)
+        })).filter(el=>el.right>window.innerWidth+2).slice(0,12));
+        throw new Error(viewport.label+': '+route+' horizontal overflow '+overflow+' elements='+JSON.stringify(offenders));
+      }
       if(route==='/'||route==='/servicos/landing-pages/'||route==='/contato/') {
         const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
         assert.deepEqual(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>n.target)})),[],viewport.label+': '+route+' axe');
