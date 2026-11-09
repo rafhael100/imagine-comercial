@@ -75,6 +75,42 @@ try {
   assert.equal(protectedProof.deploymentPerformed,false);
   assert.match(protectedProof.mode,/NOT_AUTHORIZED_FOR_DEPLOY/);
   assert.match(protectedProof.compiledTreeSha256,/^[a-f0-9]{64}$/);
+  // F38: a segunda etapa não pode confiar no hash escrito dentro do
+  // relatório; exige pin de árvore entregue por fonte independente.
+  const verifyEnv={
+    ...env,IMAGINE_EXPECTED_BUILD_TREE_SHA256:protectedProof.compiledTreeSha256
+  };
+  const verifyArtifact=envForReview=>execFileSync(process.execPath,
+    ['scripts/verify-protected-package.mjs'],{
+      env:envForReview,stdio:'pipe',timeout:120000
+    });
+  const verifiedOutput=verifyArtifact(verifyEnv).toString('utf8');
+  assert.match(verifiedOutput,/OFFLINE_VERIFY_ONLY_NOT_AUTHORIZED_FOR_DEPLOY/);
+  assert.throws(()=>verifyArtifact({
+    ...verifyEnv,IMAGINE_EXPECTED_BUILD_TREE_SHA256:'a'.repeat(64)
+  }),/Command failed|status/);
+  assert.throws(()=>verifyArtifact({
+    ...verifyEnv,IMAGINE_CATALOG_EXPECTED_RELEASE_ID:'release_wrong_verification'
+  }),/Command failed|status/);
+  assert.throws(()=>verifyArtifact({
+    ...verifyEnv,IMAGINE_RELEASE_TARGET:'review'
+  }),/Command failed|status/);
+  const outputReview='artifacts/protected-build-review/PROTECTED-BUILD-REVIEW-ONLY.json';
+  const originalReview=readFileSync(outputReview,'utf8');
+  writeFileSync(outputReview,JSON.stringify({...protectedProof,
+    compiledTreeSha256:'f'.repeat(64)}));
+  assert.throws(()=>verifyArtifact(verifyEnv),/Command failed|status/);
+  writeFileSync(outputReview,originalReview);
+  // Tampering with any static HTML file changes the tree even if signed
+  // service metadata remains unchanged and the review JSON is untouched.
+  const originalHome=readFileSync('dist/index.html');
+  writeFileSync('dist/index.html',
+    Buffer.concat([originalHome,Buffer.from('\n<!-- altered after build -->')]));
+  assert.throws(()=>verifyArtifact(verifyEnv),/Command failed|status/);
+  writeFileSync('dist/index.html',originalHome);
+  assert.match(verifyArtifact(verifyEnv).toString('utf8'),
+    /OFFLINE_VERIFY_ONLY_NOT_AUTHORIZED_FOR_DEPLOY/);
+  console.log('F38 independent verifier accepted pinned package and rejected tampered tree/report/pins.');
   const built=readFileSync('dist/servicos/landing-pages/index.html','utf8');
   assert.ok(built.includes(label),'Build must use signed metadata title');
   assert.ok(built.includes(description),'Build must use signed public intro');
