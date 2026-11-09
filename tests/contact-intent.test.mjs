@@ -13,13 +13,14 @@ test('contact options are curated and do not trigger an unapproved lead API',()=
   const contact=source('src/pages/contato.astro');
   assert.ok(contact.includes('services.map(s => <option value={s.slug}'));
   assert.ok(contact.includes('allowed.includes(requested)'));
-  assert.ok(contact.includes('encodeURIComponent(whatsappMessage)'));
-  assert.ok(contact.includes('encodeURIComponent(emailSubject)'));
+  assert.ok(contact.includes('contactWhatsAppUrl(whatsappMessage)'));
+  assert.ok(contact.includes('contactEmailUrl(emailSubject)'));
   assert.doesNotMatch(contact,/<form\b|fetch\(|localStorage|document\.cookie|XMLHttpRequest/);
 });
 test('contact remains functional without JavaScript',()=>{
   const contact=source('src/pages/contato.astro');
-  assert.ok(contact.includes('id="contact-whatsapp" href="https://wa.me/'));
-  assert.ok(contact.includes('id="contact-email" href="mailto:'));
-  assert.ok(contact.includes('href="tel:+558530329525"'));
+  assert.ok(contact.includes('id="contact-whatsapp" href={contactWhatsAppUrl()}'));
+  assert.ok(contact.includes('id="contact-email" href={contactEmailUrl()}'));
+  assert.ok(contact.includes('href={"tel:"+contactChannels.phoneE164}'));
+  assert.ok(contact.includes('contactChannels.email'));
 });
