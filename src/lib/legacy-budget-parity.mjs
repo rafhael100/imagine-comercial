@@ -16,10 +16,10 @@ export const LEGACY_BUDGET_FORM_EVIDENCE=Object.freeze({
 
 export const LEGACY_BUDGET_FIELDS=Object.freeze([
   Object.freeze({key:'name',legacyLabel:'Nome',previewId:'lead-name',review:'FIELD_PRESENT_NOT_VALIDATED'}),
-  Object.freeze({key:'role',legacyLabel:'Cargo',previewId:null,review:'FIELD_POLICY_AND_MAPPING_REQUIRED'}),
+  Object.freeze({key:'role',legacyLabel:'Cargo',previewId:'lead-role',review:'FIELD_POLICY_AND_MAPPING_REQUIRED'}),
   Object.freeze({key:'email',legacyLabel:'Email',previewId:'lead-email',review:'FIELD_PRESENT_NOT_VALIDATED'}),
   Object.freeze({key:'telephone',legacyLabel:'Telefone',previewId:'lead-phone',review:'SEPARATE_TELEPHONE_AND_MOBILE_POLICY_REQUIRED'}),
-  Object.freeze({key:'mobile',legacyLabel:'Celular',previewId:null,review:'SEPARATE_TELEPHONE_AND_MOBILE_POLICY_REQUIRED'}),
+  Object.freeze({key:'mobile',legacyLabel:'Celular',previewId:'lead-mobile',review:'SEPARATE_TELEPHONE_AND_MOBILE_POLICY_REQUIRED'}),
   Object.freeze({key:'message',legacyLabel:'Mensagem',previewId:'lead-details',review:'FIELD_PRESENT_NOT_VALIDATED'}),
   Object.freeze({key:'challenge',legacyLabel:'Verificação aritmética',previewId:null,review:'APPROVED_SERVER_SIDE_ANTIBOT_REPLACEMENT_REQUIRED'})
 ]);
