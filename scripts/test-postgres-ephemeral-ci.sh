@@ -77,8 +77,14 @@ if sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -c   'SET ROLE 
   echo "F54 failed: restricted role can DELETE policy floor." >&2
   exit 1
 fi
+# All these negative probes must fail with SQL permission errors, not
+# merely with a row constraint: the execute-only role has zero table grants.
 # F55: execute-only role must not read or modify raw security tables.
-for statement in   'SELECT * FROM public.imagine_comercial_witness_policy_floor;'   'SELECT * FROM public.imagine_comercial_witness_replay_nonce;'   "UPDATE public.imagine_comercial_witness_policy_floor SET sequence=1;"   'DELETE FROM public.imagine_comercial_witness_policy_floor;'   'DELETE FROM public.imagine_comercial_witness_replay_nonce;'
+for statement in   'SELECT * FROM public.imagine_comercial_witness_policy_floor;'   'SELECT * FROM public.imagine_comercial_witness_replay_nonce;'   "UPDATE public.imagine_comercial_witness_policy_floor SET sequence=1;"   'DELETE FROM public.imagine_comercial_witness_policy_floor;'   'DELETE FROM public.imagine_comercial_witness_replay_nonce;' \
+  "INSERT INTO public.imagine_comercial_witness_policy_floor (signer_key_id,witness_key_id,sequence,policy_sha256) VALUES ('root_f57_ci_01','witness_f57_ci_01',1,repeat('a',64));" \
+  "INSERT INTO public.imagine_comercial_witness_replay_nonce (witness_key_id,nonce,issued_at,release_id) VALUES ('witness_f57_ci_01',repeat('b',64),1800000000,'release_f57_ci_01');" \
+  'TRUNCATE public.imagine_comercial_witness_policy_floor;' \
+  'TRUNCATE public.imagine_comercial_witness_replay_nonce;'
 do
   if sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -c     "SET ROLE imagine_comercial_ci_execute_only; ${statement}" >/dev/null 2>&1; then
     echo "F55 failed: execute-only role accessed a protected table." >&2
