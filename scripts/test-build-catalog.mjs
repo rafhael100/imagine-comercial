@@ -13,7 +13,7 @@ import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
 import {verifyProtectedReleaseWithWitness} from '../src/lib/protected-release-witness.mjs';
 import {receiptSigningBytes} from '../src/lib/independent-delivery-receipt.mjs';
 import {witnessPolicySigningBytes} from '../src/lib/signed-witness-trust-policy.mjs';
-import {createSyntheticAtomicLedger} from '../src/lib/atomic-receipt-ledger.mjs';
+import {createPostgresWitnessReplayLedger, INSERT_WITNESS_NONCE_SQL} from '../src/lib/postgres-witness-replay-ledger.mjs';
 
 if (process.env.IMAGINE_RELEASE_TARGET &&
     process.env.IMAGINE_RELEASE_TARGET!=='review') {
@@ -126,7 +126,24 @@ try {
   const deliveryReceipt={...unsignedReceipt,signature:sign(
     null,receiptSigningBytes(unsignedReceipt),deliveryWitness.privateKey
   ).toString('base64')};
-  const replayLedger=createSyntheticAtomicLedger();
+  // F50: run the REAL PostgreSQL adapter with a strictly local fake
+  // query transport. This proves the E2E code path, not a live PostgreSQL DB.
+  const persistedNonces=new Set();
+  let postgresCalls=0;
+  const fakePostgresQuery=async(sql,[keyId,nonce,issuedAt,releaseId])=>{
+    assert.equal(sql,INSERT_WITNESS_NONCE_SQL);
+    assert.equal(keyId,trustedRelease.witnessKeyId);
+    assert.equal(issuedAt,labNow);
+    assert.equal(releaseId,snapshot.releaseId);
+    postgresCalls++;
+    const key=keyId+':'+nonce;
+    if(persistedNonces.has(key))return {rowCount:0,rows:[]};
+    persistedNonces.add(key);
+    return {rowCount:1,rows:[{witness_key_id:keyId,nonce}]};
+  };
+  const replayLedger=createPostgresWitnessReplayLedger({
+    query:fakePostgresQuery
+  });
   const f47Inputs={
     files:readDistFiles(),review:protectedProof,envelope,
     catalogTrustKeys:new Map([[envelope.keyId,pem]]),
@@ -173,16 +190,34 @@ try {
   await assert.rejects(verifyProtectedReleaseWithWitness({
     ...f47Inputs,expectedRelease:{...trustedRelease,treeSha256:'e'.repeat(64)}
   }),/digest|hash|mismatch/);
-  // Valid receipt and package still succeed on the original ledger,
-  // proving all rejected attempts happened before reserveOnce.
+  // Invalid artifacts and signatures must never reach the DB adapter.
+  assert.equal(postgresCalls,0,'invalid proofs must not reserve a nonce');
+  // Valid receipt and package still succeed on the same adapter.
   const bound=await verifyProtectedReleaseWithWitness(f47Inputs);
   assert.equal(bound.releaseId,snapshot.releaseId);
   assert.equal(bound.treeSha256,trustedRelease.treeSha256);
   assert.equal(bound.replayReserved,true);
   assert.equal(bound.deploymentAuthorized,false);
   assert.equal(bound.deploymentPerformed,false);
+  assert.equal(postgresCalls,1,'one successful INSERT on valid receipt');
   await assert.rejects(verifyProtectedReleaseWithWitness(f47Inputs),/replay rejected/);
-  console.log('F47 lab E2E: protected Astro bytes + root-signed witness + replay rejection PASS.');
+  assert.equal(postgresCalls,2,'duplicate receipt must hit UNIQUE-based replay check');
+  // An independent adapter (simulating another process) sees the same
+  // persistent database uniqueness state rather than its own memory set.
+  const independentAdapter=createPostgresWitnessReplayLedger({
+    query:fakePostgresQuery
+  });
+  await assert.rejects(verifyProtectedReleaseWithWitness({
+    ...f47Inputs,ledger:independentAdapter
+  }),/replay rejected/);
+  assert.equal(postgresCalls,3);
+  // DB outages never fall back to local memory or silently accept a receipt.
+  await assert.rejects(verifyProtectedReleaseWithWitness({
+    ...f47Inputs,ledger:createPostgresWitnessReplayLedger({
+      query:async()=>{throw new Error('simulated postgres outage');}
+    })
+  }),/ledger unavailable, fail closed/);
+  console.log('F50 lab E2E: protected Astro build, PostgreSQL adapter path and fail-closed replay PASS.');
 
   assert.throws(()=>verifyArtifact({
     ...verifyEnv,IMAGINE_EXPECTED_BUILD_TREE_SHA256:'a'.repeat(64)
