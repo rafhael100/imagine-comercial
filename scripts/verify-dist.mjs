@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { assertNoUnapprovedPublicIntake } from '../src/lib/public-intake-freeze.mjs';
 import { services } from '../src/data/services.mjs';
 
 const read = path => readFileSync(join('dist', path), 'utf8');
@@ -37,4 +38,18 @@ for (const service of services) {
   assert.ok(sitemap.includes('/servicos/' + service.slug + '/'), 'Missing sitemap route: ' + service.slug);
 }
 assert.doesNotMatch(sitemap, /\/checkout\/|\/admin\/|\/portal\/|\/404\//);
+function walkBuiltFiles(folder){
+  return readdirSync(folder,{withFileTypes:true}).flatMap(entry=>{
+    const path=join(folder,entry.name);
+    return entry.isDirectory()?walkBuiltFiles(path):entry.isFile()?[path]:[];
+  });
+}
+let frozenAssets=0;
+for(const file of walkBuiltFiles('dist')){
+  if(!/\.(?:html|js)$/i.test(file))continue;
+  assertNoUnapprovedPublicIntake(relative('dist',file),readFileSync(file,'utf8'));
+  frozenAssets++;
+}
+assert.ok(frozenAssets>=paths.length+1,'F76: expected all built pages and JS to be inspected');
+console.log('F76 public intake freeze checked',frozenAssets,'built HTML and JS files');
 console.log('Built SEO routes validated:', paths.length, 'HTML pages and sitemap/robots');
