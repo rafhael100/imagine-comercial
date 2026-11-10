@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { services } from '../data/services.mjs';
 import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
+import {contactObjectives} from '../data/contact-objectives.mjs';
 ---
 <BaseLayout
   title="Contato e orçamento | Imagine Comunicação Digital"
@@ -21,6 +22,14 @@ import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contac
           {services.map(s => <option value={s.slug}>{s.label}</option>)}
         </select>
         <p id="service-help" role="status" aria-live="polite">Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.</p>
+      </div>
+      <div class="contact-choice">
+        <label for="objective-choice">Qual é o objetivo da conversa? (opcional)</label>
+        <select id="objective-choice" name="objetivo" autocomplete="off" aria-describedby="objective-help">
+          <option value="">Ainda quero avaliar</option>
+          {contactObjectives.map(item => <option value={item.code}>{item.label}</option>)}
+        </select>
+        <p id="objective-help" role="status" aria-live="polite">A seleção só prepara a mensagem. Você decide se deseja abrir o canal externo.</p>
       </div>
       <p class="contact-process-link"><a href="/como-funciona/">Entenda as etapas do projeto antes de conversar</a> · <a href="/perguntas-frequentes/">Dúvidas frequentes</a></p>
       <div class="cta-row">
@@ -42,27 +51,34 @@ import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contac
   </section>
   <script>
     import {contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
+    import {composeCuratedContactLinks,contactObjectives} from '../data/contact-objectives.mjs';
     // Somente dados estáticos de serviço: sem cookies, fetch, rastreamento ou PII.
     const choice = document.querySelector<HTMLSelectElement>('#service-choice');
     const whatsapp = document.querySelector<HTMLAnchorElement>('#contact-whatsapp');
     const email = document.querySelector<HTMLAnchorElement>('#contact-email');
     const help = document.querySelector<HTMLElement>('#service-help');
-    if (choice && whatsapp && email && help) {
+    const objective = document.querySelector<HTMLSelectElement>('#objective-choice');
+    const objectiveHelp = document.querySelector<HTMLElement>('#objective-help');
+    if (choice && whatsapp && email && help && objective && objectiveHelp) {
       // All identifiers originate from the server-reviewed service catalog.
       // The URL fragment contains only a public service slug, never a lead.
       const allowed = new Set([...choice.options].map(option => option.value));
+      const allowedObjectives = new Set(['',...contactObjectives.map(item => item.code)]);
       const update = () => {
         const selected = choice.selectedOptions[0];
         const label = selected?.value ? selected.textContent?.trim() : '';
-        const whatsappMessage = label
-          ? 'Olá, gostaria de solicitar uma proposta para ' + label + ' da Imagine.'
-          : 'Olá, gostaria de conhecer os serviços da Imagine.';
-        const emailSubject = label ? 'Proposta Imagine - ' + label : 'Contato Imagine';
+        if (!allowedObjectives.has(objective.value)) objective.value = '';
+        const curated=composeCuratedContactLinks(choice.value,objective.value);
+        const whatsappMessage = curated.message;
+        const emailSubject = curated.subject;
         whatsapp.href = contactWhatsAppUrl(whatsappMessage);
         email.href = contactEmailUrl(emailSubject);
         help.textContent = label
           ? 'Mensagem preparada para ' + label + '. Nenhum dado será enviado pelo site.'
           : 'Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.';
+        objectiveHelp.textContent = curated.objectiveLabel
+          ? 'Objetivo selecionado: ' + curated.objectiveLabel + '. Nenhum dado será enviado pelo site.'
+          : 'A seleção só prepara a mensagem. Você decide se deseja abrir o canal externo.';
       };
       const applyFragment = () => {
         const requested = window.location.hash.slice(1);
@@ -70,6 +86,7 @@ import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contac
         choice.value = allowed.has(requested) ? requested : '';
         update();
       };
+      objective.addEventListener('change', update);
       choice.addEventListener('change', () => {
         if (!allowed.has(choice.value)) return;
         // Replace this history entry rather than adding one for every change.
@@ -86,7 +103,7 @@ import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contac
   <style>
     .contact-process-link { margin: 20px 0 0; }
     .contact-process-link a { color: #0b5ea9; font-weight: 750; text-underline-offset: 4px; }
-    .contact-choice { max-width: 490px; margin-top: 30px; }
+    .contact-choice { max-width: 490px; margin-top: 22px; }
     .contact-choice label { display: block; font-weight: 800; margin-bottom: 8px; }
     .contact-choice select { width: 100%; min-height: 48px; padding: 10px 14px; border: 1px solid #9aafc5; border-radius: 10px; font: inherit; background: white; color: #182438; }
     .contact-choice p { margin: 8px 0 0; font-size: .85rem; color: #536680; }
