@@ -76,6 +76,20 @@ try {
           viewport.label+': approved Portal link must be exact');
       }
       assert.equal(await page.locator('a[href="/servicos/"]').count()>=1,true,route+' internal service navigation');
+      // F63: indicate current *page*, not an unrelated parent route.
+      const navPages=new Set(['/servicos/','/comparar-solucoes/',
+        '/servicos/landing-pages/','/conteudos/','/sobre/','/contato/']);
+      const currentNav=page.locator('nav[aria-label="Navegação principal"] a[aria-current="page"]');
+      if(navPages.has(route)){
+        assert.equal(await currentNav.count(),1,route+': one current navigation link');
+        assert.equal(await currentNav.first().getAttribute('href'),route,route+': active link destination');
+      }else{
+        assert.equal(await currentNav.count(),0,route+': no misleading current-page link');
+      }
+      assert.equal(await page.locator('nav a[href="/comparar-solucoes/"]').count(),1,
+        route+': comparison is a permanent navigation destination');
+      assert.equal(await page.locator('a.brand[aria-current="page"]').count(),route==='/'?1:0,
+        route+': site logo denotes home only when current');
       if(route.startsWith('/servicos/') && route!=='/servicos/'){
         assert.equal(await page.locator('a.cta-secondary[href="/comparar-solucoes/"]').count(),1,
           'F62 service-page comparison link points to the actual comparison page');
@@ -122,6 +136,13 @@ try {
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('a[href="/comparar-solucoes/"]').count()>=1,true,
       'F60 comparison linked from service directory');
+    // F63: keyboard's first stop is the visible skip-to-content control.
+    await page.goto(host+'/',{waitUntil:'load',timeout});
+    await page.keyboard.press('Tab');
+    assert.equal(await page.locator('a.skip-link').evaluate(el=>el===document.activeElement),true,
+      'F63 first keyboard focus must be skip-to-content link');
+    assert.equal(await page.locator('a.skip-link:focus-visible').count(),1,
+      'F63 skip link must be visible when keyboard focused');
     // F58: real browser contract for the public service guide.
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     const goalOptions=page.locator('#service-guide-goal option');
