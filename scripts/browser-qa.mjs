@@ -57,7 +57,7 @@ try {
     });
     const routes = viewport.label==='mobile'
       ? sitePages.map(p=>p.path)
-      : ['/', '/servicos/', '/comparar-solucoes/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
+      : ['/', '/servicos/', '/comparar-solucoes/','/como-funciona/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
     for(const route of routes) {
       console.log('Browser QA',viewport.label,route);
       const response=await page.goto(host+route,{waitUntil:'load',timeout});
@@ -112,7 +112,7 @@ try {
         })).filter(el=>el.right>window.innerWidth+2).slice(0,12));
         throw new Error(viewport.label+': '+route+' horizontal overflow '+overflow+' elements='+JSON.stringify(offenders));
       }
-      if(route==='/'||route==='/servicos/'||route==='/comparar-solucoes/'||route==='/servicos/landing-pages/'||route==='/contato/') {
+      if(route==='/'||route==='/servicos/'||route==='/comparar-solucoes/'||route==='/como-funciona/'||route==='/servicos/landing-pages/'||route==='/contato/') {
         const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
         assert.deepEqual(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>n.target)})),[],viewport.label+': '+route+' axe');
         if(route==='/'||route==='/servicos/landing-pages/') {
@@ -120,6 +120,21 @@ try {
         }
       }
     }
+    // F64: process page keeps the public briefing self-service and static.
+    await page.goto(host+'/como-funciona/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('.process-card').count(),6,'F64 six process stages');
+    assert.equal(await page.locator('.process-card h3').count(),6);
+    assert.equal(await page.locator('.process-card .process-question').count(),6);
+    assert.equal(await page.locator('.briefing-list li').count(),6,'F64 preparation checklist');
+    assert.equal(await page.locator('a[href="/comparar-solucoes/"]').count()>=1,true);
+    assert.equal(await page.locator('a[href="/contato/"]').count()>=1,true);
+    assert.equal(await page.locator('form,input,textarea').count(),0,
+      'F64 guide does not collect visitors information');
+    await page.locator('a[href="#etapas"]').click();
+    await page.waitForURL(host+'/como-funciona/#etapas');
+    await page.goto(host+'/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('a[href="/como-funciona/"]').count()>=1,true,
+      'F64 home links to project process');
     // F60: all six reviewed service comparisons are available even with
     // JS disabled and never send information to an unapproved backend.
     await page.goto(host+'/comparar-solucoes/',{waitUntil:'load',timeout});
@@ -259,7 +274,7 @@ try {
     assert.deepEqual(errors,[],viewport.label+' runtime errors');
     await context.close();
   }
-  console.log('Browser QA passed:',sitePages.length,'mobile routes, 7 desktop routes, verified internal/external links and anchors, axe WCAG 2.1 A/AA for 3 pages per viewport.');
+  console.log('Browser QA passed:',sitePages.length,'mobile routes, 8 desktop routes, verified internal/external links and anchors, axe WCAG 2.1 A/AA for 3 pages per viewport.');
 } finally {
   if(browser) await browser.close();
   server.kill('SIGTERM');
