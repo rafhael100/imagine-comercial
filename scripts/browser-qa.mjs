@@ -8,6 +8,7 @@ import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
+import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
 
@@ -93,13 +94,47 @@ try {
         })).filter(el=>el.right>window.innerWidth+2).slice(0,12));
         throw new Error(viewport.label+': '+route+' horizontal overflow '+overflow+' elements='+JSON.stringify(offenders));
       }
-      if(route==='/'||route==='/servicos/landing-pages/'||route==='/contato/') {
+      if(route==='/'||route==='/servicos/'||route==='/servicos/landing-pages/'||route==='/contato/') {
         const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
         assert.deepEqual(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>n.target)})),[],viewport.label+': '+route+' axe');
         if(route==='/'||route==='/servicos/landing-pages/') {
           await page.screenshot({path:artifacts+'/'+viewport.label+'-'+(route==='/'?'home':'landing-page')+'.png',fullPage:true});
         }
       }
+    }
+    // F58: real browser contract for the public service guide.
+    await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
+    const goalOptions=page.locator('#service-guide-goal option');
+    assert.equal(await goalOptions.count(),guideGoals.length,'F58 all fixed choices rendered');
+    assert.equal(await page.locator('#service-guide-goal').inputValue(),guideGoals[0].code);
+    for(const item of guideGoals){
+      await page.locator('#service-guide-goal').selectOption(item.code);
+      const chosen=guideForGoal(item.code);
+      assert.equal((await page.locator('#service-guide-explanation').textContent())?.trim(),
+        chosen.explanation,viewport.label+' F58 explanation');
+      assert.deepEqual(
+        await page.locator('#service-guide-links a').evaluateAll(links=>
+          links.map(link=>({href:link.getAttribute('href'),label:link.textContent?.trim()}))),
+        chosen.services.map(service=>({href:service.href,label:service.label})),
+        viewport.label+' F58 reviewed internal suggestions'
+      );
+    }
+    assert.equal(await page.locator('#service-guide-results[aria-live="polite"]').count(),1,
+      'F58 output announces changes');
+    // Without scripts, the original full service catalog remains navigable.
+    if(viewport.label==='mobile'){
+      const noJs=await browser.newContext({
+        viewport:{width:375,height:812},javaScriptEnabled:false
+      });
+      try{
+        const fallback=await noJs.newPage();
+        await fallback.goto(host+'/servicos/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('.cards article.card').count(),
+          sitePages.filter(item=>item.path.startsWith('/servicos/')&&item.path!=='/servicos/').length,
+          'F58 must preserve all public services without JavaScript');
+        assert.equal(await fallback.locator('#service-guide-results a[href="/servicos/onepage/"]').count(),1,
+          'F58 has a useful static initial recommendation');
+      }finally{await noJs.close();}
     }
     // Jornada comercial: um clique deve manter o serviço de origem sem requisição ao Portal.
     await page.goto(host+'/servicos/landing-pages/',{waitUntil:'load',timeout});
