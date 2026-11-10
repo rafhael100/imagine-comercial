@@ -42,3 +42,28 @@ test('privacy, english and former customer portfolio URLs stay held',()=>{
     assert.equal(map.get(path)?.status,'hold');
   }
 });
+
+test('F67: eight additional historical paths require individual HOLD and never auto-redirect',()=>{
+  const extra=[
+    '/trabalhe-conosco.html',
+    '/component/imaginecontato/criacao-de-sites-em-fortaleza.html',
+    '/en-us/services/criacao-de-loja-virtual.html',
+    '/en-us/services/facebook-instagram-ads.html',
+    '/en-us/services/google-ads-anuncios.html',
+    '/en-us/services/linkedin-ads-anuncios.html',
+    '/en-us/services/marketplace-amazon.html',
+    '/en-us/services/marketplace-mercado-livre.html'
+  ];
+  assert.equal(extra.length,8);
+  assert.equal(new Set(extra).size,extra.length);
+  for(const path of extra){
+    const entry=map.get(path);
+    assert.ok(entry,path+' must be in legacy inventory');
+    assert.equal(entry.status,'hold');
+    assert.equal(entry.to,null);
+    assert.ok(entry.reason.length>=45);
+  }
+  assert.equal(legacyUrls.filter(x=>x.status==='candidate').length,5);
+  assert.equal(legacyUrls.filter(x=>x.status==='hold').length,18);
+  assert.ok(legacyUrls.every(x=>x.status!=='approved'));
+});
