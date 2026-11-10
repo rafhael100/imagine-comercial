@@ -237,6 +237,32 @@ try {
     assert.ok(emailHref?.includes(encodeURIComponent('Landing Pages')),'Email service context');
     await page.locator('#service-choice').selectOption('onepage');
     assert.ok((await page.locator('#contact-whatsapp').getAttribute('href'))?.includes('Onepage'),'Changing service updates CTA');
+    // F71: public goal selection complements service intent without placing
+    // visitor choices in URL, cookies or a backend request.
+    await page.locator('#objective-choice').selectOption('melhorar-site');
+    const goalWhatsapp=await page.locator('#contact-whatsapp').getAttribute('href');
+    assert.ok(new URL(goalWhatsapp).searchParams.get('text')?.includes('Melhorar um site existente'),
+      'F71 WhatsApp message includes the approved public goal');
+    assert.ok(new URL(goalWhatsapp).searchParams.get('text')?.includes('Onepage'),
+      'F71 WhatsApp message retains the selected service');
+    const goalEmail=await page.locator('#contact-email').getAttribute('href');
+    assert.ok(new URL(goalEmail).searchParams.get('subject')?.includes('Melhorar um site existente'),
+      'F71 email subject includes only the selected public goal');
+    assert.equal(new URL(page.url()).hash,'#onepage',
+      'F71 URL fragment remains service-only, no visitor objective');
+    assert.ok((await page.locator('#objective-help').textContent())?.includes('Melhorar um site existente'));
+    await page.evaluate(()=>{
+      const el=document.querySelector('#objective-choice');
+      el.value='injected-visitor-data';
+      el.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+    assert.equal(await page.locator('#objective-choice').inputValue(),'',
+      'F71 arbitrary objective must be cleared');
+    assert.equal(new URL(page.url()).hash,'#onepage');
+    assert.ok(!(new URL(await page.locator('#contact-whatsapp').getAttribute('href'))).searchParams
+      .get('text')?.includes('injected-visitor-data'));
+    await page.locator('#objective-choice').selectOption('campanhas');
+    assert.equal(await page.locator('#objective-help[role="status"][aria-live="polite"]').count(),1);
     // F62: the address and prepared message must stay in sync when a user
     // changes the selector, follows a deep link, or navigates browser history.
     await page.waitForURL(host+'/contato/#onepage');
