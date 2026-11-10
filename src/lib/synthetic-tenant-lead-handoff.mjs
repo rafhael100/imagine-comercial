@@ -45,7 +45,11 @@ export class SyntheticTenantLeadHandoff {
     if(typeof available!=='boolean')throw new Error('F77: invalid lab availability');
     this.#available=available;
   }
-  submitLab({tenantId,idempotencyKey,draft,consentProof}={}){
+  submitLab(request={}){
+    if(!plain(request)||Object.keys(request).length!==4||
+       !['tenantId','idempotencyKey','draft','consentProof'].every(k=>Object.hasOwn(request,k)))
+      throw new Error('F77: invalid lab handoff request');
+    const {tenantId,idempotencyKey,draft,consentProof}=request;
     if(typeof tenantId!=='string'||!this.#policies.has(tenantId))
       throw new Error('F77: unknown lab tenant');
     if(consentProof!==proofMarker)
