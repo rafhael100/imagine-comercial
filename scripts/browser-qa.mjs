@@ -224,6 +224,13 @@ try {
           'F58 must preserve all public services without JavaScript');
         assert.equal(await fallback.locator('#service-guide-results a[href="/servicos/onepage/"]').count(),1,
           'F58 has a useful static initial recommendation');
+        await fallback.goto(host+'/contato/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('#external-channel-notice').isVisible(),true,
+          'F72 disclosure exists without JavaScript');
+        assert.equal(await fallback.locator('a#contact-whatsapp').count(),1,
+          'F72 WhatsApp link retains default no-JS href');
+        assert.equal(await fallback.locator('a#contact-email').count(),1,
+          'F72 email link retains default no-JS href');
       }finally{await noJs.close();}
     }
     // Jornada comercial: um clique deve manter o serviço de origem sem requisição ao Portal.
@@ -263,6 +270,14 @@ try {
       .get('text')?.includes('injected-visitor-data'));
     await page.locator('#objective-choice').selectOption('campanhas');
     assert.equal(await page.locator('#objective-help[role="status"][aria-live="polite"]').count(),1);
+    // F72: visitor sees the real handoff boundary before leaving the site.
+    const disclosure=page.locator('#external-channel-notice');
+    assert.equal(await disclosure.isVisible(),true,'F72 channel disclosure is visible');
+    assert.ok((await disclosure.textContent())?.includes('canais externos ao site'));
+    assert.equal(await page.locator('#contact-whatsapp[aria-describedby="external-channel-notice"]').count(),1);
+    assert.equal(await page.locator('#contact-email[aria-describedby="external-channel-notice"]').count(),1);
+    assert.equal(await page.locator('#contact-whatsapp').getAttribute('target'),'_blank');
+    assert.ok((await page.locator('#contact-whatsapp').getAttribute('rel'))?.includes('noopener'));
     // F62: the address and prepared message must stay in sync when a user
     // changes the selector, follows a deep link, or navigates browser history.
     await page.waitForURL(host+'/contato/#onepage');
