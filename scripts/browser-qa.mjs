@@ -57,7 +57,7 @@ try {
     });
     const routes = viewport.label==='mobile'
       ? sitePages.map(p=>p.path)
-      : ['/', '/servicos/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
+      : ['/', '/servicos/', '/comparar-solucoes/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
     for(const route of routes) {
       console.log('Browser QA',viewport.label,route);
       const response=await page.goto(host+route,{waitUntil:'load',timeout});
@@ -94,7 +94,7 @@ try {
         })).filter(el=>el.right>window.innerWidth+2).slice(0,12));
         throw new Error(viewport.label+': '+route+' horizontal overflow '+overflow+' elements='+JSON.stringify(offenders));
       }
-      if(route==='/'||route==='/servicos/'||route==='/servicos/landing-pages/'||route==='/contato/') {
+      if(route==='/'||route==='/servicos/'||route==='/comparar-solucoes/'||route==='/servicos/landing-pages/'||route==='/contato/') {
         const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
         assert.deepEqual(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>n.target)})),[],viewport.label+': '+route+' axe');
         if(route==='/'||route==='/servicos/landing-pages/') {
@@ -102,6 +102,22 @@ try {
         }
       }
     }
+    // F60: all six reviewed service comparisons are available even with
+    // JS disabled and never send information to an unapproved backend.
+    await page.goto(host+'/comparar-solucoes/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('.compare-card').count(),6,'F60 all six comparison cards');
+    assert.equal(await page.locator('.compare-card dl').count(),6);
+    assert.equal(await page.locator('.compare-card dt').count(),18,'F60 three decision criteria each');
+    assert.equal(await page.locator('.compare-card a[href^="/servicos/"]').count(),6);
+    assert.equal(await page.locator('.compare-card a[href^="/contato/#"]').count(),6);
+    assert.equal(await page.locator('a[href="#comparacoes"]').count(),1);
+    await page.locator('.compare-card a[href="/contato/#landing-pages"]').click();
+    await page.waitForURL(host+'/contato/#landing-pages');
+    assert.equal(await page.locator('#service-choice').inputValue(),'landing-pages',
+      'F60 comparison contact must retain only public service intent');
+    await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('a[href="/comparar-solucoes/"]').count()>=1,true,
+      'F60 comparison linked from service directory');
     // F58: real browser contract for the public service guide.
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     const goalOptions=page.locator('#service-guide-goal option');
@@ -197,7 +213,7 @@ try {
     assert.deepEqual(errors,[],viewport.label+' runtime errors');
     await context.close();
   }
-  console.log('Browser QA passed:',sitePages.length,'mobile routes, 6 desktop routes, verified internal/external links and anchors, axe WCAG 2.1 A/AA for 3 pages per viewport.');
+  console.log('Browser QA passed:',sitePages.length,'mobile routes, 7 desktop routes, verified internal/external links and anchors, axe WCAG 2.1 A/AA for 3 pages per viewport.');
 } finally {
   if(browser) await browser.close();
   server.kill('SIGTERM');
