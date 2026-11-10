@@ -107,7 +107,7 @@ test('F90: negative time windows preserve PHP inspector precedence',()=>{
 
 test('F90: untrusted nonce, signatures and secret never become a release proof',()=>{
   for(const candidate of ['NOT-UUID','00000000-0000-0000-0000-000000000000',null,0,
-                           nonce.toUpperCase()]){
+                           'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'.toUpperCase()]){
     const result=inspect({...fixture(),nonce:candidate});
     assert.equal(result.reasonCode,'NONCE_FORMAT_INVALID');
     assertNoAuthority(result);
