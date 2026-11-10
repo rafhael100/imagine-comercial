@@ -12,7 +12,7 @@ test('all service CTAs keep their original slug only as a location hash',()=>{
 test('contact options are curated and do not trigger an unapproved lead API',()=>{
   const contact=source('src/pages/contato.astro');
   assert.ok(contact.includes('services.map(s => <option value={s.slug}'));
-  assert.ok(contact.includes('allowed.includes(requested)'));
+  assert.ok(contact.includes('allowed.has(requested) ? requested :'));
   assert.ok(contact.includes('contactWhatsAppUrl(whatsappMessage)'));
   assert.ok(contact.includes('contactEmailUrl(emailSubject)'));
   assert.doesNotMatch(contact,/<form\b|fetch\(|localStorage|document\.cookie|XMLHttpRequest/);
