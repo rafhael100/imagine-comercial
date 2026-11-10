@@ -150,6 +150,31 @@ try {
     verifyProtectedReleaseWithWitness({...f47Inputs,files:corrupted}),
     /digest|hash|mismatch/
   );
+  // F48: failures in the witness chain may not reserve a nonce.
+  const bogusReceipt={...deliveryReceipt,signature:Buffer.alloc(64,4).toString('base64')};
+  await assert.rejects(verifyProtectedReleaseWithWitness({
+    ...f47Inputs,receipt:bogusReceipt
+  }),/invalid witness signature/);
+  const forgedPolicy={...witnessPolicyEnvelope,sequence:8};
+  await assert.rejects(verifyProtectedReleaseWithWitness({
+    ...f47Inputs,witnessPolicyEnvelope:forgedPolicy
+  }),/invalid root signature/);
+  const revokedPolicy={...trustPolicy,state:'revoked'};
+  const revokedUnsigned={...unsignedPolicy,policy:revokedPolicy};
+  const revokedEnvelope={...revokedUnsigned,signature:sign(
+    null,witnessPolicySigningBytes(revokedUnsigned),trustRoot.privateKey
+  ).toString('base64')};
+  await assert.rejects(verifyProtectedReleaseWithWitness({
+    ...f47Inputs,witnessPolicyEnvelope:revokedEnvelope
+  }),/inactive or revoked/);
+  await assert.rejects(verifyProtectedReleaseWithWitness({
+    ...f47Inputs,minPolicySequence:8
+  }),/stale or missing monotonic sequence/);
+  await assert.rejects(verifyProtectedReleaseWithWitness({
+    ...f47Inputs,expectedRelease:{...trustedRelease,treeSha256:'e'.repeat(64)}
+  }),/digest|hash|mismatch/);
+  // Valid receipt and package still succeed on the original ledger,
+  // proving all rejected attempts happened before reserveOnce.
   const bound=await verifyProtectedReleaseWithWitness(f47Inputs);
   assert.equal(bound.releaseId,snapshot.releaseId);
   assert.equal(bound.treeSha256,trustedRelease.treeSha256);
