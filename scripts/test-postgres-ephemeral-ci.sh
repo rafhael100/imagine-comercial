@@ -90,6 +90,8 @@ bash scripts/test-lead-outbox-postgres-ephemeral-ci.sh
 bash scripts/test-lead-outbox-lease-ephemeral-ci.sh
 # F88: exhausted leases produce a tenant-scoped review-only signal.
 bash scripts/test-lead-outbox-exhaustion-ephemeral-ci.sh
+# F89: tighten the CI-only worker boundary to an EXECUTE-only fixed-tenant claim.
+bash scripts/test-lead-outbox-execute-only-ephemeral-ci.sh
 # F53: in the same disposable database, validate a real compiled Astro tree,
 # catalog signature, witness policy/receipt and the PostgreSQL uniqueness
 # constraint. The signed build test restores its original editorial dist.
