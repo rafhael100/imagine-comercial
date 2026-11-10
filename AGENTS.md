@@ -96,3 +96,11 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 - F59 usa **somente** `/contato/#slug` para pré-selecionar uma solução no contato. Não converter isso em cadastro ou envio ao CRM, nem habilitar login/checkout sem os gates de identidade, consentimento e Portal.
 - Antes de integrar qualquer modificação relacionada, executar testes Node, build Astro, auditor SEO independente, QA Chromium 375/1440 px, acessibilidade axe, privacidade sem requisições externas e fallback sem JavaScript. A branch de revisão continua DRAFT; `main` e DNS não podem ser alterados por simples CI verde.
 - A revisão de Search Console real, URLs legadas/redirects e dados comerciais continua pendente; manter [issues #3](https://github.com/rafhael100/imagine-comercial/issues/3), [#4](https://github.com/rafhael100/imagine-comercial/issues/4) e [#56](https://github.com/rafhael100/imagine-comercial/issues/56) abertos.
+
+## Continuidade F64/F65 — orientação, FAQ e limites públicos (10/11/2026)
+
+- `src/data/commercial-process.mjs` é catálogo **editorial** de seis etapas e perguntas. Não escrever SLAs, aprovação automática, limite de revisões, valores, descontos ou prazos como fatos contratuais; condições só são válidas quando revisadas e formalizadas.
+- `src/data/commercial-faq.mjs` mantém oito respostas transversais; evitar duplicações automáticas e promessas de resultados do Google/Meta. Não afirmar que Portal ou CRM estão operacionalmente disponíveis sem homologação.
+- Rotas `/como-funciona/` e `/perguntas-frequentes/` usam HTML estático e links locais; sem formulario, scripts de captura, PII, cookies, rastreamento, API, armazenamento ou compartilhamento de acessos. Se criar coleta futura, exigir contrato CRM/consentimento, autenticação/grants e revisão LGPD antes de implementar.
+- Novo caminho público deve atualizar `sitePages`, sitemap/canonical, links da homepage/rodapé e QA Chromium em 375/1440 px com teste de overflow, axe WCAG 2.1 A/AA e auditor independente SEO RC13.
+- CI verde é evidência de laboratório, não aprovação de produção: nenhuma atualização direta de `main`, DNS, redirects, VPS ou novas despesas. Gates [#56](https://github.com/rafhael100/imagine-comercial/issues/56), [#3](https://github.com/rafhael100/imagine-comercial/issues/3), [#4](https://github.com/rafhael100/imagine-comercial/issues/4) continuam fechados.
