@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
@@ -361,6 +362,46 @@ try {
       viewport.label+': no external request or POST without approved consent/backend');
     assert.deepEqual(errors,[],viewport.label+' runtime errors');
     await context.close();
+  }
+  // F82: PRIVATE fixture only, loaded in memory; never a public Astro route.
+  const privateFormSource=readFileSync(new URL('../tests/fixtures/private-contact-form-preview.html',import.meta.url),'utf8');
+  assert.doesNotMatch(privateFormSource,/<script\\b|\\baction=|fetch\\s*\\(|https?:\\/\\//i,
+    'F82 fixture must not include client scripts, submission endpoints or remote dependencies');
+  for(const viewport of [{width:375,height:812,label:'mobile'},{width:1440,height:900,label:'desktop'}]){
+    const ctx=await browser.newContext({viewport:{width:viewport.width,height:viewport.height}});
+    try{
+      const p=await ctx.newPage();
+      const requests=[];
+      p.on('request',request=>requests.push(request.method()));
+      await p.setContent(privateFormSource,{waitUntil:'load'});
+      assert.equal(await p.locator('form#private-budget-preview[method="dialog"]').count(),1);
+      assert.equal(await p.locator('form button[type="submit"]:disabled').count(),1);
+      assert.equal(await p.locator('input#lead-name:required').count(),1);
+      assert.equal(await p.locator('select#lead-service:required').count(),1);
+      assert.equal(await p.locator('textarea#lead-details:required').count(),1);
+      assert.equal(await p.locator('#preview-understanding:required').count(),1);
+      assert.equal(await p.locator('form').evaluate(form=>form.checkValidity()),false);
+      await p.locator('#lead-name').fill('Cliente Fictício');
+      await p.locator('#lead-email').fill('not-an-email');
+      await p.locator('#lead-service').selectOption('landing-pages');
+      await p.locator('#lead-details').fill('Projeto inteiramente fictício para ensaiar o fluxo.');
+      await p.locator('#preview-understanding').check();
+      assert.equal(await p.locator('form').evaluate(form=>form.checkValidity()),false,
+        'F82 native email validation must reject malformed syntactic input');
+      await p.locator('#lead-email').fill('cliente@example.test');
+      assert.equal(await p.locator('form').evaluate(form=>form.checkValidity()),true,
+        'F82 HTML structural validation is never proof of consent or delivery');
+      assert.equal(await p.locator('form button').isDisabled(),true);
+      assert.ok((await p.locator('#sending-disabled').textContent())?.includes('Envio indisponível'));
+      assert.ok((await p.locator('h1').textContent())?.includes('prévia privada'));
+      const violations=await new AxeBuilder({page:p})
+        .withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
+      assert.deepEqual(violations.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],
+        'F82 private form '+viewport.label+' WCAG');
+      const horizontalOverflow=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+      assert.ok(horizontalOverflow<=2,'F82 private form '+viewport.label+' horizontal overflow');
+      assert.deepEqual(requests,[],'F82 private form must make no network requests');
+    }finally{await ctx.close();}
   }
   console.log('Browser QA passed:',sitePages.length,'mobile routes, 9 desktop routes, verified internal/external links and anchors, axe WCAG 2.1 A/AA for 3 pages per viewport.');
 } finally {
