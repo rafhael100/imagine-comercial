@@ -5,6 +5,9 @@
  * Production requires a real parameter-binding pg client, never this shim.
  */
 import assert from 'node:assert/strict';
+import {generateKeyPairSync, sign} from 'node:crypto';
+import {receiptSigningBytes} from '../src/lib/independent-delivery-receipt.mjs';
+import {witnessPolicySigningBytes,verifyReceiptWithSignedWitnessPolicy} from '../src/lib/signed-witness-trust-policy.mjs';
 import {promisify} from 'node:util';
 import {execFile} from 'node:child_process';
 import {
@@ -80,3 +83,76 @@ await assert.rejects(first.reserveOnce({...source(),witnessKeyId:"evil'; DROP TA
 // The actual PostgreSQL service is local to this disposable runner; no DNS,
 // remote DB, customer data, permissions for deployment, or real receipts.
 console.log('F51 real PostgreSQL accepted exactly one nonce per unique key, all 12 attempts checked.');
+
+// F52: exercise a complete ROOT-SIGNED witness receipt through the same
+// REAL PostgreSQL adapter and cross-session UNIQUE constraint, not a mock.
+const root=generateKeyPairSync('ed25519');
+const witness=generateKeyPairSync('ed25519');
+const rootPem=root.publicKey.export({type:'spki',format:'pem'}).toString();
+const witnessPem=witness.publicKey.export({type:'spki',format:'pem'}).toString();
+const now=1800000000;
+const expected={
+  releaseId:'release_ci_02',target:'staging',treeSha256:'f'.repeat(64),
+  witnessKeyId:'witness_ci_03'
+};
+const rootId='trust_root_ci_01';
+const policyBase={
+  schema:'imagine.comercial.witness-trust-window.v1',
+  witnessKeyId:expected.witnessKeyId,publicKeyPem:witnessPem,
+  state:'active',validFrom:now-120,validUntil:now+120
+};
+function makePolicyEnvelope(state='active'){
+  const unsigned={
+    schema:'imagine.comercial.signed-witness-policy.v1',
+    signerKeyId:rootId,sequence:10,policy:{...policyBase,state}
+  };
+  return {...unsigned,signature:sign(null,witnessPolicySigningBytes(unsigned),
+    root.privateKey).toString('base64')};
+}
+const receiptPayload={
+  schema:'imagine.comercial.delivery-receipt.v1',
+  ...expected,issuedAt:now,nonce:'e'.repeat(64)
+};
+const receipt={...receiptPayload,signature:sign(
+  null,receiptSigningBytes(receiptPayload),witness.privateKey
+).toString('base64')};
+const trustedReceipt={
+  receipt,expected,envelope:makePolicyEnvelope(),
+  rootKeys:new Map([[rootId,rootPem]]),
+  expectedRootKeyId:rootId,minSequence:10,
+  publisherKeyId:'portal_ci_01',nowSeconds:now
+};
+const verifyWithRealDb=(overrides={})=>verifyReceiptWithSignedWitnessPolicy({
+  ...trustedReceipt,ledger:createPostgresWitnessReplayLedger(makeClient()),
+  ...overrides
+});
+await assert.rejects(verifyWithRealDb({
+  receipt:{...receipt,signature:Buffer.alloc(64,7).toString('base64')}
+}),/signature/);
+await assert.rejects(verifyWithRealDb({
+  envelope:makePolicyEnvelope('revoked')
+}),/inactive or revoked/);
+await assert.rejects(verifyWithRealDb({minSequence:11}),/stale or missing monotonic sequence/);
+await assert.rejects(verifyWithRealDb({
+  expected:{...expected,treeSha256:'d'.repeat(64)}
+}),/pin/);
+assert.equal(await psql('SELECT count(*) FROM imagine_comercial_witness_replay_nonce'),
+  '3','bad signatures, revocation and release mismatch must not reserve nonce');
+const verified=await Promise.allSettled(
+  Array.from({length:8},()=>verifyWithRealDb())
+);
+assert.equal(verified.filter(x=>x.status==='fulfilled').length,1,
+  'F52 must accept only one concurrent signed receipt with real PostgreSQL');
+assert.equal(verified.filter(x=>x.status==='rejected').length,7);
+for(const outcome of verified){
+  if(outcome.status==='fulfilled'){
+    assert.equal(outcome.value.replayReserved,true);
+    assert.equal(outcome.value.deploymentAuthorized,false);
+  }else{
+    assert.match(String(outcome.reason),/replay rejected/);
+  }
+}
+await assert.rejects(verifyWithRealDb(),/replay rejected/);
+assert.equal(await psql('SELECT count(*) FROM imagine_comercial_witness_replay_nonce'),
+  '4','real PostgreSQL contains exactly one signed witness reservation');
+console.log('F52: signed Ed25519 witness receipts, revocation, replay and real PostgreSQL concurrency PASS.');
