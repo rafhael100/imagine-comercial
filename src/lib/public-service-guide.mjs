@@ -52,7 +52,8 @@ const choices=Object.freeze(Object.fromEntries(guideGoals.map(item=>[
     code:item.code,
     explanation:item.explanation,
     services:Object.freeze(item.slugs.map(slug=>Object.freeze({
-      slug,label:bySlug.get(slug).label,href:'/servicos/'+slug+'/'
+      slug,label:bySlug.get(slug).label,href:'/servicos/'+slug+'/',
+      contactHref:'/contato/#'+slug
     })))
   })
 ])));
