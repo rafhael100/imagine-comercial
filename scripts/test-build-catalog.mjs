@@ -10,6 +10,10 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
+import {verifyProtectedReleaseWithWitness} from '../src/lib/protected-release-witness.mjs';
+import {receiptSigningBytes} from '../src/lib/independent-delivery-receipt.mjs';
+import {witnessPolicySigningBytes} from '../src/lib/signed-witness-trust-policy.mjs';
+import {createSyntheticAtomicLedger} from '../src/lib/atomic-receipt-ledger.mjs';
 
 if (process.env.IMAGINE_RELEASE_TARGET &&
     process.env.IMAGINE_RELEASE_TARGET!=='review') {
@@ -86,6 +90,75 @@ try {
     });
   const verifiedOutput=verifyArtifact(verifyEnv).toString('utf8');
   assert.match(verifiedOutput,/OFFLINE_VERIFY_ONLY_NOT_AUTHORIZED_FOR_DEPLOY/);
+  // F47: genuine combined call to the F38 and F45 verifiers, using the
+  // compiled Astro output and ephemeral, mutually distinct Ed25519 keys.
+  const trustRoot=generateKeyPairSync('ed25519');
+  const deliveryWitness=generateKeyPairSync('ed25519');
+  const witnessPublicPem=deliveryWitness.publicKey.export({
+    type:'spki',format:'pem'
+  }).toString();
+  const rootPublicPem=trustRoot.publicKey.export({
+    type:'spki',format:'pem'
+  }).toString();
+  const labNow=1800000000;
+  const trustedRelease={
+    releaseId:snapshot.releaseId,target:'staging',
+    treeSha256:protectedProof.compiledTreeSha256,
+    witnessKeyId:'witness_f47_lab_01'
+  };
+  const trustPolicy={
+    schema:'imagine.comercial.witness-trust-window.v1',
+    witnessKeyId:trustedRelease.witnessKeyId,
+    publicKeyPem:witnessPublicPem,state:'active',
+    validFrom:labNow-100,validUntil:labNow+100
+  };
+  const unsignedPolicy={
+    schema:'imagine.comercial.signed-witness-policy.v1',
+    signerKeyId:'trust_root_f47_01',sequence:7,policy:trustPolicy
+  };
+  const witnessPolicyEnvelope={...unsignedPolicy,signature:sign(
+    null,witnessPolicySigningBytes(unsignedPolicy),trustRoot.privateKey
+  ).toString('base64')};
+  const unsignedReceipt={
+    schema:'imagine.comercial.delivery-receipt.v1',
+    ...trustedRelease,issuedAt:labNow,nonce:'c'.repeat(64)
+  };
+  const deliveryReceipt={...unsignedReceipt,signature:sign(
+    null,receiptSigningBytes(unsignedReceipt),deliveryWitness.privateKey
+  ).toString('base64')};
+  const replayLedger=createSyntheticAtomicLedger();
+  const f47Inputs={
+    files:readDistFiles(),review:protectedProof,envelope,
+    catalogTrustKeys:new Map([[envelope.keyId,pem]]),
+    expectedCatalogKeyId:envelope.keyId,
+    catalogPins:{
+      expectedReleaseId:snapshot.releaseId,
+      expectedPayloadSha256:env.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256
+    },
+    expectedRelease:trustedRelease,receipt:deliveryReceipt,
+    witnessPolicyEnvelope,
+    rootKeys:new Map([['trust_root_f47_01',rootPublicPem]]),
+    expectedRootKeyId:'trust_root_f47_01',
+    minPolicySequence:7,publisherKeyId:'portal_test_ci_01',
+    nowSeconds:labNow,ledger:replayLedger
+  };
+  // A corrupt package must never consume the synthetic receipt nonce.
+  const corrupted=readDistFiles().map(file=>file.path==='index.html'
+    ? {...file,bytes:Buffer.concat([file.bytes,Buffer.from('tampered')])}
+    : file);
+  await assert.rejects(
+    verifyProtectedReleaseWithWitness({...f47Inputs,files:corrupted}),
+    /digest|hash|mismatch/
+  );
+  const bound=await verifyProtectedReleaseWithWitness(f47Inputs);
+  assert.equal(bound.releaseId,snapshot.releaseId);
+  assert.equal(bound.treeSha256,trustedRelease.treeSha256);
+  assert.equal(bound.replayReserved,true);
+  assert.equal(bound.deploymentAuthorized,false);
+  assert.equal(bound.deploymentPerformed,false);
+  await assert.rejects(verifyProtectedReleaseWithWitness(f47Inputs),/replay rejected/);
+  console.log('F47 lab E2E: protected Astro bytes + root-signed witness + replay rejection PASS.');
+
   assert.throws(()=>verifyArtifact({
     ...verifyEnv,IMAGINE_EXPECTED_BUILD_TREE_SHA256:'a'.repeat(64)
   }),/Command failed|status/);
