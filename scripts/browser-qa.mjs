@@ -382,6 +382,12 @@ try {
       assert.equal(await p.locator('#preview-understanding:required').count(),1);
       assert.equal(await p.locator('form').evaluate(form=>form.checkValidity()),false);
       await p.locator('#lead-name').fill('Cliente Fictício');
+      assert.equal(await p.locator('#lead-role').count(),1);
+      assert.equal(await p.locator('#lead-mobile').count(),1);
+      await p.locator('#lead-role').fill('Gestão fictícia');
+      await p.locator('#lead-mobile').fill('+5511999999999');
+      assert.equal(await p.locator('#lead-role').getAttribute('required'),null);
+      assert.equal(await p.locator('#lead-mobile').getAttribute('required'),null);
       await p.locator('#lead-email').fill('not-an-email');
       await p.locator('#lead-service').selectOption('landing-pages');
       await p.locator('#lead-details').fill('Projeto inteiramente fictício para ensaiar o fluxo.');

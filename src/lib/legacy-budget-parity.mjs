@@ -16,10 +16,10 @@ export const LEGACY_BUDGET_FORM_EVIDENCE=Object.freeze({
 
 export const LEGACY_BUDGET_FIELDS=Object.freeze([
   Object.freeze({key:'name',legacyLabel:'Nome',previewId:'lead-name',review:'FIELD_PRESENT_NOT_VALIDATED'}),
-  Object.freeze({key:'role',legacyLabel:'Cargo',previewId:null,review:'FIELD_POLICY_AND_MAPPING_REQUIRED'}),
+  Object.freeze({key:'role',legacyLabel:'Cargo',previewId:'lead-role',review:'FIELD_POLICY_AND_MAPPING_REQUIRED'}),
   Object.freeze({key:'email',legacyLabel:'Email',previewId:'lead-email',review:'FIELD_PRESENT_NOT_VALIDATED'}),
   Object.freeze({key:'telephone',legacyLabel:'Telefone',previewId:'lead-phone',review:'SEPARATE_TELEPHONE_AND_MOBILE_POLICY_REQUIRED'}),
-  Object.freeze({key:'mobile',legacyLabel:'Celular',previewId:null,review:'SEPARATE_TELEPHONE_AND_MOBILE_POLICY_REQUIRED'}),
+  Object.freeze({key:'mobile',legacyLabel:'Celular',previewId:'lead-mobile',review:'SEPARATE_TELEPHONE_AND_MOBILE_POLICY_REQUIRED'}),
   Object.freeze({key:'message',legacyLabel:'Mensagem',previewId:'lead-details',review:'FIELD_PRESENT_NOT_VALIDATED'}),
   Object.freeze({key:'challenge',legacyLabel:'Verificação aritmética',previewId:null,review:'APPROVED_SERVER_SIDE_ANTIBOT_REPLACEMENT_REQUIRED'})
 ]);
@@ -31,7 +31,15 @@ function actualPreviewIds(previewHtml){
   const set=new Set();
   const tagPattern=/<(?:input|select|textarea)\b[^>]*>/gi;
   for(const match of previewHtml.matchAll(tagPattern)){
-    const id=match[0].match(/\bid="([^"]+)"/i)?.[1];
+    const tag=match[0];
+    // Hidden, aria-hidden and disabled controls cannot count as usable fields.
+    // This is an offline HTML fixture check, not a general browser visibility engine.
+    if(/\s(?:hidden|disabled)(?=[\s=>])/i.test(tag)||
+       /\btype\s*=\s*["']hidden["']/i.test(tag)||
+       /\baria-hidden\s*=\s*["']true["']/i.test(tag)||
+       /\bstyle\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(tag))
+      continue;
+    const id=tag.match(/\bid="([^"]+)"/i)?.[1];
     if(id&&allowedControlId.test(id))set.add(id);
   }
   return set;
