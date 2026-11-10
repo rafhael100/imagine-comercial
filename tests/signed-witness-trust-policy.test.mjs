@@ -88,3 +88,17 @@ test('F45 rejects duplicate receipt against the same ledger',async()=>{
  await verifyReceiptWithSignedWitnessPolicy(input);
  await assert.rejects(verifyReceiptWithSignedWitnessPolicy(input),/replay rejected/);
 });
+
+test('F46 refuses a witness that is its own trust root under another ID',()=>{
+ const sameKeyPolicy=policy({publicKeyPem:pem(root.publicKey)});
+ const envelope=signedPolicy({policy:sameKeyPolicy});
+ assert.throws(()=>verifySignedWitnessPolicy({
+  ...args(),envelope
+ }),/root and witness must use distinct keys/);
+});
+test('F46 refuses a witness key that is not Ed25519 before receipt verification',()=>{
+ const rsa=generateKeyPairSync('rsa',{modulusLength:2048});
+ const envelope=signedPolicy({policy:policy({publicKeyPem:pem(rsa.publicKey)})});
+ assert.throws(()=>verifySignedWitnessPolicy({...args(),envelope}),
+  /invalid root or witness public key/);
+});
