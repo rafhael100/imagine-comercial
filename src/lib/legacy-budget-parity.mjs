@@ -31,7 +31,15 @@ function actualPreviewIds(previewHtml){
   const set=new Set();
   const tagPattern=/<(?:input|select|textarea)\b[^>]*>/gi;
   for(const match of previewHtml.matchAll(tagPattern)){
-    const id=match[0].match(/\bid="([^"]+)"/i)?.[1];
+    const tag=match[0];
+    // Hidden, aria-hidden and disabled controls cannot count as usable fields.
+    // This is an offline HTML fixture check, not a general browser visibility engine.
+    if(/\s(?:hidden|disabled)(?=[\s=>])/i.test(tag)||
+       /\btype\s*=\s*["']hidden["']/i.test(tag)||
+       /\baria-hidden\s*=\s*["']true["']/i.test(tag)||
+       /\bstyle\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(tag))
+      continue;
+    const id=tag.match(/\bid="([^"]+)"/i)?.[1];
     if(id&&allowedControlId.test(id))set.add(id);
   }
   return set;
