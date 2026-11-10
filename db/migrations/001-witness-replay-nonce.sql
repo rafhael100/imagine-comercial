@@ -1,5 +1,5 @@
 -- F49. Migration proposal for private PostgreSQL staging only.
--- DO NOT run automatically in CI, developer workstations or production.
+-- Apply automatically ONLY to a freshly created disposable GitHub-hosted CI database\n-- (F51 guarded test); NEVER to persistent staging, workstations or production.
 -- Requires restricted application role and separately reviewed retention policy.
 BEGIN;
 CREATE TABLE IF NOT EXISTS imagine_comercial_witness_replay_nonce (
