@@ -6,6 +6,7 @@
 import {evaluateLaunchReadiness} from '../src/lib/launch-readiness.mjs';
 import {readFileSync} from 'node:fs';
 import {reviewLegacyBudgetPreviewParity} from '../src/lib/legacy-budget-parity.mjs';
+import {reviewPortalCrmOperationalBoundary} from '../src/lib/portal-crm-operational-boundary.mjs';
 
 function requestedTarget(argv){
   if(argv.length===0) return 'production';
@@ -25,6 +26,7 @@ export function renderReadinessReport(argv=[]){
     count:report.unresolved.length,
     checkedAgainst:'F42_STATIC_GATES_NOT_RUNTIME_VERIFICATION',
     legacyContactIntake,
+    portalCrmIntegration:reviewPortalCrmOperationalBoundary(),
     approval:'NOT_AUTHORIZED',
     deploymentPerformed:false
   },null,2);
