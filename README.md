@@ -48,3 +48,11 @@ Os links da F59 permitem conhecer cada serviço ou seguir para `/contato/#slug`,
 As alterações estão nos [PRs #75](https://github.com/rafhael100/imagine-comercial/pull/75) e [#76](https://github.com/rafhael100/imagine-comercial/pull/76) e na branch [PR #38](https://github.com/rafhael100/imagine-comercial/pull/38) **review-only**. O auditor independente passou ao SEO RC12 pinado por SHA ([ensaio #74](https://github.com/rafhael100/imagine-comercial/pull/74)). A `main`, o domínio atual, DNS e ambientes de clientes seguem inalterados.
 
 O lançamento continua dependente da [homologação Leaseweb/Portal/CRM #56](https://github.com/rafhael100/imagine-comercial/issues/56), [migração SEO e URLs históricas #3](https://github.com/rafhael100/imagine-comercial/issues/3), contratos do Portal #4 e confirmação de canais, preços, textos e documentos jurídicos.
+
+## Comparação pública de soluções (F60) e SEO RC13 (F61)
+
+O site em revisão dispõe da página `/comparar-solucoes/`: ela explica quando considerar Onepage, criação de sites, Landing Pages, assinatura, Google Ads ou Meta Ads. Os seis cartões incluem contexto da escolha, organização típica, perguntas para o briefing e links internos para detalhes ou contato. A página é estática, acessível e funciona sem JavaScript. Não substitui proposta, não inventa valores nem coleta leads.
+
+A F61 atualiza o auditor independente para o commit imutável `4fc18028256308bce60804d94699da3c64123cf1` (Imagine SEO Engine RC13). A CI deve validar **a mesma versão** da comparação, sitemap, canonicals, links, acessibilidade e qualidade de build. Consulte [PR #79](https://github.com/rafhael100/imagine-comercial/pull/79) e [PR #80](https://github.com/rafhael100/imagine-comercial/pull/80).
+
+Nenhuma mudança implica publicação: a branch de integração continua em [PR #38](https://github.com/rafhael100/imagine-comercial/pull/38), `main` sem alteração. A autorização de VPS, Portal/CRM, GSC, ofertas, privacidade, dados e deploy continua em revisão.
