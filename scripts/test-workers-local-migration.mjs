@@ -65,7 +65,7 @@ try{
   const candidates=legacyUrls.filter(x=>x.status==='candidate');
   const held=legacyUrls.filter(x=>x.status==='hold');
   assert.equal(candidates.length,5);
-  assert.equal(held.length,10);
+  assert.equal(held.length,18);
   for(const {from:old,to:target} of candidates){
     const response=await probe(old);
     assert.equal(response.status,301,old+' must use real Worker 301');
