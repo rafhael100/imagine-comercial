@@ -4,6 +4,8 @@
  * asserted gate approvals, download evidence, or enable deployment.
  */
 import {evaluateLaunchReadiness} from '../src/lib/launch-readiness.mjs';
+import {readFileSync} from 'node:fs';
+import {reviewLegacyBudgetPreviewParity} from '../src/lib/legacy-budget-parity.mjs';
 
 function requestedTarget(argv){
   if(argv.length===0) return 'production';
@@ -13,6 +15,8 @@ function requestedTarget(argv){
 }
 export function renderReadinessReport(argv=[]){
   const report=evaluateLaunchReadiness({requestedTarget:requestedTarget(argv)});
+  const privatePreview=readFileSync(new URL('../tests/fixtures/private-contact-form-preview.html',import.meta.url),'utf8');
+  const legacyContactIntake=reviewLegacyBudgetPreviewParity(privatePreview);
   return JSON.stringify({
     schema:'imagine.comercial.offline-blocker-report.v1',
     target:report.target,
@@ -20,6 +24,7 @@ export function renderReadinessReport(argv=[]){
     blockers:report.unresolved,
     count:report.unresolved.length,
     checkedAgainst:'F42_STATIC_GATES_NOT_RUNTIME_VERIFICATION',
+    legacyContactIntake,
     approval:'NOT_AUTHORIZED',
     deploymentPerformed:false
   },null,2);
