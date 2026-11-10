@@ -19,3 +19,10 @@ Diretrizes transversais:
 - https://github.com/rafhael100/imagine-portal/issues/99
 - https://github.com/rafhael100/imagine-portal/issues/100
 - https://github.com/rafhael100/imagine-portal/issues/102
+
+## Estado do desenvolvimento (10/11/2026)
+A implementação Astro e os testes avançados estão na [branch de integração em revisão](https://github.com/rafhael100/imagine-comercial/pull/38), até F50, e **não na `main`**. O site legado em `imaginecomunicacao.com.br` não foi substituído. A revisão de catálogo assinado, SEO/Chromium, Workerd local e Lighthouse funciona em laboratório, mas não corresponde a tráfego real nem a publicação efetiva.
+
+A F49 acrescentou uma proposta de migração PostgreSQL e adaptador de reserva de recibos; a F50 o conectou ao ensaio Astro com um cliente **simulado**, ainda sem PostgreSQL ou witness remoto reais. A migração não foi executada. O [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56) registra a homologação privada Leaseweb, o banco, as autorizações do Portal e a entrega independente. A auditoria SEO real está no [issue #3](https://github.com/rafhael100/imagine-comercial/issues/3) e os contratos de conteúdo do Portal no [issue #4](https://github.com/rafhael100/imagine-comercial/issues/4).
+
+**Proibido presumir aprovação de produção:** faltam staging privado, credenciais seguras, grants/MFA, ledger durável, Search Console e crawl reais, revisão editorial/jurídica/comercial e autorização humana de merge/deploy/DNS. Não incluir dados de clientes, credenciais ou chaves de assinatura em arquivos públicos.
