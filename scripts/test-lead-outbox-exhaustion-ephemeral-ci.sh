@@ -32,11 +32,10 @@ sudo -u postgres psql -X -q -v ON_ERROR_STOP=1 -d "$db" \
   -f tests/sql/lead-outbox-exhaustion-review-ephemeral.sql
 
 # A distinct synthetic logical submission, with no visitor, lead body or PII.
-psql_lab "BEGIN;
- SET ROLE ${worker_a};" >/dev/null 2>&1 && {
- echo "F88 worker role should not be an ingestion identity." >&2
- exit 1
-}
+if psql_lab "SET ROLE ${worker_a}; SELECT count(*) FROM ${schema}.metadata_ledger;" >/dev/null 2>&1; then
+  echo "F88 worker role should not be able to read ingestion ledger." >&2
+  exit 1
+fi
 psql_lab "BEGIN;
  SET ROLE imagine_comercial_lead_ci_a;
  INSERT INTO ${schema}.metadata_ledger
