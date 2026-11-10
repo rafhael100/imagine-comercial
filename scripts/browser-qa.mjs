@@ -76,6 +76,10 @@ try {
           viewport.label+': approved Portal link must be exact');
       }
       assert.equal(await page.locator('a[href="/servicos/"]').count()>=1,true,route+' internal service navigation');
+      if(route.startsWith('/servicos/') && route!=='/servicos/'){
+        assert.equal(await page.locator('a.cta-secondary[href="/comparar-solucoes/"]').count(),1,
+          'F62 service-page comparison link points to the actual comparison page');
+      }
       const anchors=await page.locator('a[href]').evaluateAll(elements=>elements.map(el=>({
         href:el.getAttribute('href'),target:el.getAttribute('target')||'',
         rel:el.getAttribute('rel')||''
@@ -185,6 +189,27 @@ try {
     assert.ok(emailHref?.includes(encodeURIComponent('Landing Pages')),'Email service context');
     await page.locator('#service-choice').selectOption('onepage');
     assert.ok((await page.locator('#contact-whatsapp').getAttribute('href'))?.includes('Onepage'),'Changing service updates CTA');
+    // F62: the address and prepared message must stay in sync when a user
+    // changes the selector, follows a deep link, or navigates browser history.
+    await page.waitForURL(host+'/contato/#onepage');
+    assert.ok((await page.locator('#service-help').textContent())?.includes('Onepage'),
+      'F62 accessible status reflects the selected service');
+    assert.equal(await page.locator('#service-choice[aria-describedby="service-help"]').count(),1);
+    await page.evaluate(()=>{window.location.hash='#gestao-google-ads';});
+    await page.waitForFunction(()=>document.querySelector('#service-choice')?.value==='gestao-google-ads');
+    assert.ok((await page.locator('#contact-email').getAttribute('href'))?.includes(
+      encodeURIComponent('Gestão Google Ads')),'F62 hashchange updates subject');
+    await page.evaluate(()=>{window.location.hash='#__proto__';});
+    await page.waitForFunction(()=>document.querySelector('#service-choice')?.value==='');
+    assert.ok((await page.locator('#contact-whatsapp').getAttribute('href'))?.includes(
+      encodeURIComponent('conhecer os serviços da Imagine')),
+      'F62 invalid fragment cannot create arbitrary intent');
+    await page.locator('#service-choice').selectOption('landing-pages');
+    await page.waitForURL(host+'/contato/#landing-pages');
+    await page.locator('#service-choice').selectOption('');
+    await page.waitForURL(host+'/contato/');
+    assert.equal(await page.locator('#service-choice').inputValue(),'');
+    assert.equal(await page.locator('#service-help[role="status"][aria-live="polite"]').count(),1);
     // Controle de indexabilidade: caminhos inválidos devem retornar 404 real, não 200.
     const notFoundResponse=await page.goto(host+'/pagina-inexistente-de-teste-f11/',{waitUntil:'load',timeout});
     assert.equal(notFoundResponse?.status(),404,viewport.label+': missing route must return HTTP 404');
