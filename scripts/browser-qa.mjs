@@ -273,7 +273,7 @@ try {
     // F72: visitor sees the real handoff boundary before leaving the site.
     const disclosure=page.locator('#external-channel-notice');
     assert.equal(await disclosure.isVisible(),true,'F72 channel disclosure is visible');
-    assert.ok((await disclosure.textContent())?.includes('canais externos ao site'));
+    assert.ok((await disclosure.textContent())?.includes('canais abaixo são externos ao site'));
     assert.equal(await page.locator('#contact-whatsapp[aria-describedby="external-channel-notice"]').count(),1);
     assert.equal(await page.locator('#contact-email[aria-describedby="external-channel-notice"]').count(),1);
     assert.equal(await page.locator('#contact-whatsapp').getAttribute('target'),'_blank');
