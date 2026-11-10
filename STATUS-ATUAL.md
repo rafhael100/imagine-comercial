@@ -192,3 +192,8 @@ Este marco **substitui as afirmações históricas** de que todos os testes de P
 - **Integração F0–F53 no commit `5e13cb578af6b0dbe4c01cd59b32cd47304a78fd`: quatro workflows aprovados:** [PostgreSQL real](https://github.com/rafhael100/imagine-comercial/actions/runs/42757296741), [Astro/SEO/navegador](https://github.com/rafhael100/imagine-comercial/actions/runs/42757296728), [Workerd](https://github.com/rafhael100/imagine-comercial/actions/runs/42757296707) e [Lighthouse local](https://github.com/rafhael100/imagine-comercial/actions/runs/42757296716).
 - **Gates reais ainda abertos:** [Leaseweb/staging e witness pós-entrega #56](https://github.com/rafhael100/imagine-comercial/issues/56), [GSC/redirects/rotas legais #3](https://github.com/rafhael100/imagine-comercial/issues/3), [Portal autorizado/CMS #4](https://github.com/rafhael100/imagine-comercial/issues/4), CRM/consentimento, credenciais/roles, contratos, preços, conteúdo e aprovação explícita do responsável.
 - **Limites inalterados:** branch integrada em PR draft, `main` apenas documental, nenhum deploy, mudança de DNS, banco da VPS alterado, dados reais de clientes ou despesa adicional nesta etapa.
+
+## Integração experimental SEO RC10 (10/11/2026)
+- Checkout SEO Engine fixado ao commit `60738518c51df8a259ce56babb0e2f61682b1658`, https://github.com/rafhael100/imagine-seo-engine/pull/45.
+- Auditor público permanece com `--fail-on-warnings --strict-public-head`; inclui F29 CLI fail-closed, F30 sitemap, F31 Googlebot e F32 HTML efetivo, mantendo todos os controles existentes de P0.
+- Esta branch é somente ensaio, sem alterar site publicado, main, DNS, dados reais ou custos.
