@@ -80,3 +80,11 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 - F52: valida política e recibo Ed25519 realmente assinados, revogação, rollback, hash divergente e concorrência sobre o PostgreSQL real do runner.
 - F53: `scripts/test-build-catalog.mjs` usa o mesmo PostgreSQL real **apenas sob o guard de CI** para executar a cadeia catálogo assinado → Astro → F38 → F45 → F40 → F41/F49. O CI Astro habitual continua usando mock.
 - Todos esses testes são de laboratório e não constituem autorização de operação, migração na VPS, criação de chaves/segredos reais, merge main, DNS ou deploy. A obrigação de validar serviço persistente e testemunha pós-entrega permanece no [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56).
+
+## Critérios F55–F57 — segurança e migração (10/11/2026)
+
+- **F55:** `db/migrations/003-execute-only-policy-floor.sql` propõe funções `SECURITY DEFINER` com owner DBA, search_path fixo e `EXECUTE` revogado do PUBLIC. A identidade operacional deve usar **somente** o wrapper `createExecuteOnlyPolicyFloorClient` e possuir `EXECUTE` restrito; não conceder SELECT/INSERT/UPDATE/DELETE/TRUNCATE nas tabelas. O usuário PostgreSQL do teste F51–F54 com grants amplos é **exclusivamente de laboratório**.
+- **F56:** auditor SEO independente fixado a `60738518c51df8a259ce56babb0e2f61682b1658` (RC10), flags `--fail-on-warnings --strict-public-head`, sem refs mutáveis.
+- **F57:** teste negativo adicional de INSERT e TRUNCATE pelo papel execute-only. A CI pode criar banco novo e descartável SOMENTE no runner GitHub-hosted; **nunca** executar migrações 001/002/003 na VPS sem autorização específica, backup, DBA responsável, role review e plano de rollback.
+- Um atacante que comprometa a aplicação ainda pode promover versão alta e provocar DoS via função, pois o PostgreSQL não autentica Ed25519 de forma independente. Portanto, a validação de raiz/mínimo no Portal, distribuição confiável de revogações, auditoria externa e monitoramento continuam gates reais.
+- Não concluir publicações, DNS, redirect 301, merge da main, compra ou deploy a partir de CI verde. Registrar evidência operacional no [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56).
