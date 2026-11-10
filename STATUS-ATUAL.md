@@ -175,3 +175,8 @@ Este bloco é o retrato atual e **substitui os números históricos das seções
 - Branch de ensaio temporário consome Imagine SEO Engine no commit **67dcfeab1b5ced73cd8b71f3d6fd3b385ab89634** (F0–F20 / RC3, PR https://github.com/rafhael100/imagine-seo-engine/pull/26), preservando checkout em SHA fixo e teste de pin.
 - O CI deve executar a suite completa SEO e auditoria do build de 15 rotas, além dos controles do Comercial P0. Não equivale a migração ou publicação.
 - Nenhuma mudança em `main`, DNS, páginas comerciais, catálogo, infraestrutura ou tokens. Integrar só após revisar todos os checks e o bloqueio de produção.
+
+## Handoff SEO RC4 — validação cruzada offline (10/11/2026)
+- Pin do SEO Engine elevado de RC3 para **RC4** `1fd8672894c0a23ed247ff1131b949706e96fafd`, candidato https://github.com/rafhael100/imagine-seo-engine/pull/29, mantendo SHA exato no workflow e nos testes de integridade.
+- SEO RC4 inclui F21 ações imutáveis e F22 revisão de URLs em HOLD; CI integrado deve validar 111 testes SEO, build de 15 páginas e QA navegador.
+- Sem merge, deploy, DNS, Google OAuth ou aprovação de 301.

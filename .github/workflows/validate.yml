@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: rafhael100/imagine-seo-engine
-          ref: 67dcfeab1b5ced73cd8b71f3d6fd3b385ab89634
+          ref: 1fd8672894c0a23ed247ff1131b949706e96fafd
           path: .qa/seo-engine
           persist-credentials: false
       - name: Executar testes da versao fixada do Imagine SEO Engine
