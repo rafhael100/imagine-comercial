@@ -1,6 +1,7 @@
 /**
- * Exemplos confirmados por busca pública em 09/11/2026.
- * NÃO equivale ao inventário integral (faltam GSC, sitemap, backlinks e crawl completo).
+ * Inventário preliminar de caminhos legados; URLs públicas observadas e revisão
+ * de cobertura de busca. Sem métricas de GSC, dados pessoais ou parâmetros.
+ * Não é completo: faltam crawl, backlinks e equivalência editorial.
  * NÃO habilitar redirecionamentos antes da auditoria e liberação de produção.
  */
 export const legacyUrls = Object.freeze([
@@ -71,5 +72,37 @@ export const legacyUrls = Object.freeze([
   {
     from: '/en-us/contact-us.html', to: null, status: 'hold',
     reason: 'Necessária preservação adequada do conteúdo em inglês.'
+  },
+  {
+    from: '/trabalhe-conosco.html', to: null, status: 'hold',
+    reason: 'Recrutamento sem página equivalente homologada; revisar conteúdo e privacidade.'
+  },
+  {
+    from: '/component/imaginecontato/criacao-de-sites-em-fortaleza.html', to: null, status: 'hold',
+    reason: 'Rota antiga de contato/captação; verificar privacidade e equivalência.'
+  },
+  {
+    from: '/en-us/services/criacao-de-loja-virtual.html', to: null, status: 'hold',
+    reason: 'Loja virtual em inglês sem serviço equivalente nem política de idioma.'
+  },
+  {
+    from: '/en-us/services/facebook-instagram-ads.html', to: null, status: 'hold',
+    reason: 'Meta Ads em inglês exige equivalência editorial e hreflang.'
+  },
+  {
+    from: '/en-us/services/google-ads-anuncios.html', to: null, status: 'hold',
+    reason: 'Google Ads em inglês exige equivalência editorial e hreflang.'
+  },
+  {
+    from: '/en-us/services/linkedin-ads-anuncios.html', to: null, status: 'hold',
+    reason: 'LinkedIn Ads em inglês sem serviço equivalente no catálogo atual.'
+  },
+  {
+    from: '/en-us/services/marketplace-amazon.html', to: null, status: 'hold',
+    reason: 'Marketplace Amazon em inglês sem serviço equivalente no catálogo.'
+  },
+  {
+    from: '/en-us/services/marketplace-mercado-livre.html', to: null, status: 'hold',
+    reason: 'Marketplace Mercado Livre em inglês sem destino comercial homologado.'
   }
 ]);
