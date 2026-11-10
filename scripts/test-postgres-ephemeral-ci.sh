@@ -42,6 +42,12 @@ GRANT SELECT (witness_key_id,nonce)
   ON imagine_comercial_witness_replay_nonce TO imagine_comercial_ci_writer;
 SQL
 node scripts/test-postgres-real-ci.mjs
+# F53: in the same disposable database, validate a real compiled Astro tree,
+# catalog signature, witness policy/receipt and the PostgreSQL uniqueness
+# constraint. The signed build test restores its original editorial dist.
+npm ci --no-audit --no-fund
+npm run build
+node scripts/test-build-catalog.mjs
 # A write-only reservation role must never be able to delete the ledger.
 if sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -c   'SET ROLE imagine_comercial_ci_writer; DELETE FROM imagine_comercial_witness_replay_nonce;' >/dev/null 2>&1; then
   echo "F51 failed: restricted role can DELETE witness ledger." >&2
