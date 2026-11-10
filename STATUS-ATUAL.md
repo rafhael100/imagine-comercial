@@ -181,3 +181,8 @@ Este bloco é o registro cronologicamente mais recente. As datas, resultados e n
 - **Bloqueio principal:** [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56) (VPS Leaseweb, staging privado, DB real, witness remoto, IAM/MFA e verificação pós-entrega). [Issue #3](https://github.com/rafhael100/imagine-comercial/issues/3) migração/GSC real; [issue #4](https://github.com/rafhael100/imagine-comercial/issues/4) contrato CMS/Portal.
 - **Demais dependências:** CRM e consentimento durável, revisão de identidade, contatos, ofertas/preços e documentos jurídicos, testes externos e autorização explícita de publicação.
 - **Limites:** nenhum merge na `main`, DNS, deploy, migração real, serviço pago novo ou dados reais de clientes nesta rodada. O fato de uma verificação de CI passar não marca gates F42 como `reviewed`.
+
+## Revisão integrada SEO RC6 — cabeçalho público estrito (10/11/2026)
+- Branch de ensaio do Comercial aponta para SHA imutável do Imagine SEO RC6 `ecb21585e55c0341d478bd46414e063f87deb5cf` (PR https://github.com/rafhael100/imagine-seo-engine/pull/34) e ativa `--strict-public-head` junto de `--fail-on-warnings`.
+- Bloqueia alterações acidentais de `meta robots=index,follow` e `og:url` nas 15 URLs comerciais curadas, sem alterar código publicado.
+- O CI de integração deve validar a suíte Comercial, os 126 testes SEO, o build, auditoria e QA de navegador; nenhuma alteração de main, DNS, OAuth, VPS ou redirects.
