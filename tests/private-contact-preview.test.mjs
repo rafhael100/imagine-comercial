@@ -24,7 +24,7 @@ test('F82: exact six service options preserve the curated public service slugs',
 });
 
 test('F82: accessibility and human input controls have explicit labels/help',()=>{
-  for(const id of ['lead-name','lead-email','lead-phone','lead-service',
+  for(const id of ['lead-name','lead-role','lead-email','lead-phone','lead-mobile','lead-service',
                     'lead-details','preview-understanding']){
     assert.match(fixture,new RegExp('id="'+id+'"'));
     assert.match(fixture,new RegExp('for="'+id+'"'));
@@ -35,6 +35,10 @@ test('F82: accessibility and human input controls have explicit labels/help',()=
   assert.match(fixture,/id="sending-disabled" role="status"/);
   assert.match(fixture,/label for="lead-email">E-mail \(regra final a definir\)/);
   assert.match(fixture,/label for="lead-phone">Telefone \(regra final a definir\)/);
+  assert.match(fixture,/label for="lead-role">Cargo na empresa/);
+  assert.match(fixture,/label for="lead-mobile">Celular \(separado do telefone/);
+  assert.doesNotMatch(fixture,/id="lead-role"[^>]*required/);
+  assert.doesNotMatch(fixture,/id="lead-mobile"[^>]*required/);
 });
 
 test('F82: browser QA tests the private fixture but never builds a public route for it',()=>{
