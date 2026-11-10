@@ -38,3 +38,13 @@ O [PR de integração #38](https://github.com/rafhael100/imagine-comercial/pull/
 O [PR integrado de revisão #38](https://github.com/rafhael100/imagine-comercial/pull/38) inclui agora a F55: PostgreSQL real em GitHub-hosted CI com duas funções `SECURITY DEFINER` para política assinada e nonce, papel `EXECUTE` sem acesso direto às tabelas e verificação de assinatura Ed25519 feita no processo Node. A F56 fixa o [auditor independente Imagine SEO RC10](https://github.com/rafhael100/imagine-seo-engine/pull/45) por commit SHA e usa `--fail-on-warnings --strict-public-head`. A F57 reforça a prova negativa dos privilégios SQL e registra esta passagem de desenvolvimento.
 
 **Nenhuma dessas etapas é homologação operacional.** A integração não tem credenciais Leaseweb, Portal/CRM autênticos, witness que leu arquivos publicados, dados reais de GSC nem revisão final de domínio, conteúdo e LGPD. A `main`, produção, DNS e bancos persistentes permanecem intactos.
+
+## Nova jornada pública de soluções (F58–F59, 10/11/2026)
+
+A página `/servicos/` agora tem um **orientador de serviços** acessível para escolher um objetivo de negócio e ver sugestões de formatos já presentes no catálogo: Onepage, criação de sites, Landing Pages, sites por assinatura e gestão de Google/Meta Ads. A indicação é apenas informativa: **não calcula preço, direito ou proposta**.
+
+Os links da F59 permitem conhecer cada serviço ou seguir para `/contato/#slug`, preservando somente o identificador público do serviço. A página Contato seleciona o serviço e prepara uma mensagem nos links existentes de WhatsApp/e-mail; nenhuma mensagem é enviada sem ação explícita do visitante. Não há formulários, cookies, armazenamento, analytics ou conexão com Portal/CRM. Sem JavaScript, a lista completa de serviços e a sugestão inicial permanecem disponíveis.
+
+As alterações estão nos [PRs #75](https://github.com/rafhael100/imagine-comercial/pull/75) e [#76](https://github.com/rafhael100/imagine-comercial/pull/76) e na branch [PR #38](https://github.com/rafhael100/imagine-comercial/pull/38) **review-only**. O auditor independente passou ao SEO RC12 pinado por SHA ([ensaio #74](https://github.com/rafhael100/imagine-comercial/pull/74)). A `main`, o domínio atual, DNS e ambientes de clientes seguem inalterados.
+
+O lançamento continua dependente da [homologação Leaseweb/Portal/CRM #56](https://github.com/rafhael100/imagine-comercial/issues/56), [migração SEO e URLs históricas #3](https://github.com/rafhael100/imagine-comercial/issues/3), contratos do Portal #4 e confirmação de canais, preços, textos e documentos jurídicos.
