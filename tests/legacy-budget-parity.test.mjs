@@ -47,7 +47,7 @@ test('F83: even if preview shows all legacy fields it cannot claim operational p
     '<input id="lead-challenge" type="text"></fieldset>');
   // Inventory itself deliberately does not auto-map missing fields.
   const assessment=reviewLegacyBudgetPreviewParity(decorated);
-  assert.deepEqual(assessment.unresolvedFields,['role','mobile','challenge']);
+  assert.deepEqual(assessment.unresolvedFields,['challenge']);
   assert.equal(assessment.legacyContactIntakeParityApproved,false);
   assert.equal(assessment.deploymentAuthorized,false);
 });
@@ -66,7 +66,7 @@ test('F83: F43 CLI reports precise legacy gaps but still blocks release',()=>{
   assert.equal(report.approval,'NOT_AUTHORIZED');
   assert.equal(report.deploymentPerformed,false);
   assert.deepEqual(report.legacyContactIntake.unresolvedFields,
-    ['role','mobile','challenge']);
+    ['challenge']);
   assert.equal(report.legacyContactIntake.deploymentAuthorized,false);
   assert.equal(report.legacyContactIntake.legacyContactIntakeParityApproved,false);
 });
