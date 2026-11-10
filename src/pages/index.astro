@@ -43,7 +43,10 @@ const additional = services.filter(s => !featured.includes(s));
         {additional.map(s => <li><a href={'/servicos/' + s.slug + '/'}>{s.label} <span aria-hidden="true">↗</span></a></li>)}
       </ul>
     </div>
-    <a class="text-link" href="/servicos/">Veja todos os serviços</a>
+    <div class="cta-row">
+      <a class="text-link" href="/servicos/">Veja todos os serviços</a>
+      <a class="text-link" href="/comparar-solucoes/">Comparar os formatos</a>
+    </div>
   </section>
   <section class="section section-soft">
     <div class="shell">
