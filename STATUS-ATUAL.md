@@ -212,3 +212,8 @@ Este marco **substitui as afirmações históricas** de que todos os testes de P
 - Só a branch de ensaio fixa o SEO Engine em `563a9f6b4155cecd3708b8a35b2ca4be68de4cc5` ([RC12 #49](https://github.com/rafhael100/imagine-seo-engine/pull/49)), sem trocar ações por refs móveis.
 - Conserva `--fail-on-warnings --strict-public-head`, todas as verificações do Comercial P0, QA browser e PostgreSQL descartável.
 - Revalida orçamentos de recursos F33 e bloqueio `robots=nofollow` F34 do SEO. Nenhum merge, deploy, OAuth, DNS ou dados reais de cliente.
+
+## Integração experimental com Imagine SEO RC13 (10/11/2026)
+- PR draft de revisão atualiza somente o SHA fixado do SEO Engine para `4fc18028256308bce60804d94699da3c64123cf1` ([RC13 #52](https://github.com/rafhael100/imagine-seo-engine/pull/52)), sobre a ponta P0 corrente.
+- Mantém `--fail-on-warnings --strict-public-head`, matrizes de testes Comercial, QA de navegador, build Astro e PostgreSQL efêmero.
+- Valida F35 (lang só na raiz e canonical case-insensitive) e F36 (templates inertes não contam como HTML público), sem rede Google, produção, clientes, DNS, 301 ou merge main.
