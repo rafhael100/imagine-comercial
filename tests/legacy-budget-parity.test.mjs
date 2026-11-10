@@ -22,13 +22,13 @@ test('F83: public legacy quote form inventory retains all seven visible fields',
   assert.ok(LEGACY_BUDGET_FIELDS.every(Object.isFrozen));
 });
 
-test('F83: private preview has four visible mappings, with three explicit gaps',()=>{
+test('F83: private preview has six visible mappings, with one explicit anti-bot gap',()=>{
   const assessment=reviewLegacyBudgetPreviewParity(html);
   assert.equal(assessment.schema,'imagine.comercial.legacy-budget-ui-parity.v1');
-  assert.equal(assessment.visibleFields,4);
+  assert.equal(assessment.visibleFields,6);
   assert.equal(assessment.observedLegacyFields,7);
-  assert.deepEqual(assessment.unresolvedFields,['role','mobile','challenge']);
-  assert.equal(assessment.fields.filter(x=>x.status==='VISIBLE_PREVIEW_CONTROL_ONLY').length,4);
+  assert.deepEqual(assessment.unresolvedFields,['challenge']);
+  assert.equal(assessment.fields.filter(x=>x.status==='VISIBLE_PREVIEW_CONTROL_ONLY').length,6);
   assert.equal(assessment.legacyContactIntakeParityApproved,false);
   assert.equal(assessment.deploymentAuthorized,false);
   assert.equal(assessment.legacyDeliveryVerified,false);
@@ -55,7 +55,7 @@ test('F83: even if preview shows all legacy fields it cannot claim operational p
 test('F83: fake IDs, scripts and arbitrary HTML are not accepted as valid mapped controls',()=>{
   const manipulated=html.replace('id="lead-email"','id="lead-email-removed"');
   assert.deepEqual(reviewLegacyBudgetPreviewParity(manipulated).unresolvedFields,
-    ['role','email','mobile','challenge']);
+    ['email','challenge']);
   for(const bad of [null,{},'',123,'a'.repeat(500001)])
     assert.throws(()=>reviewLegacyBudgetPreviewParity(bad),/invalid private preview/);
 });
