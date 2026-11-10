@@ -56,3 +56,14 @@ O site em revisão dispõe da página `/comparar-solucoes/`: ela explica quando 
 A F61 atualiza o auditor independente para o commit imutável `4fc18028256308bce60804d94699da3c64123cf1` (Imagine SEO Engine RC13). A CI deve validar **a mesma versão** da comparação, sitemap, canonicals, links, acessibilidade e qualidade de build. Consulte [PR #79](https://github.com/rafhael100/imagine-comercial/pull/79) e [PR #80](https://github.com/rafhael100/imagine-comercial/pull/80).
 
 Nenhuma mudança implica publicação: a branch de integração continua em [PR #38](https://github.com/rafhael100/imagine-comercial/pull/38), `main` sem alteração. A autorização de VPS, Portal/CRM, GSC, ofertas, privacidade, dados e deploy continua em revisão.
+
+## Orientação pública de contratação — F64 e F65 (10/11/2026)
+
+A branch de integração em revisão [PR #38](https://github.com/rafhael100/imagine-comercial/pull/38) agora inclui dois recursos adicionais, ambos **HTML estático e sem coleta de dados**:
+
+- [F64 /como-funciona/](https://github.com/rafhael100/imagine-comercial/pull/84): seis etapas ilustrativas e seis perguntas para organizar um briefing antes de conversar com a Imagine. Links na homepage, rodapé e Contato. Etapas, prazos, revisões, preços e responsabilidades dependem de contrato e proposta oficial.
+- [F65 /perguntas-frequentes/](https://github.com/rafhael100/imagine-comercial/pull/86): quatro grupos com oito respostas sobre escopo, materiais, condições, mídia, resultados, Portal e proteção de credenciais. HTML `details` nativo, com navegação sem JavaScript, ligado ao rodapé, processo e Contato.
+
+As duas rotas compõem o catálogo para canonical, sitemap, auditor SEO RC13 e QA com Playwright/axe em mobile e desktop; não criam formulário, histórico comercial, preços, consentimento, login, analytics, dados pessoais ou requisições para CRM/Portal.
+
+**Não publicadas:** a `main` segue intacta. Aprovações de marca, conteúdo, propostas, canais, privacidade, VPS e infraestrutura Portal/CRM, GSC/301 e publicação real continuam nos [issues #56](https://github.com/rafhael100/imagine-comercial/issues/56), [#4](https://github.com/rafhael100/imagine-comercial/issues/4) e [#3](https://github.com/rafhael100/imagine-comercial/issues/3).
