@@ -170,3 +170,8 @@ Este bloco é o retrato atual e **substitui os números históricos das seções
 - E2E com chaves fictícias verifica hash confiável válido e rejeita homepage alterada pós-build, manifesto manipulado, pin de release errado, hash de árvore incorreto e alvo `review`. Encontrado/corrigido problema de integração do nome da propriedade do relatório no CLI, preservando validação de esquema exato.
 - [CI F38 #42719002974 aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/42719002974): **170/170 testes Comercial + 35/35 SEO**, build de catálogo assinado, verificação independente E2E, Chromium 15 mobile + 6 desktop, axe WCAG.
 - **Atenção:** hash de árvore no mesmo pacote não é prova de procedência. A infraestrutura de staging/produção deverá fornecer pin autenticado por canal externo, identidade/MFA/grants do Portal, recibo remoto não retrocedível, acesso VPS autorizado, revisão de privacidade/contratos e SEO real. PR rascunho; `main`, DNS/Cloudflare, clientes e custos não alterados.
+
+## Teste de consumo Imagine SEO RC3 — revisão isolada (10/11/2026)
+- Branch de ensaio temporário consome Imagine SEO Engine no commit **67dcfeab1b5ced73cd8b71f3d6fd3b385ab89634** (F0–F20 / RC3, PR https://github.com/rafhael100/imagine-seo-engine/pull/26), preservando checkout em SHA fixo e teste de pin.
+- O CI deve executar a suite completa SEO e auditoria do build de 15 rotas, além dos controles do Comercial P0. Não equivale a migração ou publicação.
+- Nenhuma mudança em `main`, DNS, páginas comerciais, catálogo, infraestrutura ou tokens. Integrar só após revisar todos os checks e o bloqueio de produção.
