@@ -96,6 +96,8 @@ bash scripts/test-lead-outbox-execute-only-ephemeral-ci.sh
 bash scripts/test-lead-receipt-nonce-ephemeral-ci.sh
 # F92: prevent automatic retry when the remote receipt outcome is uncertain.
 bash scripts/test-lead-unknown-outcome-ephemeral-ci.sh
+# F96: real HTTP on loopback -> this disposable PostgreSQL + outbox.
+node scripts/test-lead-http-postgres-ephemeral-ci.mjs
 # F53: in the same disposable database, validate a real compiled Astro tree,
 # catalog signature, witness policy/receipt and the PostgreSQL uniqueness
 # constraint. The signed build test restores its original editorial dist.

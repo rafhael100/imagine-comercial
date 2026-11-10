@@ -44,7 +44,10 @@ function tokenMatches(auth,expected){
   return supplied.length===other.length&&timingSafeEqual(supplied,other);
 }
 
-export async function startPrivateLoopbackIntakeHarness(){
+export async function startPrivateLoopbackIntakeHarness({observeMetadata=null}={}){
+  if(observeMetadata!==null&&typeof observeMetadata!=='function')
+    throw new Error('F96: synthetic observation adapter must be a function');
+
   // Credentials exist only in this test process and are never logged or saved.
   const ephemeralKey=randomBytes(32).toString('hex');
   const recorded=new Set();
@@ -102,8 +105,20 @@ export async function startPrivateLoopbackIntakeHarness(){
       // is mandatory, even though this test is NOT a real identity provider.
       const id=body.organization_reference.toLowerCase()+'|'+
         body.submission_reference.toLowerCase();
-      const existed=recorded.has(id);
-      if(!existed)recorded.add(id);
+      let existed;
+      if(observeMetadata!==null){
+        // Integration tests inject a PostgreSQL-backed adapter. Never connect
+        // to a database here; the fixture itself is not a production service.
+        const outcome=await observeMetadata(body);
+        if(outcome!=='new'&&outcome!=='duplicate'){
+          reply(res,503,'LAB_METADATA_NOT_CONFIRMED');
+          return;
+        }
+        existed=outcome==='duplicate';
+      }else{
+        existed=recorded.has(id);
+        if(!existed)recorded.add(id);
+      }
       reply(res,202,existed?'DUPLICATE_SYNTHETIC_METADATA':
         'FIRST_SYNTHETIC_METADATA_OBSERVATION');
     }catch{
