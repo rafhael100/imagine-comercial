@@ -72,3 +72,11 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 - F49: `src/lib/postgres-witness-replay-ledger.mjs` é adaptador para cliente PostgreSQL **injetado**. O índice `(witness_key_id, nonce)` da migração proposta é indispensável à unicidade; **não aplicar automaticamente** `db/migrations/001-witness-replay-nonce.sql`. Validar transações, papel restrito, fail-closed, backups e retenção em banco real antes de produção.
 - F50: o E2E de build Astro assinado usa o código do adaptador F49 mas um transporte `query` simulado; os testes NÃO exercem PostgreSQL real. Gate de homologação privado em [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56).
 - A `main` ainda é documental, e `integration/comercial-p0-f33-review-2026-11-09` permanece branch **DRAFT / REVIEW ONLY**. Novas alterações entram em branches isoladas e PRs draft. Nenhum CI equivale a autorização de deploy, DNS ou migração da produção.
+
+## CI PostgreSQL real F51–F53 (10/11/2026)
+- Existe um quarto workflow `.github/workflows/commercial-postgres-ephemeral-lab.yml`, com Actions fixadas por SHA completo, Node 22 e ambiente Ubuntu 24.04 descartável.
+- `scripts/test-postgres-ephemeral-ci.sh` SOMENTE pode executar no GitHub-hosted CI com `IMAGINE_EPHEMERAL_PG_TEST=1`. Recusa hosts externos ou DB/role existentes, inicia serviço PostgreSQL **local** e remove apenas a base fixture.
+- F51: executa migração F49 em base nova de CI e prova PRIMARY KEY composta, concorrência entre conexões, replays e papel de acesso restrito. Nunca aplicar migração automaticamente em banco persistente.
+- F52: valida política e recibo Ed25519 realmente assinados, revogação, rollback, hash divergente e concorrência sobre o PostgreSQL real do runner.
+- F53: `scripts/test-build-catalog.mjs` usa o mesmo PostgreSQL real **apenas sob o guard de CI** para executar a cadeia catálogo assinado → Astro → F38 → F45 → F40 → F41/F49. O CI Astro habitual continua usando mock.
+- Todos esses testes são de laboratório e não constituem autorização de operação, migração na VPS, criação de chaves/segredos reais, merge main, DNS ou deploy. A obrigação de validar serviço persistente e testemunha pós-entrega permanece no [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56).
