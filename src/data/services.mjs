@@ -126,6 +126,7 @@ export const sitePages = Object.freeze([
   { path: '/servicos/', label: 'Soluções' },
   { path: '/comparar-solucoes/', label: 'Comparar soluções' },
   { path: '/como-funciona/', label: 'Como funciona' },
+  { path: '/perguntas-frequentes/', label: 'Perguntas frequentes' },
   { path: '/contato/', label: 'Contato' },
   { path: '/sobre/', label: 'Sobre a Imagine' },
   { path: '/conteudos/', label: 'Conteúdos' },
