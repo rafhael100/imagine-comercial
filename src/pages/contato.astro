@@ -22,6 +22,7 @@ import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contac
         </select>
         <p id="service-help" role="status" aria-live="polite">Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.</p>
       </div>
+      <p class="contact-process-link"><a href="/como-funciona/">Entenda as etapas do projeto antes de conversar</a></p>
       <div class="cta-row">
         <a class="cta" id="contact-whatsapp" href={contactWhatsAppUrl()} target="_blank" rel="noopener noreferrer">Conversar pelo WhatsApp</a>
         <a class="cta cta-secondary" id="contact-email" href={contactEmailUrl()}>Enviar e-mail</a>
@@ -83,6 +84,8 @@ import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contac
     }
   </script>
   <style>
+    .contact-process-link { margin: 20px 0 0; }
+    .contact-process-link a { color: #0b5ea9; font-weight: 750; text-underline-offset: 4px; }
     .contact-choice { max-width: 490px; margin-top: 30px; }
     .contact-choice label { display: block; font-weight: 800; margin-bottom: 8px; }
     .contact-choice select { width: 100%; min-height: 48px; padding: 10px 14px; border: 1px solid #9aafc5; border-radius: 10px; font: inherit; background: white; color: #182438; }
