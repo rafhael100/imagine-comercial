@@ -126,8 +126,14 @@ try {
   const deliveryReceipt={...unsignedReceipt,signature:sign(
     null,receiptSigningBytes(unsignedReceipt),deliveryWitness.privateKey
   ).toString('base64')};
-  // F50: run the REAL PostgreSQL adapter with a strictly local fake
-  // query transport. This proves the E2E code path, not a live PostgreSQL DB.
+  // F53: same E2E path can use the disposable REAL PostgreSQL service
+  // opened by scripts/test-postgres-ephemeral-ci.sh. Normal CI continues to
+  // use the F50 mock. This psql shim must NEVER be reused in application code.
+  const useEphemeralPostgres=process.env.IMAGINE_EPHEMERAL_PG_TEST==='1';
+  if(useEphemeralPostgres && (process.env.GITHUB_ACTIONS!=='true'||
+      process.env.RUNNER_ENVIRONMENT!=='github-hosted')){
+    throw new Error('F53: real SQL E2E is allowed only on hosted ephemeral CI');
+  }
   const persistedNonces=new Set();
   let postgresCalls=0;
   const fakePostgresQuery=async(sql,[keyId,nonce,issuedAt,releaseId])=>{
@@ -136,6 +142,22 @@ try {
     assert.equal(issuedAt,labNow);
     assert.equal(releaseId,snapshot.releaseId);
     postgresCalls++;
+    if(useEphemeralPostgres){
+      const safeId=/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
+      assert.ok(safeId.test(keyId)&&safeId.test(releaseId));
+      assert.match(nonce,/^[0-9a-f]{64}$/);
+      const prepared='SET ROLE imagine_comercial_ci_writer; '+
+        'PREPARE f53(text,text,bigint,text) AS '+sql+'; '+
+        "EXECUTE f53('"+keyId+"','"+nonce+"',"+issuedAt+",'"+releaseId+"');";
+      const output=execFileSync('sudo',[
+        '-u','postgres','psql','-X','-qAt','-v','ON_ERROR_STOP=1',
+        '-d','imagine_comercial_ci','-c',prepared
+      ],{encoding:'utf8',timeout:20000}).trim();
+      if(output==='')return {rowCount:0,rows:[]};
+      const columns=output.split('|');
+      assert.deepEqual(columns,[keyId,nonce]);
+      return {rowCount:1,rows:[{witness_key_id:keyId,nonce}]};
+    }
     const key=keyId+':'+nonce;
     if(persistedNonces.has(key))return {rowCount:0,rows:[]};
     persistedNonces.add(key);
@@ -217,7 +239,9 @@ try {
       query:async()=>{throw new Error('simulated postgres outage');}
     })
   }),/ledger unavailable, fail closed/);
-  console.log('F50 lab E2E: protected Astro build, PostgreSQL adapter path and fail-closed replay PASS.');
+  console.log(useEphemeralPostgres
+    ? 'F53 E2E: signed Astro bytes, real PostgreSQL replay and fail-closed checks PASS.'
+    : 'F50 lab E2E: protected Astro build, fake PostgreSQL client and fail-closed replay PASS.');
 
   assert.throws(()=>verifyArtifact({
     ...verifyEnv,IMAGINE_EXPECTED_BUILD_TREE_SHA256:'a'.repeat(64)
