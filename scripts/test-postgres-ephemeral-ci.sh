@@ -26,6 +26,7 @@ fi
 cleanup(){
   # Only remove this CI-only name, never a general database or cluster.
   sudo -u postgres dropdb --if-exists "${database}" >/dev/null 2>&1 || true
+  sudo -u postgres dropuser --if-exists imagine_comercial_ci_execute_only >/dev/null 2>&1 || true
   sudo -u postgres dropuser --if-exists "${role}" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -36,6 +37,8 @@ sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -f db/migrations/0
 # F54: independent signed-policy floor, also restricted to the disposable DB.
 sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -f db/migrations/002-witness-policy-floor.sql
 sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -f db/migrations/002-witness-policy-floor.sql
+# F55: definer functions only on this disposable CI database.
+sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -f db/migrations/003-execute-only-policy-floor.sql
 sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" <<'SQL'
 CREATE ROLE imagine_comercial_ci_writer NOLOGIN;
 GRANT USAGE ON SCHEMA public TO imagine_comercial_ci_writer;
@@ -50,8 +53,19 @@ GRANT UPDATE (sequence,policy_sha256,updated_at)
   ON imagine_comercial_witness_policy_floor TO imagine_comercial_ci_writer;
 GRANT SELECT (signer_key_id,witness_key_id,sequence,policy_sha256)
   ON imagine_comercial_witness_policy_floor TO imagine_comercial_ci_writer;
+-- F55: isolated role with zero direct table access; function EXECUTE only.
+CREATE ROLE imagine_comercial_ci_execute_only NOLOGIN;
+GRANT USAGE ON SCHEMA public TO imagine_comercial_ci_execute_only;
+REVOKE CREATE ON SCHEMA public FROM imagine_comercial_ci_execute_only;
+GRANT EXECUTE ON FUNCTION public.imagine_comercial_promote_witness_policy(
+  text,text,bigint,text) TO imagine_comercial_ci_execute_only;
+GRANT EXECUTE ON FUNCTION public.imagine_comercial_reserve_witness_nonce(
+  text,text,bigint,text,text,bigint,text) TO imagine_comercial_ci_execute_only;
 SQL
 node scripts/test-postgres-real-ci.mjs
+# F55: prove execute-only role can run signed policies but cannot query
+# protected tables or change their contents directly.
+node scripts/test-postgres-execute-only-ci.mjs
 # F53: in the same disposable database, validate a real compiled Astro tree,
 # catalog signature, witness policy/receipt and the PostgreSQL uniqueness
 # constraint. The signed build test restores its original editorial dist.
@@ -63,6 +77,14 @@ if sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -c   'SET ROLE 
   echo "F54 failed: restricted role can DELETE policy floor." >&2
   exit 1
 fi
+# F55: execute-only role must not read or modify raw security tables.
+for statement in   'SELECT * FROM public.imagine_comercial_witness_policy_floor;'   'SELECT * FROM public.imagine_comercial_witness_replay_nonce;'   "UPDATE public.imagine_comercial_witness_policy_floor SET sequence=1;"   'DELETE FROM public.imagine_comercial_witness_policy_floor;'   'DELETE FROM public.imagine_comercial_witness_replay_nonce;'
+do
+  if sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -c     "SET ROLE imagine_comercial_ci_execute_only; ${statement}" >/dev/null 2>&1; then
+    echo "F55 failed: execute-only role accessed a protected table." >&2
+    exit 1
+  fi
+done
 # A write-only reservation role must never be able to delete the ledger.
 if sudo -u postgres psql -Xq -v ON_ERROR_STOP=1 -d "${database}" -c   'SET ROLE imagine_comercial_ci_writer; DELETE FROM imagine_comercial_witness_replay_nonce;' >/dev/null 2>&1; then
   echo "F51 failed: restricted role can DELETE witness ledger." >&2
