@@ -57,7 +57,7 @@ try {
     });
     const routes = viewport.label==='mobile'
       ? sitePages.map(p=>p.path)
-      : ['/', '/servicos/', '/comparar-solucoes/','/como-funciona/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
+      : ['/', '/servicos/', '/comparar-solucoes/','/como-funciona/','/perguntas-frequentes/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
     for(const route of routes) {
       console.log('Browser QA',viewport.label,route);
       const response=await page.goto(host+route,{waitUntil:'load',timeout});
@@ -112,7 +112,7 @@ try {
         })).filter(el=>el.right>window.innerWidth+2).slice(0,12));
         throw new Error(viewport.label+': '+route+' horizontal overflow '+overflow+' elements='+JSON.stringify(offenders));
       }
-      if(route==='/'||route==='/servicos/'||route==='/comparar-solucoes/'||route==='/como-funciona/'||route==='/servicos/landing-pages/'||route==='/contato/') {
+      if(route==='/'||route==='/servicos/'||route==='/comparar-solucoes/'||route==='/como-funciona/'||route==='/perguntas-frequentes/'||route==='/servicos/landing-pages/'||route==='/contato/') {
         const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
         assert.deepEqual(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>n.target)})),[],viewport.label+': '+route+' axe');
         if(route==='/'||route==='/servicos/landing-pages/') {
@@ -120,6 +120,18 @@ try {
         }
       }
     }
+    // F65: public FAQs require no client-side scripts or personal data.
+    await page.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('.faq-list').count(),4,'F65 four FAQ groups');
+    assert.equal(await page.locator('.faq-item').count(),8,'F65 eight commercial questions');
+    assert.equal(await page.locator('form,input,textarea').count(),0,
+      'F65 FAQ must not gather visitor data');
+    const firstFaq=page.locator('.faq-item').first();
+    assert.equal(await firstFaq.getAttribute('open'),null);
+    await firstFaq.locator('summary').click();
+    assert.equal(await firstFaq.getAttribute('open'),'',
+      'F65 native details expands on keyboard and pointer activation');
+    assert.ok((await firstFaq.locator('p').textContent())?.length>90);
     // F64: process page keeps the public briefing self-service and static.
     await page.goto(host+'/como-funciona/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('.process-card').count(),6,'F64 six process stages');
@@ -274,7 +286,7 @@ try {
     assert.deepEqual(errors,[],viewport.label+' runtime errors');
     await context.close();
   }
-  console.log('Browser QA passed:',sitePages.length,'mobile routes, 8 desktop routes, verified internal/external links and anchors, axe WCAG 2.1 A/AA for 3 pages per viewport.');
+  console.log('Browser QA passed:',sitePages.length,'mobile routes, 9 desktop routes, verified internal/external links and anchors, axe WCAG 2.1 A/AA for 3 pages per viewport.');
 } finally {
   if(browser) await browser.close();
   server.kill('SIGTERM');
