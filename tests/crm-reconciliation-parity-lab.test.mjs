@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHmac} from 'node:crypto';
 import {inspectSyntheticCrmReconciliationLab as inspect}
   from '../src/lib/crm-reconciliation-parity-lab.mjs';
 import {inspectSyntheticCrmReceiptMac}
@@ -108,7 +109,6 @@ test('F93: even a matching synthetic HMAC plus dual durable claims cannot ACK',(
     destination_reference:'66666666-6666-4666-8666-666666666666'
   };
   const key='fixture-only-no-production-secret-32-bytes-minimum';
-  const {createHmac}=await import('node:crypto');
   const issuedAt=1800000000,expiresAt=1800000300;
   const nonce='88888888-8888-4888-8888-888888888888';
   const message=['imagine.lead-intake.synthetic-receipt.v1',
