@@ -37,13 +37,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: rafhael100/imagine-seo-engine
-          ref: 238acb0772dc7597f23ce3fd1761d68be1d35179
+          ref: 60738518c51df8a259ce56babb0e2f61682b1658
           path: .qa/seo-engine
           persist-credentials: false
       - name: Executar testes da versao fixada do Imagine SEO Engine
         run: npm --prefix .qa/seo-engine test
       - name: Auditar SEO do HTML compilado
-        run: node .qa/seo-engine/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings
+        run: node .qa/seo-engine/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head
       - name: Comprovar consumo real de catálogo assinado no build
         run: node scripts/test-build-catalog.mjs
       - name: Conferir HTML padrão após restaurar a compilação
