@@ -7,7 +7,8 @@ import {contactWhatsAppUrl,contactChannels} from '../src/data/contact-channels.m
 
 const source=readFileSync(new URL('../src/pages/servicos/[slug].astro',import.meta.url),'utf8');
 test('F73 uses service slugs only to render a direct WhatsApp fallback on each page',()=>{
-  assert.match(source,/const directWhatsAppHref=contactWhatsAppUrl\(composeCuratedContactLinks\(s.slug\).message\)/);
+  assert.match(source,/const contactIntent=composeCuratedContactLinks\(s.slug\)/);
+  assert.match(source,/const directWhatsAppHref=contactWhatsAppUrl\(contactIntent.message\)/);
   assert.match(source,/data-service-whatsapp href=\{directWhatsAppHref\}/);
   assert.match(source,/target="_blank" rel="noopener noreferrer" aria-describedby="service-whatsapp-notice"/);
   assert.match(source,/id="service-whatsapp-notice"/);
