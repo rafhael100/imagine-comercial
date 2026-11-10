@@ -71,6 +71,8 @@ node scripts/test-postgres-execute-only-ci.mjs
 # F85: real concurrent CAS and RLS test with ONLY six synthetic UUID references;
 # SQL remains under tests/sql and is never a production migration.
 bash scripts/test-lead-metadata-postgres-ephemeral-ci.sh
+# F86: atomic PostgreSQL reservation + PENDING outbox in the same CI-only database.
+bash scripts/test-lead-outbox-postgres-ephemeral-ci.sh
 # F53: in the same disposable database, validate a real compiled Astro tree,
 # catalog signature, witness policy/receipt and the PostgreSQL uniqueness
 # constraint. The signed build test restores its original editorial dist.
