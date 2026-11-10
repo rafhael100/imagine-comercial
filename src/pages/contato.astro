@@ -16,11 +16,11 @@ import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contac
       <p class="lead">Escolha o canal de sua preferência para falar com a Imagine. O formulário integrado ao Portal será disponibilizado após homologação.</p>
       <div class="contact-choice">
         <label for="service-choice">Qual solução você procura?</label>
-        <select id="service-choice" name="servico" autocomplete="off">
+        <select id="service-choice" name="servico" autocomplete="off" aria-describedby="service-help">
           <option value="">Ainda quero orientação</option>
           {services.map(s => <option value={s.slug}>{s.label}</option>)}
         </select>
-        <p id="service-help">Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.</p>
+        <p id="service-help" role="status" aria-live="polite">Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.</p>
       </div>
       <div class="cta-row">
         <a class="cta" id="contact-whatsapp" href={contactWhatsAppUrl()} target="_blank" rel="noopener noreferrer">Conversar pelo WhatsApp</a>
@@ -45,10 +45,11 @@ import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contac
     const choice = document.querySelector<HTMLSelectElement>('#service-choice');
     const whatsapp = document.querySelector<HTMLAnchorElement>('#contact-whatsapp');
     const email = document.querySelector<HTMLAnchorElement>('#contact-email');
-    if (choice && whatsapp && email) {
-      const allowed = [...choice.options].map(option => option.value);
-      const requested = window.location.hash.slice(1);
-      if (allowed.includes(requested)) choice.value = requested;
+    const help = document.querySelector<HTMLElement>('#service-help');
+    if (choice && whatsapp && email && help) {
+      // All identifiers originate from the server-reviewed service catalog.
+      // The URL fragment contains only a public service slug, never a lead.
+      const allowed = new Set([...choice.options].map(option => option.value));
       const update = () => {
         const selected = choice.selectedOptions[0];
         const label = selected?.value ? selected.textContent?.trim() : '';
@@ -58,9 +59,27 @@ import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contac
         const emailSubject = label ? 'Proposta Imagine - ' + label : 'Contato Imagine';
         whatsapp.href = contactWhatsAppUrl(whatsappMessage);
         email.href = contactEmailUrl(emailSubject);
+        help.textContent = label
+          ? 'Mensagem preparada para ' + label + '. Nenhum dado será enviado pelo site.'
+          : 'Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.';
       };
-      choice.addEventListener('change', update);
-      update();
+      const applyFragment = () => {
+        const requested = window.location.hash.slice(1);
+        // Unknown, malformed or arbitrary fragments fail closed.
+        choice.value = allowed.has(requested) ? requested : '';
+        update();
+      };
+      choice.addEventListener('change', () => {
+        if (!allowed.has(choice.value)) return;
+        // Replace this history entry rather than adding one for every change.
+        // Do not send visitor information, navigate, or change any query field.
+        const fragment = choice.value ? '#' + choice.value : '';
+        window.history.replaceState(null, '', window.location.pathname + window.location.search + fragment);
+        update();
+      });
+      window.addEventListener('hashchange', applyFragment);
+      window.addEventListener('popstate', applyFragment);
+      applyFragment();
     }
   </script>
   <style>
