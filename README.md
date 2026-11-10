@@ -67,3 +67,13 @@ A branch de integração em revisão [PR #38](https://github.com/rafhael100/imag
 As duas rotas compõem o catálogo para canonical, sitemap, auditor SEO RC13 e QA com Playwright/axe em mobile e desktop; não criam formulário, histórico comercial, preços, consentimento, login, analytics, dados pessoais ou requisições para CRM/Portal.
 
 **Não publicadas:** a `main` segue intacta. Aprovações de marca, conteúdo, propostas, canais, privacidade, VPS e infraestrutura Portal/CRM, GSC/301 e publicação real continuam nos [issues #56](https://github.com/rafhael100/imagine-comercial/issues/56), [#4](https://github.com/rafhael100/imagine-comercial/issues/4) e [#3](https://github.com/rafhael100/imagine-comercial/issues/3).
+
+## Migração SEO: leitura GSC privada, sem redirecionamentos (10/11/2026)
+
+Foi confirmada, pelo conector OpenSEO autorizado, a leitura **somente de páginas** do Search Console da propriedade pública `https://www.imaginecomunicacao.com.br/`. Isso avança o inventário, mas não comprova crawl completo, backlinks, equivalência, regra 301 ou publicação.
+
+- **F66 [PR #88](https://github.com/rafhael100/imagine-comercial/pull/88):** auditor independente Imagine SEO RC15 pinado por SHA sobre F0–F65 atual, sem mesclar o ensaio divergente #85.
+- **F67 [PR #90](https://github.com/rafhael100/imagine-comercial/pull/90):** oito caminhos legados adicionais foram classificados como **HOLD sem destino** (recrutamento, componente de contato e serviços em inglês). Mantém cinco candidatos apenas na simulação. A expectativa do teste Workerd foi corrigida em [PR #92](https://github.com/rafhael100/imagine-comercial/pull/92), comprovando todos os caminhos HOLD em 404/noindex na execução local.
+- **F68 [PR #93](https://github.com/rafhael100/imagine-comercial/pull/93):** leitor offline de Search Analytics JSON com dimensão `page` e propriedade exata, descartando desempenho, CTR, consultas e tokens de URLs antes do relatório; o CLI recusa execução em GitHub Actions.
+
+**Proteção de dados:** nenhuma métrica, pesquisa ou exportação verdadeira do GSC deve ser commitada ou adicionada a issues, logs ou artefatos de CI público. Evidências privadas permanecem no operador autorizado. O [issue de migração #3](https://github.com/rafhael100/imagine-comercial/issues/3) segue em HOLD até crawl e revisão 1:1, e [#56](https://github.com/rafhael100/imagine-comercial/issues/56) continua impedindo deployment, DNS e merge de produção.
