@@ -14,5 +14,5 @@ test('Commercial CI fails on any technical SEO warnings including orphan pages',
 
 
 test('F56 SEO RC10 checks real public head metadata and fails on warnings',()=>{
-  assert.match(workflow,/audit-dist\\.mjs dist .* --fail-on-warnings --strict-public-head/);
+  assert.ok(workflow.includes('audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head'));
 });
