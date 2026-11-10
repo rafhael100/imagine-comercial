@@ -198,3 +198,8 @@ Este marco **substitui as afirmações históricas** de que todos os testes de P
 - Auditor da branch de integração atualizado para Imagine SEO Engine RC10, commit imutável `60738518c51df8a259ce56babb0e2f61682b1658` ([PR SEO #45](https://github.com/rafhael100/imagine-seo-engine/pull/45)), conforme o [ensaio Comercial #69](https://github.com/rafhael100/imagine-comercial/pull/69), sem merge de branches antigas.
 - Executa `--fail-on-warnings --strict-public-head` e testes independentes antes do build Astro, verificando head real, canonical, robots, sitemap, Googlebot e links de corpo.
 - O pin atualizado não consulta o Search Console real, não valida backlinks, não habilita 301, DNS ou publicação; a revisão de URLs históricas continua no issue #3. Integração F55 e tabelas PostgreSQL preservadas.
+
+## Ensaio Imagine SEO RC11 — orçamento de recursos (10/11/2026)
+- Atualizado **somente em PR de ensaio** o pin do SEO Engine de RC10 para SHA `fa401957755daf397ce92c94c492e749481672f8` ([RC11 #47](https://github.com/rafhael100/imagine-seo-engine/pull/47)), mantendo o CI atual do Comercial.
+- Auditor exige `--fail-on-warnings --strict-public-head` e testa limites F33 com 159 testes SEO, sem reduzir controles P0 nem trocar para refs móveis.
+- Adoção ainda requer CI integrado verde e revisão operacional; não houve merge, deploy, DNS, GSC, OAuth ou dados reais.
