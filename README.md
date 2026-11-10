@@ -77,3 +77,16 @@ Foi confirmada, pelo conector OpenSEO autorizado, a leitura **somente de página
 - **F68 [PR #93](https://github.com/rafhael100/imagine-comercial/pull/93):** leitor offline de Search Analytics JSON com dimensão `page` e propriedade exata, descartando desempenho, CTR, consultas e tokens de URLs antes do relatório; o CLI recusa execução em GitHub Actions.
 
 **Proteção de dados:** nenhuma métrica, pesquisa ou exportação verdadeira do GSC deve ser commitada ou adicionada a issues, logs ou artefatos de CI público. Evidências privadas permanecem no operador autorizado. O [issue de migração #3](https://github.com/rafhael100/imagine-comercial/issues/3) segue em HOLD até crawl e revisão 1:1, e [#56](https://github.com/rafhael100/imagine-comercial/issues/56) continua impedindo deployment, DNS e merge de produção.
+
+## Contato público, canais externos e continuidade do orçamento — F70–F73 (10/11/2026)
+
+A jornada comercial melhorou sem abrir captação de dados antes da homologação:
+
+- **[F70 — PR #95](https://github.com/rafhael100/imagine-comercial/pull/95):** novo gate obrigatório `legacy-contact-intake-parity` impede considerar a substituição do site pronta sem comprovar a continuidade do formulário legado (integração Portal/CRM real ou fallback expressamente aceito).
+- **[F71 — PR #97](https://github.com/rafhael100/imagine-comercial/pull/97):** na rota `/contato/`, o visitante pode escolher um dos seis serviços e um dos quatro objetivos curados. O site prepara somente texto/assunto de links WhatsApp/e-mail; o objetivo não é registrado na URL nem armazenado.
+- **[F72 — PR #98](https://github.com/rafhael100/imagine-comercial/pull/98):** aviso acessível sobre a transferência para canais externos, com `aria-describedby`, explicado antes do clique e disponível sem JavaScript.
+- **[F73 — PR #99](https://github.com/rafhael100/imagine-comercial/pull/99):** todas as seis páginas individuais oferecem WhatsApp direto com o serviço já identificado, mantendo o CTA `/contato/#slug`; o atalho é HTML estático, opera sem JavaScript e passa pela política de URLs externas F32/F36.
+
+O site Astro não utiliza formulários, cookies, dados pessoais, envio automático de leads, tracking ou conta de cliente. WhatsApp e aplicativo de e-mail **são canais externos** acionados pelo visitante, não um CRM homologado. A equipe precisa reconfirmar os contatos exibidos no site legado antes de publicação.
+
+A branch de revisão [PR #38](https://github.com/rafhael100/imagine-comercial/pull/38) continua **DRAFT**. CI positivo no GitHub **não** aprova redirect, DNS, `main` nem produção: os gates [#56](https://github.com/rafhael100/imagine-comercial/issues/56), [#3](https://github.com/rafhael100/imagine-comercial/issues/3) e [#4](https://github.com/rafhael100/imagine-comercial/issues/4) continuam em revisão.
