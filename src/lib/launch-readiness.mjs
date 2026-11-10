@@ -10,6 +10,7 @@ export const RELEASE_GATES=Object.freeze([
   'portal-authn-mfa-grants',
   'portal-outbox-remote-witness',
   'crm-durable-consent-privacy',
+  'legacy-contact-intake-parity',
   'gsc-real-crawl-and-redirect-review',
   'content-brand-contacts-pricing',
   'legal-privacy-and-contracts',
