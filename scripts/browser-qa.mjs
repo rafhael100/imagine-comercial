@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
-import { sitePages } from '../src/data/services.mjs';
+import { sitePages, services } from '../src/data/services.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
@@ -93,6 +93,18 @@ try {
       if(route.startsWith('/servicos/') && route!=='/servicos/'){
         assert.equal(await page.locator('a.cta-secondary[href="/comparar-solucoes/"]').count(),1,
           'F62 service-page comparison link points to the actual comparison page');
+        const service=services.find(s=>route==='/servicos/'+s.slug+'/');
+        assert.ok(service,'F73 service slug must match curated catalog');
+        const quickLink=page.locator('a[data-service-whatsapp]');
+        assert.equal(await quickLink.count(),1,'F73 one static outbound option per service');
+        assert.equal(await quickLink.getAttribute('aria-describedby'),'service-whatsapp-notice');
+        assert.equal(await quickLink.getAttribute('target'),'_blank');
+        assert.ok((await quickLink.getAttribute('rel'))?.includes('noreferrer'));
+        const target=new URL(await quickLink.getAttribute('href'));
+        assert.equal(target.hostname,'wa.me');
+        assert.ok(target.searchParams.get('text')?.includes(service.label),
+          'F73 no-JS outbound message retains service context');
+        assert.equal(await page.locator('#service-whatsapp-notice').isVisible(),true);
       }
       const anchors=await page.locator('a[href]').evaluateAll(elements=>elements.map(el=>({
         href:el.getAttribute('href'),target:el.getAttribute('target')||'',
@@ -231,6 +243,11 @@ try {
           'F72 WhatsApp link retains default no-JS href');
         assert.equal(await fallback.locator('a#contact-email').count(),1,
           'F72 email link retains default no-JS href');
+        await fallback.goto(host+'/servicos/landing-pages/',{waitUntil:'load',timeout});
+        const quick=await fallback.locator('a[data-service-whatsapp]').getAttribute('href');
+        assert.ok(new URL(quick).searchParams.get('text')?.includes('Landing Pages'),
+          'F73 direct service WhatsApp link works without JavaScript');
+        assert.equal(await fallback.locator('#service-whatsapp-notice').isVisible(),true);
       }finally{await noJs.close();}
     }
     // Jornada comercial: um clique deve manter o serviço de origem sem requisição ao Portal.
