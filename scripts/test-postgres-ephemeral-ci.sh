@@ -23,11 +23,24 @@ if sudo -u postgres psql -XqAt -v ON_ERROR_STOP=1 -d postgres -c "SELECT 1 FROM 
   echo "F51 refuses to reuse an existing database role." >&2
   exit 2
 fi
+# Refuse pre-existing synthetic identities BEFORE registering cleanup,
+# so even unusual runner contamination cannot make cleanup drop old roles.
+if sudo -u postgres psql -XqAt -v ON_ERROR_STOP=1 -d postgres \
+  -c "SELECT rolname FROM pg_roles WHERE rolname IN (
+    'imagine_comercial_lead_ci_a','imagine_comercial_lead_ci_b',
+    'imagine_comercial_lead_ci_worker_a','imagine_comercial_lead_ci_worker_b',
+    'imagine_comercial_ci_execute_only'
+  )" | grep -q .; then
+  echo "F87 refuses to reuse any reserved ephemeral CI role." >&2
+  exit 2
+fi
 cleanup(){
   # Only remove this CI-only name, never a general database or cluster.
   sudo -u postgres dropdb --if-exists "${database}" >/dev/null 2>&1 || true
   sudo -u postgres dropuser --if-exists imagine_comercial_lead_ci_a >/dev/null 2>&1 || true
   sudo -u postgres dropuser --if-exists imagine_comercial_lead_ci_b >/dev/null 2>&1 || true
+  sudo -u postgres dropuser --if-exists imagine_comercial_lead_ci_worker_a >/dev/null 2>&1 || true
+  sudo -u postgres dropuser --if-exists imagine_comercial_lead_ci_worker_b >/dev/null 2>&1 || true
   sudo -u postgres dropuser --if-exists imagine_comercial_ci_execute_only >/dev/null 2>&1 || true
   sudo -u postgres dropuser --if-exists "${role}" >/dev/null 2>&1 || true
 }
@@ -73,6 +86,8 @@ node scripts/test-postgres-execute-only-ci.mjs
 bash scripts/test-lead-metadata-postgres-ephemeral-ci.sh
 # F86: atomic PostgreSQL reservation + PENDING outbox in the same CI-only database.
 bash scripts/test-lead-outbox-postgres-ephemeral-ci.sh
+# F87: recover expired lab event leases using version fencing, no CRM delivery.
+bash scripts/test-lead-outbox-lease-ephemeral-ci.sh
 # F53: in the same disposable database, validate a real compiled Astro tree,
 # catalog signature, witness policy/receipt and the PostgreSQL uniqueness
 # constraint. The signed build test restores its original editorial dist.
