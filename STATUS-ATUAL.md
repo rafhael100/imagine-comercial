@@ -192,3 +192,9 @@ Este marco **substitui as afirmações históricas** de que todos os testes de P
 - **Integração F0–F53 no commit `5e13cb578af6b0dbe4c01cd59b32cd47304a78fd`: quatro workflows aprovados:** [PostgreSQL real](https://github.com/rafhael100/imagine-comercial/actions/runs/42757296741), [Astro/SEO/navegador](https://github.com/rafhael100/imagine-comercial/actions/runs/42757296728), [Workerd](https://github.com/rafhael100/imagine-comercial/actions/runs/42757296707) e [Lighthouse local](https://github.com/rafhael100/imagine-comercial/actions/runs/42757296716).
 - **Gates reais ainda abertos:** [Leaseweb/staging e witness pós-entrega #56](https://github.com/rafhael100/imagine-comercial/issues/56), [GSC/redirects/rotas legais #3](https://github.com/rafhael100/imagine-comercial/issues/3), [Portal autorizado/CMS #4](https://github.com/rafhael100/imagine-comercial/issues/4), CRM/consentimento, credenciais/roles, contratos, preços, conteúdo e aprovação explícita do responsável.
 - **Limites inalterados:** branch integrada em PR draft, `main` apenas documental, nenhum deploy, mudança de DNS, banco da VPS alterado, dados reais de clientes ou despesa adicional nesta etapa.
+
+
+## F56 — SEO RC10 auditado e fixado no GitHub (10/11/2026)
+- Auditor da branch de integração atualizado para Imagine SEO Engine RC10, commit imutável `60738518c51df8a259ce56babb0e2f61682b1658` ([PR SEO #45](https://github.com/rafhael100/imagine-seo-engine/pull/45)), conforme o [ensaio Comercial #69](https://github.com/rafhael100/imagine-comercial/pull/69), sem merge de branches antigas.
+- Executa `--fail-on-warnings --strict-public-head` e testes independentes antes do build Astro, verificando head real, canonical, robots, sitemap, Googlebot e links de corpo.
+- O pin atualizado não consulta o Search Console real, não valida backlinks, não habilita 301, DNS ou publicação; a revisão de URLs históricas continua no issue #3. Integração F55 e tabelas PostgreSQL preservadas.
