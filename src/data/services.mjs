@@ -124,6 +124,7 @@ export const services = Object.freeze([
 export const sitePages = Object.freeze([
   { path: '/', label: 'Início' },
   { path: '/servicos/', label: 'Soluções' },
+  { path: '/comparar-solucoes/', label: 'Comparar soluções' },
   { path: '/contato/', label: 'Contato' },
   { path: '/sobre/', label: 'Sobre a Imagine' },
   { path: '/conteudos/', label: 'Conteúdos' },
