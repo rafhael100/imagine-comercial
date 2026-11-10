@@ -54,9 +54,9 @@ export function createSignedBuildReview(files, envelope, trustKeys, pins) {
     assert.equal(singleCaptured(html,
       /<meta\s+name="description"\s+content="([^"]*)"\s*\/?>/gi,'meta description'),
       item.description,'signed build: description differs from signed catalog');
-    const hero=html.match(/<section class="hero">([\s\S]*?)<\/section>/i)?.[1];
+    const hero=html.match(/<section\b(?=[^>]*\bclass="hero")[^>]*>([\s\S]*?)<\/section>/i)?.[1];
     assert.ok(hero,'signed build: service hero missing');
-    assert.equal(singleCaptured(hero,/<p class="lead">([^<]*)<\/p>/gi,'service intro'),
+    assert.equal(singleCaptured(hero,/<p\b(?=[^>]*\bclass="lead")[^>]*>([^<]*)<\/p>/gi,'service intro'),
       item.description,'signed build: service intro differs from signed catalog');
   }
   return Object.freeze({

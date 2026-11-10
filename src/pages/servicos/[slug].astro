@@ -2,14 +2,16 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { buildServices as services } from '../../lib/build-catalog.mjs';
 import {composeCuratedContactLinks} from '../../data/contact-objectives.mjs';
-import {contactWhatsAppUrl} from '../../data/contact-channels.mjs';
+import {contactWhatsAppUrl,contactEmailUrl} from '../../data/contact-channels.mjs';
 
 export function getStaticPaths() {
   return services.map(s => ({ params: { slug: s.slug }, props: { s } }));
 }
 const { s } = Astro.props;
 const pathname = '/servicos/' + s.slug + '/';
-const directWhatsAppHref=contactWhatsAppUrl(composeCuratedContactLinks(s.slug).message);
+const contactIntent=composeCuratedContactLinks(s.slug);
+const directWhatsAppHref=contactWhatsAppUrl(contactIntent.message);
+const directEmailHref=contactEmailUrl(contactIntent.subject);
 ---
 <BaseLayout
   title={s.title}
@@ -28,8 +30,9 @@ const directWhatsAppHref=contactWhatsAppUrl(composeCuratedContactLinks(s.slug).m
         <a class="cta" href={'/contato/#' + s.slug}>Solicitar uma proposta</a>
         <a class="cta cta-secondary" href="/comparar-solucoes/">Comparar soluções</a>
         <a class="text-link service-wa-link" data-service-whatsapp href={directWhatsAppHref} target="_blank" rel="noopener noreferrer" aria-describedby="service-whatsapp-notice">Conversar no WhatsApp</a>
+        <a class="text-link service-wa-link" data-service-email href={directEmailHref} aria-describedby="service-whatsapp-notice">Enviar e-mail sobre esta solução</a>
       </div>
-      <p id="service-whatsapp-notice" class="service-wa-notice">O WhatsApp é um serviço externo. O texto sobre {s.label} será preparado ao abrir o link; confirme o envio no aplicativo. Este site não registra sua solicitação.</p>
+      <p id="service-whatsapp-notice" class="service-wa-notice">WhatsApp e e-mail abrem aplicativos externos. A mensagem sobre {s.label} será preparada no WhatsApp ou o assunto no e-mail; revise e confirme o envio no aplicativo escolhido. Este site não registra sua solicitação.</p>
     </div>
   </section>
   <section class="section shell">
