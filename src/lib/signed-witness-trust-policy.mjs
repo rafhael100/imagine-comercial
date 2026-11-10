@@ -3,7 +3,7 @@
  * receipt. Offline review only; the release orchestrator must independently
  * supply root public keys and a monotonic minimum policy sequence.
  */
-import {createPublicKey, verify as verifySignature} from 'node:crypto';
+import {createPublicKey, timingSafeEqual, verify as verifySignature} from 'node:crypto';
 import {verifyReceiptWithWitnessTrustWindow} from './witness-trust-window.mjs';
 
 const ID=/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
@@ -56,11 +56,19 @@ export function verifySignedWitnessPolicy({
     !Number.isSafeInteger(envelope.sequence)||envelope.sequence<minSequence)
   throw new Error('signed witness policy: stale or missing monotonic sequence');
  const bytes=witnessPolicySigningBytes(envelope);
- let key;
+ let key,witnessKey;
  try{
   key=createPublicKey(rootKeys.get(expectedRootKeyId));
-  if(key.asymmetricKeyType!=='ed25519')throw new Error('wrong key type');
- }catch{throw new Error('signed witness policy: invalid root public key');}
+  witnessKey=createPublicKey(envelope.policy.publicKeyPem);
+  if(key.asymmetricKeyType!=='ed25519'||witnessKey.asymmetricKeyType!=='ed25519')
+   throw new Error('wrong key type');
+ }catch{throw new Error('signed witness policy: invalid root or witness public key');}
+ // Different key IDs are not sufficient for an independent trust root.
+ // Compare the actual public key bytes; a witness must not sign its own policy.
+ const rootDer=key.export({type:'spki',format:'der'});
+ const witnessDer=witnessKey.export({type:'spki',format:'der'});
+ if(rootDer.length===witnessDer.length&&timingSafeEqual(rootDer,witnessDer))
+  throw new Error('signed witness policy: root and witness must use distinct keys');
  if(!verifySignature(null,bytes,key,signatureBytes(envelope.signature)))
   throw new Error('signed witness policy: invalid root signature');
  return Object.freeze({...envelope.policy});
