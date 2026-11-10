@@ -113,3 +113,12 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 - Testes unitários utilizam **somente dados sintéticos**; não usar Search Analytics real como fixtures, exemplos, screenshots ou comentários públicos. Nunca publicar e-mail, tokens, queries/CTR/clicks/impressões dos usuários, nem expor identidade de contas conectadas.
 - O teste Workerd local verifica todos os caminhos HOLD retornando 404/noindex sem canonical; não implica código 404 no site antigo ou liberação de 301 no domínio real.
 - Antes de mudar DNS/redirects: crawl atual com HTTP/canonical/hreflang, GSC privado, revisão 1:1 dos candidatos, aprovação legal/editorial, homologação de staging e rollback. O [gate #3](https://github.com/rafhael100/imagine-comercial/issues/3) e [#56](https://github.com/rafhael100/imagine-comercial/issues/56) continuam fechados.
+
+## F70–F74 — segurança dos canais públicos e paridade comercial (10/11/2026)
+
+- `legacy-contact-intake-parity` em `src/lib/launch-readiness.mjs` é obrigatório e **não pode** ser marcado `reviewed` por CI verde, por existência de link WhatsApp ou porque a página antiga contém formulário. Verificar entrega real de solicitações, consentimento, proteção de dados e aprovação comercial.
+- `src/data/contact-objectives.mjs` permite **somente** serviços e quatro objetivos curados, sem texto livre ou perfil de visitante. O código de objetivo não entra na URL `/contato/#slug`, cookies, session/localStorage, analytics, backend ou log. `composeCuratedContactLinks` rejeita valores arbitrários e respeita os limites F36 de WhatsApp/e-mail.
+- `src/pages/contato.astro` tem aviso `external-channel-notice`; os links externos devem seguir `aria-describedby` e `noopener noreferrer` onde há nova aba. Não simular recebimento pelo CRM ou consentimento persistido.
+- `src/pages/servicos/[slug].astro` agora também apresenta link direto de WhatsApp por serviço. Manter origem de URL somente no allowlist de canais F32/F36. **Não adicionar CSS local Astro** à página individual sem revalidar o parser estrito `src/lib/signed-build-review.mjs` que liga catálogo assinado ao HTML compilado.
+- Revisar toda alteração com `npm test`, Astro/SEO RC15 pinado, teste de build assinado, Workerd local, Playwright mobile/desktop com fallback sem JavaScript, privacy sem pedidos de rede externos, axe e Lighthouse. Testes utilizam somente dados sintéticos.
+- Não alterar `main`, DNS, redirects, VPS, Portal/CRM, dados reais ou custos por conta de aprovação genérica; release requer homologação operacional e aprovação explícita do responsável.
