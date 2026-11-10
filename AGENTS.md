@@ -88,3 +88,11 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 - **F57:** teste negativo adicional de INSERT e TRUNCATE pelo papel execute-only. A CI pode criar banco novo e descartável SOMENTE no runner GitHub-hosted; **nunca** executar migrações 001/002/003 na VPS sem autorização específica, backup, DBA responsável, role review e plano de rollback.
 - Um atacante que comprometa a aplicação ainda pode promover versão alta e provocar DoS via função, pois o PostgreSQL não autentica Ed25519 de forma independente. Portanto, a validação de raiz/mínimo no Portal, distribuição confiável de revogações, auditoria externa e monitoramento continuam gates reais.
 - Não concluir publicações, DNS, redirect 301, merge da main, compra ou deploy a partir de CI verde. Registrar evidência operacional no [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56).
+
+## Entrega pública F58–F59: recorte seguro para continuidade (10/11/2026)
+
+- `src/lib/public-service-guide.mjs` define **exclusivamente objetivos genéricos** e slugs dos serviços existentes. Não acrescentar preços, descontos, promessas de conversão/ranking ou lógica de elegibilidade sem decisão comercial e contratos revisados.
+- `src/pages/servicos/index.astro` apresenta a escolha com HTML acessível, `aria-live` e links locais. Os scripts só alteram textos e nós DOM curados, sem `innerHTML`, POST, cookies, `localStorage`, rastreadores, PII, formulários ou rede externa.
+- F59 usa **somente** `/contato/#slug` para pré-selecionar uma solução no contato. Não converter isso em cadastro ou envio ao CRM, nem habilitar login/checkout sem os gates de identidade, consentimento e Portal.
+- Antes de integrar qualquer modificação relacionada, executar testes Node, build Astro, auditor SEO independente, QA Chromium 375/1440 px, acessibilidade axe, privacidade sem requisições externas e fallback sem JavaScript. A branch de revisão continua DRAFT; `main` e DNS não podem ser alterados por simples CI verde.
+- A revisão de Search Console real, URLs legadas/redirects e dados comerciais continua pendente; manter [issues #3](https://github.com/rafhael100/imagine-comercial/issues/3), [#4](https://github.com/rafhael100/imagine-comercial/issues/4) e [#56](https://github.com/rafhael100/imagine-comercial/issues/56) abertos.
