@@ -60,6 +60,16 @@ test('F83: fake IDs, scripts and arbitrary HTML are not accepted as valid mapped
     assert.throws(()=>reviewLegacyBudgetPreviewParity(bad),/invalid private preview/);
 });
 
+test('F84: hidden, disabled or aria-hidden controls do not fake visual parity',()=>{
+  for(const decoration of ['hidden','disabled','type="hidden"','aria-hidden="true"',
+                           'style="display:none"','style="visibility:hidden"']){
+    const withHidden=html.replace('id="lead-role"', 'id="lead-role" '+decoration);
+    const result=reviewLegacyBudgetPreviewParity(withHidden);
+    assert.deepEqual(result.unresolvedFields,['role','challenge'],decoration);
+    assert.equal(result.deploymentAuthorized,false);
+  }
+});
+
 test('F83: F43 CLI reports precise legacy gaps but still blocks release',()=>{
   const report=JSON.parse(renderReadinessReport());
   assert.ok(report.blockers.includes('legacy-contact-intake-parity'));
