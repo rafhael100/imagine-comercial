@@ -212,3 +212,13 @@ Este marco **substitui as afirmações históricas** de que todos os testes de P
 - Só a branch de ensaio fixa o SEO Engine em `563a9f6b4155cecd3708b8a35b2ca4be68de4cc5` ([RC12 #49](https://github.com/rafhael100/imagine-seo-engine/pull/49)), sem trocar ações por refs móveis.
 - Conserva `--fail-on-warnings --strict-public-head`, todas as verificações do Comercial P0, QA browser e PostgreSQL descartável.
 - Revalida orçamentos de recursos F33 e bloqueio `robots=nofollow` F34 do SEO. Nenhum merge, deploy, OAuth, DNS ou dados reais de cliente.
+
+## Marco F58–F59 — experiência comercial pública sem captação (10/11/2026)
+
+Este marco é posterior aos registros F57/SEO RC12 acima; a evidência de CI local **não** autoriza release.
+
+- **SEO RC12** no commit fixo `563a9f6b4155cecd3708b8a35b2ca4be68de4cc5`, ensaiado em [PR #74](https://github.com/rafhael100/imagine-comercial/pull/74) e integrado apenas à branch de revisão. Os quatro workflows da integração RC12 passaram no commit `12ef7291bc46f7a2ed511cbf2eb230976f209985`.
+- **F58 [PR #75](https://github.com/rafhael100/imagine-comercial/pull/75):** orientador interativo de cinco objetivos para seis serviços, conteúdo estático e revisável, sem preço, login, API, envio de lead ou armazenamento. Testes Node e Playwright em mobile/desktop, WCAG axe e fallback sem JS. CI individual [Astro/SEO/navegador #42835648139](https://github.com/rafhael100/imagine-comercial/actions/runs/42835648139) success, e PostgreSQL descartável [#42835647815](https://github.com/rafhael100/imagine-comercial/actions/runs/42835647815) success.
+- **F59 [PR #76](https://github.com/rafhael100/imagine-comercial/pull/76):** links “Conhecer” e “Solicitar proposta” por sugestão; segundo link usa somente `/contato/#slug` e reutiliza o contato já existente, sem transmissão automática. QA Playwright testa Landing Pages e Meta Ads do guia ao seletor. CI individual [Astro/SEO/navegador #42836484104](https://github.com/rafhael100/imagine-comercial/actions/runs/42836484104) success, PostgreSQL descartável [#42836484183](https://github.com/rafhael100/imagine-comercial/actions/runs/42836484183) success.
+- **Branch review-only no PR #38:** HEAD acumulado `e75b239560bb484ea2a289a640230e637f92056a` (F0–F59). Os quatro workflows pós-integração devem ser considerados separadamente, no mesmo SHA; não usar testes de PR individual como prova de integração se houver mudança de HEAD.
+- **Bloqueios de produção:** #56 VPS Leaseweb/Portal/CRM, #3 GSC/URLs/301, #4 CMS e aprovação de conteúdo, preços, contato, privacidade, segurança, acessibilidade real e autorização de publicação. **Nenhum** merge em `main`, DNS, deploy, dados reais de clientes ou novos custos nesta etapa.
