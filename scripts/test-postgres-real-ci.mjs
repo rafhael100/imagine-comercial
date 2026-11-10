@@ -117,7 +117,7 @@ const receipt={...receiptPayload,signature:sign(
   null,receiptSigningBytes(receiptPayload),witness.privateKey
 ).toString('base64')};
 const trustedReceipt={
-  receipt,expected,witnessPolicyEnvelope:makePolicyEnvelope(),
+  receipt,expected,envelope:makePolicyEnvelope(),
   rootKeys:new Map([[rootId,rootPem]]),
   expectedRootKeyId:rootId,minSequence:10,
   publisherKeyId:'portal_ci_01',nowSeconds:now
@@ -130,7 +130,7 @@ await assert.rejects(verifyWithRealDb({
   receipt:{...receipt,signature:Buffer.alloc(64,7).toString('base64')}
 }),/signature/);
 await assert.rejects(verifyWithRealDb({
-  witnessPolicyEnvelope:makePolicyEnvelope('revoked')
+  envelope:makePolicyEnvelope('revoked')
 }),/inactive or revoked/);
 await assert.rejects(verifyWithRealDb({minSequence:11}),/stale or missing monotonic sequence/);
 await assert.rejects(verifyWithRealDb({
