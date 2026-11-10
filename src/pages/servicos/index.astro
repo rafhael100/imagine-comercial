@@ -31,7 +31,12 @@ const initialGuide=guideForGoal(guideGoals[0].code);
           <h3>Caminhos para explorar</h3>
           <p id="service-guide-explanation">{initialGuide.explanation}</p>
           <ul id="service-guide-links">
-            {initialGuide.services.map(item => <li><a href={item.href}>{item.label}</a></li>)}
+            {initialGuide.services.map(item => (
+              <li>
+                <a data-service-guide-detail href={item.href}>Conhecer {item.label}</a>
+                <a data-service-guide-contact href={item.contactHref}>Solicitar proposta sobre {item.label}</a>
+              </li>
+            ))}
           </ul>
         </div>
         <p class="service-guide-note">Todos os serviços continuam disponíveis abaixo. Os valores e as condições oficiais são confirmados na proposta.</p>
@@ -50,10 +55,15 @@ const initialGuide=guideForGoal(guideGoals[0].code);
         explanation.textContent=guide.explanation;
         const suggestions=guide.services.map(item=>{
           const li=document.createElement('li');
-          const link=document.createElement('a');
-          link.href=item.href;
-          link.textContent=item.label;
-          li.append(link);
+          const detail=document.createElement('a');
+          detail.href=item.href;
+          detail.textContent='Conhecer '+item.label;
+          detail.dataset.serviceGuideDetail='';
+          const contact=document.createElement('a');
+          contact.href=item.contactHref;
+          contact.textContent='Solicitar proposta sobre '+item.label;
+          contact.dataset.serviceGuideContact='';
+          li.append(detail,contact);
           return li;
         });
         links.replaceChildren(...suggestions);
@@ -68,7 +78,9 @@ const initialGuide=guideForGoal(guideGoals[0].code);
     .service-guide-results h3{margin:0 0 12px}
     .service-guide-results p{margin:0}
     .service-guide-results ul{display:flex;flex-wrap:wrap;gap:14px 22px;margin:18px 0 0;padding-left:20px}
+    .service-guide-results li{display:grid;gap:6px;max-width:340px}
     .service-guide-results li a{color:#0b5ea9;font-weight:750;text-underline-offset:4px}
+    .service-guide-results [data-service-guide-contact]{font-weight:650}
     .service-guide-note{font-size:.91rem;color:#536680;margin-top:16px}
   </style>
   <section class="section shell">

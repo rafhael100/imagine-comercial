@@ -113,12 +113,34 @@ try {
       assert.equal((await page.locator('#service-guide-explanation').textContent())?.trim(),
         chosen.explanation,viewport.label+' F58 explanation');
       assert.deepEqual(
-        await page.locator('#service-guide-links a').evaluateAll(links=>
+        await page.locator('#service-guide-links a[data-service-guide-detail]').evaluateAll(links=>
           links.map(link=>({href:link.getAttribute('href'),label:link.textContent?.trim()}))),
-        chosen.services.map(service=>({href:service.href,label:service.label})),
+        chosen.services.map(service=>({href:service.href,label:'Conhecer '+service.label})),
         viewport.label+' F58 reviewed internal suggestions'
       );
+      assert.deepEqual(
+        await page.locator('#service-guide-links a[data-service-guide-contact]').evaluateAll(links=>
+          links.map(link=>({href:link.getAttribute('href'),label:link.textContent?.trim()}))),
+        chosen.services.map(service=>({href:service.contactHref,label:'Solicitar proposta sobre '+service.label})),
+        viewport.label+' F59 contact links remain scoped to selected service'
+      );
     }
+    // F59: a contact CTA carries only a service slug, no visitor identity.
+    await page.locator('#service-guide-goal').selectOption('oferta');
+    await page.locator('#service-guide-links a[data-service-guide-contact]').first().click();
+    await page.waitForURL(host+'/contato/#landing-pages');
+    assert.equal(await page.locator('#service-choice').inputValue(),'landing-pages');
+    assert.ok((await page.locator('#contact-whatsapp').getAttribute('href'))?.includes('Landing%20Pages'));
+    await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
+    await page.locator('#service-guide-goal').selectOption('anuncios');
+    assert.equal(await page.locator('#service-guide-links a[data-service-guide-contact]').count(),2);
+    await page.locator('#service-guide-links a[data-service-guide-contact]').last().click();
+    await page.waitForURL(host+'/contato/#gestao-meta-ads');
+    assert.equal(await page.locator('#service-choice').inputValue(),'gestao-meta-ads');
+    assert.equal(await page.locator('#service-guide-results').count(),0,'guide does not leak across pages');
+    assert.equal(await page.locator('#service-choice option').count(),7);
+    assert.equal(await page.locator('#service-guide-results[aria-live="polite"]').count(),0);
+    await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('#service-guide-results[aria-live="polite"]').count(),1,
       'F58 output announces changes');
     // Without scripts, the original full service catalog remains navigable.
