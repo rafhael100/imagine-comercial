@@ -181,3 +181,7 @@ Este bloco é o registro cronologicamente mais recente. As datas, resultados e n
 - **Bloqueio principal:** [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56) (VPS Leaseweb, staging privado, DB real, witness remoto, IAM/MFA e verificação pós-entrega). [Issue #3](https://github.com/rafhael100/imagine-comercial/issues/3) migração/GSC real; [issue #4](https://github.com/rafhael100/imagine-comercial/issues/4) contrato CMS/Portal.
 - **Demais dependências:** CRM e consentimento durável, revisão de identidade, contatos, ofertas/preços e documentos jurídicos, testes externos e autorização explícita de publicação.
 - **Limites:** nenhum merge na `main`, DNS, deploy, migração real, serviço pago novo ou dados reais de clientes nesta rodada. O fato de uma verificação de CI passar não marca gates F42 como `reviewed`.
+
+## Ensaio Comercial com SEO RC7 (10/11/2026)
+- O checkout SEO foi pinado no commit de RC7 `05506a61985b698f001cac0c8a32480278f0bc43` (https://github.com/rafhael100/imagine-seo-engine/pull/37), incluindo F26 (metadados somente no head) e F27 (crawler com recursos limitados).
+- Build público conserva `--fail-on-warnings --strict-public-head` e todos os testes do Comercial. Fila de revisão, sem merge/deploy, OAuth, dados reais ou DNS.
