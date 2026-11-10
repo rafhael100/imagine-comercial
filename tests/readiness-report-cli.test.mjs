@@ -7,14 +7,14 @@ test('F43 offline report lists every unresolved production gate',()=>{
  const data=JSON.parse(renderReadinessReport());
  assert.equal(data.target,'production');
  assert.deepEqual(data.blockers,RELEASE_GATES);
- assert.equal(data.count,9);
+ assert.equal(data.count,RELEASE_GATES.length);
  assert.equal(data.approval,'NOT_AUTHORIZED');
  assert.equal(data.deploymentPerformed,false);
 });
 test('F43 explicit staging still does not infer operational approval',()=>{
  const data=JSON.parse(renderReadinessReport(['--target=staging']));
  assert.equal(data.target,'staging');
- assert.equal(data.count,9);
+ assert.equal(data.count,RELEASE_GATES.length);
  assert.equal(data.approval,'NOT_AUTHORIZED');
 });
 test('F43 refuses flags and paths that could import untrusted approvals',()=>{
