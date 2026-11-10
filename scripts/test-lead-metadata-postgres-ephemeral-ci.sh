@@ -69,6 +69,15 @@ if [[ "$(psql_lab "SET ROLE ${a_role}; SELECT count(*) FROM ${schema}.metadata_l
   echo "F85 tenant rows collided or leaked." >&2; exit 1
 fi
 
+# A tenant cannot modify another tenant's reservation, even with the
+# foreign row's exact UUID values.
+if [[ -n "$(psql_lab "SET ROLE ${b_role};
+  UPDATE ${schema}.metadata_ledger SET state='reserved', version=version+1
+  WHERE organization_reference='${a_org}'
+    AND submission_reference='${submission}' RETURNING version;")" ]]; then
+  echo "F85 tenant B updated tenant A's row." >&2; exit 1
+fi
+
 # Wrong organization is rejected even if the client claims another ID.
 if psql_lab "SET ROLE ${b_role};
   INSERT INTO ${schema}.metadata_ledger
