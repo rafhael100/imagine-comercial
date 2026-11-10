@@ -198,3 +198,12 @@ Este marco **substitui as afirmações históricas** de que todos os testes de P
 - Auditor da branch de integração atualizado para Imagine SEO Engine RC10, commit imutável `60738518c51df8a259ce56babb0e2f61682b1658` ([PR SEO #45](https://github.com/rafhael100/imagine-seo-engine/pull/45)), conforme o [ensaio Comercial #69](https://github.com/rafhael100/imagine-comercial/pull/69), sem merge de branches antigas.
 - Executa `--fail-on-warnings --strict-public-head` e testes independentes antes do build Astro, verificando head real, canonical, robots, sitemap, Googlebot e links de corpo.
 - O pin atualizado não consulta o Search Console real, não valida backlinks, não habilita 301, DNS ou publicação; a revisão de URLs históricas continua no issue #3. Integração F55 e tabelas PostgreSQL preservadas.
+
+## Passagem F54–F57 — 10/11/2026
+
+- **F54 [PR #67](https://github.com/rafhael100/imagine-comercial/pull/67):** política Ed25519 assinada com piso monotônico persistente testado em PostgreSQL real de CI, comparação de sequência/hash e reserva atômica de nonce; 4 workflows integrados aprovados.
+- **F55 [PR #70](https://github.com/rafhael100/imagine-comercial/pull/70):** funções PostgreSQL SECURITY DEFINER e papel execute-only com testes reais de revogação, replay, concorrência e acesso negado às tabelas; CI individual e integração aprovados.
+- **F56 [PR #71](https://github.com/rafhael100/imagine-comercial/pull/71):** atualização do auditor Imagine SEO Engine RC10 por SHA imutável, auditoria de head público estrita e avisos como falha; CI corrigido aprovado depois de ajustar teste de comando, sem mudar main.
+- **F57:** reforço de negação de permissões SQL e documentação de requisitos de homologação. Testes integrados desta revisão devem ser conferidos separadamente.
+- **Bloqueios reais:** [#56 Leaseweb e integração operacional](https://github.com/rafhael100/imagine-comercial/issues/56), [#3 GSC e redirects](https://github.com/rafhael100/imagine-comercial/issues/3), [#4 Portal CMS](https://github.com/rafhael100/imagine-comercial/issues/4), CRM/consentimento e autorização editorial/jurídica e de produção.
+- **Sem** merge main, deploy, acesso à VPS, DNS, dados reais ou novas despesas.
