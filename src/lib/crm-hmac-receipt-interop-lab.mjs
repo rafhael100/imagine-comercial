@@ -46,9 +46,14 @@ function validTime(issuedAt,expiresAt,now){
  * Metadata-only parity with PHP F3-15 ordering. Returns diagnostics without
  * the message, signature, nonce, key or any external references.
  */
-export function inspectSyntheticCrmReceiptMac({
-  expected,reported,issuedAt,expiresAt,now,nonce,signature,syntheticKey
-}={}){
+export function inspectSyntheticCrmReceiptMac(input={}){
+  const allowed=['expected','reported','issuedAt','expiresAt','now','nonce','signature','syntheticKey'];
+  if(input===null||typeof input!=='object'||Array.isArray(input)||
+     Object.getPrototypeOf(input)!==Object.prototype||
+     Object.keys(input).length!==allowed.length||
+     !allowed.every(key=>Object.hasOwn(input,key)))
+    return assessment('CRYPTO_INPUT_INVALID');
+  const {expected,reported,issuedAt,expiresAt,now,nonce,signature,syntheticKey}=input;
   // Validation of UUID strings is mandatory, but a correct UUID is never a
   // credential. Reject malformed/relabelled contexts before MAC comparison.
   if(!validEnvelope(expected)||!validEnvelope(reported)||
