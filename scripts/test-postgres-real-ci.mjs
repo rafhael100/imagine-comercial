@@ -7,6 +7,10 @@
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {receiptSigningBytes} from '../src/lib/independent-delivery-receipt.mjs';
+import {
+  RESERVE_SIGNED_POLICY_NONCE_SQL,PROMOTE_SIGNED_POLICY_SQL,
+  verifyReceiptWithPostgresPolicyFloor,promoteAuthenticatedSignedPolicy
+} from '../src/lib/postgres-policy-floor.mjs';
 import {witnessPolicySigningBytes,verifyReceiptWithSignedWitnessPolicy} from '../src/lib/signed-witness-trust-policy.mjs';
 import {promisify} from 'node:util';
 import {execFile} from 'node:child_process';
@@ -156,3 +160,104 @@ await assert.rejects(verifyWithRealDb(),/replay rejected/);
 assert.equal(await psql('SELECT count(*) FROM imagine_comercial_witness_replay_nonce'),
   '4','real PostgreSQL contains exactly one signed witness reservation');
 console.log('F52: signed Ed25519 witness receipts, revocation, replay and real PostgreSQL concurrency PASS.');
+
+
+// F54 — signature-authenticated monotonic policy floors, with nonce and
+// version in the SAME PostgreSQL statement, across independent psql sessions.
+function policySqlClient(){
+  return Object.freeze({
+    async query(sql,values){
+      assert.ok(sql===RESERVE_SIGNED_POLICY_NONCE_SQL||
+        sql===PROMOTE_SIGNED_POLICY_SQL,'F54 approved SQL only');
+      const isReceipt=sql===RESERVE_SIGNED_POLICY_NONCE_SQL;
+      assert.equal(values.length,isReceipt?7:4);
+      const declared=isReceipt?
+        'text,text,bigint,text,text,bigint,text':'text,text,bigint,text';
+      const query='SET ROLE '+DB_ROLE+'; PREPARE policy_f54('+declared+
+        ') AS '+sql+'; EXECUTE policy_f54('+values.map(quoteFixture).join(',')+');';
+      const result=(await psql(query)).split('|');
+      assert.equal(result.length,isReceipt?2:1);
+      return {rowCount:1,rows:[isReceipt?
+        {policy_ok:result[0],receipt_inserted:result[1]}:
+        {policy_ok:result[0]}
+      ]};
+    }
+  });
+}
+const floorDb=policySqlClient();
+function policyF54(sequence,state='active',overrides={}){
+  const unsigned={
+    schema:'imagine.comercial.signed-witness-policy.v1',
+    signerKeyId:rootId,sequence,
+    policy:{...policyBase,state,...overrides}
+  };
+  return {...unsigned,signature:sign(null,
+    witnessPolicySigningBytes(unsigned),root.privateKey).toString('base64')};
+}
+function receiptF54(nonce){
+  const data={
+    schema:'imagine.comercial.delivery-receipt.v1',
+    ...expected,issuedAt:now,nonce
+  };
+  return {...data,signature:sign(null,receiptSigningBytes(data),
+    witness.privateKey).toString('base64')};
+}
+const floorArgs=(envelope,nonce)=>({
+  db:floorDb,receipt:receiptF54(nonce),expected,envelope,rootKeys:
+    new Map([[rootId,rootPem]]),expectedRootKeyId:rootId,
+  minSequence:1,publisherKeyId:'portal_ci_01',nowSeconds:now
+});
+const active20=policyF54(20);
+const signedAttempts=await Promise.allSettled(
+  Array.from({length:8},()=>verifyReceiptWithPostgresPolicyFloor(
+    floorArgs(active20,'1'.repeat(64))
+  ))
+);
+assert.equal(signedAttempts.filter(x=>x.status==='fulfilled').length,1,
+  'F54 one winner across 8 atomic signed policy+nonce transactions');
+assert.equal(signedAttempts.filter(x=>x.status==='rejected').length,7);
+const currentAfter20=await psql("SELECT sequence FROM imagine_comercial_witness_policy_floor "+
+  "WHERE signer_key_id='"+rootId+"' AND witness_key_id='"+expected.witnessKeyId+"'");
+assert.equal(currentAfter20,'20');
+await verifyReceiptWithPostgresPolicyFloor(
+  floorArgs(active20,'2'.repeat(64))
+);
+const active21=policyF54(21);
+await verifyReceiptWithPostgresPolicyFloor(
+  floorArgs(active21,'3'.repeat(64))
+);
+await assert.rejects(verifyReceiptWithPostgresPolicyFloor(
+  floorArgs(active20,'4'.repeat(64))
+),/ledger unavailable, fail closed/);
+await assert.rejects(verifyReceiptWithPostgresPolicyFloor(
+  floorArgs(policyF54(21,'active',{validUntil:now+200}),'5'.repeat(64))
+),/ledger unavailable, fail closed/);
+const revoke=await promoteAuthenticatedSignedPolicy({
+  db:floorDb,envelope:policyF54(22,'revoked'),
+  rootKeys:new Map([[rootId,rootPem]]),
+  expectedRootKeyId:rootId,minSequence:1
+});
+assert.equal(revoke.state,'revoked');
+assert.equal(revoke.deploymentAuthorized,false);
+await assert.rejects(verifyReceiptWithPostgresPolicyFloor(
+  floorArgs(active21,'6'.repeat(64))
+),/ledger unavailable, fail closed/);
+await assert.rejects(promoteAuthenticatedSignedPolicy({
+  db:floorDb,envelope:active21,
+  rootKeys:new Map([[rootId,rootPem]]),
+  expectedRootKeyId:rootId,minSequence:1
+}),/stale sequence or conflicting/);
+const forged=policyF54(23,'active');
+await assert.rejects(promoteAuthenticatedSignedPolicy({
+  db:floorDb,envelope:{...forged,sequence:24},
+  rootKeys:new Map([[rootId,rootPem]]),
+  expectedRootKeyId:rootId,minSequence:1
+}),/invalid root signature/);
+const floorState=await psql(
+  "SELECT sequence FROM imagine_comercial_witness_policy_floor "+
+  "WHERE signer_key_id='"+rootId+"' AND witness_key_id='"+expected.witnessKeyId+"'"
+);
+assert.equal(floorState,'22','old signed active policy must not lower a revoked floor');
+assert.equal(await psql('SELECT count(*) FROM imagine_comercial_witness_replay_nonce'),
+  '7','only three F54 signed reservations added to four earlier F51/F52 entries');
+console.log('F54: persisted policy monotonicity, signed revocation, fork guard and concurrent replay PASS.');
