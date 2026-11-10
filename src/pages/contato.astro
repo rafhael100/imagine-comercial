@@ -32,9 +32,10 @@ import {contactObjectives} from '../data/contact-objectives.mjs';
         <p id="objective-help" role="status" aria-live="polite">A seleção só prepara a mensagem. Você decide se deseja abrir o canal externo.</p>
       </div>
       <p class="contact-process-link"><a href="/como-funciona/">Entenda as etapas do projeto antes de conversar</a> · <a href="/perguntas-frequentes/">Dúvidas frequentes</a></p>
+      <p id="external-channel-notice" class="contact-channel-notice">Os canais abaixo são externos ao site. Ao abrir o WhatsApp, o texto preparado aparece no serviço; confira e confirme o envio. O e-mail abre o aplicativo configurado no seu dispositivo. A Imagine não recebe uma solicitação por meio deste site apenas porque você selecionou um serviço ou objetivo.</p>
       <div class="cta-row">
-        <a class="cta" id="contact-whatsapp" href={contactWhatsAppUrl()} target="_blank" rel="noopener noreferrer">Conversar pelo WhatsApp</a>
-        <a class="cta cta-secondary" id="contact-email" href={contactEmailUrl()}>Enviar e-mail</a>
+        <a class="cta" id="contact-whatsapp" href={contactWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-describedby="external-channel-notice">Conversar pelo WhatsApp</a>
+        <a class="cta cta-secondary" id="contact-email" href={contactEmailUrl()} aria-describedby="external-channel-notice">Enviar e-mail</a>
       </div>
     </div>
   </section>
@@ -101,6 +102,7 @@ import {contactObjectives} from '../data/contact-objectives.mjs';
     }
   </script>
   <style>
+    .contact-channel-notice { max-width: 740px; margin-top: 24px; font-size: .94rem; color: #3c516c; }
     .contact-process-link { margin: 20px 0 0; }
     .contact-process-link a { color: #0b5ea9; font-weight: 750; text-underline-offset: 4px; }
     .contact-choice { max-width: 490px; margin-top: 22px; }
