@@ -66,3 +66,9 @@ Este repositório é o site público de aquisição da Imagine (P0). Tecnologia 
 4. Revisão editorial, identidade visual, licenças, portfólio, termos e política de privacidade.
 5. Staging privado homologado, testes de segurança, CWV reais, checkout/contratos/fiscal; dependerá de autorização para infraestrutura e publicação.
 6. Somente após decisão humana explícita: merge main, DNS, Cloudflare e produção.
+
+## Continuidade F39–F50 — limites de segurança (10/11/2026)
+- F39–F48: recibos Ed25519, witness, política de raiz, anti-replay e correlação de pacote Astro verificam **somente dados de laboratório**; nunca usar identificadores sintéticos, root keys ou tokens de CI para conceder permissão de publicação.
+- F49: `src/lib/postgres-witness-replay-ledger.mjs` é adaptador para cliente PostgreSQL **injetado**. O índice `(witness_key_id, nonce)` da migração proposta é indispensável à unicidade; **não aplicar automaticamente** `db/migrations/001-witness-replay-nonce.sql`. Validar transações, papel restrito, fail-closed, backups e retenção em banco real antes de produção.
+- F50: o E2E de build Astro assinado usa o código do adaptador F49 mas um transporte `query` simulado; os testes NÃO exercem PostgreSQL real. Gate de homologação privado em [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56).
+- A `main` ainda é documental, e `integration/comercial-p0-f33-review-2026-11-09` permanece branch **DRAFT / REVIEW ONLY**. Novas alterações entram em branches isoladas e PRs draft. Nenhum CI equivale a autorização de deploy, DNS ou migração da produção.
