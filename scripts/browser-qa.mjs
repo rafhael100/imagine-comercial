@@ -365,7 +365,7 @@ try {
   }
   // F82: PRIVATE fixture only, loaded in memory; never a public Astro route.
   const privateFormSource=readFileSync(new URL('../tests/fixtures/private-contact-form-preview.html',import.meta.url),'utf8');
-  assert.doesNotMatch(privateFormSource,/<script\\b|\\baction=|fetch\\s*\\(|https?:\\/\\//i,
+  assert.doesNotMatch(privateFormSource,/<script\b|\baction=|fetch\s*\(|https?:\/\//i,
     'F82 fixture must not include client scripts, submission endpoints or remote dependencies');
   for(const viewport of [{width:375,height:812,label:'mobile'},{width:1440,height:900,label:'desktop'}]){
     const ctx=await browser.newContext({viewport:{width:viewport.width,height:viewport.height}});
