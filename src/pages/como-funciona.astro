@@ -1,0 +1,73 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {processStages,preparationQuestions} from '../data/commercial-process.mjs';
+const pathname='/como-funciona/';
+---
+<BaseLayout
+  title="Como funciona um projeto com a Imagine | Etapas e briefing"
+  description="Entenda as etapas para planejar um site, Landing Page ou campanha digital com a Imagine: objetivo, proposta, aprovações, execução e acompanhamento."
+  pathname={pathname}
+  breadcrumb={[{label:'Como funciona',path:pathname}]}
+>
+  <div class="shell breadcrumbs"><a href="/">Início</a> / <span aria-current="page">Como funciona</span></div>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Planejamento e transparência</p>
+      <h1>Do primeiro objetivo ao acompanhamento: entenda as etapas.</h1>
+      <p class="lead">Um projeto começa por uma conversa sobre necessidades. Veja os pontos que costumam orientar a definição de escopo, proposta, aprovações e entregas — sem confundir orientação com condições contratuais.</p>
+      <div class="cta-row">
+        <a class="cta" href="#etapas">Conhecer as etapas</a>
+        <a class="cta cta-secondary" href="/comparar-solucoes/">Comparar formatos</a>
+      </div>
+    </div>
+  </section>
+  <section class="section shell" id="etapas" aria-labelledby="etapas-heading">
+    <p class="kicker">Roteiro de trabalho</p>
+    <h2 id="etapas-heading">Seis pontos para planejar com clareza.</h2>
+    <p class="lead">A sequência é ilustrativa: o formato, as etapas contratadas e as responsabilidades são definidos na proposta. Ela não representa um prazo ou uma oferta automática.</p>
+    <ol class="process-list">
+      {processStages.map((stage,index)=>(
+        <li class="process-card">
+          <div class="process-number" aria-hidden="true">{String(index+1).padStart(2,'0')}</div>
+          <div>
+            <h3>{stage.title}</h3>
+            <p>{stage.summary}</p>
+            <p class="process-question"><strong>Pergunta útil:</strong> {stage.confirmation}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+  <section class="section section-soft" aria-labelledby="briefing-heading">
+    <div class="shell">
+      <p class="kicker">Antes de conversar</p>
+      <h2 id="briefing-heading">O que preparar para o briefing?</h2>
+      <p class="lead">Não é necessário enviar informações pelo site. As respostas ajudam a organizar uma conversa futura com a equipe.</p>
+      <ul class="briefing-list">
+        {preparationQuestions.map(question=><li>{question}</li>)}
+      </ul>
+      <p class="briefing-note">Não envie senhas, documentos pessoais ou acessos por links de contato não homologados. Os canais e as permissões adequados devem ser combinados antes do compartilhamento.</p>
+    </div>
+  </section>
+  <section class="section shell">
+    <h2>O que só a proposta oficial pode definir?</h2>
+    <p class="lead">Investimentos, implantação e mensalidades, quantidades de revisões, materiais, integrações, prazos, condições de cancelamento e suporte variam conforme a contratação. Nenhuma etapa descrita acima garante vendas, posição no Google ou publicação imediata.</p>
+    <div class="cta-row">
+      <a class="cta" href="/contato/">Conversar sobre um projeto</a>
+      <a class="cta cta-secondary" href="/servicos/">Conhecer as soluções</a>
+    </div>
+  </section>
+  <style>
+    .process-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;list-style:none;padding:0;margin:32px 0 0}
+    .process-card{border:1px solid #d5e2f0;border-radius:16px;padding:24px;display:flex;gap:17px;min-width:0;background:#fff}
+    .process-number{font-size:1.4rem;font-weight:850;color:#145d9d;flex-shrink:0}
+    .process-card h3{margin:0 0 10px}
+    .process-card p{margin:0;color:#506078}
+    .process-card .process-question{margin-top:16px;color:#25344c}
+    .briefing-list{max-width:840px;padding-left:24px;margin:28px 0}
+    .briefing-list li{padding:7px 0}
+    .briefing-note{font-size:.94rem;color:#40556c}
+    #etapas{scroll-margin-top:18px}
+    @media(max-width:480px){.process-list{grid-template-columns:1fr}.process-card{padding:20px;gap:12px}}
+  </style>
+</BaseLayout>
