@@ -28,6 +28,8 @@ test('F58 guide produces only local reviewed service URLs, never prices or autho
     for(const item of chosen.services){
       assert.ok(slugs.has(item.slug));
       assert.equal(item.href,'/servicos/'+item.slug+'/');
+      assert.equal(item.contactHref,'/contato/#'+item.slug);
+      assert.match(item.contactHref,/^\/contato\/#(criacao-de-sites|landing-pages|onepage|sites-por-assinatura|gestao-google-ads|gestao-meta-ads)$/);
       assert.equal(item.label,services.find(s=>s.slug===item.slug).label);
       assert.ok(Object.isFrozen(item));
     }
@@ -47,6 +49,8 @@ test('F58 browser-only UI does not create a form, external transport or HTML inj
   assert.match(page,/aria-live="polite"/);
   assert.match(page,/guideForGoal/);
   assert.match(page,/replaceChildren/);
+  assert.match(page,/data-service-guide-contact/);
+  assert.match(page,/contactHref/);
   assert.match(page,/textContent/);
   assert.doesNotMatch(page,/<form\b|<input\b|fetch\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|innerHTML|document\.cookie/);
 });
