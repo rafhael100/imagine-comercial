@@ -8,6 +8,9 @@ import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
+import {services} from '../src/data/services.mjs';
+import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
+import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
@@ -231,7 +234,39 @@ try {
           'F72 WhatsApp link retains default no-JS href');
         assert.equal(await fallback.locator('a#contact-email').count(),1,
           'F72 email link retains default no-JS href');
+        // F75: direct service channels must work even when client scripts are disabled.
+        for(const service of services){
+          await fallback.goto(host+'/servicos/'+service.slug+'/',{waitUntil:'load',timeout});
+          const intent=composeCuratedContactLinks(service.slug);
+          assert.equal(await fallback.locator('a[data-service-whatsapp]').getAttribute('href'),
+            contactWhatsAppUrl(intent.message),'F75 no-JS WhatsApp '+service.slug);
+          assert.equal(await fallback.locator('a[data-service-email]').getAttribute('href'),
+            contactEmailUrl(intent.subject),'F75 no-JS email '+service.slug);
+          assert.equal(await fallback.locator('#service-whatsapp-notice').isVisible(),true);
+        }
       }finally{await noJs.close();}
+    }
+    // F75: validate all six service-specific contact channels in a real browser.
+    // Reading href attributes never opens external applications or transmits a lead.
+    for(const service of services){
+      await page.goto(host+'/servicos/'+service.slug+'/',{waitUntil:'load',timeout});
+      const intent=composeCuratedContactLinks(service.slug);
+      const waLink=page.locator('a[data-service-whatsapp]');
+      const emailLink=page.locator('a[data-service-email]');
+      assert.equal(await waLink.count(),1,viewport.label+': '+service.slug+' WhatsApp CTA');
+      assert.equal(await emailLink.count(),1,viewport.label+': '+service.slug+' email CTA');
+      assert.equal(await waLink.getAttribute('href'),contactWhatsAppUrl(intent.message),
+        viewport.label+': '+service.slug+' exact curated WhatsApp URL');
+      assert.equal(await emailLink.getAttribute('href'),contactEmailUrl(intent.subject),
+        viewport.label+': '+service.slug+' exact curated mailto URL');
+      assert.equal(await waLink.getAttribute('target'),'_blank');
+      assert.equal(await waLink.getAttribute('rel'),'noopener noreferrer');
+      assert.equal(await waLink.getAttribute('aria-describedby'),'service-whatsapp-notice');
+      assert.equal(await emailLink.getAttribute('aria-describedby'),'service-whatsapp-notice');
+      const notice=page.locator('#service-whatsapp-notice');
+      assert.equal(await notice.isVisible(),true,viewport.label+': channel notice visible');
+      assert.ok((await notice.textContent())?.includes('revise e confirme o envio'));
+      assert.equal(await page.locator('form,input,textarea').count(),0);
     }
     // Jornada comercial: um clique deve manter o serviço de origem sem requisição ao Portal.
     await page.goto(host+'/servicos/landing-pages/',{waitUntil:'load',timeout});
