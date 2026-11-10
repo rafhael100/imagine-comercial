@@ -181,3 +181,8 @@ Este bloco é o registro cronologicamente mais recente. As datas, resultados e n
 - **Bloqueio principal:** [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56) (VPS Leaseweb, staging privado, DB real, witness remoto, IAM/MFA e verificação pós-entrega). [Issue #3](https://github.com/rafhael100/imagine-comercial/issues/3) migração/GSC real; [issue #4](https://github.com/rafhael100/imagine-comercial/issues/4) contrato CMS/Portal.
 - **Demais dependências:** CRM e consentimento durável, revisão de identidade, contatos, ofertas/preços e documentos jurídicos, testes externos e autorização explícita de publicação.
 - **Limites:** nenhum merge na `main`, DNS, deploy, migração real, serviço pago novo ou dados reais de clientes nesta rodada. O fato de uma verificação de CI passar não marca gates F42 como `reviewed`.
+
+## Ensaio de integração Imagine SEO RC5 — revisão isolada (10/11/2026)
+- Pin imutável atualizado exclusivamente na branch de ensaio para o commit `8ddbd79cc42cb821f0d8fb1770b3cba588ba08e2`, candidato RC5 https://github.com/rafhael100/imagine-seo-engine/pull/32.
+- Verificações do CI passam a consumir o motor F0–F24 e seus 121 testes, incluindo contrato Portal test-only sem grants e integridade GSC por página.
+- Atualização contra a ponta mais recente da revisão P0, mantendo a prioridade Comercial. Não há merge, deploy, OAuth, alterações em URLs publicadas ou dados reais.
