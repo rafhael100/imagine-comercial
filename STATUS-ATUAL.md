@@ -207,3 +207,8 @@ Este marco **substitui as afirmações históricas** de que todos os testes de P
 - **F57:** reforço de negação de permissões SQL e documentação de requisitos de homologação. Testes integrados desta revisão devem ser conferidos separadamente.
 - **Bloqueios reais:** [#56 Leaseweb e integração operacional](https://github.com/rafhael100/imagine-comercial/issues/56), [#3 GSC e redirects](https://github.com/rafhael100/imagine-comercial/issues/3), [#4 Portal CMS](https://github.com/rafhael100/imagine-comercial/issues/4), CRM/consentimento e autorização editorial/jurídica e de produção.
 - **Sem** merge main, deploy, acesso à VPS, DNS, dados reais ou novas despesas.
+
+## Ensaio SEO RC12 — revisão read-only e segura (10/11/2026)
+- Só a branch de ensaio fixa o SEO Engine em `563a9f6b4155cecd3708b8a35b2ca4be68de4cc5` ([RC12 #49](https://github.com/rafhael100/imagine-seo-engine/pull/49)), sem trocar ações por refs móveis.
+- Conserva `--fail-on-warnings --strict-public-head`, todas as verificações do Comercial P0, QA browser e PostgreSQL descartável.
+- Revalida orçamentos de recursos F33 e bloqueio `robots=nofollow` F34 do SEO. Nenhum merge, deploy, OAuth, DNS ou dados reais de cliente.
