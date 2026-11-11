@@ -116,7 +116,7 @@ test('F167 does not treat a 200 public homepage as private staging success',asyn
   try{
     await assert.rejects(review({...params(f,transport()),
       transport:async(url)=>{count++;return new Response('Public',{status:200,headers});}
-    }),/authentication gate failed closed/);
+    }),/private staging routes are not all protected/);
     assert.equal(count,1);
   }finally{await rm(f.base,{recursive:true,force:true});}
 });
