@@ -28,7 +28,7 @@ jobs:
       - name: Instalar lockfile
         run: npm ci --no-audit --no-fund
       - name: Instalar Chromium de teste
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/install-chromium-ci.sh
       - name: Build Astro local
         run: npm run build
       - name: Auditar homepage e Landing Pages com Lighthouse fixado

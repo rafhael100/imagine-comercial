@@ -80,7 +80,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
       - name: Instalar Chromium para QA de navegador
-        run: npx playwright install --with-deps chromium
+        run: bash scripts/install-chromium-ci.sh
       - name: Testar responsividade e WCAG no navegador
         run: npm run test:browser
       - name: Validar navegador da previa HTTP autenticada (F155, sem staging)
