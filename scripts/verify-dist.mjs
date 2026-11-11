@@ -10,6 +10,7 @@ import { verifyIndexablePage, verifySitemapUrls, verifyRobotsSitemap } from '../
 import {verifyJsonLdPage} from '../src/lib/jsonld-output-contract.mjs';
 import {auditCuratedInternalLinks} from '../src/lib/internal-link-contract.mjs';
 import {auditIndexableMetadata} from '../src/lib/site-head-inventory.mjs';
+import {auditPublicLinkGraph} from '../src/lib/public-link-graph.mjs';
 const paths = sitePages.map(p=>p.path==='/' ? 'index.html' : p.path.slice(1)+'index.html');
 
 const metaPages=[];
@@ -28,6 +29,7 @@ for (const [index, path] of paths.entries()) {
   metaPages.push({path:sitePages[index].path,html});
 }
 auditIndexableMetadata(metaPages);
+auditPublicLinkGraph(metaPages);
 for (const path of ['sitemap.xml', 'robots.txt']) {
   assert.ok(existsSync(join('dist', path)), 'Build missing SEO file: ' + path);
 }
