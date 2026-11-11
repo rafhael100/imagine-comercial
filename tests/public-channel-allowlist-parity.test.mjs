@@ -33,8 +33,8 @@ test('F159: no broad Olá/Imagine or Contato prefix exceptions survive browser a
  const approved=composeCuratedContactLinks('criacao-de-sites');
  const valid=contactWhatsAppUrl(approved.message);
  const invalid=[
-   contactWhatsAppUrl('Olá, Imagine este texto nunca foi aprovado.'),
-   contactEmailUrl('Contato Imagine - Injetado não aprovado'),
+   'https://wa.me/5585996632689?text='+encodeURIComponent('Olá, Imagine este texto nunca foi aprovado.'),
+   'mailto:imagine@imaginecomunicacao.com.br?subject='+encodeURIComponent('Contato Imagine - Injetado não aprovado'),
    valid+'&utm_source=secret',
    valid.replace('%2C','%2c'),
    valid.replace('Ol%C3%A1','Ol%C3%A1%20'),
@@ -48,7 +48,7 @@ test('F159: no broad Olá/Imagine or Contato prefix exceptions survive browser a
 
 test('F159: error output never repeats an injected query or private token',()=>{
  const secret='F159-PERSONAL-TOKEN-6093';
- const href=contactWhatsAppUrl('Olá, Imagine '+secret+'.');
+ const href='https://wa.me/5585996632689?text='+encodeURIComponent('Olá, Imagine '+secret+'.');
  assert.throws(()=>check(href),err=>{
    assert.equal(err.message.includes(secret),false);
    return /external destination not in reviewed channel allowlist/.test(err.message);

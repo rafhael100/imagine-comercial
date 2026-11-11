@@ -6,6 +6,8 @@
  * Esta evidência NÃO comprova que as linhas estão ativas ou que constituem
  * aprovação para publicação. O responsável deve reconfirmar antes do deploy.
  */
+import {isCuratedPublicMessage,isCuratedPublicSubject,isCuratedPublicSubjectBody} from './curated-channel-text.mjs';
+
 export const contactChannels=Object.freeze({
   email:'imagine@imaginecomunicacao.com.br',
   phoneE164:'+558530329525',
@@ -28,21 +30,20 @@ function rejectUnsafeText(value,maxLength,context) {
 
 export function contactWhatsAppUrl(message=defaultMessage) {
   rejectUnsafeText(message,280,'WhatsApp message');
-  if(!message.startsWith('Olá,') || !message.includes('Imagine'))
+  if(!isCuratedPublicMessage(message))
     throw new Error('F36: WhatsApp message outside curated intent');
   return contactChannels.whatsappBaseHref+'?text='+encodeURIComponent(message);
 }
 
 export function contactEmailUrl(subject=defaultSubject,body) {
   rejectUnsafeText(subject,120,'email subject');
-  if(!subject.startsWith('Contato Imagine') &&
-     !subject.startsWith('Proposta Imagine'))
+  if(!isCuratedPublicSubject(subject))
     throw new Error('F36: email subject outside curated intent');
   // F142: corpo opcional, preenchido somente pelo clique do visitante.
   // Não aceitar textos livres, dados pessoais ou mensagens além do catálogo.
   if(body!==undefined){
     rejectUnsafeText(body,280,'email body');
-    if(!body.startsWith('Olá,')||!body.includes('Imagine'))
+    if(!isCuratedPublicSubjectBody(subject,body))
       throw new Error('F142: email body outside curated intent');
   }
   return 'mailto:'+contactChannels.email+'?subject='+encodeURIComponent(subject)+
