@@ -37,15 +37,17 @@ function refusal(code){
   return {schema:'imagine.comercial.private-budget-http-review.v1',
     mode:'LAB_DENY_ONLY',code,canAcknowledgeVisitor:false,canSendToCrm:false};
 }
-export async function startPrivateBudgetReviewLab(password,{requireRequestProof=false}={}){
+export async function startPrivateBudgetReviewLab(password,{requireRequestProof=false,claimNonce=null}={}){
   if(typeof password!=='string'||password.length<24||password.length>128||
       !/^[\x21-\x7e]+$/.test(password))
     throw new Error('F161: a strong local-only password is required');
-  if(typeof requireRequestProof!=='boolean')
-    throw Error('F177: invalid private request proof policy');
+  if(typeof requireRequestProof!=='boolean'||
+     (claimNonce!==null&&(!requireRequestProof||typeof claimNonce!=='function')))
+    throw Error('F180: invalid private request proof adapter policy');
   const expected=digest('reviewer:'+password);
   const proofKey=requireRequestProof?randomBytes(32):null;
   const usedNonces=new Set();
+  let issuedCount=0;
   const server=createServer(async(req,res)=>{
     for(const [key,value] of Object.entries(headers))res.setHeader(key,value);
     const socket=server.address();
@@ -57,9 +59,10 @@ export async function startPrivateBudgetReviewLab(password,{requireRequestProof=
       write(res,401,refusal('AUTHENTICATION_REQUIRED'));return;
     }
     if(requireRequestProof&&req.method==='GET'&&req.url===PROOF_ROUTE){
-      if(usedNonces.size>=256){
+      if(issuedCount>=256){
         write(res,429,refusal('LAB_REPLAY_STORAGE_CAP_REACHED'));return;
       }
+      issuedCount++;
       const issued=issuePrivateBudgetRequestProofLab({
         key:proofKey,origin:'http://127.0.0.1:'+socket.port,
         scope:PROOF_SCOPE
@@ -106,10 +109,10 @@ export async function startPrivateBudgetReviewLab(password,{requireRequestProof=
       const inspected=await inspectPrivateBudgetRequestProofLab({
         key:proofKey,token:input.requestProof,
         origin:'http://127.0.0.1:'+socket.port,scope:PROOF_SCOPE,
-        claimNonce:nonce=>{
+        claimNonce:claimNonce??((nonce)=>{
           if(usedNonces.size>=256||usedNonces.has(nonce))return false;
           usedNonces.add(nonce);return true;
-        }
+        })
       });
       if(inspected.oneTimeNonceClaimedInLab!==true){
         write(res,409,refusal('SIGNED_REQUEST_PROOF_REQUIRED_OR_USED'));return;
