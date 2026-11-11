@@ -297,6 +297,26 @@ try {
     assert.equal(await page.locator('.compare-card a[href^="/servicos/"]').count(),6);
     assert.equal(await page.locator('.compare-card a[href^="/contato/#"]').count(),6);
     assert.equal(await page.locator('a[href="#comparacoes"]').count(),1);
+    // F174: local shortlist of two reviewed services, no network/storage.
+    assert.equal(await page.locator('[data-compare-select]').count(),6);
+    assert.equal(await page.locator('#selected-comparison').isVisible(),false);
+    await page.locator('[data-compare-select="onepage"]').click();
+    assert.equal(await page.locator('#selected-comparison-list li').count(),1);
+    assert.equal(await page.locator('[data-compare-select="onepage"]').getAttribute('aria-pressed'),'true');
+    await page.locator('[data-compare-select="landing-pages"]').click();
+    assert.equal(await page.locator('#selected-comparison-list li').count(),2,
+      'F174 selected exactly two real services');
+    assert.match(await page.locator('#compare-chooser-status').textContent(),/2 soluções selecionadas/);
+    assert.equal(await page.locator('[data-compare-select="gestao-google-ads"]').isDisabled(),true,
+      'F174 never accepts a third selected service');
+    assert.equal(await page.locator('#selected-comparison-list a[href="/contato/#onepage"]').count(),1);
+    assert.equal(await page.locator('#selected-comparison-list a[href="/contato/#landing-pages"]').count(),1);
+    await page.locator('[data-compare-select="onepage"]').click();
+    assert.equal(await page.locator('#selected-comparison-list li').count(),1);
+    assert.equal(await page.locator('[data-compare-select="gestao-google-ads"]').isEnabled(),true);
+    await page.locator('[data-compare-select="landing-pages"]').click();
+    assert.equal(await page.locator('#selected-comparison-list li').count(),0);
+    assert.equal(await page.locator('#selected-comparison').isVisible(),false);
     await page.locator('.compare-card a[href="/contato/#landing-pages"]').click();
     await page.waitForURL(host+'/contato/#landing-pages');
     assert.equal(await page.locator('#service-choice').inputValue(),'landing-pages',
@@ -390,6 +410,12 @@ try {
           'F58 must preserve all public services without JavaScript');
         assert.equal(await fallback.locator('#service-guide-results a[href="/servicos/onepage/"]').count(),1,
           'F58 has a useful static initial recommendation');
+        await fallback.goto(host+'/comparar-solucoes/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('#comparacoes .compare-card').count(),6,
+          'F174 all six comparison cards stay visible without JavaScript');
+        assert.equal(await fallback.locator('[data-compare-select]:visible').count(),0,
+          'F174 shortlist buttons are hidden without JavaScript');
+        assert.equal(await fallback.locator('#selected-comparison').isVisible(),false);
         await fallback.goto(host+'/conteudos/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#guide-list article.card:visible').count(),
           articles.length,'F152 all guides remain usable without JavaScript');
