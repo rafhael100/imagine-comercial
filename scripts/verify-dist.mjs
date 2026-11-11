@@ -13,6 +13,7 @@ import {auditIndexableMetadata} from '../src/lib/site-head-inventory.mjs';
 import {auditPublicLinkGraph} from '../src/lib/public-link-graph.mjs';
 import {auditPublicHeadingStructure} from '../src/lib/heading-structure-contract.mjs';
 import {auditInPageFragments} from '../src/lib/in-page-fragment-contract.mjs';
+import {auditCrossPageFragmentTargets} from '../src/lib/cross-page-fragment-contract.mjs';
 const paths = sitePages.map(p=>p.path==='/' ? 'index.html' : p.path.slice(1)+'index.html');
 
 const metaPages=[];
@@ -34,6 +35,7 @@ for (const [index, path] of paths.entries()) {
 }
 auditIndexableMetadata(metaPages);
 auditPublicLinkGraph(metaPages);
+auditCrossPageFragmentTargets(metaPages);
 for (const path of ['sitemap.xml', 'robots.txt']) {
   assert.ok(existsSync(join('dist', path)), 'Build missing SEO file: ' + path);
 }
