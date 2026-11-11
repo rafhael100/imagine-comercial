@@ -12,6 +12,7 @@ interface Props {
 }
 const { title, description, pathname, noindex = false, breadcrumb = [], serviceName, articleTitle } = Astro.props;
 const canonical = toAbsoluteUrl(pathname, Astro.site?.toString());
+const socialType = articleTitle ? 'article' : 'website';
 // O atalho é opcional e aparece somente se a URL passa pelo allowlist.
 const portalLoginUrl = resolvePortalLoginLink(import.meta.env.PUBLIC_PORTAL_LOGIN_URL);
 // Evita encerramento de <script> em conteúdo futuramente proveniente de CMS.
@@ -56,12 +57,16 @@ const service = serviceName ? {
     <meta name="description" content={description} />
     <meta name="robots" content={noindex ? 'noindex,nofollow' : 'index,follow'} />
     {!noindex && <link rel="canonical" href={canonical} />}
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={socialType} />
     <meta property="og:locale" content="pt_BR" />
     <meta property="og:site_name" content="Imagine Comunicação Digital" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     {!noindex && <meta property="og:url" content={canonical} />}
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {!noindex && <meta name="twitter:url" content={canonical} />}
     {!noindex && <script type="application/ld+json" set:html={serializeJsonLd(organization)} />}
     {!noindex && <script type="application/ld+json" set:html={serializeJsonLd(webPage)} />}
     {!noindex && bread && <script type="application/ld+json" set:html={serializeJsonLd(bread)} />}
