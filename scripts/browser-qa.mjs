@@ -50,6 +50,8 @@ try {
 
   for(const viewport of [{width:375,height:812,label:'mobile'},{width:1440,height:900,label:'desktop'}]){
     const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1});
+    // F151: local-only clipboard QA; does not grant network/storage permissions.
+    await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:host});
     const page=await context.newPage();
     const errors=[];
     const unexpectedRequests=[];
@@ -275,6 +277,9 @@ try {
           'F72 WhatsApp link retains default no-JS href');
         assert.equal(await fallback.locator('a#contact-email').count(),1,
           'F72 email link retains default no-JS href');
+        assert.equal(await fallback.locator('#copy-message').isVisible(),false,
+          'F151 copy action stays hidden without JavaScript');
+
         await fallback.goto(host+'/',{waitUntil:'load',timeout});
         const nativeMenu=fallback.locator('details.mobile-menu');
         assert.equal(await nativeMenu.locator('summary').isVisible(),true,
@@ -356,6 +361,18 @@ try {
       'F142 exact curated mailto body '+viewport.label);
     assert.equal((await page.locator('#message-preview').textContent())?.trim(),
       'Prévia da mensagem: '+briefing.message,'F142 accessible preview '+viewport.label);
+    // F151: a deliberate click copies exactly the predefined, local message.
+    const copyButton=page.locator('#copy-message');
+    assert.equal(await copyButton.isVisible(),true,'F151 clipboard action offered when supported');
+    assert.equal(await page.locator('#copy-message-status').textContent(),'');
+    await copyButton.click();
+    const clipboardText=await page.evaluate(()=>navigator.clipboard.readText());
+    assert.equal(clipboardText,briefing.message,'F151 clipboard contains only curated briefing');
+    assert.ok((await page.locator('#copy-message-status').textContent())?.includes('Mensagem copiada'));
+    await page.locator('#priority-choice').selectOption('presenca');
+    assert.equal(await page.locator('#copy-message-status').textContent(),'',
+      'F151 changing choices clears stale copy confirmation');
+
     await page.evaluate(()=>{
       const el=document.querySelector('#priority-choice');
       el.value='not-a-public-choice';
