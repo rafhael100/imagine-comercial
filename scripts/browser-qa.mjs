@@ -311,6 +311,23 @@ try {
       'F174 never accepts a third selected service');
     assert.equal(await page.locator('#selected-comparison-list a[href="/contato/#onepage"]').count(),1);
     assert.equal(await page.locator('#selected-comparison-list a[href="/contato/#landing-pages"]').count(),1);
+    // F175: share exactly two reviewed slugs, restore after reload, and
+    // reject arbitrary visitor text or altered fragments without a request.
+    const shareComparison=page.locator('#copy-comparison-link');
+    assert.equal(await shareComparison.isVisible(),true);
+    await shareComparison.click();
+    const comparisonLink=await page.evaluate(()=>navigator.clipboard.readText());
+    assert.equal(comparisonLink,host+'/comparar-solucoes/#comparar:onepage:landing-pages');
+    assert.match(await page.locator('#copy-comparison-status').textContent(),
+      /Link da comparação copiado/);
+    await page.reload({waitUntil:'load',timeout});
+    assert.equal(await page.locator('#selected-comparison-list li').count(),2,
+      'F175 valid two-service link restores comparison after reload');
+    await page.goto(host+'/comparar-solucoes/#comparar:onepage:EXFILTRATION',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('#selected-comparison').isVisible(),false,
+      'F175 malformed comparison fragments must fail closed');
+    await page.goto(comparisonLink,{waitUntil:'load',timeout});
+    assert.equal(await page.locator('#selected-comparison-list li').count(),2);
     await page.locator('[data-compare-select="onepage"]').click();
     assert.equal(await page.locator('#selected-comparison-list li').count(),1);
     assert.equal(await page.locator('[data-compare-select="gestao-google-ads"]').isEnabled(),true);
@@ -415,6 +432,8 @@ try {
           'F174 all six comparison cards stay visible without JavaScript');
         assert.equal(await fallback.locator('[data-compare-select]:visible').count(),0,
           'F174 shortlist buttons are hidden without JavaScript');
+        assert.equal(await fallback.locator('#copy-comparison-link').isVisible(),false,
+          'F175 share link stays hidden without JavaScript');
         assert.equal(await fallback.locator('#selected-comparison').isVisible(),false);
         await fallback.goto(host+'/conteudos/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#guide-list article.card:visible').count(),
