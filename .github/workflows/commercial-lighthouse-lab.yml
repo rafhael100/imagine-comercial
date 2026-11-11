@@ -1,0 +1,43 @@
+name: Imagine Comercial - Lighthouse local baseline
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/lighthouse-local-qa.mjs'
+      - '.github/workflows/commercial-lighthouse-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse_local:
+    name: Lighthouse mobile - Astro preview loopback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout sem credenciais
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Instalar Chromium de teste
+        run: npx playwright install --with-deps chromium
+      - name: Build Astro local
+        run: npm run build
+      - name: Auditar homepage e Landing Pages com Lighthouse fixado
+        run: node scripts/lighthouse-local-qa.mjs
+      - name: Arquivar relatórios locais de laboratório
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: imagine-comercial-lighthouse-lab-only
+          path: artifacts/lighthouse/*.json
+          if-no-files-found: ignore
+          retention-days: 7
