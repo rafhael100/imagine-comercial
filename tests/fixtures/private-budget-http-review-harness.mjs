@@ -5,6 +5,7 @@
  */
 import {createServer} from 'node:http';
 import {createHash,randomBytes,timingSafeEqual} from 'node:crypto';
+import {TextDecoder} from 'node:util';
 import {issuePrivateBudgetRequestProofLab,inspectPrivateBudgetRequestProofLab}
   from '../../src/lib/private-budget-request-proof-lab.mjs';
 import {reviewPrivateBudgetToCrmLab} from '../../src/lib/private-budget-crm-review.mjs';
@@ -117,8 +118,13 @@ export async function startPrivateBudgetReviewLab(password,{requireRequestProof=
     }
     if(oversize){write(res,413,refusal('BODY_TOO_LARGE'));return;}
     let input;
-    try{input=JSON.parse(Buffer.concat(chunks).toString('utf8'));}
-    catch{write(res,400,refusal('INVALID_JSON'));return;}
+    try{
+      // F183: replacement decoding can silently turn malformed UTF-8 into
+      // U+FFFD; reject such bytes before interpreting any JSON fields.
+      const rawJson=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true})
+        .decode(Buffer.concat(chunks));
+      input=JSON.parse(rawJson);
+    }catch{write(res,400,refusal('INVALID_JSON'));return;}
     if(requireRequestProof){
       const required=['privateDraft','envelope','storedSnapshot','expectedVersion','requestProof'];
       if(!input||Array.isArray(input)||typeof input!=='object'||
