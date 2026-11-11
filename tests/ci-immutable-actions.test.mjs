@@ -45,7 +45,7 @@ test('F35 — every checkout is unauthenticated after clone and SEO Engine stays
   for(const step of checkout){
     assert.match(step,/^[ \t]*persist-credentials:[ \t]*false[ \t]*$/m);
   }
-  assert.match(validate,/ref:[ \t]*a305be23554e6e57fb60905101ad99d8a40745d0/,
+  assert.match(validate,/ref:[ \t]*e5d99f3183baa07fb40f69564fe2df637959aeb8/,
     'Independent SEO Engine audit must not use a mutable ref');
   assert.doesNotMatch(validate,/^[ \t]*uses:[ \t]*[^\r\n]+@v[0-9]+/m,
     'Actions must never depend on a mutable major-version tag');
