@@ -9,7 +9,7 @@ const password='Synthetic-F166-Password-Staging-Only';
 const basicAuth='Basic '+Buffer.from('reviewer:'+password).toString('base64');
 const publicPaths=new Set(['/','/servicos/','/conteudos/','/contato/']);
 const legacyPaths=new Set(legacyUrls.filter(x=>x.status==='hold').map(x=>x.from));
-const headers=Object.fromEntries([...localHeaderProfile,['Content-Type','text/html; charset=utf-8']]);
+const headers=Object.fromEntries([...localHeaderProfile,['Content-Type','text/html; charset=utf-8'],['Cache-Control','private, no-store']]);
 const html=path=>publicPaths.has(path)
   ?'<html><head><meta name="robots" content="index,follow">'+
    '<link rel="canonical" href="https://imaginecomunicacao.com.br'+path+'">'+
@@ -35,18 +35,24 @@ const transportFactory=(access='allowed')=>{
   };
   return {transport,seen};
 };
-test('F166 private staging probe tests missing auth BEFORE 22 authenticated routes',async()=>{
+test('F168 staging denies all 26 anonymous routes BEFORE 22 authenticated routes',async()=>{
   const fake=transportFactory();
   const report=await review({port:4321,basicAuth,transport:fake.transport});
   assert.equal(report.totalHttpChecks,22);
   assert.equal(report.reviewedPublicPages,4);
   assert.equal(report.heldLegacyPages,18);
   assert.equal(report.unauthenticatedEntryDenied,true);
+  assert.equal(report.unauthenticatedRoutesDenied,26);
   assert.equal(report.deploymentAuthorized,false);
-  assert.equal(fake.seen.length,23);
+  assert.equal(fake.seen.length,48);
   assert.deepEqual(fake.seen[0],{path:'/',method:'GET',hasAuth:false});
-  assert.ok(fake.seen.slice(1).every(x=>x.hasAuth&&x.method==='GET'&&
+  assert.ok(fake.seen.slice(0,26).every(x=>!x.hasAuth&&x.method==='GET'));
+  assert.ok(fake.seen.slice(26).every(x=>x.hasAuth&&x.method==='GET'&&
     (publicPaths.has(x.path)||legacyPaths.has(x.path))));
+  assert.equal(new Set(fake.seen.slice(0,26).map(x=>x.path)).size,26);
+  for(const path of ['/robots.txt','/sitemap.xml','/perguntas-frequentes/',
+    '/_astro/__imagine_private_access_probe__.js'])
+    assert.ok(fake.seen.slice(0,26).some(x=>x.path===path));
   assert.equal(JSON.stringify(report).includes(password),false);
   assert.ok(Object.isFrozen(report));
 });
@@ -57,7 +63,7 @@ test('F166 public staging or broken login must fail closed',async()=>{
     });
   };
   await assert.rejects(review({port:4321,basicAuth,transport:opened}),
-    /authentication gate failed closed/);
+    /routes are not all protected/);
   await assert.rejects(review({
     port:4321,basicAuth,transport:transportFactory('deny-all').transport
   }),/private staging HTTP gate failed closed/);

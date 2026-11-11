@@ -65,21 +65,33 @@ export async function reviewPrivateStagingHttp({
       throw Error('F166: invalid private staging reviewer identity');
   }
   const base='http://127.0.0.1:'+port;
-  let unauthenticatedEntryDenied=false;
+  // F168: a protected homepage alone is not enough. Every published
+  // sample and held legacy URL, plus public SEO/error/asset endpoints, must
+  // deny visitors BEFORE any privileged HTTP review can succeed.
+  const unauthenticatedPaths=Object.freeze([
+    ...publicSamples,...pendingSamples,
+    '/robots.txt','/sitemap.xml','/perguntas-frequentes/',
+    '/_astro/__imagine_private_access_probe__.js'
+  ]);
+  let unauthenticatedRoutesDenied=0;
   if(basicAuth!==undefined){
     try{
-      const withoutAuth=await transport(base+'/',{
-        method:'GET',redirect:'manual',credentials:'omit',
-        signal:AbortSignal.timeout(timeoutMs)
-      });
-      if(!(withoutAuth instanceof Response)||withoutAuth.status!==401||
-        withoutAuth.redirected||
-        !/^Basic\s/i.test(withoutAuth.headers.get('www-authenticate')??''))
-        throw Error('F166: staging GET is not protected');
-      await withoutAuth.body?.cancel();
-      unauthenticatedEntryDenied=true;
+      for(const path of unauthenticatedPaths){
+        const withoutAuth=await transport(base+path,{
+          method:'GET',redirect:'manual',credentials:'omit',
+          signal:AbortSignal.timeout(timeoutMs)
+        });
+        if(!(withoutAuth instanceof Response)||withoutAuth.status!==401||
+          withoutAuth.redirected||
+          !/^Basic\s/i.test(withoutAuth.headers.get('www-authenticate')??'')||
+          !(withoutAuth.headers.get('x-robots-tag')??'').toLowerCase().includes('noindex')||
+          !(withoutAuth.headers.get('cache-control')??'').toLowerCase().includes('no-store'))
+          throw Error('F168: unauthenticated staging path is exposed');
+        await withoutAuth.body?.cancel();
+        unauthenticatedRoutesDenied++;
+      }
     }catch{
-      throw Error('F166: private staging authentication gate failed closed');
+      throw Error('F168: private staging routes are not all protected');
     }
   }
   let checked=0,good=0,held=0;
@@ -137,7 +149,10 @@ export async function reviewPrivateStagingHttp({
     redirectsEnabled:false,
     deploymentAuthorized:false,
     deploymentPerformed:false,
-    ...(unauthenticatedEntryDenied?{unauthenticatedEntryDenied:true}:{}),
+    ...(basicAuth===undefined?{}:{
+      unauthenticatedEntryDenied:unauthenticatedRoutesDenied===unauthenticatedPaths.length,
+      unauthenticatedRoutesDenied
+    }),
     result:'STAGING_HTTP_SMOKE_ONLY_NO_RELEASE_AUTHORITY'
   });
 }

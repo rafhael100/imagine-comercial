@@ -16,7 +16,7 @@ const image='nginxinc/nginx-unprivileged@sha256:'+('ab'.repeat(32));
 const bcrypt='$2y$12$'+('Ab3/'.repeat(13))+'Q';
 const published=new Set(['/','/servicos/','/conteudos/','/contato/']);
 const headers=Object.fromEntries([...localHeaderProfile,
-  ['Content-Type','text/html; charset=utf-8']]);
+  ['Content-Type','text/html; charset=utf-8'],['Cache-Control','private, no-store']]);
 
 async function fixture(){
   const base=await mkdtemp(join(tmpdir(),'imagine-f167-'));
@@ -79,11 +79,12 @@ test('F167 operator review combines exact package + bcrypt + 401 + 22 HTTP check
     assert.equal(report.status,'PRIVATE_CANDIDATE_REVIEWED_STILL_NO_RELEASE_AUTHORITY');
     assert.equal(report.checks.authenticatedHttpChecks,22);
     assert.equal(report.checks.unauthenticatedHomepageDenied,true);
+  assert.equal(report.checks.unauthenticatedRoutesDenied,26);
     assert.equal(report.checks.heldLegacy404Pages,18);
     assert.equal(report.checks.publishedHtmlCount,sitePages.length);
-    assert.equal(t.seen.length,23);
-    assert.equal(t.seen[0].authenticated,false);
-    assert.ok(t.seen.slice(1).every(x=>x.authenticated&&
+    assert.equal(t.seen.length,48);
+    assert.ok(t.seen.slice(0,26).every(x=>!x.authenticated));
+    assert.ok(t.seen.slice(26).every(x=>x.authenticated&&
       (published.has(x.path)||legacyUrls.some(v=>v.from===x.path&&v.status==='hold'))));
     for(const key of ['imageProvenanceVerified','independentHashPinProvenanceVerified',
       'authIdentityAndMfaVerified','externalTlsAndNetworkVerified','portalCrmOperationalVerified',
@@ -115,7 +116,7 @@ test('F167 does not treat a 200 public homepage as private staging success',asyn
   try{
     await assert.rejects(review({...params(f,transport()),
       transport:async(url)=>{count++;return new Response('Public',{status:200,headers});}
-    }),/authentication gate failed closed/);
+    }),/private staging routes are not all protected/);
     assert.equal(count,1);
   }finally{await rm(f.base,{recursive:true,force:true});}
 });

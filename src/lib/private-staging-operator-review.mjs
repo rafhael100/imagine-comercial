@@ -21,6 +21,7 @@ export async function reviewStagingOperatorCandidate({
     throw Error('F167: private staging prerequisites not satisfied');
   const http=await reviewPrivateStagingHttp({port,basicAuth,transport});
   if(http.unauthenticatedEntryDenied!==true||
+     http.unauthenticatedRoutesDenied!==26||
      http.reviewedPublicPages!==4||http.heldLegacyPages!==18||
      http.totalHttpChecks!==22)
     throw Error('F167: private staging HTTP evidence incomplete');
@@ -35,6 +36,7 @@ export async function reviewStagingOperatorCandidate({
       validatedFileCount:bytes.fileCount,
       privateBcryptFileSyntaxAndPermissionsValid:true,
       unauthenticatedHomepageDenied:true,
+      unauthenticatedRoutesDenied:http.unauthenticatedRoutesDenied,
       reviewedPublicPages:http.reviewedPublicPages,
       heldLegacy404Pages:http.heldLegacyPages,
       authenticatedHttpChecks:http.totalHttpChecks
