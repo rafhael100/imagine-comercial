@@ -27,5 +27,7 @@ test('F64 route and public links are in canonical inventory and no external/PII 
  assert.match(page,/href="\/comparar-solucoes\/"/);
  assert.match(page,/href="\/contato\/"/);
  assert.match(page,/Não envie senhas/);
- assert.doesNotMatch(page,/<form\b|<input\b|<script\b|fetch\(|localStorage|sessionStorage|document\.cookie|innerHTML|https?:\/\//);
+ assert.doesNotMatch(page,/<form\b|<input\b|<script\b[^>]*src=|fetch\(|localStorage|sessionStorage|document\.cookie|innerHTML|https?:\/\//);
+ assert.match(page,/print\.addEventListener\('click',\(\)=>window\.print\(\)\)/);
+ assert.match(page,/data-briefing-task/);
 });

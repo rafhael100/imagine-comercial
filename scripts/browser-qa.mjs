@@ -254,6 +254,31 @@ try {
     assert.equal(await page.locator('.process-card h3').count(),6);
     assert.equal(await page.locator('.process-card .process-question').count(),6);
     assert.equal(await page.locator('.briefing-list li').count(),6,'F64 preparation checklist');
+    // F170: optional local preparation toggles make the existing public
+    // checklist useful without collecting or saving responses.
+    const checklist=page.locator('#briefing-list .briefing-toggle');
+    assert.equal(await checklist.count(),6);
+    assert.equal(await page.locator('#briefing-list .briefing-toggle:visible').count(),6);
+    assert.match(await page.locator('#briefing-progress').textContent(),/0 de 6 perguntas preparadas/);
+    const firstToggle=checklist.first();
+    await firstToggle.click();
+    assert.equal(await firstToggle.getAttribute('aria-pressed'),'true');
+    assert.match(await page.locator('#briefing-progress').textContent(),/1 de 6 pergunta preparada/);
+    assert.equal(await page.locator('[data-briefing-task][data-prepared="true"]').count(),1);
+    await firstToggle.click();
+    assert.equal(await firstToggle.getAttribute('aria-pressed'),'false');
+    assert.match(await page.locator('#briefing-progress').textContent(),/0 de 6 perguntas preparadas/);
+    await checklist.nth(2).click();
+    await checklist.nth(4).click();
+    assert.match(await page.locator('#briefing-progress').textContent(),/2 de 6 perguntas preparadas/);
+    await page.evaluate(()=>{window.__testPrintCount=0;window.print=()=>{window.__testPrintCount++};});
+    assert.equal(await page.locator('#print-briefing').isVisible(),true);
+    await page.locator('#print-briefing').click();
+    assert.equal(await page.evaluate(()=>window.__testPrintCount),1,'F170 print only by direct click');
+    await page.reload({waitUntil:'load',timeout});
+    assert.match(await page.locator('#briefing-progress').textContent(),/0 de 6 perguntas preparadas/,
+      'F170 selections are ephemeral, never persisted');
+
     assert.equal(await page.locator('a[href="/comparar-solucoes/"]').count()>=1,true);
     assert.equal(await page.locator('a[href="/contato/"]').count()>=1,true);
     assert.equal(await page.locator('form,input,textarea').count(),0,
@@ -376,6 +401,12 @@ try {
           'F153 native outline remains usable without JavaScript');
         assert.equal(await fallback.locator('.related-reading a').count(),2,
           'F154 related guides remain visible without JavaScript');
+        await fallback.goto(host+'/como-funciona/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('#briefing-list .briefing-task').count(),6);
+        assert.equal(await fallback.locator('.briefing-toggle:visible').count(),0,
+          'F170 no-JS checklist remains readable and inert');
+        assert.equal(await fallback.locator('#print-briefing').isVisible(),false,
+          'F170 print enhancement stays hidden without JavaScript');
         await fallback.goto(host+'/contato/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#external-channel-notice').isVisible(),true,
           'F72 disclosure exists without JavaScript');
