@@ -71,7 +71,7 @@ const pathname='/como-funciona/';
   </section>
   <script>
     // F170: six reviewed editorial tasks, optional in-page toggles/printing.
-    // No user text, cookies, tracking, localStorage, URL query or transport.
+    // No user text, cookies, tracking, persistent state, URL query or transport.
     const tasks=[...document.querySelectorAll<HTMLElement>('[data-briefing-task]')];
     const progress=document.querySelector<HTMLElement>('#briefing-progress');
     const print=document.querySelector<HTMLButtonElement>('#print-briefing');
