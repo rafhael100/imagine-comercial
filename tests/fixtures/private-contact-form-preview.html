@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Prévia privada — formulário de orçamento Imagine (sem envio)</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #1e293b; background: #f5f7fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px 12px 60px; }
+    main { max-width: 660px; margin: auto; }
+    h1 { line-height: 1.2; }
+    dialog { position: static; margin: 16px 0; width: 100%; max-width: 100%; border: 1px solid #abb8c8; border-radius: 14px; padding: 24px; color: inherit; background: #fff; }
+    label { display: block; font-weight: 650; margin-bottom: 6px; }
+    input, select, textarea { font: inherit; width: 100%; border: 1px solid #6d809a; border-radius: 8px; padding: 10px 12px; min-height: 46px; }
+    input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid #005a9c; outline-offset: 2px; }
+    fieldset { border: 0; padding: 0; margin: 0; }
+    fieldset legend { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; }
+    .field { margin: 16px 0; }
+    .help { font-size: .92rem; color: #41546b; margin: 6px 0 0; }
+    .consent { display: flex; gap: 12px; align-items: flex-start; }
+    .consent input { width: 22px; height: 22px; min-height: 22px; flex: none; margin: 2px 0 0; }
+    .consent label { font-weight: 500; }
+    button { font: inherit; background: #596a7c; color: white; border: none; border-radius: 9px; padding: 12px 18px; margin-top: 15px; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Orçamento Imagine — prévia privada</h1>
+    <p>Protótipo somente para testes internos com dados fictícios. Não existe envio, registro de pedido ou integração com Portal/CRM nesta página.</p>
+    <dialog open aria-labelledby="form-title">
+      <h2 id="form-title">Informações iniciais do projeto</h2>
+      <form id="private-budget-preview" method="dialog" autocomplete="off">
+        <fieldset>
+          <legend>Contato e interesse</legend>
+          <div class="field">
+            <label for="lead-name">Nome para contato <span aria-hidden="true">*</span></label>
+            <input id="lead-name" name="name" autocomplete="off" maxlength="120" required aria-describedby="name-help">
+            <p id="name-help" class="help">Utilize somente um nome fictício nesta prévia.</p>
+          </div>
+          <div class="field">
+            <label for="lead-role">Cargo na empresa (presente no site antigo; opcional nesta prévia)</label>
+            <input id="lead-role" name="role" autocomplete="off" maxlength="120" aria-describedby="role-help">
+            <p id="role-help" class="help">A necessidade e a finalidade deste campo ainda dependem de revisão de privacidade.</p>
+          </div>
+          <div class="field">
+            <label for="lead-email">E-mail (regra final a definir)</label>
+            <input id="lead-email" name="email" type="email" autocomplete="off" maxlength="254" aria-describedby="contact-help">
+          </div>
+          <div class="field">
+            <label for="lead-phone">Telefone (regra final a definir)</label>
+            <input id="lead-phone" name="phone" type="tel" autocomplete="off" maxlength="40" aria-describedby="contact-help">
+            <p id="contact-help" class="help">A obrigatoriedade de e-mail ou telefone será decidida na homologação. Nenhum contato será coletado aqui.</p>
+          </div>
+          <div class="field">
+            <label for="lead-mobile">Celular (separado do telefone no site antigo; opcional nesta prévia)</label>
+            <input id="lead-mobile" name="mobile" type="tel" autocomplete="off" maxlength="40" aria-describedby="mobile-help">
+            <p id="mobile-help" class="help">A separação entre telefone e celular ainda exige decisão de minimização e contrato no CRM.</p>
+          </div>
+          <div class="field">
+            <label for="lead-service">Solução de interesse <span aria-hidden="true">*</span></label>
+            <select id="lead-service" name="serviceSlug" required>
+              <option value="">Selecione uma solução</option>
+              <option value="onepage">Onepage</option>
+              <option value="landing-pages">Landing Pages</option>
+              <option value="criacao-de-sites">Criação de sites</option>
+              <option value="sites-por-assinatura">Sites por assinatura</option>
+              <option value="gestao-google-ads">Gestão Google Ads</option>
+              <option value="gestao-meta-ads">Gestão Meta Ads</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="lead-details">O que você precisa? <span aria-hidden="true">*</span></label>
+            <textarea id="lead-details" name="details" minlength="10" maxlength="1600" rows="4" required></textarea>
+          </div>
+          <div class="field consent">
+            <input id="preview-understanding" name="previewUnderstanding" type="checkbox" required>
+            <label for="preview-understanding">Entendo que esta é apenas uma prévia, sem envio de informações. O aviso de privacidade e a base legal do formulário real ainda precisam de aprovação.</label>
+          </div>
+        </fieldset>
+        <p id="sending-disabled" role="status">Envio indisponível: o formulário integrado depende de homologação de segurança, privacidade e Portal/CRM.</p>
+        <button type="submit" disabled aria-describedby="sending-disabled">Envio desativado nesta prévia</button>
+      </form>
+    </dialog>
+  </main>
+</body>
+</html>

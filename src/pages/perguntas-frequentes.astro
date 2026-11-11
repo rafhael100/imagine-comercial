@@ -1,0 +1,58 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {commercialFaqSections} from '../data/commercial-faq.mjs';
+const pathname='/perguntas-frequentes/';
+---
+<BaseLayout
+  title="Perguntas frequentes sobre serviços digitais | Imagine"
+  description="Dúvidas sobre orçamento, escopo, Landing Pages, anúncios, revisões, resultados, Portal do Cliente e cuidados com acessos antes da contratação."
+  pathname={pathname}
+  breadcrumb={[{label:'Perguntas frequentes',path:pathname}]}
+>
+  <div class="shell breadcrumbs"><a href="/">Início</a> / <span aria-current="page">Perguntas frequentes</span></div>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Dúvidas antes da contratação</p>
+      <h1>Perguntas frequentes para planejar com clareza.</h1>
+      <p class="lead">Veja orientações gerais sobre escopo, valores, anúncios, revisões e canais de atendimento. As respostas são informativas: a proposta vigente é que define as condições do serviço contratado.</p>
+      <div class="cta-row">
+        <a class="cta" href="#respostas">Consultar respostas</a>
+        <a class="cta cta-secondary" href="/como-funciona/">Entender o processo</a>
+      </div>
+    </div>
+  </section>
+  <div id="respostas">
+    {commercialFaqSections.map((section,index)=>(
+      <section class:list={['section',index%2===0?'section-soft':'']} aria-labelledby={'faq-'+section.code}>
+        <div class="shell">
+          <p class="kicker">Perguntas frequentes</p>
+          <h2 id={'faq-'+section.code}>{section.title}</h2>
+          <div class="faq-list">
+            {section.questions.map(item=>(
+              <details class="faq-item">
+                <summary>{item.question}</summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+    ))}
+  </div>
+  <section class="section shell">
+    <h2>Ficou alguma dúvida sobre o seu projeto?</h2>
+    <p class="lead">Prepare as informações essenciais do briefing ou compare as soluções antes de conversar com a Imagine. Não envie senhas ou dados sensíveis pelos links públicos.</p>
+    <div class="cta-row">
+      <a class="cta" href="/contato/">Entrar em contato</a>
+      <a class="cta cta-secondary" href="/comparar-solucoes/">Comparar soluções</a>
+    </div>
+  </section>
+  <style>
+    .faq-list{max-width:880px}
+    .faq-item{max-width:none;background:white;border:1px solid #d5e2f0;border-radius:12px;padding:0 20px;margin:12px 0}
+    .faq-item summary{font-weight:750;padding:18px 0;cursor:pointer}
+    .faq-item p{padding:0 0 18px;color:#4a6079;margin:0;max-width:760px}
+    #respostas{scroll-margin-top:18px}
+    @media(max-width:480px){.faq-item{padding:0 16px}}
+  </style>
+</BaseLayout>
