@@ -33,6 +33,13 @@ function page(path,title='Página pública de demonstração Imagine',descriptio
     '<meta name="robots" content="index,follow">'+
     '<link rel="canonical" href="'+url+'">'+
     '<meta property="og:url" content="'+url+'">'+
+    '<meta property="og:type" content="'+(/^\/conteudos\/[a-z0-9-]+\/$/.test(path)?'article':'website')+'">'+
+    '<meta property="og:title" content="'+escape(title)+'">'+
+    '<meta property="og:description" content="'+escape(description)+'">'+
+    '<meta name="twitter:card" content="summary">'+
+    '<meta name="twitter:url" content="'+url+'">'+
+    '<meta name="twitter:title" content="'+escape(title)+'">'+
+    '<meta name="twitter:description" content="'+escape(description)+'">'+
     '</head><body><section class="hero"><p class="lead">'+escape(description)+
     '</p></section></body></html>';
 }
