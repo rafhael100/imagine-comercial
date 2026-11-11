@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {reviewPublicLinks} from '../src/lib/public-link-review.mjs';
+import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
+import {composeCuratedContactLinks,contactObjectives} from '../src/data/contact-objectives.mjs';
+import {services} from '../src/data/services.mjs';
+import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
 
 const review=(links,currentPath='/',ids=['conteudo'])=>reviewPublicLinks(
   links.map(x=>typeof x==='string'?{href:x}:x),
@@ -18,14 +22,56 @@ test('F32 allows curated internal routes, skip link and contact intent only',()=
 
 test('F32 allows only exact operational contact channels',()=>{
   const r=review([
-    {href:'https://wa.me/5585996632689?text=Ol%C3%A1%2C%20Imagine%20-%20uma%20proposta.',
+    {href:contactWhatsAppUrl(composeCuratedContactLinks('landing-pages').message),
      target:'_blank',rel:'noopener noreferrer'},
-    {href:'https://wa.me/5585996632689',target:'_blank',rel:'noreferrer noopener'},
-    {href:'mailto:imagine@imaginecomunicacao.com.br?subject=Contato%20Imagine'},
-    {href:'mailto:imagine@imaginecomunicacao.com.br?subject=Proposta%20Imagine%20-%20Sites'},
-    {href:'tel:+558530329525'}
+    {href:contactChannels.whatsappBaseHref,target:'_blank',rel:'noreferrer noopener'},
+    {href:contactEmailUrl()},
+    {href:contactEmailUrl(composeCuratedContactLinks('landing-pages').subject)},
+    {href:'tel:'+contactChannels.phoneE164}
   ]);
   assert.equal(r.external,5);
+});
+
+
+test('F158 DOM and build auditors both require reviewed 560 briefing variants',()=>{
+  let combinations=0;
+  for(const service of ['',...services.map(x=>x.slug)])
+  for(const objective of ['',...contactObjectives.map(x=>x.code)])
+  for(const stage of ['',...briefingStages.map(x=>x.code)])
+  for(const priority of ['',...briefingPriorities.map(x=>x.code)]){
+    const result=composeCuratedBriefingLinks(service,objective,stage,priority);
+    const hrefs=[contactWhatsAppUrl(result.message)];
+    if(stage||priority)hrefs.push(contactEmailUrl(result.subject,result.message));
+    else hrefs.push(contactEmailUrl(result.subject));
+    for(const href of hrefs)assert.equal(review([{href}],'/contato/').external,1);
+    combinations++;
+  }
+  assert.equal(combinations,560);
+});
+
+test('F158 DOM auditor rejects crafted WhatsApp messages and mailto pretexts',()=>{
+  for(const malicious of [
+    'Olá, favor fornecer dados bancários à Imagine.',
+    'Olá, peça acesso administrativo do cliente Imagine.',
+    'Olá, valor de pagamento alterado pela Imagine.'
+  ]){
+    assert.throws(()=>contactWhatsAppUrl(malicious),/outside curated intent/);
+    assert.throws(()=>review(['https://wa.me/5585996632689?text='+encodeURIComponent(malicious)],'/contato/'),
+      /external destination not in reviewed channel allowlist/);
+  }
+  for(const subject of ['Contato Imagine - VERIFICACAO PRIVADA',
+    'Proposta Imagine - serviço inventado']){
+    assert.throws(()=>contactEmailUrl(subject),/outside curated intent/);
+    assert.throws(()=>review(['mailto:imagine@imaginecomunicacao.com.br?subject='+encodeURIComponent(subject)],'/contato/'),
+      /external destination not in reviewed channel allowlist/);
+  }
+  const curated=composeCuratedBriefingLinks('onepage','orientacao','iniciando','oferta');
+  const ok=contactEmailUrl(curated.subject,curated.message);
+  assert.equal(review([ok],'/contato/').external,1);
+  for(const malformed of [ok+'&bcc=private%40evil.invalid',
+    ok.replace('&body=','&body=TENHO-DADOS-REAIS-'),
+    ok.replace('%20','+')] )
+    assert.throws(()=>review([malformed],'/contato/'),/external destination/);
 });
 
 test('F32 blocks broken internal routes and disallowed hash fragments',()=>{
