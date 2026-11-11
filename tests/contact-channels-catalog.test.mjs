@@ -60,9 +60,12 @@ test('F36 — contact and link audit import the same source of truth',()=>{
   assert.match(contact,/from '\.\.\/data\/contact-channels\.mjs'/);
   assert.match(contact,/contactWhatsAppUrl\(whatsappMessage\)/);
   assert.match(contact,/contactEmailUrl\(emailSubject\)/);
-  assert.match(links,/from '\.\.\/data\/contact-channels\.mjs'/);
-  assert.match(links,/contactChannels\.whatsappE164/);
-  assert.match(links,/contactChannels\.email/);
-  assert.match(links,/contactChannels\.phoneE164/);
+  const policy=readFileSync(new URL('../src/lib/outbound-link-contract.mjs',import.meta.url),'utf8');
+  assert.match(links,/from '\.\/outbound-link-contract\.mjs'/);
+  assert.match(links,/isApprovedPublicExternalHref\(href\)/);
+  assert.match(policy,/from '\.\.\/data\/contact-channels\.mjs'/);
+  assert.match(policy,/contactChannels\.whatsappBaseHref/);
+  assert.match(policy,/contactChannels\.email/);
+  assert.match(policy,/contactChannels\.phoneE164/);
   assert.doesNotMatch(contact,/fetch\(|<form\b|document\.cookie|localStorage/);
 });
