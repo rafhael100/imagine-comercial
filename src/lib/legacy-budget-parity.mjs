@@ -21,7 +21,7 @@ export const LEGACY_BUDGET_FIELDS=Object.freeze([
   Object.freeze({key:'telephone',legacyLabel:'Telefone',previewId:'lead-phone',review:'SEPARATE_TELEPHONE_AND_MOBILE_POLICY_REQUIRED'}),
   Object.freeze({key:'mobile',legacyLabel:'Celular',previewId:'lead-mobile',review:'SEPARATE_TELEPHONE_AND_MOBILE_POLICY_REQUIRED'}),
   Object.freeze({key:'message',legacyLabel:'Mensagem',previewId:'lead-details',review:'FIELD_PRESENT_NOT_VALIDATED'}),
-  Object.freeze({key:'challenge',legacyLabel:'Verificação aritmética',previewId:null,review:'APPROVED_SERVER_SIDE_ANTIBOT_REPLACEMENT_REQUIRED'})
+  Object.freeze({key:'challenge',legacyLabel:'Verificação aritmética',previewId:'lead-challenge',review:'APPROVED_SERVER_SIDE_ANTIBOT_REPLACEMENT_REQUIRED'})
 ]);
 
 const allowedControlId=/^lead-[a-z][a-z0-9-]*$/;

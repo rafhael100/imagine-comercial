@@ -74,6 +74,12 @@
             <label for="lead-details">O que você precisa? <span aria-hidden="true">*</span></label>
             <textarea id="lead-details" name="details" minlength="10" maxlength="1600" rows="4" required></textarea>
           </div>
+          <div class="field">
+            <label for="lead-challenge">Verificação aritmética (apenas representação visual)</label>
+            <p id="challenge-example" class="help">Exemplo ilustrativo: quanto é 2 + 3?</p>
+            <input id="lead-challenge" name="challengePreview" type="text" inputmode="numeric" autocomplete="off" maxlength="3" aria-describedby="challenge-example challenge-help">
+            <p id="challenge-help" class="help">Este campo não verifica sua resposta nem oferece proteção contra robôs. A substituição antirrobô precisa ser validada no servidor do Portal antes de ativar qualquer envio.</p>
+          </div>
           <div class="field consent">
             <input id="preview-understanding" name="previewUnderstanding" type="checkbox" required>
             <label for="preview-understanding">Entendo que esta é apenas uma prévia, sem envio de informações. O aviso de privacidade e a base legal do formulário real ainda precisam de aprovação.</label>
