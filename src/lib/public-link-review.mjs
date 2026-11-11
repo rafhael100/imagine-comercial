@@ -5,54 +5,17 @@
  */
 import {sitePages,services} from '../data/services.mjs';
 import {resolvePortalLoginLink} from './portal-login-link.mjs';
-import {contactChannels} from '../data/contact-channels.mjs';
+import {isApprovedPublicExternalHref} from './outbound-link-contract.mjs';
 
 const base='http://127.0.0.1:4328';
 const destinations=new Set(sitePages.map(x=>x.path));
 const intents=new Set(services.map(x=>x.slug));
-const waHost='wa.me';
-const waPath='/'+contactChannels.whatsappE164;
-const emailAddress=contactChannels.email;
-const officePhone=contactChannels.phoneE164;
 
 function failure(currentPath, index, reason) {
   // Never echo the untrusted href: URL queries can contain private tokens.
   throw new Error('F32 link audit: '+currentPath+' link #'+index+': '+reason);
 }
 
-function safeExternalChannel(url, channel) {
-  if(channel==='https:') {
-    if(url.protocol!=='https:' || url.hostname!==waHost ||
-       url.pathname!==waPath || url.port || url.username || url.password ||
-       url.hash || [...url.searchParams.keys()].some(x=>x!=='text') ||
-       [...url.searchParams.keys()].length>1)return false;
-    const message=url.searchParams.get('text');
-    return message===null ||
-      (message.startsWith('Olá,') && message.includes('Imagine') &&
-       message.length<=280 && !/[\r\n\0]/.test(message));
-  }
-  if(channel==='mailto:') {
-    const keys=[...url.searchParams.keys()];
-    if(url.protocol!=='mailto:' || url.pathname.toLowerCase()!==emailAddress ||
-       url.hash || keys.some(x=>x!=='subject'&&x!=='body') ||
-       keys.length>2 || new Set(keys).size!==keys.length ||
-       (keys.includes('body')&&!keys.includes('subject')))return false;
-    const subject=url.searchParams.get('subject');
-    const body=url.searchParams.get('body');
-    const validSubject=subject===null || (subject.length<=120 &&
-      (subject.startsWith('Contato Imagine')||subject.startsWith('Proposta Imagine')) &&
-      !/[\r\n\0]/.test(subject));
-    const validBody=body===null || (body.length<=280 &&
-      body.startsWith('Olá,') && body.includes('Imagine') &&
-      !/[\r\n\0]/.test(body));
-    return validSubject&&validBody;
-  }
-  if(channel==='tel:') {
-    return url.protocol==='tel:' && url.pathname===officePhone &&
-      url.search==='' && url.hash==='';
-  }
-  return false;
-}
 
 /**
  * links = attributes extracted from a real browser DOM, not guessed from
@@ -109,7 +72,12 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[],approvedPort
     const channel=url.protocol;
     const exactApprovedPortal=approvedPortalLink!=='' &&
       href===approvedPortalLink && channel==='https:';
-    if(!exactApprovedPortal && !safeExternalChannel(url,channel))
+    // F158: shared exact catalog policy for both built HTML and live DOM.
+    // A public Portal login must still be configured separately by the build;
+    // the shared policy alone never grants Portal navigation.
+    const portalAttempt=channel==='https:'&&
+      url.hostname==='portal.imaginecomunicacao.com.br';
+    if(!exactApprovedPortal && (portalAttempt || !isApprovedPublicExternalHref(href)))
       failure(currentPath,index,'external destination not in reviewed channel allowlist');
     if((item.target||'').toLowerCase()==='_blank') {
       const rel=new Set(String(item.rel||'').toLowerCase().split(/\s+/));
