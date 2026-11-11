@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
+import {articles} from '../src/data/articles.mjs';
 import {services} from '../src/data/services.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
@@ -124,6 +125,29 @@ try {
         }
       }
     }
+    // F152: public topic navigation must filter locally and preserve SEO links.
+    await page.goto(host+'/conteudos/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('#guide-list article.card').count(),articles.length);
+    assert.equal(await page.locator('#guide-list article.card:visible').count(),articles.length);
+    assert.equal(await page.locator('#guide-topic-filters button').count(),6);
+    assert.equal(await page.locator('form,input,textarea').count(),0,
+      'F152 filtering must not open public intake');
+    const filterButton=code=>page.locator('[data-guide-filter="'+code+'"]');
+    assert.equal(await filterButton('all').getAttribute('aria-pressed'),'true');
+    await filterButton('anuncios').click();
+    assert.equal(await page.locator('#guide-list article.card:visible').count(),1);
+    assert.equal(await filterButton('anuncios').getAttribute('aria-pressed'),'true');
+    assert.equal(await filterButton('all').getAttribute('aria-pressed'),'false');
+    assert.match(await page.locator('#guide-filter-status').textContent(),/1 guia/);
+    await filterButton('seo').click();
+    assert.ok(await page.locator('#guide-list article.card:visible').count()>=2);
+    await filterButton('all').click();
+    assert.equal(await page.locator('#guide-list article.card:visible').count(),articles.length);
+    assert.equal(await filterButton('all').getAttribute('aria-pressed'),'true');
+    const filterOverflow=await page.evaluate(()=>
+      document.documentElement.scrollWidth-window.innerWidth);
+    assert.ok(filterOverflow<=2,viewport.label+': F152 guide controls must not overflow');
+
     // F65: public FAQs require no client-side scripts or personal data.
     await page.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('.faq-list').count(),4,'F65 four FAQ groups');
@@ -228,6 +252,11 @@ try {
           'F58 must preserve all public services without JavaScript');
         assert.equal(await fallback.locator('#service-guide-results a[href="/servicos/onepage/"]').count(),1,
           'F58 has a useful static initial recommendation');
+        await fallback.goto(host+'/conteudos/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('#guide-list article.card:visible').count(),
+          articles.length,'F152 all guides remain usable without JavaScript');
+        assert.equal(await fallback.locator('#guide-topic-filters').isVisible(),
+          false,'F152 inactive filter controls remain hidden without JavaScript');
         await fallback.goto(host+'/contato/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#external-channel-notice').isVisible(),true,
           'F72 disclosure exists without JavaScript');
