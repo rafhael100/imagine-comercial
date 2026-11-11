@@ -83,6 +83,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Testar responsividade e WCAG no navegador
         run: npm run test:browser
+      - name: Validar navegador da previa HTTP autenticada (F155, sem staging)
+        run: node scripts/test-private-preview-browser-ci.mjs
       - name: Preparar inventario SHA-256 do build para revisao offline (sem deploy)
         run: node scripts/prepare-release-review.mjs
       - name: Armazenar somente manifesto REVIEW-ONLY de integridade
