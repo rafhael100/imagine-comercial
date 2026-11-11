@@ -4,6 +4,14 @@ Site público comercial da Imagine Comunicação Digital — `imaginecomunicacao
 
 **Decisão técnica aprovada (08/11/2026): Astro**, arquitetura **SEO-first** e **híbrida** (SSG como padrão; SSR controlado somente se necessário e após homologação). A prova de conceito comparativa com Next.js/Nuxt foi dispensada por decisão do responsável.
 
+## Versão integrada: Comercial + SEO RC33 (11/11/2026)
+
+A [candidata de desenvolvimento #155](https://github.com/rafhael100/imagine-comercial/pull/155) contém a **RC33**, além das funções comerciais e dos testes sintéticos de orçamento P0. [PR #205](https://github.com/rafhael100/imagine-comercial/pull/205) reuniu os filtros editoriais, sumários, guias relacionados e auditorias de contato sem perder o CTA contextual dos artigos. [PR #207](https://github.com/rafhael100/imagine-comercial/pull/207) reforçou WCAG/teclado, corrigiu contraste de CTA, validou links exclusivamente curados e bloqueou formulários JS não autorizados.
+
+A prévia HTTP autenticada das [F154/F155](https://github.com/rafhael100/imagine-comercial/pull/169) funciona **somente em loopback**, com navegador de QA; a [prévia de orçamento F156/F157](https://github.com/rafhael100/imagine-comercial/pull/175) apresenta 7/7 campos **visuais**, sem entrega real, antirrobô homologado nem consentimento. O bootstrap Chromium foi corrigido na [F161](https://github.com/rafhael100/imagine-comercial/pull/201).
+
+**AVISO DE RELEASE:** `main` continua documental; build/labs/CI não autorizam deploy, DNS, 301, pagamentos ou coleta de dados. A paridade funcional F70, integração segura Portal→CRM, privacidade, GSC/crawl real, revisão independente e staging seguem bloqueados. Detalhes em [STATUS-ATUAL.md](STATUS-ATUAL.md).
+
 ## Entregas mais recentes de desenvolvimento (11/11/2026)
 
 A candidata [RC31 em revisão #155](https://github.com/rafhael100/imagine-comercial/pull/155) foi ampliada sem publicação: [F150 menu móvel nativo e acessível](https://github.com/rafhael100/imagine-comercial/pull/158), [F151 cópia voluntária de briefing curado](https://github.com/rafhael100/imagine-comercial/pull/159), [F152 preservação de versões HTTP/HTTPS no GSC](https://github.com/rafhael100/imagine-comercial/pull/160) e [F153 cruzamento GSC×crawl por protocolo correto](https://github.com/rafhael100/imagine-comercial/pull/161). Foram integrados também os controles SEO de títulos/âncoras da [PR #157](https://github.com/rafhael100/imagine-comercial/pull/157). Cada PR foi validada no CI antes do merge **somente na branch de desenvolvimento**.
