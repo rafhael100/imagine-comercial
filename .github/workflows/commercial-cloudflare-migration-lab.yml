@@ -6,6 +6,8 @@ on:
       - 'src/lib/cloudflare-migration-preview.mjs'
       - 'scripts/preview-cloudflare-migration.mjs'
       - 'scripts/test-workers-local-migration.mjs'
+      - 'src/lib/private-staging-http-gate.mjs'
+      - 'scripts/review-private-staging-http.mjs'
       - 'config/wrangler-static-assets-candidate.json'
       - '.github/workflows/commercial-cloudflare-migration-lab.yml'
   workflow_dispatch:
