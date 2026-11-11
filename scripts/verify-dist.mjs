@@ -16,6 +16,7 @@ import {auditInPageFragments} from '../src/lib/in-page-fragment-contract.mjs';
 import {auditCrossPageFragmentTargets} from '../src/lib/cross-page-fragment-contract.mjs';
 import {auditApprovedOutboundLinks} from '../src/lib/outbound-link-contract.mjs';
 import {auditGeneratedHtmlInventory} from '../src/lib/generated-html-inventory.mjs';
+import {auditAccessibleLinkNames} from '../src/lib/accessible-link-contract.mjs';
 const paths = sitePages.map(p=>p.path==='/' ? 'index.html' : p.path.slice(1)+'index.html');
 
 const metaPages=[];
@@ -34,6 +35,7 @@ for (const [index, path] of paths.entries()) {
   auditPublicHeadingStructure(html);
   auditInPageFragments(html);
   auditApprovedOutboundLinks(html);
+  auditAccessibleLinkNames(html);
   metaPages.push({path:sitePages[index].path,html});
 }
 auditIndexableMetadata(metaPages);
