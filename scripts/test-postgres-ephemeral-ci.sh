@@ -98,6 +98,8 @@ bash scripts/test-lead-receipt-nonce-ephemeral-ci.sh
 bash scripts/test-lead-unknown-outcome-ephemeral-ci.sh
 # F96: real HTTP on loopback -> this disposable PostgreSQL + outbox.
 node scripts/test-lead-http-postgres-ephemeral-ci.mjs
+# P0-F179: signed budget proof nonce must be claimed once across real PG processes.
+node scripts/test-budget-proof-postgres-ephemeral-ci.mjs
 # F53: in the same disposable database, validate a real compiled Astro tree,
 # catalog signature, witness policy/receipt and the PostgreSQL uniqueness
 # constraint. The signed build test restores its original editorial dist.
