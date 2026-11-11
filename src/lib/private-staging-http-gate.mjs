@@ -64,6 +64,13 @@ export async function reviewPrivateStagingHttp({
       !/^reviewer:[\x21-\x7e]{24,128}$/.test(pair))
       throw Error('F166: invalid private staging reviewer identity');
   }
+  const hasToken=(header,token)=>typeof header==='string'&&
+    header.toLowerCase().split(',').map(x=>x.trim()).includes(token);
+  const noPrivateState=response=>
+    hasToken(response.headers.get('x-robots-tag'),'noindex')&&
+    hasToken(response.headers.get('x-robots-tag'),'nofollow')&&
+    hasToken(response.headers.get('cache-control'),'no-store')&&
+    !response.headers.has('set-cookie');
   const base='http://127.0.0.1:'+port;
   // F168: a protected homepage alone is not enough. Every published
   // sample and held legacy URL, plus public SEO/error/asset endpoints, must
@@ -84,8 +91,7 @@ export async function reviewPrivateStagingHttp({
         if(!(withoutAuth instanceof Response)||withoutAuth.status!==401||
           withoutAuth.redirected||
           !/^Basic\s/i.test(withoutAuth.headers.get('www-authenticate')??'')||
-          !(withoutAuth.headers.get('x-robots-tag')??'').toLowerCase().includes('noindex')||
-          !(withoutAuth.headers.get('cache-control')??'').toLowerCase().includes('no-store'))
+          !noPrivateState(withoutAuth))
           throw Error('F168: unauthenticated staging path is exposed');
         await withoutAuth.body?.cancel();
         unauthenticatedRoutesDenied++;
@@ -114,6 +120,10 @@ export async function reviewPrivateStagingHttp({
         if(response.headers.get(name)!==value)
           throw Error('F159: missing reviewed security header');
       }
+      // F171: authenticated success/404 must remain non-indexable and
+      // non-cacheable in the private staging HTTP surface. No cookies.
+      if(basicAuth!==undefined&&!noPrivateState(response))
+        throw Error('F171: authenticated staging private headers absent');
       const html=await boundedHtml(response);
       const canonicalLinks=canonical(html);
       if(expected===200){
