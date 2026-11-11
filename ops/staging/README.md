@@ -5,7 +5,7 @@ Esta configuração prepara uma forma de executar o build Astro no servidor Leas
 Os arquivos estão em `ops/staging/`:
 
 - `compose.yaml`: exige imagem Nginx unprivileged **aprovada e fixada por digest** via `IMAGINE_STAGING_NGINX_IMAGE`, sem imagem padrão. Porta 4321 vinculada **apenas a 127.0.0.1**, sistema de arquivos read-only, processo UID 101, todas as capabilities removidas, `no-new-privileges`, limites de memória/PIDs e volumes de build somente-leitura.
-- `nginx.conf`: entrega assets estáticos sem autoindexação, usa 404 customizada, impede métodos que não sejam GET/HEAD, restringe arquivos de configuração e aplica os quatro cabeçalhos defensivos F28 a respostas públicas e erros.
+- `nginx.conf`: entrega assets estáticos sem autoindexação, usa 404 customizada, impede métodos que não sejam GET/HEAD, restringe arquivos de configuração e aplica os quatro cabeçalhos defensivos F28, além de **`X-Robots-Tag: noindex, nofollow, noarchive`** e `Cache-Control: no-store` a todas as respostas, inclusive erros. O HTML do build conserva canonical de produção para a futura migração, mas a prévia é **proibida de ser indexada**; esses cabeçalhos não substituem isolamento de rede.
 
 ## Procedimento futuro para operador autorizado
 
