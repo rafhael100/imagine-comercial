@@ -12,6 +12,8 @@ Quatro workflows da candidata RC31 passaram em 11/11: [SEO/build/browser](https:
 
 **A `main` continua documental e o site legado permanece publicado.** F70, homologação de integração Portal/CRM, revisão de segurança/privacidade, GSC/crawl/URLs e autorização de produção não foram concluídos. Não ativar formulário público, criar redirects ou enviar dados privados com base nesses CIs. As seções abaixo são históricas e podem descrever etapas anteriores à RC31.
 
+**Avanço complementar F149 (11/11):** [PR #156](https://github.com/rafhael100/imagine-comercial/pull/156) integrada somente na RC31 de desenvolvimento: testa desconexão HTTP pós-commit no PostgreSQL descartável e reenvio sem duplicação. [Detalhes e bloqueios de release](STATUS-ATUAL.md). Nenhum merge em `main` ou deploy foi executado.
+
 ## Responsabilidades
 - Páginas comerciais, conteúdo indexável, experiência de conversão e CTAs para o Portal Imagine.
 - Core Web Vitals, acessibilidade, metadados, dados estruturados fidedignos, sitemap e URLs canônicas.
