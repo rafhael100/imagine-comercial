@@ -1,0 +1,103 @@
+name: Comercial SEO-RC35 - pinned audit and GSC import parity (review only)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/commercial-seo-rc35-parity-review.yml'
+      - 'docs/comercial-seo-rc35-parity-review.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: comercial-seo-rc35-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source without credential persistence
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Setup Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Checkout exact F81 auditor candidate currently pinned by Comercial
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: 10a649f9c448fe8412da6e8c499eec0637d9259e
+          path: .qa/seo-f81
+          persist-credentials: false
+      - name: Checkout SEO-RC35 candidate exact immutable SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: 743e24d7b14ba27aa8534911034da0c26a71afee
+          path: .qa/seo-rc35
+          persist-credentials: false
+      - name: Confirm immutable source revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .qa/seo-f81 rev-parse HEAD)" = 10a649f9c448fe8412da6e8c499eec0637d9259e
+          test "$(git -C .qa/seo-rc35 rev-parse HEAD)" = 743e24d7b14ba27aa8534911034da0c26a71afee
+      - name: Verify SEO-RC35 offline regression suites
+        run: npm --prefix .qa/seo-rc35 test
+      - name: Install pinned site build dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build Imagine Comercial static site
+        run: npm run build
+      - name: Verify compiled public HTML
+        run: node scripts/verify-dist.mjs
+      - name: Compare old and new SEO audit of the exact same build
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          old="$(mktemp)"
+          fresh="$(mktemp)"
+          trap 'rm -f "$old" "$fresh"' EXIT
+          node .qa/seo-f81/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head > "$old"
+          node .qa/seo-rc35/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head > "$fresh"
+          node --input-type=module - "$old" "$fresh" <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {compareStaticAuditReports} from './.qa/seo-rc35/src/audit-regression.mjs';
+          const [oldPath,newPath]=process.argv.slice(2);
+          const old=JSON.parse(readFileSync(oldPath,'utf8'));
+          const fresh=JSON.parse(readFileSync(newPath,'utf8'));
+          assert.deepEqual(fresh.summary,old.summary);
+          assert.deepEqual(fresh.routes,old.routes);
+          assert.deepEqual(fresh.errors,old.errors);
+          assert.deepEqual(fresh.warnings,old.warnings);
+          const warning={type:'broken_internal_link',file:'index.html',message:'PRIVATE-WARNING'};
+          const before={summary:{pages:1,errors:0,warnings:1},
+            errors:[],warnings:[warning]};
+          const after={summary:{pages:1,errors:0,warnings:3},
+            errors:[],warnings:[warning,warning,warning]};
+          const gate=compareStaticAuditReports(before,after,{
+            maxWarnings:3,maxNewWarnings:1
+          });
+          assert.equal(gate.passed,false);
+          assert.equal(gate.changes.newWarnings,2);
+          assert.doesNotMatch(JSON.stringify(gate),/PRIVATE-WARNING/);
+          const {importGscQueriesCsv}=await import('./.qa/seo-rc35/src/gsc-csv.mjs');
+          const {analyzeQueryExport}=await import('./.qa/seo-rc35/src/opportunities.mjs');
+          const period={startDate:'2026-10-01',endDate:'2026-10-07'};
+          const header='Queries,Clicks,Impressions,CTR,Position\n';
+          const repeated=header+'landing pages,2,100,2%,8\nlanding pages,1,50,2%,8\n';
+          assert.throws(()=>importGscQueriesCsv(repeated,period),/duplicate query row/);
+          const crOnly=header.replace('\n','\r')+
+            '"landing; pages",5,100,5%,8\r';
+          assert.equal(analyzeQueryExport(importGscQueriesCsv(crOnly,period)).summary.impressions,100);
+          const accepted=importGscQueriesCsv(header+'onepage,5,100,5%,8\n',period);
+          assert.equal(analyzeQueryExport(accepted).summary.clicks,5);
+          console.log('Comercial SEO-RC35: identical static audit vs F81; no deploy');
+          NODE
