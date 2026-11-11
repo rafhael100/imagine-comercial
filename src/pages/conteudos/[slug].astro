@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { articles } from '../../data/articles.mjs';
 import {createEditorialOutline} from '../../lib/editorial-outline.mjs';
+import {relatedGuidesFor} from '../../data/related-articles.mjs';
 
 export function getStaticPaths() {
   return articles.map(article=>({params:{slug:article.slug},props:{article}}));
@@ -9,6 +10,7 @@ export function getStaticPaths() {
 const { article }=Astro.props;
 const path='/conteudos/'+article.slug+'/';
 const outline=createEditorialOutline(article);
+const relatedGuides=relatedGuidesFor(article.slug);
 ---
 <BaseLayout title={article.title} description={article.description} pathname={path} articleTitle={article.heading} breadcrumb={[{label:'Conteúdos',path:'/conteudos/'},{label:article.heading,path}]}>
   <div class="shell breadcrumbs"><a href="/">Início</a> / <a href="/conteudos/">Conteúdos</a> / <span aria-current="page">{article.heading}</span></div>
@@ -27,6 +29,15 @@ const outline=createEditorialOutline(article);
       </section>
     ))}
     <hr style="border:0;border-top:1px solid #dce6f2;margin-block:32px" />
+    <aside class="related-reading" aria-labelledby="related-reading-title">
+      <h2 id="related-reading-title">Leia também</h2>
+      <p>Outros guias que ajudam a aprofundar este assunto e comparar alternativas.</p>
+      <ul class="bullets">
+        {relatedGuides.map(guide=>(
+          <li><span class="eyebrow">{guide.topic}</span> <a href={guide.href}>{guide.title}</a></li>
+        ))}
+      </ul>
+    </aside>
     <h2>Continue explorando</h2>
     <ul class="bullets">{article.links.map(link=><li><a href={link.href}>{link.label}</a></li>)}</ul>
   </article>
@@ -39,5 +50,8 @@ const outline=createEditorialOutline(article);
     .article-toc a:focus-visible{outline-offset:5px}
     .guide-section{scroll-margin-top:24px}
     .guide-section + .guide-section{margin-top:36px}
+    .related-reading{border-left:4px solid #176ebd;background:#f3f7fc;padding:20px 24px;margin:12px 0 38px}
+    .related-reading a{color:#155c9d;text-underline-offset:4px}
+    .related-reading .eyebrow{display:block;font-size:.7rem}
   </style>
 </BaseLayout>
