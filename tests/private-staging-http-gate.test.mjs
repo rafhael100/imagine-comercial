@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {createServer} from 'node:http';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {localHeaderProfile} from '../src/lib/security-headers-preview.mjs';
 import {reviewPrivateStagingHttp as review}
@@ -105,4 +106,32 @@ test('F159 CLI requires explicit opt-in and does not print private error bodies'
   assert.equal(output.status,2);
   assert.match(output.stderr,/explicitly enabled/);
   assert.doesNotMatch(output.stdout+output.stderr,/http:\/\/127\.0\.0\.1|PERSON-SECRET/);
+});
+
+test('F159 performs actual TCP HTTP checks against ephemeral 127.0.0.1 server',async()=>{
+  const observed=[];
+  const server=createServer((req,res)=>{
+    const path=req.url;
+    observed.push({path,method:req.method});
+    for(const [name,value] of localHeaderProfile)res.setHeader(name,value);
+    res.setHeader('Content-Type','text/html; charset=utf-8');
+    res.statusCode=approved.has(path)?200:404;
+    res.end(content(path));
+  });
+  await new Promise((resolve,reject)=>{
+    server.once('error',reject);
+    server.listen(0,'127.0.0.1',resolve);
+  });
+  try{
+    const port=server.address().port;
+    const result=await review({port});
+    assert.equal(result.totalHttpChecks,8);
+    assert.equal(result.deploymentAuthorized,false);
+    assert.equal(observed.length,8);
+    assert.ok(observed.every(x=>x.method==='GET'));
+    assert.ok(observed.every(x=>approved.has(x.path)||held.has(x.path)));
+  }finally{
+    await new Promise((resolve,reject)=>
+      server.close(error=>error?reject(error):resolve()));
+  }
 });
