@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {services} from '../src/data/services.mjs';
 import {contactObjectives} from '../src/data/contact-objectives.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
+import {reviewPublicLinks} from '../src/lib/public-link-review.mjs';
 import {
   briefingStages,briefingPriorities,composeCuratedBriefingLinks
 } from '../src/data/briefing-curado.mjs';
@@ -28,6 +29,20 @@ test('F142: combinações públicas permanecem legíveis e cabem em WhatsApp e m
   }
   assert.equal(composeCuratedBriefingLinks().message,
     'Olá, gostaria de conhecer os serviços da Imagine.');
+});
+
+test('F142: auditor F32 autoriza apenas subject/body esperado em mailto',()=>{
+  const payload=composeCuratedBriefingLinks('landing-pages','campanhas','iniciando','contatos');
+  const allowed=contactEmailUrl(payload.subject,payload.message);
+  const review=reviewPublicLinks([{href:allowed}],{currentPath:'/contato/'});
+  assert.equal(review.external,1);
+  for(const bad of [
+    allowed+'&bcc=attacker%40example.org',
+    allowed+'&body=Outro%20texto',
+    allowed+'&subject=Duplicado',
+    'mailto:imagine@imaginecomunicacao.com.br?body=Ol%C3%A1%2C%20Imagine'
+  ])assert.throws(()=>reviewPublicLinks([{href:bad}],{currentPath:'/contato/'}),/allowlist/);
+  assert.throws(()=>contactEmailUrl('Contato Imagine','texto livre'),/F142:/);
 });
 
 test('F142: recusa strings livres, protótipos e seleções externas',()=>{
