@@ -17,7 +17,7 @@ const allowed=(value,keys,exact=false)=>{
     Object.hasOwn(Object.getOwnPropertyDescriptor(value,k),'value'));
 };
 const classifyKey=value=>[
-  value.host,value.from,value.hasQuery,value.unusualPath
+  value.host,value.from,value.hasQuery,value.unusualPath,value.httpSource
 ].join('\0');
 
 export function reviewGscApiPageEvidence(response,{rowLimit=1000}={}){
@@ -69,11 +69,11 @@ export function reviewGscApiPageEvidence(response,{rowLimit=1000}={}){
   const inventory=response.rows.length?reviewGscPagesCsv(csv):null;
   const rows=(inventory?.rows??[]).map(item=>{
     const key=[item.host,item.from,item.queryOrFragmentSuppressed,
-      item.unusualPath].join('\0');
+      item.unusualPath,item.observedHttp].join('\0');
     const metrics=observed.get(key);
     if(!metrics)throw Error('GSC page API: inventory reconciliation failed');
-    return {host:item.host,path:item.from,state:item.state,
-      proposedTarget:item.proposedTarget,
+    return {host:item.host,path:item.from,observedHttp:item.observedHttp,
+      state:item.state,proposedTarget:item.proposedTarget,
       queryOrFragmentSuppressed:item.queryOrFragmentSuppressed,
       clicks:metrics.clicks,impressions:metrics.impressions,
       averagePosition:metrics.averagePosition};
