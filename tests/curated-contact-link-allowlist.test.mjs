@@ -32,15 +32,19 @@ test('F155 rejects attacker text that F36 generic URL constructors could encode'
     'Olá, gostaria de solicitar uma proposta para Serviço Secreto da Imagine.'
   ];
   for(const message of forgedMessages){
-    const href=contactWhatsAppUrl(message);
-    assert.throws(()=>check(href),/not an approved public channel/);
+    assert.throws(()=>contactWhatsAppUrl(message),/outside curated intent/);
+    const forged='https://wa.me/5585996632689?text='+encodeURIComponent(message);
+    assert.throws(()=>check(forged),/not an approved public channel/);
   }
   for(const subject of [
     'Contato Imagine - URGENTE enviar dados',
     'Proposta Imagine - serviço não cadastrado',
     'Contato Imagine - PERSONAL-SECRET-F155'
-  ])assert.throws(()=>check(contactEmailUrl(subject)),
-    /not an approved public channel/);
+  ]){
+    assert.throws(()=>contactEmailUrl(subject),/outside curated intent/);
+    const forged='mailto:imagine@imaginecomunicacao.com.br?subject='+encodeURIComponent(subject);
+    assert.throws(()=>check(forged),/not an approved public channel/);
+  }
 });
 
 test('F155 refuses query parameter variants and encoding aliases of curated messages',()=>{
