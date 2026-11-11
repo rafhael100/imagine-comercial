@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {request as httpRequest} from 'node:http';
 import {startPrivateBudgetReviewLab} from './fixtures/private-budget-http-review-harness.mjs';
 const password='SyntheticOnlyReviewPass_2026_NoSecrets';
 const ids=[
@@ -66,7 +67,16 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
   assert.equal((await request(JSON.stringify(example()),{headers:{'Content-Type':'text/plain'}})).status,415);
   assert.equal((await request('not-json')).status,400);
   assert.equal((await request('x'.repeat(5000))).status,413);
-  assert.equal((await request(JSON.stringify(example()),{headers:{Host:'evil.invalid'}})).status,421);
+  // Undici/fetch may override Host with the target URL authority. Use
+  // node:http directly to send a genuinely forged Host header.
+  const hostileHost=await new Promise((resolve,reject)=>{
+   const req=httpRequest(server.url,{
+    method:'POST',headers:{...baseHeaders,Host:'evil.invalid'}
+   },res=>{res.resume();res.on('end',()=>resolve(res.statusCode));});
+   req.once('error',reject);
+   req.end(JSON.stringify(example()));
+  });
+  assert.equal(hostileHost,421);
  }finally{await server.close();}
 });
 test('P0 F161: test-only server is not importable by Astro public pages',()=>{
