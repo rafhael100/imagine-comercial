@@ -1,5 +1,11 @@
 # STATUS-ATUAL — Imagine Comercial
 
+## Atualização complementar F149 — 11/11/2026
+
+- [PR #156](https://github.com/rafhael100/imagine-comercial/pull/156) acrescentou injeção de **desconexão HTTP real depois do commit sintético** em PostgreSQL efêmero, com reenvio e 1 ledger + 1 outbox. Integrada apenas à branch de desenvolvimento RC31, commit `acb5e9559c5d0e8ab4d74a5e3b248c78288c6795`.
+- Validações de integração: [PostgreSQL CI](https://github.com/rafhael100/imagine-comercial/actions/runs/43019185680), [Workerd local](https://github.com/rafhael100/imagine-comercial/actions/runs/43019185749), [Lighthouse local](https://github.com/rafhael100/imagine-comercial/actions/runs/43019185875), [SEO/build/navegador](https://github.com/rafhael100/imagine-comercial/actions/runs/43019185742). Nenhuma prova de CRM operacional ou autorização de release.
+- PR [#155](https://github.com/rafhael100/imagine-comercial/pull/155) continua **draft**, `main` inalterada. Gates F70, Portal/CRM, GSC/crawl/301, privacidade/segurança, staging privado e dono do release seguem abertos.
+
 ## Situação consolidada da RC31 — 11/11/2026 (prioritária)
 
 **Repositório de desenvolvimento, não publicação.** A candidata atual é a [PR draft #155](https://github.com/rafhael100/imagine-comercial/pull/155), na branch `integration/comercial-rc31-functional-seo-2026-11-11`, que integra:
