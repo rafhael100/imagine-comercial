@@ -24,6 +24,28 @@ export function verifyIndexablePage(html, expectedCanonical) {
   const ogUrl = tags(html, 'meta').filter(tag => attr(tag, 'property') === 'og:url');
   assert.equal(ogUrl.length, 1, expectedCanonical + ': expected one og:url');
   assert.equal(attr(ogUrl[0], 'content'), expectedCanonical, 'og:url differs from canonical');
+
+  const isArticle=/^https:\/\/imaginecomunicacao\.com\.br\/conteudos\/[a-z0-9-]+\/$/.test(expectedCanonical);
+  const ogType=tags(html,'meta').filter(tag=>attr(tag,'property')==='og:type');
+  assert.equal(ogType.length,1,'expected one og:type');
+  assert.equal(attr(ogType[0],'content'),isArticle?'article':'website',
+    'og:type does not match page kind');
+
+  const twitterCard=tags(html,'meta').filter(tag=>attr(tag,'name')==='twitter:card');
+  assert.equal(twitterCard.length,1,'expected one Twitter card type');
+  assert.equal(attr(twitterCard[0],'content'),'summary','unsupported Twitter card type');
+  const twitterUrl=tags(html,'meta').filter(tag=>attr(tag,'name')==='twitter:url');
+  assert.equal(twitterUrl.length,1,'expected exactly one twitter:url');
+  assert.equal(attr(twitterUrl[0],'content'),expectedCanonical,
+    'twitter:url differs from canonical');
+  for(const field of ['title','description']){
+    const og=tags(html,'meta').filter(tag=>attr(tag,'property')==='og:'+field);
+    const twitter=tags(html,'meta').filter(tag=>attr(tag,'name')==='twitter:'+field);
+    assert.equal(og.length,1,'expected one og:'+field);
+    assert.equal(twitter.length,1,'expected one twitter:'+field);
+    assert.equal(attr(twitter[0],'content'),attr(og[0],'content'),
+      field+' differs between social previews');
+  }
   return true;
 }
 
