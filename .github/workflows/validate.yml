@@ -85,6 +85,8 @@ jobs:
         run: npm run test:browser
       - name: Validar navegador da previa HTTP autenticada (F155, sem staging)
         run: node scripts/test-private-preview-browser-ci.mjs
+      - name: Validar acessibilidade dos 7 campos de orcamento em navegador local (F157)
+        run: node scripts/test-private-budget-preview-browser-ci.mjs
       - name: Preparar inventario SHA-256 do build para revisao offline (sem deploy)
         run: node scripts/prepare-release-review.mjs
       - name: Armazenar somente manifesto REVIEW-ONLY de integridade
