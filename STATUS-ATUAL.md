@@ -1,5 +1,22 @@
 # STATUS-ATUAL — Imagine Comercial
 
+## RC33 funcional + controles P0/F154–F161 (11/11/2026)
+
+**Estado: desenvolvimento integrado e verificável, NÃO produção.** Candidata [PR draft #155](https://github.com/rafhael100/imagine-comercial/pull/155), base `main` documental, branch `integration/comercial-rc31-functional-seo-2026-11-11`. O nome técnico da branch permanece RC31 por continuidade histórica; o conteúdo integrado corresponde às melhorias **RC33**.
+
+- [PR #167](https://github.com/rafhael100/imagine-comercial/pull/167): SEO RC32, nomes de links, âncoras entre páginas e inventário HTML compilado.
+- [PR #169](https://github.com/rafhael100/imagine-comercial/pull/169): F154 servidor de prévia HTTP autenticada **somente 127.0.0.1**, noindex/no-store, rotas e assets em allowlist, sem POST. Não é staging Leaseweb.
+- [PR #172](https://github.com/rafhael100/imagine-comercial/pull/172): F155 Chromium E2E autenticado contra a prévia em loopback.
+- [PR #175](https://github.com/rafhael100/imagine-comercial/pull/175): F156 formulário legado em prévia privada **7/7 campos visuais**, incluindo controle aritmético meramente ilustrativo; nenhum anti-bot nem envio funcional.
+- [PR #176](https://github.com/rafhael100/imagine-comercial/pull/176): F157 browser/axe mobile e desktop para a prévia privada, com submit desativado e dados sintéticos.
+- [PR #201](https://github.com/rafhael100/imagine-comercial/pull/201): F161 bootstrap Chromium confiável no GitHub Actions; corrige falha de DNS Azure APT sem dispensar QA. SEO/browser/PG/Lighthouse aprovados no PR.
+- [PR #205](https://github.com/rafhael100/imagine-comercial/pull/205): SEO RC33 integrada por rebase sem sobrescrever funcionalidades P0, com filtros de assuntos, sumário, guias relacionados e destinos de contato curados. SEO/browser, PG e P0 aprovados no PR.
+- [PR #207](https://github.com/rafhael100/imagine-comercial/pull/207): F158–F160, axe/teclado em páginas editoriais, correção de contraste da CTA secundária em fundo escuro, **1120 links aprovados (560 combinações de briefing)** sob allowlist exata e bloqueio de criação dinâmica de formulários/armazenamento não homologado. SEO/browser, PG e P0 aprovados no PR.
+- Em paralelo, foram integrados módulos de **pré-validação sintética do orçamento privado P0**, sem liberar consentimento, servidor antifraude, roteamento de tenant, persistência definitiva ou recibo CRM.
+
+**Bloqueios de lançamento que permanecem:** F70 paridade funcional do orçamento legado e proteção anti-bot real, endpoint e canal HTTPS/Portal/CRM, RBAC e vínculo empresarial autoritativos, privacidade/LGPD e consentimento/base legal, prova de persistência/outbox/recibo, testes staging privados, GSC/crawl real e equivalência editorial para 301, revisão de segurança independente e aprovação da produção. **Zero** public lead forms, DNS, redirects, deploy, mudanças `main` ou despesas aprovadas por esses testes.
+
+
 ## Continuidade verificada F150–F153 — 11/11/2026 (atual)
 
 **Base:** [PR candidata #155](https://github.com/rafhael100/imagine-comercial/pull/155), branch `integration/comercial-rc31-functional-seo-2026-11-11`, **DRAFT e sem publicação**.
