@@ -50,7 +50,7 @@ test('F168 staging denies all 26 anonymous routes BEFORE 22 authenticated routes
   assert.ok(fake.seen.slice(26).every(x=>x.hasAuth&&x.method==='GET'&&
     (publicPaths.has(x.path)||legacyPaths.has(x.path))));
   assert.equal(new Set(fake.seen.slice(0,26).map(x=>x.path)).size,26);
-  for(const path of ['/robots.txt','/sitemap.xml','/404.html',
+  for(const path of ['/robots.txt','/sitemap.xml','/perguntas-frequentes/',
     '/_astro/__imagine_private_access_probe__.js'])
     assert.ok(fake.seen.slice(0,26).some(x=>x.path===path));
   assert.equal(JSON.stringify(report).includes(password),false);
