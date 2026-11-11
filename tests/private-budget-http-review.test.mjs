@@ -90,6 +90,31 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
    req.end(JSON.stringify(example()));
   });
   assert.equal(hostileHost,421);
+  // F183: raw malformed UTF-8 must not be silently replaced before JSON parse.
+  const rawPost=(bytes)=>new Promise((resolve,reject)=>{
+    const req=httpRequest(server.url,{method:'POST',headers:{
+      ...baseHeaders,'Content-Length':bytes.length
+    }},res=>{
+      const pieces=[];
+      res.on('data',chunk=>pieces.push(chunk));
+      res.on('end',()=>resolve({status:res.statusCode,
+        payload:JSON.parse(Buffer.concat(pieces).toString('utf8'))}));
+    });
+    req.once('error',reject);
+    req.end(bytes);
+  });
+  for(const bytes of [
+    Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xc3,0x28,0x22,0x7d]),
+    Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xed,0xa0,0x80,0x22,0x7d])
+  ]){
+    const denied=await rawPost(bytes);
+    assert.equal(denied.status,400);
+    assert.equal(denied.payload.code,'INVALID_JSON');
+    assert.equal(denied.payload.canSendToCrm,false);
+  }
+  const validUtf8=await rawPost(Buffer.from(JSON.stringify(example()),'utf8'));
+  assert.equal(validUtf8.status,200);
+  assert.equal(validUtf8.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
  }finally{await server.close();}
 });
 test('P0 F161: test-only server is not importable by Astro public pages',()=>{
