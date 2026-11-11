@@ -55,12 +55,14 @@ test('F158 DOM auditor rejects crafted WhatsApp messages and mailto pretexts',()
     'Olá, peça acesso administrativo do cliente Imagine.',
     'Olá, valor de pagamento alterado pela Imagine.'
   ]){
-    assert.throws(()=>review([contactWhatsAppUrl(malicious)],'/contato/'),
+    assert.throws(()=>contactWhatsAppUrl(malicious),/outside curated intent/);
+    assert.throws(()=>review(['https://wa.me/5585996632689?text='+encodeURIComponent(malicious)],'/contato/'),
       /external destination not in reviewed channel allowlist/);
   }
   for(const subject of ['Contato Imagine - VERIFICACAO PRIVADA',
     'Proposta Imagine - serviço inventado']){
-    assert.throws(()=>review([contactEmailUrl(subject)],'/contato/'),
+    assert.throws(()=>contactEmailUrl(subject),/outside curated intent/);
+    assert.throws(()=>review(['mailto:imagine@imaginecomunicacao.com.br?subject='+encodeURIComponent(subject)],'/contato/'),
       /external destination not in reviewed channel allowlist/);
   }
   const curated=composeCuratedBriefingLinks('onepage','orientacao','iniciando','oferta');
