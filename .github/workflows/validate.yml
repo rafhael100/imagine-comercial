@@ -79,8 +79,11 @@ jobs:
           path: artifacts/seo-two-source-review/
           retention-days: 7
           if-no-files-found: error
-      - name: Instalar Chromium para QA de navegador
-        run: npx playwright install --with-deps chromium
+      # F161: ubuntu-24.04 hosted runners already provide the browser system
+      # libraries; avoid apt-get (Azure mirror DNS outage) while still installing
+      # the exact browser revision and executing the full Playwright/axe suite.
+      - name: Instalar Chromium para QA de navegador sem apt-get
+        run: npx playwright install chromium
       - name: Testar responsividade e WCAG no navegador
         run: npm run test:browser
       - name: Validar navegador da previa HTTP autenticada (F155, sem staging)
