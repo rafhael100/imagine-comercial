@@ -125,6 +125,9 @@ const service = serviceName ? {
       .cta:hover { background: #0e5094; }
       .cta-secondary { background: transparent; color: #155c9d; border: 1px solid #9bc7eb; }
       .cta-secondary:hover { background: #eaf3ff; }
+      /* F158: secondary CTAs in dark sections need sufficient text contrast. */
+      .section-dark .cta-secondary { color: #fff; border-color: #b6d4f3; }
+      .section-dark .cta-secondary:hover { color: #102d50; background: #eaf3ff; }
       .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
       .bullets { padding-left: 22px; max-width: 740px; }
       .bullets li + li { margin-top: 9px; }
