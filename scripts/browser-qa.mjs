@@ -11,6 +11,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
 import {services} from '../src/data/services.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
+import {composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
@@ -291,6 +292,30 @@ try {
     const goalEmail=await page.locator('#contact-email').getAttribute('href');
     assert.ok(new URL(goalEmail).searchParams.get('subject')?.includes('Melhorar um site existente'),
       'F71 email subject includes only the selected public goal');
+    // F142: real-browser proof that curated briefing changes only outbound hrefs
+    // and accessible local preview; no external request is issued.
+    await page.locator('#stage-choice').selectOption('iniciando');
+    await page.locator('#priority-choice').selectOption('contatos');
+    const briefing=composeCuratedBriefingLinks('onepage','melhorar-site','iniciando','contatos');
+    const preparedWhatsapp=await page.locator('#contact-whatsapp').getAttribute('href');
+    const preparedEmail=await page.locator('#contact-email').getAttribute('href');
+    assert.equal(new URL(preparedWhatsapp).searchParams.get('text'),briefing.message,
+      'F142 exact curated WhatsApp message '+viewport.label);
+    assert.equal(new URL(preparedEmail).searchParams.get('body'),briefing.message,
+      'F142 exact curated mailto body '+viewport.label);
+    assert.equal((await page.locator('#message-preview').textContent())?.trim(),
+      'Prévia da mensagem: '+briefing.message,'F142 accessible preview '+viewport.label);
+    await page.evaluate(()=>{
+      const el=document.querySelector('#priority-choice');
+      el.value='not-a-public-choice';
+      el.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+    assert.equal(await page.locator('#priority-choice').inputValue(),'',
+      'F142 rejects non-curated priority');
+    await page.locator('#stage-choice').selectOption('');
+    assert.equal(new URL(await page.locator('#contact-email').getAttribute('href')).searchParams.get('body'),
+      null,'F142 email fallback has no unrequested body');
+
     assert.equal(new URL(page.url()).hash,'#onepage',
       'F71 URL fragment remains service-only, no visitor objective');
     assert.ok((await page.locator('#objective-help').textContent())?.includes('Melhorar um site existente'));
