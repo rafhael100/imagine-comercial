@@ -67,6 +67,19 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
   assert.equal((await request(JSON.stringify(example()),{headers:{'Content-Type':'text/plain'}})).status,415);
   assert.equal((await request('not-json')).status,400);
   assert.equal((await request('x'.repeat(5000))).status,413);
+  // F182: declared oversize and compressed bodies are refused before review.
+  const encoded=await request(JSON.stringify(example()),{
+    headers:{'Content-Encoding':'gzip'}
+  });
+  assert.equal(encoded.status,415);
+  assert.equal((await encoded.json()).code,'UNSUPPORTED_CONTENT_ENCODING');
+  const identity=await request(JSON.stringify(example()),{
+    headers:{'Content-Encoding':'identity'}
+  });
+  assert.equal(identity.status,200);
+  const oversized=await request('x'.repeat(4097));
+  assert.equal(oversized.status,413);
+  assert.equal((await oversized.json()).code,'BODY_TOO_LARGE');
   // Undici/fetch may override Host with the target URL authority. Use
   // node:http directly to send a genuinely forged Host header.
   const hostileHost=await new Promise((resolve,reject)=>{
