@@ -89,6 +89,8 @@ jobs:
         run: node scripts/test-private-budget-preview-browser-ci.mjs
       - name: Validar Chromium do orcamento sintético ate HTTP privado CRM (P0-F162)
         run: node scripts/test-private-budget-browser-http-ci.mjs
+      - name: Validar navegador + token assinado + HTTP privado de orcamento (P0-F178)
+        run: node scripts/test-private-budget-proof-browser-ci.mjs
       - name: Preparar inventario SHA-256 do build para revisao offline (sem deploy)
         run: node scripts/prepare-release-review.mjs
       - name: Validar hash de cada byte do site e rejeitar alteracao (F165, CI-local)
