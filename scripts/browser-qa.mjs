@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
+import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {articles} from '../src/data/articles.mjs';
 import {relatedGuidesFor} from '../src/data/related-articles.mjs';
 import {services} from '../src/data/services.mjs';
@@ -144,6 +145,32 @@ try {
         }
       }
     }
+    // F157: the real Astro preview must not activate any unapproved
+    // migration or substitute the homepage as a soft 404.
+    // The Workerd migration lab separately simulates candidate 301s ONLY
+    // in its disposable directory; production rules remain in HOLD.
+    if(viewport.label==='mobile'){
+      const candidates=legacyUrls.filter(item=>item.status==='candidate');
+      const held=legacyUrls.filter(item=>item.status==='hold');
+      assert.equal(candidates.length,5);
+      assert.equal(held.length,18);
+      for(const legacy of [...candidates,...held]){
+        const response=await page.goto(host+legacy.from,{waitUntil:'load',timeout});
+        assert.equal(response?.status(),404,
+          'F157 legacy path must stay unredirected in the review-only site');
+        assert.equal(new URL(page.url()).pathname,legacy.from,
+          'F157 legacy path must not redirect to an unrelated page');
+        assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'),
+          'noindex,nofollow','F157 legacy 404 is not indexable');
+        assert.equal(await page.locator('link[rel="canonical"]').count(),0,
+          'F157 legacy 404 does not falsely claim a canonical');
+        assert.equal(await page.locator('script[type="application/ld+json"]').count(),0,
+          'F157 legacy 404 does not publish structured data');
+        assert.ok((await page.locator('h1').textContent())?.includes('Não encontramos'));
+        assert.equal(await page.locator('a[href="/servicos/"]').count()>=1,true);
+      }
+    }
+
     // F152: public topic navigation must filter locally and preserve SEO links.
     await page.goto(host+'/conteudos/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('#guide-list article.card').count(),articles.length);
