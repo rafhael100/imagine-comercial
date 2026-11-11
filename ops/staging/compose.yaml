@@ -19,6 +19,7 @@ services:
     volumes:
       - ../../dist:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${IMAGINE_STAGING_HTPASSWD_PATH:?Set operator-owned, private bcrypt htpasswd file}:/etc/nginx/auth/.htpasswd:ro
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=32m
       - /var/run:rw,noexec,nosuid,size=4m
