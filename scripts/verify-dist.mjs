@@ -12,6 +12,7 @@ import {auditCuratedInternalLinks} from '../src/lib/internal-link-contract.mjs';
 import {auditIndexableMetadata} from '../src/lib/site-head-inventory.mjs';
 import {auditPublicLinkGraph} from '../src/lib/public-link-graph.mjs';
 import {auditPublicHeadingStructure} from '../src/lib/heading-structure-contract.mjs';
+import {auditInPageFragments} from '../src/lib/in-page-fragment-contract.mjs';
 const paths = sitePages.map(p=>p.path==='/' ? 'index.html' : p.path.slice(1)+'index.html');
 
 const metaPages=[];
@@ -28,6 +29,7 @@ for (const [index, path] of paths.entries()) {
   verifyJsonLdPage(html, toAbsoluteUrl(sitePages[index].path));
   auditCuratedInternalLinks(html,sitePages.map(page=>page.path));
   auditPublicHeadingStructure(html);
+  auditInPageFragments(html);
   metaPages.push({path:sitePages[index].path,html});
 }
 auditIndexableMetadata(metaPages);
