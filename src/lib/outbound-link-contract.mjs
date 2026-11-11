@@ -1,12 +1,17 @@
 /**
- * F149 — fail closed on external navigation in built public HTML.
- * Only published, explicitly curated channels and configured Portal login
- * are permitted. Never fetches destinations or logs user-specific URLs.
+ * F149/F155 — fail closed on external navigation in built public HTML.
+ * F155 narrows even WhatsApp text/mail subjects to the exact reviewed
+ * service and objective combinations; a benign prefix is not sufficient.
+ * No network requests, user data, URL logging or dynamic allowlist.
  */
 import assert from 'node:assert/strict';
 import {
   contactChannels,contactWhatsAppUrl,contactEmailUrl
 } from '../data/contact-channels.mjs';
+import {services} from '../data/services.mjs';
+import {
+  contactObjectives,composeCuratedContactLinks
+} from '../data/contact-objectives.mjs';
 import {resolvePortalLoginLink} from './portal-login-link.mjs';
 
 const attr=(tag,key)=>new RegExp('\\b'+key+'\\s*=\\s*(["\\x27])(.*?)\\1','i')
@@ -17,33 +22,27 @@ const relSafe=tag=>{
   return rel.includes('noopener')&&rel.includes('noreferrer');
 };
 
+const whatsappLinks=new Set([contactChannels.whatsappBaseHref]);
+const mailLinks=new Set(['mailto:'+contactChannels.email]);
+for(const service of ['',...services.map(x=>x.slug)]){
+  for(const objective of ['',...contactObjectives.map(x=>x.code)]){
+    const intent=composeCuratedContactLinks(service,objective);
+    whatsappLinks.add(contactWhatsAppUrl(intent.message));
+    mailLinks.add(contactEmailUrl(intent.subject));
+  }
+}
+
 function verifyExternalHref(href){
   if(typeof href!=='string'||href.length>1024||
     /[\x00-\x20\x7f<>"'\\]/.test(href))
     return false;
   if(href.startsWith('https://')){
-    let parsed;
-    try{parsed=new URL(href);}catch{return false;}
-    if(parsed.username||parsed.password||parsed.port||parsed.hash)return false;
-    if(parsed.hostname==='wa.me'){
-      if(parsed.pathname!=='/'+contactChannels.whatsappE164)return false;
-      const params=[...parsed.searchParams.entries()];
-      if(params.length===0)return href===contactChannels.whatsappBaseHref;
-      if(params.length!==1||params[0][0]!=='text')return false;
-      try{return href===contactWhatsAppUrl(params[0][1]);}
-      catch{return false;}
-    }
+    // Exact output of reviewed catalog builders only. Alternate encodings,
+    // additional tracking parameters and forged pretext are denied.
+    if(whatsappLinks.has(href))return true;
     return href===resolvePortalLoginLink(href);
   }
-  if(href.startsWith('mailto:')){
-    const plain='mailto:'+contactChannels.email;
-    if(href===plain)return true;
-    if(!href.startsWith(plain+'?subject='))return false;
-    let subject;
-    try{subject=decodeURIComponent(href.slice((plain+'?subject=').length));}
-    catch{return false;}
-    try{return href===contactEmailUrl(subject);}catch{return false;}
-  }
+  if(href.startsWith('mailto:'))return mailLinks.has(href);
   if(href.startsWith('tel:'))return href==='tel:'+contactChannels.phoneE164;
   return false;
 }
