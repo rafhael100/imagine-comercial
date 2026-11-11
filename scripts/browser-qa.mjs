@@ -385,6 +385,8 @@ try {
           'F72 email link retains default no-JS href');
         assert.equal(await fallback.locator('#copy-message').isVisible(),false,
           'F151 copy action stays hidden without JavaScript');
+        assert.equal(await fallback.locator('#copy-briefing-link').isVisible(),false,
+          'F169 share action stays hidden without JavaScript');
 
         await fallback.goto(host+'/',{waitUntil:'load',timeout});
         const nativeMenu=fallback.locator('details.mobile-menu');
@@ -475,7 +477,34 @@ try {
     const clipboardText=await page.evaluate(()=>navigator.clipboard.readText());
     assert.equal(clipboardText,briefing.message,'F151 clipboard contains only curated briefing');
     assert.ok((await page.locator('#copy-message-status').textContent())?.includes('Mensagem copiada'));
+    // F169: the user may deliberately share only public catalog identifiers.
+    // Copy must strip current URL queries and must never transmit a lead.
+    const shareButton=page.locator('#copy-briefing-link');
+    assert.equal(await shareButton.isVisible(),true,'F169 share is available with clipboard');
+    await shareButton.click();
+    const sharedUrl=await page.evaluate(()=>navigator.clipboard.readText());
+    assert.equal(sharedUrl,host+'/contato/#briefing:onepage:melhorar-site:iniciando:contatos');
+    assert.equal(new URL(page.url()).hash,'#onepage',
+      'F169 copying link must not alter current history or trigger navigation');
+    assert.match(await page.locator('#copy-briefing-status').textContent(),/Link do briefing copiado/);
+    const sharedPage=await context.newPage();
+    try{
+      await sharedPage.goto(sharedUrl,{waitUntil:'load',timeout});
+      assert.equal(await sharedPage.locator('#service-choice').inputValue(),'onepage');
+      assert.equal(await sharedPage.locator('#objective-choice').inputValue(),'melhorar-site');
+      assert.equal(await sharedPage.locator('#stage-choice').inputValue(),'iniciando');
+      assert.equal(await sharedPage.locator('#priority-choice').inputValue(),'contatos');
+      const sharedHref=await sharedPage.locator('#contact-whatsapp').getAttribute('href');
+      assert.equal(new URL(sharedHref).searchParams.get('text'),briefing.message);
+      await sharedPage.goto(host+'/contato/#briefing:onepage:EXFILTRATION:iniciando:contatos',
+        {waitUntil:'load',timeout});
+      for(const selector of ['#service-choice','#objective-choice','#stage-choice','#priority-choice'])
+        assert.equal(await sharedPage.locator(selector).inputValue(),'',
+          'F169 malformed public link fails closed');
+    }finally{await sharedPage.close();}
     await page.locator('#priority-choice').selectOption('presenca');
+    assert.equal(await page.locator('#copy-briefing-status').textContent(),'',
+      'F169 changing choice clears stale share confirmation');
     assert.equal(await page.locator('#copy-message-status').textContent(),'',
       'F151 changing choices clears stale copy confirmation');
 
