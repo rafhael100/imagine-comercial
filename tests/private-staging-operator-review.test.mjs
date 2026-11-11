@@ -79,11 +79,12 @@ test('F167 operator review combines exact package + bcrypt + 401 + 22 HTTP check
     assert.equal(report.status,'PRIVATE_CANDIDATE_REVIEWED_STILL_NO_RELEASE_AUTHORITY');
     assert.equal(report.checks.authenticatedHttpChecks,22);
     assert.equal(report.checks.unauthenticatedHomepageDenied,true);
+  assert.equal(report.checks.unauthenticatedRoutesDenied,26);
     assert.equal(report.checks.heldLegacy404Pages,18);
     assert.equal(report.checks.publishedHtmlCount,sitePages.length);
-    assert.equal(t.seen.length,23);
-    assert.equal(t.seen[0].authenticated,false);
-    assert.ok(t.seen.slice(1).every(x=>x.authenticated&&
+    assert.equal(t.seen.length,48);
+    assert.ok(t.seen.slice(0,26).every(x=>!x.authenticated));
+    assert.ok(t.seen.slice(26).every(x=>x.authenticated&&
       (published.has(x.path)||legacyUrls.some(v=>v.from===x.path&&v.status==='hold'))));
     for(const key of ['imageProvenanceVerified','independentHashPinProvenanceVerified',
       'authIdentityAndMfaVerified','externalTlsAndNetworkVerified','portalCrmOperationalVerified',
