@@ -1,12 +1,14 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { articles } from '../../data/articles.mjs';
+import { articleContactIntent } from '../../lib/article-contact-intent.mjs';
 
 export function getStaticPaths() {
   return articles.map(article=>({params:{slug:article.slug},props:{article}}));
 }
 const { article }=Astro.props;
 const path='/conteudos/'+article.slug+'/';
+const contactIntent=articleContactIntent(article);
 ---
 <BaseLayout title={article.title} description={article.description} pathname={path} articleTitle={article.heading} breadcrumb={[{label:'Conteúdos',path:'/conteudos/'},{label:article.heading,path}]}>
   <div class="shell breadcrumbs"><a href="/">Início</a> / <a href="/conteudos/">Conteúdos</a> / <span aria-current="page">{article.heading}</span></div>
@@ -19,5 +21,5 @@ const path='/conteudos/'+article.slug+'/';
     <h2>Continue explorando</h2>
     <ul class="bullets">{article.links.map(link=><li><a href={link.href}>{link.label}</a></li>)}</ul>
   </article>
-  <section class="section section-dark"><div class="shell"><h2>Precisa de orientação para seu projeto?</h2><p>Entre em contato com a equipe Imagine e conheça as soluções disponíveis.</p><a class="cta" href="/contato/">Solicitar uma proposta</a></div></section>
+  <section class="section section-dark"><div class="shell"><h2>Precisa de orientação para seu projeto?</h2><p>Entre em contato com a equipe Imagine e conheça as soluções disponíveis.</p><div class="cta-row"><a class="cta" href={contactIntent.href}>{contactIntent.label}</a><a class="cta cta-secondary" href="/contato/">Orientação geral</a></div></div></section>
 </BaseLayout>
