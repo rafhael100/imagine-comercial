@@ -4,6 +4,14 @@ Site público comercial da Imagine Comunicação Digital — `imaginecomunicacao
 
 **Decisão técnica aprovada (08/11/2026): Astro**, arquitetura **SEO-first** e **híbrida** (SSG como padrão; SSR controlado somente se necessário e após homologação). A prova de conceito comparativa com Next.js/Nuxt foi dispensada por decisão do responsável.
 
+## Estado atual — RC31 de desenvolvimento (11/11/2026)
+
+A versão mais recente do conjunto Comercial + SEO está na [PR draft #155](https://github.com/rafhael100/imagine-comercial/pull/155) e na branch `integration/comercial-rc31-functional-seo-2026-11-11`. Inclui SEO RC30, briefing guiado de contato F142, conversão contextual dos artigos F145 e laboratório de resposta HTTP incerta F148. A [PR #153](https://github.com/rafhael100/imagine-comercial/pull/153) consolidou as duas frentes **somente em desenvolvimento**.
+
+Quatro workflows da candidata RC31 passaram em 11/11: [SEO/build/browser](https://github.com/rafhael100/imagine-comercial/actions/runs/43017859317), [PostgreSQL descartável](https://github.com/rafhael100/imagine-comercial/actions/runs/43017859315), [Workerd local](https://github.com/rafhael100/imagine-comercial/actions/runs/43017859539) e [Lighthouse local](https://github.com/rafhael100/imagine-comercial/actions/runs/43017859322). Veja o [STATUS-ATUAL.md](STATUS-ATUAL.md) para o registro cronológico e os bloqueios de lançamento.
+
+**A `main` continua documental e o site legado permanece publicado.** F70, homologação de integração Portal/CRM, revisão de segurança/privacidade, GSC/crawl/URLs e autorização de produção não foram concluídos. Não ativar formulário público, criar redirects ou enviar dados privados com base nesses CIs. As seções abaixo são históricas e podem descrever etapas anteriores à RC31.
+
 ## Responsabilidades
 - Páginas comerciais, conteúdo indexável, experiência de conversão e CTAs para o Portal Imagine.
 - Core Web Vitals, acessibilidade, metadados, dados estruturados fidedignos, sitemap e URLs canônicas.
