@@ -9,8 +9,10 @@ import { sitePages, toAbsoluteUrl } from '../src/data/services.mjs';
 import { verifyIndexablePage, verifySitemapUrls, verifyRobotsSitemap } from '../src/lib/seo-output-contract.mjs';
 import {verifyJsonLdPage} from '../src/lib/jsonld-output-contract.mjs';
 import {auditCuratedInternalLinks} from '../src/lib/internal-link-contract.mjs';
+import {auditIndexableMetadata} from '../src/lib/site-head-inventory.mjs';
 const paths = sitePages.map(p=>p.path==='/' ? 'index.html' : p.path.slice(1)+'index.html');
 
+const metaPages=[];
 for (const [index, path] of paths.entries()) {
   assert.ok(existsSync(join('dist', path)), 'Build missing HTML: ' + path);
   const html = read(path);
@@ -23,7 +25,9 @@ for (const [index, path] of paths.entries()) {
   verifyIndexablePage(html, toAbsoluteUrl(sitePages[index].path));
   verifyJsonLdPage(html, toAbsoluteUrl(sitePages[index].path));
   auditCuratedInternalLinks(html,sitePages.map(page=>page.path));
+  metaPages.push({path:sitePages[index].path,html});
 }
+auditIndexableMetadata(metaPages);
 for (const path of ['sitemap.xml', 'robots.txt']) {
   assert.ok(existsSync(join('dist', path)), 'Build missing SEO file: ' + path);
 }
