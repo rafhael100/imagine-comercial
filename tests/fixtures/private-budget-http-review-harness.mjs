@@ -92,6 +92,17 @@ export async function startPrivateBudgetReviewLab(password,{requireRequestProof=
     if(!/^application\/json(?:; charset=utf-8)?$/i.test(req.headers['content-type']||'')){
       write(res,415,refusal('UNSUPPORTED_MEDIA_TYPE'));return;
     }
+    // F182: reject encoded or declared oversize bodies before buffering.
+    // Streaming size checks below remain mandatory for chunked/lying clients.
+    if(req.headers['content-encoding']!==undefined&&
+       req.headers['content-encoding']!=='identity'){
+      write(res,415,refusal('UNSUPPORTED_CONTENT_ENCODING'));return;
+    }
+    const declared=req.headers['content-length'];
+    if(declared!==undefined&&(!/^(?:0|[1-9][0-9]*)$/.test(declared)||
+       Number(declared)>MAX_BODY)){
+      write(res,413,refusal('BODY_TOO_LARGE'));return;
+    }
     let total=0,oversize=false;
     const chunks=[];
     try{
