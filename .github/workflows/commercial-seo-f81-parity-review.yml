@@ -1,0 +1,92 @@
+name: Comercial SEO-F81 - pinned audit regression parity (review only)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/commercial-seo-f81-parity-review.yml'
+      - 'docs/comercial-seo-f81-audit-review.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: comercial-seo-f81-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source without credential persistence
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Setup Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Checkout original SEO auditor used by Comercial
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: bbcc198b5eb88585534c0a0374ed8c787f40e7ca
+          path: .qa/seo-old
+          persist-credentials: false
+      - name: Checkout SEO-F81 exact review SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: 10a649f9c448fe8412da6e8c499eec0637d9259e
+          path: .qa/seo-f81
+          persist-credentials: false
+      - name: Confirm immutable source revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .qa/seo-old rev-parse HEAD)" = bbcc198b5eb88585534c0a0374ed8c787f40e7ca
+          test "$(git -C .qa/seo-f81 rev-parse HEAD)" = 10a649f9c448fe8412da6e8c499eec0637d9259e
+      - name: Verify SEO-F81 offline regression suites
+        run: npm --prefix .qa/seo-f81 test
+      - name: Install pinned site build dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build Imagine Comercial static site
+        run: npm run build
+      - name: Verify compiled public HTML
+        run: node scripts/verify-dist.mjs
+      - name: Compare old and new SEO audit of the exact same build
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          old="$(mktemp)"
+          fresh="$(mktemp)"
+          trap 'rm -f "$old" "$fresh"' EXIT
+          node .qa/seo-old/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head > "$old"
+          node .qa/seo-f81/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head > "$fresh"
+          node --input-type=module - "$old" "$fresh" <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {compareStaticAuditReports} from './.qa/seo-f81/src/audit-regression.mjs';
+          const [oldPath,newPath]=process.argv.slice(2);
+          const old=JSON.parse(readFileSync(oldPath,'utf8'));
+          const fresh=JSON.parse(readFileSync(newPath,'utf8'));
+          assert.deepEqual(fresh.summary,old.summary);
+          assert.deepEqual(fresh.routes,old.routes);
+          assert.deepEqual(fresh.errors,old.errors);
+          assert.deepEqual(fresh.warnings,old.warnings);
+          const warning={type:'broken_internal_link',file:'index.html',message:'PRIVATE-WARNING'};
+          const before={summary:{pages:1,errors:0,warnings:1},
+            errors:[],warnings:[warning]};
+          const after={summary:{pages:1,errors:0,warnings:3},
+            errors:[],warnings:[warning,warning,warning]};
+          const gate=compareStaticAuditReports(before,after,{
+            maxWarnings:3,maxNewWarnings:1
+          });
+          assert.equal(gate.passed,false);
+          assert.equal(gate.changes.newWarnings,2);
+          assert.doesNotMatch(JSON.stringify(gate),/PRIVATE-WARNING/);
+          console.log('Comercial SEO-F81: identical static audit; duplicate warnings blocked, no deploy');
+          NODE
