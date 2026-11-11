@@ -43,9 +43,20 @@ const pathname='/como-funciona/';
       <p class="kicker">Antes de conversar</p>
       <h2 id="briefing-heading">O que preparar para o briefing?</h2>
       <p class="lead">Não é necessário enviar informações pelo site. As respostas ajudam a organizar uma conversa futura com a equipe.</p>
-      <ul class="briefing-list">
-        {preparationQuestions.map(question=><li>{question}</li>)}
+      <p id="briefing-progress" class="briefing-note" role="status" aria-live="polite" aria-atomic="true">Seis perguntas para ajudar no planejamento. Não é necessário responder pelo site.</p>
+      <ul id="briefing-list" class="briefing-list">
+        {preparationQuestions.map((question,index)=>(
+          <li class="briefing-task" data-briefing-task>
+            <span id={'briefing-question-'+index}>{question}</span>
+            <button type="button" class="briefing-toggle" hidden aria-pressed="false"
+              aria-labelledby={'briefing-question-'+index+' briefing-action-'+index}>
+              <span id={'briefing-action-'+index}>Marcar como preparado</span>
+            </button>
+          </li>
+        ))}
       </ul>
+      <button id="print-briefing" type="button" class="cta cta-secondary" hidden>Imprimir roteiro para a reunião</button>
+      <p class="briefing-note">As marcações de preparo são temporárias e desaparecem ao fechar ou recarregar a página. Não há envio, salvamento ou acompanhamento de respostas.</p>
       <p class="briefing-note">Não envie senhas, documentos pessoais ou acessos por links de contato não homologados. Os canais e as permissões adequados devem ser combinados antes do compartilhamento.</p>
     </div>
   </section>
@@ -58,6 +69,37 @@ const pathname='/como-funciona/';
       <a class="cta cta-secondary" href="/perguntas-frequentes/">Ver perguntas frequentes</a>
     </div>
   </section>
+  <script>
+    // F170: six reviewed editorial tasks, optional in-page toggles/printing.
+    // No user text, cookies, tracking, localStorage, URL query or transport.
+    const tasks=[...document.querySelectorAll<HTMLElement>('[data-briefing-task]')];
+    const progress=document.querySelector<HTMLElement>('#briefing-progress');
+    const print=document.querySelector<HTMLButtonElement>('#print-briefing');
+    if(progress&&print&&tasks.length===6){
+      const showProgress=()=>{
+        const done=tasks.filter(task=>task.dataset.prepared==='true').length;
+        progress.textContent=done+' de '+tasks.length+
+          (done===1?' pergunta preparada.':' perguntas preparadas.')+
+          ' Esta seleção é temporária e não é enviada.';
+      };
+      tasks.forEach(task=>{
+        const button=task.querySelector<HTMLButtonElement>('.briefing-toggle');
+        const label=button?.querySelector<HTMLElement>('span');
+        if(!button||!label)return;
+        button.hidden=false;
+        button.addEventListener('click',()=>{
+          const active=button.getAttribute('aria-pressed')!=='true';
+          button.setAttribute('aria-pressed',String(active));
+          task.dataset.prepared=String(active);
+          label.textContent=active?'Desmarcar preparo':'Marcar como preparado';
+          showProgress();
+        });
+      });
+      print.hidden=false;
+      print.addEventListener('click',()=>window.print());
+      showProgress();
+    }
+  </script>
   <style>
     .process-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;list-style:none;padding:0;margin:32px 0 0}
     .process-card{border:1px solid #d5e2f0;border-radius:16px;padding:24px;display:flex;gap:17px;min-width:0;background:#fff}
@@ -66,8 +108,15 @@ const pathname='/como-funciona/';
     .process-card p{margin:0;color:#506078}
     .process-card .process-question{margin-top:16px;color:#25344c}
     .briefing-list{max-width:840px;padding-left:24px;margin:28px 0}
-    .briefing-list li{padding:7px 0}
+    .briefing-list li{padding:10px 0}
+    .briefing-task{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .briefing-task[data-prepared="true"]>span{font-weight:700;color:#145d53}
+    .briefing-toggle{font:inherit;border:1px solid #8199b9;background:#fff;color:#173f70;border-radius:8px;padding:8px 12px;min-height:44px;cursor:pointer}
+    .briefing-toggle[aria-pressed="true"]{background:#e6f5ee;border-color:#258567;color:#165b45}
+    .briefing-toggle[hidden],#print-briefing[hidden]{display:none}
+    .briefing-toggle:focus-visible{outline:3px solid #145d9d;outline-offset:3px}
     .briefing-note{font-size:.94rem;color:#40556c}
+    @media print{.briefing-toggle,#print-briefing{display:none!important}.briefing-task{break-inside:avoid}}
     #etapas{scroll-margin-top:18px}
     @media(max-width:480px){.process-list{grid-template-columns:1fr}.process-card{padding:20px;gap:12px}}
   </style>
