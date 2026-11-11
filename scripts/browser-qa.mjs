@@ -9,6 +9,8 @@ import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
+import {articles} from '../src/data/articles.mjs';
+import {relatedGuidesFor} from '../src/data/related-articles.mjs';
 import {services} from '../src/data/services.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 import {composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
@@ -142,6 +144,60 @@ try {
         }
       }
     }
+    // F152: public topic navigation must filter locally and preserve SEO links.
+    await page.goto(host+'/conteudos/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('#guide-list article.card').count(),articles.length);
+    assert.equal(await page.locator('#guide-list article.card:visible').count(),articles.length);
+    assert.equal(await page.locator('#guide-topic-filters button').count(),6);
+    assert.equal(await page.locator('form,input,textarea').count(),0,
+      'F152 filtering must not open public intake');
+    const filterButton=code=>page.locator('[data-guide-filter="'+code+'"]');
+    assert.equal(await filterButton('all').getAttribute('aria-pressed'),'true');
+    await filterButton('anuncios').click();
+    assert.equal(await page.locator('#guide-list article.card:visible').count(),1);
+    assert.equal(await filterButton('anuncios').getAttribute('aria-pressed'),'true');
+    assert.equal(await filterButton('all').getAttribute('aria-pressed'),'false');
+    assert.match(await page.locator('#guide-filter-status').textContent(),/1 guia/);
+    await filterButton('seo').click();
+    assert.ok(await page.locator('#guide-list article.card:visible').count()>=2);
+    await filterButton('all').click();
+    assert.equal(await page.locator('#guide-list article.card:visible').count(),articles.length);
+    assert.equal(await filterButton('all').getAttribute('aria-pressed'),'true');
+    const filterOverflow=await page.evaluate(()=>
+      document.documentElement.scrollWidth-window.innerWidth);
+    assert.ok(filterOverflow<=2,viewport.label+': F152 guide controls must not overflow');
+
+    // F153: browser verifies native article outline navigation with no network.
+    await page.goto(host+'/conteudos/landing-page-ou-site/',{waitUntil:'load',timeout});
+    const outlineLinks=page.locator('nav[aria-label="Sumário deste guia"] a');
+    const headingTargets=page.locator('article.guide article, article.section .guide-section');
+    const editorial=articles.find(x=>x.slug==='landing-page-ou-site');
+    assert.equal(await outlineLinks.count(),editorial.sections.length,
+      'F153 each editorial section has one navigable anchor');
+    assert.equal(await page.locator('.guide-section[id]').count(),editorial.sections.length);
+    const firstSection=await outlineLinks.first().getAttribute('href');
+    assert.match(firstSection,/^#[a-z0-9-]+$/);
+    await outlineLinks.first().click();
+    await page.waitForURL(host+'/conteudos/landing-page-ou-site/'+firstSection);
+    assert.equal(await page.locator('.guide-section'+firstSection).count(),1,
+      'F153 browser navigates to exact target ID');
+    assert.equal(await page.locator('form,input,textarea').count(),0,
+      'F153 section navigation does not collect visitor data');
+    // F154: related editorial links are real, contextual and navigate locally.
+    const editorialRelated=relatedGuidesFor(editorial.slug);
+    assert.deepEqual(
+      await page.locator('.related-reading a').evaluateAll(links=>links.map(link=>({
+        href:link.getAttribute('href'),title:link.textContent?.trim()
+      }))),
+      editorialRelated.map(guide=>({href:guide.href,title:guide.title})),
+      viewport.label+': F154 static editorial links'
+    );
+    await page.locator('.related-reading a').first().click();
+    await page.waitForURL(host+editorialRelated[0].href);
+    assert.equal(await page.locator('h1').count(),1,
+      'F154 related article navigation retains a single visible H1');
+
+
     // F65: public FAQs require no client-side scripts or personal data.
     await page.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('.faq-list').count(),4,'F65 four FAQ groups');
@@ -271,6 +327,17 @@ try {
           'F58 must preserve all public services without JavaScript');
         assert.equal(await fallback.locator('#service-guide-results a[href="/servicos/onepage/"]').count(),1,
           'F58 has a useful static initial recommendation');
+        await fallback.goto(host+'/conteudos/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('#guide-list article.card:visible').count(),
+          articles.length,'F152 all guides remain usable without JavaScript');
+        assert.equal(await fallback.locator('#guide-topic-filters').isVisible(),
+          false,'F152 inactive filter controls remain hidden without JavaScript');
+        await fallback.goto(host+'/conteudos/landing-page-ou-site/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('nav[aria-label="Sumário deste guia"] a').count(),
+          articles.find(x=>x.slug==='landing-page-ou-site').sections.length,
+          'F153 native outline remains usable without JavaScript');
+        assert.equal(await fallback.locator('.related-reading a').count(),2,
+          'F154 related guides remain visible without JavaScript');
         await fallback.goto(host+'/contato/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#external-channel-notice').isVisible(),true,
           'F72 disclosure exists without JavaScript');

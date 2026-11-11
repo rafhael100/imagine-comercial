@@ -1,25 +1,59 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { articles } from '../../data/articles.mjs';
-import { articleContactIntent } from '../../lib/article-contact-intent.mjs';
+import {articleContactIntent} from '../../lib/article-contact-intent.mjs';
+import {createEditorialOutline} from '../../lib/editorial-outline.mjs';
+import {relatedGuidesFor} from '../../data/related-articles.mjs';
 
 export function getStaticPaths() {
   return articles.map(article=>({params:{slug:article.slug},props:{article}}));
 }
 const { article }=Astro.props;
 const path='/conteudos/'+article.slug+'/';
+const outline=createEditorialOutline(article);
+const relatedGuides=relatedGuidesFor(article.slug);
 const contactIntent=articleContactIntent(article);
 ---
 <BaseLayout title={article.title} description={article.description} pathname={path} articleTitle={article.heading} breadcrumb={[{label:'Conteúdos',path:'/conteudos/'},{label:article.heading,path}]}>
   <div class="shell breadcrumbs"><a href="/">Início</a> / <a href="/conteudos/">Conteúdos</a> / <span aria-current="page">{article.heading}</span></div>
   <section class="hero"><div class="shell"><p class="eyebrow">{article.eyebrow}</p><h1>{article.heading}</h1><p class="lead">{article.intro}</p></div></section>
   <article class="section shell">
-    {article.sections.map(([heading,...paragraphs]) => (
-      <section><h2>{heading}</h2>{paragraphs.map(p=><p>{p}</p>)}</section>
+    <nav class="article-toc" aria-label="Sumário deste guia">
+      <h2>O que você vai encontrar</h2>
+      <ol>
+        {outline.map(section=><li><a href={'#'+section.id}>{section.heading}</a></li>)}
+      </ol>
+    </nav>
+    {outline.map(section => (
+      <section class="guide-section" id={section.id}>
+        <h2>{section.heading}</h2>
+        {section.paragraphs.map(p=><p>{p}</p>)}
+      </section>
     ))}
     <hr style="border:0;border-top:1px solid #dce6f2;margin-block:32px" />
+    <aside class="related-reading" aria-labelledby="related-reading-title">
+      <h2 id="related-reading-title">Leia também</h2>
+      <p>Outros guias que ajudam a aprofundar este assunto e comparar alternativas.</p>
+      <ul class="bullets">
+        {relatedGuides.map(guide=>(
+          <li><span class="eyebrow">{guide.topic}</span> <a href={guide.href}>{guide.title}</a></li>
+        ))}
+      </ul>
+    </aside>
     <h2>Continue explorando</h2>
     <ul class="bullets">{article.links.map(link=><li><a href={link.href}>{link.label}</a></li>)}</ul>
   </article>
   <section class="section section-dark"><div class="shell"><h2>Precisa de orientação para seu projeto?</h2><p>Entre em contato com a equipe Imagine e conheça as soluções disponíveis.</p><div class="cta-row"><a class="cta" href={contactIntent.href}>{contactIntent.label}</a><a class="cta cta-secondary" href="/contato/">Orientação geral</a></div></div></section>
+  <style>
+    .article-toc{padding:24px 28px;background:#f3f7fc;border:1px solid #dce6f2;border-radius:16px;margin-bottom:40px}
+    .article-toc h2{font-size:1.5rem}
+    .article-toc ol{padding-left:24px;margin-bottom:0;display:grid;gap:9px}
+    .article-toc a{color:#155c9d;text-underline-offset:4px}
+    .article-toc a:focus-visible{outline-offset:5px}
+    .guide-section{scroll-margin-top:24px}
+    .guide-section + .guide-section{margin-top:36px}
+    .related-reading{border-left:4px solid #176ebd;background:#f3f7fc;padding:20px 24px;margin:12px 0 38px}
+    .related-reading a{color:#155c9d;text-underline-offset:4px}
+    .related-reading .eyebrow{display:block;font-size:.7rem}
+  </style>
 </BaseLayout>
