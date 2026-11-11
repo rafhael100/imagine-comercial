@@ -10,6 +10,7 @@ import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { sitePages } from '../src/data/services.mjs';
 import {articles} from '../src/data/articles.mjs';
+import {relatedGuidesFor} from '../src/data/related-articles.mjs';
 import {services} from '../src/data/services.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
@@ -164,6 +165,20 @@ try {
       'F153 browser navigates to exact target ID');
     assert.equal(await page.locator('form,input,textarea').count(),0,
       'F153 section navigation does not collect visitor data');
+    // F154: related editorial links are real, contextual and navigate locally.
+    const editorialRelated=relatedGuidesFor(editorial.slug);
+    assert.deepEqual(
+      await page.locator('.related-reading a').evaluateAll(links=>links.map(link=>({
+        href:link.getAttribute('href'),title:link.textContent?.trim()
+      }))),
+      editorialRelated.map(guide=>({href:guide.href,title:guide.title})),
+      viewport.label+': F154 static editorial links'
+    );
+    await page.locator('.related-reading a').first().click();
+    await page.waitForURL(host+editorialRelated[0].href);
+    assert.equal(await page.locator('h1').count(),1,
+      'F154 related article navigation retains a single visible H1');
+
 
     // F65: public FAQs require no client-side scripts or personal data.
     await page.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
@@ -278,6 +293,8 @@ try {
         assert.equal(await fallback.locator('nav[aria-label="Sumário deste guia"] a').count(),
           articles.find(x=>x.slug==='landing-page-ou-site').sections.length,
           'F153 native outline remains usable without JavaScript');
+        assert.equal(await fallback.locator('.related-reading a').count(),2,
+          'F154 related guides remain visible without JavaScript');
         await fallback.goto(host+'/contato/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#external-channel-notice').isVisible(),true,
           'F72 disclosure exists without JavaScript');
