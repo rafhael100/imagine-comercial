@@ -18,7 +18,7 @@ test('F154: only strong operator-owned password and local listener are accepted'
   for(const port of [-1,65536,'4808',NaN]) {
     assert.throws(()=>listenPrivateLoopback(server,port),/invalid loopback listener/);
   }
-  await new Promise((resolve,reject)=>server.close(err=>err?reject(err):resolve()));
+  // Not listening: no socket or process is created by validation alone.
 });
 
 test('F154: real HTTP review is authenticated, read-only, noindex, cacheless and local-only',async()=>{
