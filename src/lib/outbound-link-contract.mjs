@@ -12,6 +12,7 @@ import {services} from '../data/services.mjs';
 import {
   contactObjectives,composeCuratedContactLinks
 } from '../data/contact-objectives.mjs';
+import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from '../data/briefing-curado.mjs';
 import {resolvePortalLoginLink} from './portal-login-link.mjs';
 
 const attr=(tag,key)=>new RegExp('\\b'+key+'\\s*=\\s*(["\\x27])(.*?)\\1','i')
@@ -29,10 +30,19 @@ for(const service of ['',...services.map(x=>x.slug)]){
     const intent=composeCuratedContactLinks(service,objective);
     whatsappLinks.add(contactWhatsAppUrl(intent.message));
     mailLinks.add(contactEmailUrl(intent.subject));
+    // F142: optional stage and priority add only reviewed catalog labels.
+    // Dynamic mailto uses a body only if stage or priority was selected.
+    for(const stage of ['',...briefingStages.map(x=>x.code)]){
+      for(const priority of ['',...briefingPriorities.map(x=>x.code)]){
+        const expanded=composeCuratedBriefingLinks(service,objective,stage,priority);
+        whatsappLinks.add(contactWhatsAppUrl(expanded.message));
+        if(stage||priority)mailLinks.add(contactEmailUrl(expanded.subject,expanded.message));
+      }
+    }
   }
 }
 
-function verifyExternalHref(href){
+export function isApprovedPublicExternalHref(href){
   if(typeof href!=='string'||href.length>1024||
     /[\x00-\x20\x7f<>"'\\]/.test(href))
     return false;
@@ -53,7 +63,7 @@ export function auditApprovedOutboundLinks(html){
   for(const tag of html.match(/<a\b[^>]*>/gi)??[]){
     const href=attr(tag,'href');
     if(href===null||href.startsWith('/')||href.startsWith('#'))continue;
-    assert.ok(verifyExternalHref(href),
+    assert.ok(isApprovedPublicExternalHref(href),
       'F149: external destination is not an approved public channel');
     if(blank(tag))assert.ok(relSafe(tag),
       'F149: new-tab external link lacks isolation attributes');
