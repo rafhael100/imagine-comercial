@@ -14,7 +14,14 @@ if(process.env.IMAGINE_PRIVATE_STAGING_REVIEW!=='1'||
 }else{
   const port=Number(process.argv[2].slice('--port='.length));
   try{
-    const report=await reviewPrivateStagingHttp({port});
+    // Secret supplied only in operator environment, never in CLI args, logs,
+    // source files or public GitHub Actions. HTTPS must be provided by SSH.
+    const password=process.env.IMAGINE_STAGING_REVIEW_PASSWORD;
+    if(typeof password!=='string'||password.length<24||password.length>128||
+      !/^[\x21-\x7e]+$/.test(password))
+      throw Error('F166: private staging reviewer password required');
+    const basicAuth='Basic '+Buffer.from('reviewer:'+password).toString('base64');
+    const report=await reviewPrivateStagingHttp({port,basicAuth});
     console.log(JSON.stringify(report,null,2));
   }catch{
     console.error('F159: private staging evidence not verified (HOLD)');

@@ -6,6 +6,7 @@
 import {lstatSync,existsSync} from 'node:fs';
 import {reviewPrivateStagingImage} from '../src/lib/private-staging-image-policy.mjs';
 import {reviewStagingBuildIntegrity} from '../src/lib/staging-build-integrity.mjs';
+import {reviewPrivateStagingHtpasswd} from '../src/lib/private-staging-htpasswd-review.mjs';
 
 function regular(path){
   const stat=lstatSync(path);
@@ -16,6 +17,7 @@ try{
     process.env.IMAGINE_PRIVATE_STAGING_REVIEW!=='1')
     throw Error('F164: private staging review must be explicitly enabled');
   const image=reviewPrivateStagingImage(process.env.IMAGINE_STAGING_NGINX_IMAGE);
+  const authFile=reviewPrivateStagingHtpasswd(process.env.IMAGINE_STAGING_HTPASSWD_PATH);
   const bytes=reviewStagingBuildIntegrity({
     root:'dist',expectedTreeSha256:process.env.IMAGINE_EXPECTED_STAGING_TREE_SHA256
   });
@@ -30,6 +32,7 @@ try{
   console.log(JSON.stringify({
     ...image,
     buildIntegrity:bytes,
+    authFile,
     publicBuildPresent:true,
     productionRedirectFilesAbsent:true,
     nextRequiredAction:'MANUAL_IMAGE_PROVENANCE_AND_DIGEST_VERIFICATION'

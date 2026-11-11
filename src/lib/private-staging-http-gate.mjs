@@ -45,22 +45,50 @@ const canonical=html=>{
 };
 
 export async function reviewPrivateStagingHttp({
-  port,transport=fetch,timeoutMs=5000
+  port,transport=fetch,timeoutMs=5000,basicAuth
 }={}){
   if(!Number.isSafeInteger(port)||port<1024||port>65535||
     typeof transport!=='function'||
     !Number.isSafeInteger(timeoutMs)||timeoutMs<1000||timeoutMs>10000)
     throw Error('F159: invalid private staging parameters');
 
-  // Construct all URLs internally — never accept caller-supplied URLs,
-  // tokens, alternate hostname, auth headers, paths or redirect overrides.
+  // F166: only the trusted private operator CLI can opt into Basic Auth.
+  // No remote URL, cookies or login fields can come from a visitor.
+  if(basicAuth!==undefined){
+    if(typeof basicAuth!=='string'||basicAuth.length>256||
+       !/^Basic [A-Za-z0-9+/]+={0,2}$/.test(basicAuth))
+      throw Error('F166: invalid private staging review credentials');
+    const encoded=basicAuth.slice(6),decoded=Buffer.from(encoded,'base64');
+    const pair=decoded.toString('utf8');
+    if(decoded.toString('base64')!==encoded||
+      !/^reviewer:[\x21-\x7e]{24,128}$/.test(pair))
+      throw Error('F166: invalid private staging reviewer identity');
+  }
   const base='http://127.0.0.1:'+port;
+  let unauthenticatedEntryDenied=false;
+  if(basicAuth!==undefined){
+    try{
+      const withoutAuth=await transport(base+'/',{
+        method:'GET',redirect:'manual',credentials:'omit',
+        signal:AbortSignal.timeout(timeoutMs)
+      });
+      if(!(withoutAuth instanceof Response)||withoutAuth.status!==401||
+        withoutAuth.redirected||
+        !/^Basic\s/i.test(withoutAuth.headers.get('www-authenticate')??''))
+        throw Error('F166: staging GET is not protected');
+      await withoutAuth.body?.cancel();
+      unauthenticatedEntryDenied=true;
+    }catch{
+      throw Error('F166: private staging authentication gate failed closed');
+    }
+  }
   let checked=0,good=0,held=0;
   for(const path of [...publicSamples,...pendingSamples]){
     let response;
     try{
       response=await transport(base+path,{
         method:'GET',redirect:'manual',credentials:'omit',
+        ...(basicAuth===undefined?{}:{headers:{Authorization:basicAuth}}),
         signal:AbortSignal.timeout(timeoutMs)
       });
       if(!(response instanceof Response))
@@ -109,6 +137,7 @@ export async function reviewPrivateStagingHttp({
     redirectsEnabled:false,
     deploymentAuthorized:false,
     deploymentPerformed:false,
+    ...(unauthenticatedEntryDenied?{unauthenticatedEntryDenied:true}:{}),
     result:'STAGING_HTTP_SMOKE_ONLY_NO_RELEASE_AUTHORITY'
   });
 }
