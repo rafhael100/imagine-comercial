@@ -18,7 +18,7 @@ function filesFromTree(root){
   if(!base.isDirectory()||base.isSymbolicLink())
     throw Error('F165: unsafe staging build directory');
   const found=[];
-  let total=0;
+  let count=0,totalBytes=0;
   function walk(dir,relative='',depth=0){
     if(depth>12)throw Error('F165: build nesting too deep');
     for(const item of readdirSync(dir,{withFileTypes:true})){
@@ -29,15 +29,14 @@ function filesFromTree(root){
       if(stat.isDirectory()){
         walk(path,rel,depth+1);
       }else if(stat.isFile()){
-        if(stat.size>MAX_ONE||++total>MAX_FILES)
+        if(stat.size>MAX_ONE||++count>MAX_FILES||
+          (totalBytes+=stat.size)>MAX_TOTAL)
           throw Error('F165: package size or count limit exceeded');
         found.push({path:rel,bytes:readFileSync(path)});
       }else throw Error('F165: unsupported package filesystem entry');
     }
   }
   walk(root);
-  if(found.reduce((n,f)=>n+f.bytes.byteLength,0)>MAX_TOTAL)
-    throw Error('F165: package exceeds total size limit');
   return found;
 }
 export function reviewStagingBuildIntegrity({
