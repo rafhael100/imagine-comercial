@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {reviewPublicLinks} from '../src/lib/public-link-review.mjs';
+import {contactWhatsAppUrl,contactEmailUrl,contactChannels} from '../src/data/contact-channels.mjs';
+import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 
 const review=(links,currentPath='/',ids=['conteudo'])=>reviewPublicLinks(
   links.map(x=>typeof x==='string'?{href:x}:x),
@@ -16,16 +18,21 @@ test('F32 allows curated internal routes, skip link and contact intent only',()=
   assert.ok(Object.isFrozen(r));
 });
 
-test('F32 allows only exact operational contact channels',()=>{
+test('F159 allows only exact reviewed contact-channel URLs',()=>{
+  const intent=composeCuratedContactLinks('criacao-de-sites','novo-projeto');
   const r=review([
-    {href:'https://wa.me/5585996632689?text=Ol%C3%A1%2C%20Imagine%20-%20uma%20proposta.',
+    {href:contactWhatsAppUrl(intent.message),
      target:'_blank',rel:'noopener noreferrer'},
-    {href:'https://wa.me/5585996632689',target:'_blank',rel:'noreferrer noopener'},
-    {href:'mailto:imagine@imaginecomunicacao.com.br?subject=Contato%20Imagine'},
-    {href:'mailto:imagine@imaginecomunicacao.com.br?subject=Proposta%20Imagine%20-%20Sites'},
-    {href:'tel:+558530329525'}
+    {href:contactChannels.whatsappBaseHref,target:'_blank',rel:'noreferrer noopener'},
+    {href:contactEmailUrl()},
+    {href:contactEmailUrl(intent.subject)},
+    {href:'tel:'+contactChannels.phoneE164}
   ]);
   assert.equal(r.external,5);
+  for(const unreviewed of [
+    'https://wa.me/5585996632689?text=Ol%C3%A1%2C%20Imagine%20-%20uma%20proposta.',
+    'mailto:imagine@imaginecomunicacao.com.br?subject=Proposta%20Imagine%20-%20Sites'
+  ])assert.throws(()=>review([unreviewed]),/external destination/);
 });
 
 test('F32 blocks broken internal routes and disallowed hash fragments',()=>{
