@@ -19,6 +19,8 @@ if(process.env.GITHUB_ACTIONS!=='true'||
 const schema='imagine_comercial_lead_ci';
 const tenant='11111111-1111-4111-8111-111111111111';
 const submission='f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1';
+// F148: uma segunda submissão exclusivamente sintética exercita resultado incerto.
+const unknownSubmission='f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2';
 const envelope=Object.freeze({
   protocol:'imagine.lead-intake',schema_version:1,
   organization_reference:tenant,
@@ -28,6 +30,7 @@ const envelope=Object.freeze({
   form_reference:'55555555-5555-4555-8555-555555555555',
   destination_reference:'66666666-6666-4666-8666-666666666666'
 });
+const unknownEnvelope=Object.freeze({...envelope,submission_reference:unknownSubmission});
 async function pg(sql){
   const {stdout}=await exec('sudo',[
     '-u','postgres','psql','-X','-q','-A','-t',
@@ -96,7 +99,18 @@ async function run(){
     WHERE organization_reference=${asLiteral(tenant)}
       AND submission_reference=${asLiteral(submission)};`);
   assert.equal(before,'0','F96 requires unused synthetic submission');
-  const h=await startPrivateLoopbackIntakeHarness({observeMetadata:storeMetadata});
+  // A transação é executada primeiro; apenas a resposta ao HTTP é simulada
+  // como perdida. Nunca declarar sucesso na ausência de resultado confiável.
+  let loseFirstObservation=true;
+  const uncertainObserver=async body=>{
+    const outcome=await storeMetadata(body);
+    if(body.submission_reference===unknownSubmission&&loseFirstObservation){
+      loseFirstObservation=false;
+      return 'unknown';
+    }
+    return outcome;
+  };
+  const h=await startPrivateLoopbackIntakeHarness({observeMetadata:uncertainObserver});
   try{
     assert.match(h.url,/^http:\/\/127\.0\.0\.1:\d+\/__lab\/internal\/lead-review$/);
     const [x,y]=await Promise.all([post(h,envelope),post(h,envelope)]);
@@ -116,6 +130,32 @@ async function run(){
           AND submission_reference=${asLiteral(submission)}
           AND event_kind='pending_review');`);
     assert.equal(counts,'1|1','F96 expected one logical entry and one outbox event');
+
+    // F148: o PostgreSQL registra metadados + outbox, mas uma falha
+    // posterior impede uma resposta positiva. O retry só observa duplicata.
+    const firstUnknown=await bodyOf(await post(h,unknownEnvelope),503);
+    assert.equal(firstUnknown.reasonCode,'LAB_METADATA_NOT_CONFIRMED');
+    const afterUnknown=await pg(`SELECT
+      (SELECT count(*) FROM ${schema}.metadata_ledger
+        WHERE organization_reference=${asLiteral(tenant)}
+          AND submission_reference=${asLiteral(unknownSubmission)})||'|'||
+      (SELECT count(*) FROM ${schema}.metadata_outbox
+        WHERE organization_reference=${asLiteral(tenant)}
+          AND submission_reference=${asLiteral(unknownSubmission)}
+          AND event_kind='pending_review');`);
+    assert.equal(afterUnknown,'1|1',
+      'F148 committed metadata remains durable despite lost HTTP outcome');
+    const retried=await bodyOf(await post(h,unknownEnvelope));
+    assert.equal(retried.reasonCode,'DUPLICATE_SYNTHETIC_METADATA');
+    const finalUnknown=await pg(`SELECT
+      (SELECT count(*) FROM ${schema}.metadata_ledger
+        WHERE organization_reference=${asLiteral(tenant)}
+          AND submission_reference=${asLiteral(unknownSubmission)})||'|'||
+      (SELECT count(*) FROM ${schema}.metadata_outbox
+        WHERE organization_reference=${asLiteral(tenant)}
+          AND submission_reference=${asLiteral(unknownSubmission)}
+          AND event_kind='pending_review');`);
+    assert.equal(finalUnknown,'1|1','F148 retry must not create second event');
 
     for(const field of [
       'organization_reference','binding_reference','site_reference',
@@ -147,6 +187,6 @@ async function run(){
   }finally{
     await h.close();
   }
-  console.log('F96 PASS: loopback HTTP synthetic metadata -> real ephemeral PG reservation + outbox; no CRM delivery.');
+  console.log('F96/F148 PASS: HTTP synthetic metadata -> ephemeral PG + unknown HTTP outcome/retry; no CRM delivery.');
 }
 await run();
