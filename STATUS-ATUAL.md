@@ -1,4 +1,20 @@
 # STATUS-ATUAL — Imagine Comercial
+
+## Situação consolidada da RC31 — 11/11/2026 (prioritária)
+
+**Repositório de desenvolvimento, não publicação.** A candidata atual é a [PR draft #155](https://github.com/rafhael100/imagine-comercial/pull/155), na branch `integration/comercial-rc31-functional-seo-2026-11-11`, que integra:
+- **SEO RC30:** metadados, identidade canônica, conteúdo editorial e verificações de links, titles e páginas órfãs, originados da [PR #148](https://github.com/rafhael100/imagine-comercial/pull/148).
+- **Comercial F142:** briefing curado no contato com opções de momento/prioridade, prévia de mensagem e links opcionais WhatsApp/e-mail, sem dados pessoais ou envio automático ([PR #144](https://github.com/rafhael100/imagine-comercial/pull/144)).
+- **Comercial F145:** CTAs contextuais nos artigos para o serviço já existente, com contato genérico alternativo ([PR #147](https://github.com/rafhael100/imagine-comercial/pull/147)).
+- **Comercial F148:** teste HTTP local + PostgreSQL descartável que simula resposta perdida depois de reserva atômica, confirma retry sem duplicar ledger/outbox e nunca reconhece entrega CRM ([PR #149](https://github.com/rafhael100/imagine-comercial/pull/149)).
+- **Integração de desenvolvimento:** [PR #153](https://github.com/rafhael100/imagine-comercial/pull/153) integrada **exclusivamente** na RC31, sem merge na `main`.
+
+**Evidência no SHA da RC31 `d6be1a3ae2ff36d300e8bf5acac0f7ab6fe43497`:** [SEO, Astro e navegador — SUCCESS](https://github.com/rafhael100/imagine-comercial/actions/runs/43017859317), [PostgreSQL descartável — SUCCESS](https://github.com/rafhael100/imagine-comercial/actions/runs/43017859315), [Cloudflare Workerd local — SUCCESS](https://github.com/rafhael100/imagine-comercial/actions/runs/43017859539), [Lighthouse local — SUCCESS](https://github.com/rafhael100/imagine-comercial/actions/runs/43017859322). São ensaios automatizados de desenvolvimento, não Core Web Vitals reais, indexação ou autorização operacional.
+
+**Bloqueios de lançamento inalterados:** paridade F70 do formulário legado, entrada pública segura e fluxo real Portal → CRM com identidade/consentimento/durabilidade/recibos, GSC/crawl/redirect 1:1, revisão editorial/visual/jurídica e contatos, staging privado, segurança independente e aprovação explícita do responsável pelo release. A `main` segue documental; nenhuma alteração de domínio, DNS, redirect 301, VPS persistente, produção ou despesa. **Não inferir percentual de conclusão a partir da quantidade de PRs ou testes.**
+
+As seções seguintes guardam histórico e podem citar estados anteriores à RC31.
+
 Data de referência: 09/11/2026, horário de Brasília.
 
 ## Decisão
