@@ -63,7 +63,7 @@ try {
     });
     const routes = viewport.label==='mobile'
       ? sitePages.map(p=>p.path)
-      : ['/', '/servicos/', '/comparar-solucoes/','/como-funciona/','/perguntas-frequentes/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
+      : ['/', '/servicos/', '/comparar-solucoes/','/como-funciona/','/perguntas-frequentes/', '/servicos/landing-pages/','/conteudos/','/conteudos/landing-page-ou-site/','/contato/','/sobre/'];
     for(const route of routes) {
       console.log('Browser QA',viewport.label,route);
       const response=await page.goto(host+route,{waitUntil:'load',timeout});
@@ -118,7 +118,7 @@ try {
         })).filter(el=>el.right>window.innerWidth+2).slice(0,12));
         throw new Error(viewport.label+': '+route+' horizontal overflow '+overflow+' elements='+JSON.stringify(offenders));
       }
-      if(route==='/'||route==='/servicos/'||route==='/comparar-solucoes/'||route==='/como-funciona/'||route==='/perguntas-frequentes/'||route==='/servicos/landing-pages/'||route==='/contato/') {
+      if(route==='/'||route==='/servicos/'||route==='/comparar-solucoes/'||route==='/como-funciona/'||route==='/perguntas-frequentes/'||route==='/servicos/landing-pages/'||route==='/contato/'||route==='/conteudos/'||route==='/conteudos/landing-page-ou-site/') {
         const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
         assert.deepEqual(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>n.target)})),[],viewport.label+': '+route+' axe');
         if(route==='/'||route==='/servicos/landing-pages/') {
@@ -142,6 +142,16 @@ try {
     assert.match(await page.locator('#guide-filter-status').textContent(),/1 guia/);
     await filterButton('seo').click();
     assert.ok(await page.locator('#guide-list article.card:visible').count()>=2);
+    await filterButton('landing-pages').focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await filterButton('landing-pages').getAttribute('aria-pressed'),'true',
+      'F156 filters must be keyboard-operable');
+    assert.ok(await page.locator('#guide-list article.card:visible').count()>=2);
+    const filteredAccessibility=await new AxeBuilder({page})
+      .withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
+    assert.deepEqual(filteredAccessibility.violations.map(v=>({
+      id:v.id,impact:v.impact,nodes:v.nodes.map(n=>n.target)
+    })),[],viewport.label+': F156 filtered topic accessibility');
     await filterButton('all').click();
     assert.equal(await page.locator('#guide-list article.card:visible').count(),articles.length);
     assert.equal(await filterButton('all').getAttribute('aria-pressed'),'true');
@@ -159,7 +169,8 @@ try {
     assert.equal(await page.locator('.guide-section[id]').count(),editorial.sections.length);
     const firstSection=await outlineLinks.first().getAttribute('href');
     assert.match(firstSection,/^#[a-z0-9-]+$/);
-    await outlineLinks.first().click();
+    await outlineLinks.first().focus();
+    await page.keyboard.press('Enter');
     await page.waitForURL(host+'/conteudos/landing-page-ou-site/'+firstSection);
     assert.equal(await page.locator('.guide-section'+firstSection).count(),1,
       'F153 browser navigates to exact target ID');
