@@ -31,6 +31,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Gerar paginas Astro
         run: npm run build
+      - name: Validar previa HTTP autenticada em loopback (F154, sem deploy)
+        run: node scripts/test-private-preview-built-ci.mjs
       - name: Validar HTML gerado, sitemap e robots
         run: node scripts/verify-dist.mjs
       - name: Obter auditor SEO independente em SHA fixo
