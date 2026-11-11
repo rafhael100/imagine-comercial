@@ -1,3 +1,5 @@
+import {fortalezaSiteGuide} from './article-fortaleza.mjs';
+
 /** Conteúdo editorial inicial, sujeito a revisão e autoria antes de produção. */
 export const articles = Object.freeze([
   {
@@ -195,5 +197,6 @@ export const articles = Object.freeze([
         "href": "/contato/"
       }
     ]
-  }
+  },
+  fortalezaSiteGuide
 ]);
