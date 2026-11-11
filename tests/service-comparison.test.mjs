@@ -37,5 +37,7 @@ test('F60 new page is in canonical navigation catalog and linked from service di
   assert.match(page,/contactHref/);
   assert.match(listing,/href="\/comparar-solucoes\/"/);
   assert.match(home,/href="\/comparar-solucoes\/"/);
-  assert.doesNotMatch(page,/<script\b|<form\b|fetch\(|localStorage|sessionStorage|document\.cookie|innerHTML/);
+  assert.doesNotMatch(page,/<script\b[^>]*src=|<form\b|fetch\(|localStorage|sessionStorage|document\.cookie|innerHTML/);
+  assert.match(page,/data-compare-select=\{item\.slug\}/);
+  assert.match(page,/selected-comparison-list/);
 });
