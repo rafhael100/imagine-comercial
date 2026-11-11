@@ -37,9 +37,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: rafhael100/imagine-seo-engine
-          ref: bbcc198b5eb88585534c0a0374ed8c787f40e7ca
+          ref: 10a649f9c448fe8412da6e8c499eec0637d9259e
           path: .qa/seo-engine
           persist-credentials: false
+      - name: Confirmar SHA exato do auditor SEO-F81 sem credenciais persistentes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .qa/seo-engine rev-parse HEAD)" = 10a649f9c448fe8412da6e8c499eec0637d9259e
+          test -z "$(git -C .qa/seo-engine status --porcelain --untracked-files=no)"
       - name: Executar testes da versao fixada do Imagine SEO Engine
         run: npm --prefix .qa/seo-engine test
       - name: Auditar SEO do HTML compilado
