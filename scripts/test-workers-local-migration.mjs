@@ -65,9 +65,9 @@ try{
   // F160: run the same passive gate intended for a future SSH-forwarded
   // private staging origin against the actual isolated Workerd runtime.
   const privateGate=await reviewPrivateStagingHttp({port});
-  assert.equal(privateGate.totalHttpChecks,8);
+  assert.equal(privateGate.totalHttpChecks,22);
   assert.equal(privateGate.reviewedPublicPages,4);
-  assert.equal(privateGate.heldLegacyPages,4);
+  assert.equal(privateGate.heldLegacyPages,18);
   assert.equal(privateGate.deploymentAuthorized,false);
   assert.equal(privateGate.deploymentPerformed,false);
 

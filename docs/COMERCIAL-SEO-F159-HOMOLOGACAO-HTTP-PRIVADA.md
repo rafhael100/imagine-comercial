@@ -8,7 +8,7 @@ Comando, somente após preparar o servidor de homologação e o túnel:
 IMAGINE_PRIVATE_STAGING_REVIEW=1 node scripts/review-private-staging-http.mjs --port=4321
 ```
 
-O diagnóstico faz oito GETs com redirects proibidos e timeout de 5 segundos: quatro rotas públicas previstas no catálogo e quatro URLs antigas com status HOLD. Em cada resposta exige cabeçalhos de segurança revisados F28, mídia HTML e corpo limitado a 1 MiB. Nas rotas públicas exige 200, H1, `index,follow` e canonical correto; nas URLs legadas exige 404 real, H1, `noindex,nofollow`, nenhum canonical e nenhum JSON-LD publicável. Erros retornam diagnósticos genéricos sem imprimir resposta, token, headers ou caminho privado.
+O diagnóstico faz 22 GETs com redirects proibidos e timeout de 5 segundos: quatro rotas públicas previstas no catálogo e 18 URLs antigas com status HOLD. Em cada resposta exige cabeçalhos de segurança revisados F28, mídia HTML e corpo limitado a 1 MiB. Nas rotas públicas exige 200, H1, `index,follow` e canonical correto; nas URLs legadas exige 404 real, H1, `noindex,nofollow`, nenhum canonical e nenhum JSON-LD publicável. Erros retornam diagnósticos genéricos sem imprimir resposta, token, headers ou caminho privado.
 
 O relatório é apenas de **observação da homologação**, com `deploymentAuthorized:false`. Não é aprovação de OAuth/Portal/CRM, conformidade LGPD, migração SEO, DNS, 301 ou publicação. O servidor deve ser previamente isolado por administrador; a ferramenta não abre portas externas nem instala fornecedores.
 

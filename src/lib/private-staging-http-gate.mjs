@@ -13,10 +13,10 @@ const publicSamples=Object.freeze([
   '/','/servicos/','/conteudos/','/contato/'
 ]);
 const pendingSamples=Object.freeze(
-  legacyUrls.filter(x=>x.status==='hold').slice(0,4).map(x=>x.from)
+  legacyUrls.filter(x=>x.status==='hold').map(x=>x.from)
 );
 const catalog=new Set(sitePages.map(x=>x.path));
-if(publicSamples.some(x=>!catalog.has(x))||pendingSamples.length!==4)
+if(publicSamples.some(x=>!catalog.has(x))||pendingSamples.length!==18)
   throw Error('F159: stale approved route manifest');
 
 async function boundedHtml(response) {
