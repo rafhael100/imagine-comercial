@@ -112,12 +112,13 @@ export function reviewGscPagesCsv(content,{inventory=legacyUrls}={}){
   const seen=new Set(), results=[];
   for(const row of rows.slice(1)){
     const page=parseObservedPage(row[index]);
-    const key=page.host+'\0'+page.from+'\0'+page.hasQuery+'\0'+page.unusualPath;
+    const key=page.host+'\0'+page.from+'\0'+page.hasQuery+'\0'+page.unusualPath+'\0'+page.httpSource;
     if(seen.has(key))continue;
     seen.add(key);
     const entry=legacy.get(page.from);
     let state,proposedTarget=null;
     if(page.hasQuery || page.unusualPath)state='variant_hold_for_manual_review';
+    else if(page.httpSource)state='protocol_hold_for_manual_review';
     else if(canonicalPages.has(page.from))state='current_public_route_no_redirect';
     else if(!entry)state='unmapped_requires_investigation';
     else if(entry.status==='hold')state='legacy_hold_requires_review';
@@ -132,7 +133,7 @@ export function reviewGscPagesCsv(content,{inventory=legacyUrls}={}){
     }));
   }
   results.sort((a,b)=>a.host.localeCompare(b.host)||a.from.localeCompare(b.from)||
-    a.state.localeCompare(b.state));
+    Number(a.observedHttp)-Number(b.observedHttp)||a.state.localeCompare(b.state));
   const observedLegacy=new Set(results.filter(x=>legacy.has(x.from)).map(x=>x.from));
   return Object.freeze({
     schema:'imagine.comercial.gsc-inventory-review.v1',
