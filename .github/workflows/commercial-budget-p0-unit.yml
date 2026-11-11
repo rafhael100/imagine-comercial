@@ -1,4 +1,4 @@
-name: Imagine Comercial - P0 orçamento: contratos sem navegador
+name: "Imagine Comercial - P0 orçamento: contratos sem navegador"
 
 on:
   pull_request:
