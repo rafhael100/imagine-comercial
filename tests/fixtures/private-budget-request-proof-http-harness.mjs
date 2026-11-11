@@ -103,7 +103,7 @@ export async function startPrivateBudgetRequestProofLab(password){
       response(res,422,'TOKEN_ONLY_NO_CONTACT_FIELDS');return;
     }
     const result=await inspectPrivateBudgetRequestProofLab({
-      key,token:candidate.token,origin,scope,
+      key,token:candidate.token,origin,scope:SCOPE,
       claimNonce:nonce=>{
         if(nonces.size>=256||nonces.has(nonce))return false;
         nonces.add(nonce);return true;
