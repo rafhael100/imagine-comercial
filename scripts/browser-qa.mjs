@@ -132,10 +132,10 @@ try {
     // The Workerd migration lab separately simulates candidate 301s ONLY
     // in its disposable directory; production rules remain in HOLD.
     if(viewport.label==='mobile'){
-      const candidates=legacyUrls.filter(item=>item.status==='candidate').slice(0,2);
-      const held=legacyUrls.filter(item=>item.status==='hold').slice(0,3);
-      assert.equal(candidates.length,2);
-      assert.equal(held.length,3);
+      const candidates=legacyUrls.filter(item=>item.status==='candidate');
+      const held=legacyUrls.filter(item=>item.status==='hold');
+      assert.equal(candidates.length,5);
+      assert.equal(held.length,18);
       for(const legacy of [...candidates,...held]){
         const response=await page.goto(host+legacy.from,{waitUntil:'load',timeout});
         assert.equal(response?.status(),404,
