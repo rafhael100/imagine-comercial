@@ -104,8 +104,9 @@ test('F167 tampered package, unknown image and weak auth file fail BEFORE sendin
     assert.equal(t.seen.length,0);
     await assert.rejects(review({...params(f,t),image:'nginx:latest'}),/F164/);
     assert.equal(t.seen.length,0);
+    await writeFile(join(f.root,'index.html'),'<html><h1>Synthetic</h1></html>');
     await chmod(f.htpasswdPath,0o644);
-    await assert.rejects(review(params(f,t)),/F165|F166/);
+    await assert.rejects(review(params(f,t)),/F166/);
     assert.equal(t.seen.length,0);
   }finally{await rm(f.base,{recursive:true,force:true});}
 });
