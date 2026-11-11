@@ -59,6 +59,15 @@ export async function startPrivateBudgetReviewLab(password,{requireRequestProof=
       write(res,401,refusal('AUTHENTICATION_REQUIRED'));return;
     }
     if(requireRequestProof&&req.method==='GET'&&req.url===PROOF_ROUTE){
+      // F181: refuse cross-origin issuance even when a browser supplies
+      // cached Basic credentials. Missing Origin is allowed for CLI CI tests;
+      // Fetch Metadata must not explicitly identify a cross-site caller.
+      const expectedOrigin='http://127.0.0.1:'+socket.port;
+      if((req.headers.origin!==undefined&&req.headers.origin!==expectedOrigin)||
+         (req.headers['sec-fetch-site']!==undefined&&
+          !['same-origin','none'].includes(req.headers['sec-fetch-site']))){
+        write(res,403,refusal('PROOF_ISSUANCE_ORIGIN_DENIED'));return;
+      }
       if(issuedCount>=256){
         write(res,429,refusal('LAB_REPLAY_STORAGE_CAP_REACHED'));return;
       }
