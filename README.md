@@ -4,6 +4,12 @@ Site público comercial da Imagine Comunicação Digital — `imaginecomunicacao
 
 **Decisão técnica aprovada (08/11/2026): Astro**, arquitetura **SEO-first** e **híbrida** (SSG como padrão; SSR controlado somente se necessário e após homologação). A prova de conceito comparativa com Next.js/Nuxt foi dispensada por decisão do responsável.
 
+## Entregas mais recentes de desenvolvimento (11/11/2026)
+
+A candidata [RC31 em revisão #155](https://github.com/rafhael100/imagine-comercial/pull/155) foi ampliada sem publicação: [F150 menu móvel nativo e acessível](https://github.com/rafhael100/imagine-comercial/pull/158), [F151 cópia voluntária de briefing curado](https://github.com/rafhael100/imagine-comercial/pull/159), [F152 preservação de versões HTTP/HTTPS no GSC](https://github.com/rafhael100/imagine-comercial/pull/160) e [F153 cruzamento GSC×crawl por protocolo correto](https://github.com/rafhael100/imagine-comercial/pull/161). Foram integrados também os controles SEO de títulos/âncoras da [PR #157](https://github.com/rafhael100/imagine-comercial/pull/157). Cada PR foi validada no CI antes do merge **somente na branch de desenvolvimento**.
+
+As URLs históricas com protocolo HTTP continuam em HOLD para revisão; **nenhuma** regra 301 foi habilitada. O site estático não capta leads automaticamente. F70, integração operacional Portal/CRM, revisão de privacidade, segurança e conteúdo, staging e liberação do domínio seguem pendentes. Detalhes no [STATUS-ATUAL.md](STATUS-ATUAL.md). Não usar o número de PRs para inferir prontidão comercial.
+
 ## Estado atual — RC31 de desenvolvimento (11/11/2026)
 
 A versão mais recente do conjunto Comercial + SEO está na [PR draft #155](https://github.com/rafhael100/imagine-comercial/pull/155) e na branch `integration/comercial-rc31-functional-seo-2026-11-11`. Inclui SEO RC30, briefing guiado de contato F142, conversão contextual dos artigos F145 e laboratório de resposta HTTP incerta F148. A [PR #153](https://github.com/rafhael100/imagine-comercial/pull/153) consolidou as duas frentes **somente em desenvolvimento**.
