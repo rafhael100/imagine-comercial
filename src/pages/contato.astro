@@ -98,11 +98,21 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
       if (navigator.clipboard?.writeText) share.hidden = false;
       // All identifiers originate from the server-reviewed service catalog.
       // The URL fragment contains only a public service slug, never a lead.
+      // F173: async clipboard results must not confirm an outdated briefing.
+      // Prevent overlapping writes across both buttons until the browser settles.
+      let clipboardRevision=0;
+      let clipboardPending=false;
+      const setClipboardPending=(pending:boolean)=>{
+        clipboardPending=pending;
+        copy.disabled=pending;
+        share.disabled=pending;
+      };
       const allowed = new Set([...choice.options].map(option => option.value));
       const allowedObjectives = new Set(['',...contactObjectives.map(item => item.code)]);
       const allowedStages = new Set(['',...briefingStages.map(item => item.code)]);
       const allowedPriorities = new Set(['',...briefingPriorities.map(item => item.code)]);
       const update = () => {
+        clipboardRevision++;
         const selected = choice.selectedOptions[0];
         const label = selected?.value ? selected.textContent?.trim() : '';
         if (!allowedObjectives.has(objective.value)) objective.value = '';
@@ -146,29 +156,43 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
         update();
       };
       copy.addEventListener('click', async () => {
+        if (clipboardPending) return;
         // O texto é composto somente dos catálogos públicos curados.
         // Não pedimos entrada livre, não armazenamos dados nem enviamos uma solicitação.
         const message=composeCuratedBriefingLinks(choice.value,objective.value,stage.value,priority.value).message;
+        const ticket=++clipboardRevision;
+        setClipboardPending(true);
+        copyStatus.textContent='';
+        shareStatus.textContent='';
         try {
           if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
           await navigator.clipboard.writeText(message);
-          copyStatus.textContent='Mensagem copiada. Cole no canal de sua preferência e confirme o envio.';
+          if (ticket===clipboardRevision) copyStatus.textContent='Mensagem copiada. Cole no canal de sua preferência e confirme o envio.';
         } catch {
-          copyStatus.textContent='Não foi possível copiar automaticamente. Você pode selecionar a prévia acima e copiá-la manualmente.';
+          if (ticket===clipboardRevision) copyStatus.textContent='Não foi possível copiar automaticamente. Você pode selecionar a prévia acima e copiá-la manualmente.';
+        } finally {
+          setClipboardPending(false);
         }
       });
       share.addEventListener('click', async () => {
+        if (clipboardPending) return;
         // Build the URL from origin + fixed public route only: never include
         // current query params, token fragments, contact text or tracking IDs.
         const fragment=encodeCuratedBriefingFragment(
           choice.value,objective.value,stage.value,priority.value);
         const link=window.location.origin+'/contato/'+fragment;
+        const ticket=++clipboardRevision;
+        setClipboardPending(true);
+        copyStatus.textContent='';
+        shareStatus.textContent='';
         try {
           if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
           await navigator.clipboard.writeText(link);
-          shareStatus.textContent='Link do briefing copiado. Compartilhe apenas se desejar; o site não recebe seus dados.';
+          if (ticket===clipboardRevision) shareStatus.textContent='Link do briefing copiado. Compartilhe apenas se desejar; o site não recebe seus dados.';
         } catch {
-          shareStatus.textContent='Não foi possível copiar o link automaticamente. Você pode conversar pelos canais acima.';
+          if (ticket===clipboardRevision) shareStatus.textContent='Não foi possível copiar o link automaticamente. Você pode conversar pelos canais acima.';
+        } finally {
+          setClipboardPending(false);
         }
       });
       objective.addEventListener('change', update);
