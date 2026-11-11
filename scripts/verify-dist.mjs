@@ -8,6 +8,7 @@ const read = path => readFileSync(join('dist', path), 'utf8');
 import { sitePages, toAbsoluteUrl } from '../src/data/services.mjs';
 import { verifyIndexablePage, verifySitemapUrls, verifyRobotsSitemap } from '../src/lib/seo-output-contract.mjs';
 import {verifyJsonLdPage} from '../src/lib/jsonld-output-contract.mjs';
+import {auditCuratedInternalLinks} from '../src/lib/internal-link-contract.mjs';
 const paths = sitePages.map(p=>p.path==='/' ? 'index.html' : p.path.slice(1)+'index.html');
 
 for (const [index, path] of paths.entries()) {
@@ -21,6 +22,7 @@ for (const [index, path] of paths.entries()) {
   assert.doesNotMatch(html, /asaas\.com|focusnfe\.com/, path);
   verifyIndexablePage(html, toAbsoluteUrl(sitePages[index].path));
   verifyJsonLdPage(html, toAbsoluteUrl(sitePages[index].path));
+  auditCuratedInternalLinks(html,sitePages.map(page=>page.path));
 }
 for (const path of ['sitemap.xml', 'robots.txt']) {
   assert.ok(existsSync(join('dist', path)), 'Build missing SEO file: ' + path);
