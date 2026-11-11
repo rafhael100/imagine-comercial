@@ -26,6 +26,7 @@ const organization = {
 };
 const webPage = {
   '@context': 'https://schema.org', '@type': 'WebPage',
+  '@id': canonical + '#webpage',
   name: title, description, url: canonical, inLanguage: 'pt-BR',
   isPartOf: { '@type': 'WebSite', name: 'Imagine Comunicação Digital', url: 'https://imaginecomunicacao.com.br/' }
 };
@@ -37,13 +38,16 @@ const bread = breadcrumb.length ? {
   ]
 } : null;
 const articleData = articleTitle ? {
-  '@context': 'https://schema.org', '@type': 'Article', headline: articleTitle,
+  '@context': 'https://schema.org', '@type': 'Article',
+  '@id': canonical + '#article', url: canonical, headline: articleTitle,
   inLanguage: 'pt-BR', mainEntityOfPage: canonical,
   publisher: { '@id': 'https://imaginecomunicacao.com.br/#organization' }
 } : null;
 const service = serviceName ? {
   '@context': 'https://schema.org', '@type': 'Service',
-  name: serviceName, description,
+  '@id': canonical + '#service', url: canonical,
+  name: serviceName, serviceType: serviceName, description,
+  mainEntityOfPage: canonical,
   provider: { '@id': 'https://imaginecomunicacao.com.br/#organization' }
 } : null;
 ---
