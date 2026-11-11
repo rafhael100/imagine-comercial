@@ -23,5 +23,5 @@ test('F160 private gate changes trigger real Workerd HTTP smoke in CI',()=>{
   assert.match(workflow,/src\/lib\/private-staging-http-gate\.mjs/);
   assert.match(workflow,/scripts\/review-private-staging-http\.mjs/);
   assert.match(workflow,/node scripts\/test-workers-local-migration\.mjs/);
-  assert.match(workflow,/WRANGLER_SEND_METRICS/);
+  assert.match(read('scripts/test-workers-local-migration.mjs'),/WRANGLER_SEND_METRICS:'false'/);
 });
