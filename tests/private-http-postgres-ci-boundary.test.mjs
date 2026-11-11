@@ -61,3 +61,17 @@ test('F96: new PG integration stores only F78 synthetic UUID fields, no visitor 
   assert.ok(!script.includes("process.env.APP_URL"));
   assert.ok(!script.includes('console.log(envelope)'));
 });
+
+test('F148: unknown HTTP result after PG commit is held, replay has one outbox event',()=>{
+  assert.match(script,/const unknownSubmission=/);
+  assert.match(script,/const uncertainObserver=async body=>/);
+  assert.match(script,/const outcome=await storeMetadata\(body\)/);
+  assert.match(script,/return 'unknown'/);
+  assert.match(script,/post\(h,unknownEnvelope\),503/);
+  assert.match(script,/LAB_METADATA_NOT_CONFIRMED/);
+  assert.match(script,/F148 committed metadata remains durable despite lost HTTP outcome/);
+  assert.match(script,/DUPLICATE_SYNTHETIC_METADATA/);
+  assert.match(script,/F148 retry must not create second event/);
+  assert.match(harness,/crmPersisted:false/);
+  assert.match(harness,/visitorAcknowledgementAllowed:false/);
+});

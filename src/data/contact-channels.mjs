@@ -33,10 +33,18 @@ export function contactWhatsAppUrl(message=defaultMessage) {
   return contactChannels.whatsappBaseHref+'?text='+encodeURIComponent(message);
 }
 
-export function contactEmailUrl(subject=defaultSubject) {
+export function contactEmailUrl(subject=defaultSubject,body) {
   rejectUnsafeText(subject,120,'email subject');
   if(!subject.startsWith('Contato Imagine') &&
      !subject.startsWith('Proposta Imagine'))
     throw new Error('F36: email subject outside curated intent');
-  return 'mailto:'+contactChannels.email+'?subject='+encodeURIComponent(subject);
+  // F142: corpo opcional, preenchido somente pelo clique do visitante.
+  // Não aceitar textos livres, dados pessoais ou mensagens além do catálogo.
+  if(body!==undefined){
+    rejectUnsafeText(body,280,'email body');
+    if(!body.startsWith('Olá,')||!body.includes('Imagine'))
+      throw new Error('F142: email body outside curated intent');
+  }
+  return 'mailto:'+contactChannels.email+'?subject='+encodeURIComponent(subject)+
+    (body===undefined?'':'&body='+encodeURIComponent(body));
 }

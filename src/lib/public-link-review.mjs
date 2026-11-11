@@ -32,13 +32,20 @@ function safeExternalChannel(url, channel) {
        message.length<=280 && !/[\r\n\0]/.test(message));
   }
   if(channel==='mailto:') {
+    const keys=[...url.searchParams.keys()];
     if(url.protocol!=='mailto:' || url.pathname.toLowerCase()!==emailAddress ||
-       url.hash || [...url.searchParams.keys()].some(x=>x!=='subject') ||
-       [...url.searchParams.keys()].length>1)return false;
+       url.hash || keys.some(x=>x!=='subject'&&x!=='body') ||
+       keys.length>2 || new Set(keys).size!==keys.length ||
+       (keys.includes('body')&&!keys.includes('subject')))return false;
     const subject=url.searchParams.get('subject');
-    return subject===null || (subject.length<=120 &&
+    const body=url.searchParams.get('body');
+    const validSubject=subject===null || (subject.length<=120 &&
       (subject.startsWith('Contato Imagine')||subject.startsWith('Proposta Imagine')) &&
       !/[\r\n\0]/.test(subject));
+    const validBody=body===null || (body.length<=280 &&
+      body.startsWith('Olá,') && body.includes('Imagine') &&
+      !/[\r\n\0]/.test(body));
+    return validSubject&&validBody;
   }
   if(channel==='tel:') {
     return url.protocol==='tel:' && url.pathname===officePhone &&
