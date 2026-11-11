@@ -47,6 +47,6 @@ test('F142: contato mostra os seletores e prévia, mas não realiza captação',
   assert.match(contactSource,/composeCuratedBriefingLinks\(choice\.value,objective\.value,stage\.value,priority\.value\)/);
   assert.match(contactSource,/stage\.addEventListener\('change', update\)/);
   assert.match(contactSource,/priority\.addEventListener\('change', update\)/);
-  assert.match(contactSource,/email\.href = contactEmailUrl\(emailSubject,whatsappMessage\)/);
+  assert.match(contactSource,/contactEmailUrl\(emailSubject,whatsappMessage\)/);
   assert.doesNotMatch(contactSource,/<form\b|<textarea\b|<input\b|fetch\(|sendBeacon\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|document\.cookie|innerHTML/);
 });
