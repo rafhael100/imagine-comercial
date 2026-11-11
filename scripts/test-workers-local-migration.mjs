@@ -12,6 +12,7 @@ import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {sitePages,toAbsoluteUrl} from '../src/data/services.mjs';
 import {verifyIndexablePage,verifySitemapUrls,verifyRobotsSitemap} from '../src/lib/seo-output-contract.mjs';
 import {createSecurityHeadersPreview,localHeaderProfile} from '../src/lib/security-headers-preview.mjs';
+import {reviewPrivateStagingHttp} from '../src/lib/private-staging-http-gate.mjs';
 
 const root=await mkdtemp(join(tmpdir(),'imagine-workers-migration-'));
 const configPath=join(root,'wrangler.json');
@@ -61,6 +62,15 @@ try{
   runner.stdout.on('data',b=>{logs=(logs+b.toString()).slice(-12000)});
   runner.stderr.on('data',b=>{logs=(logs+b.toString()).slice(-12000)});
   await waitReady();
+  // F160: run the same passive gate intended for a future SSH-forwarded
+  // private staging origin against the actual isolated Workerd runtime.
+  const privateGate=await reviewPrivateStagingHttp({port});
+  assert.equal(privateGate.totalHttpChecks,22);
+  assert.equal(privateGate.reviewedPublicPages,4);
+  assert.equal(privateGate.heldLegacyPages,18);
+  assert.equal(privateGate.deploymentAuthorized,false);
+  assert.equal(privateGate.deploymentPerformed,false);
+
 
   const candidates=legacyUrls.filter(x=>x.status==='candidate');
   const held=legacyUrls.filter(x=>x.status==='hold');
