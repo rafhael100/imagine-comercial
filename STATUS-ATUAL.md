@@ -1,5 +1,18 @@
 # STATUS-ATUAL — Imagine Comercial
 
+## Continuidade verificada F150–F153 — 11/11/2026 (atual)
+
+**Base:** [PR candidata #155](https://github.com/rafhael100/imagine-comercial/pull/155), branch `integration/comercial-rc31-functional-seo-2026-11-11`, **DRAFT e sem publicação**.
+
+- **SEO F146/F147:** estrutura de headings e âncoras verificadas, integradas à branch via [PR #157](https://github.com/rafhael100/imagine-comercial/pull/157).
+- **Comercial F150:** menu móvel acessível `details/summary`, com teclado, sem JavaScript e links curados, integrado via [PR #158](https://github.com/rafhael100/imagine-comercial/pull/158). [CI SEO/browser aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/43021354839).
+- **Comercial F151:** botão de cópia de mensagem curada, apenas por ação do visitante, com resposta acessível e fallback sem JS, integrado via [PR #159](https://github.com/rafhael100/imagine-comercial/pull/159). [CI SEO/browser aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/43021859372).
+- **SEO F152:** análise de páginas GSC preserva HTTP e HTTPS com mesmo host/path, bloqueando variantes HTTP para revisão (sem aprovar 301), integrada via [PR #160](https://github.com/rafhael100/imagine-comercial/pull/160). [CI SEO/browser aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/43022567087).
+- **SEO F153:** cruzamento de evidências GSC × crawl exige esquema/protocolo igual; HTTP não vira candidato por um 200 do crawler, integrado via [PR #161](https://github.com/rafhael100/imagine-comercial/pull/161). [CI SEO/browser aprovado](https://github.com/rafhael100/imagine-comercial/actions/runs/43022985040). Todos os testes GSC são **sintéticos**; dados reais de busca não foram colocados no Git.
+
+**Gates ainda bloqueados:** F70 paridade funcional do orçamento, serviço real Portal→CRM (identidade, autorização, consentimento/base legal, durabilidade, recibo e reconciliação), revisão de URLs/canonical 1:1 com evidência privada e crawl, homologação SEG/DBA, identidade editorial e visual, staging seguro e aprovação explícita do responsável pelo release. `main`, DNS, 301, Cloudflare de produção e VPS persistente continuam inalterados. **Contagem de testes ou PRs não equivale a percentual de produto concluído.**
+
+
 ## Atualização complementar F149 — 11/11/2026
 
 - [PR #156](https://github.com/rafhael100/imagine-comercial/pull/156) acrescentou injeção de **desconexão HTTP real depois do commit sintético** em PostgreSQL efêmero, com reenvio e 1 ledger + 1 outbox. Integrada apenas à branch de desenvolvimento RC31, commit `acb5e9559c5d0e8ab4d74a5e3b248c78288c6795`.
