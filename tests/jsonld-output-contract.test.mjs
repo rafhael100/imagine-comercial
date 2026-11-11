@@ -48,7 +48,7 @@ test('F140 rejects canonical ID drift, fake publisher and breadcrumb divergence'
     url+'#service','https://evil.invalid/#service'),url),/Service ID mismatch/);
   assert.throws(()=>verifyJsonLdPage(schema(url,{service:true}).replace(
     ORG,'https://other.invalid/'),url),/Organization ID mismatch/);
-  assert.throws(()=>verifyJsonLdPage(schema(url,{breadcrumb:true}).replace(
+  assert.throws(()=>verifyJsonLdPage(schema(url,{service:true,breadcrumb:true}).replace(
     '"position":2','"position":9'),url),/Expected values to be strictly equal/);
   assert.throws(()=>verifyJsonLdPage(schema(url,{service:true}),ROOT),
     /WebPage URL mismatch/);
