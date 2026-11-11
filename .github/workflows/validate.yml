@@ -91,6 +91,8 @@ jobs:
         run: node scripts/test-private-budget-browser-http-ci.mjs
       - name: Preparar inventario SHA-256 do build para revisao offline (sem deploy)
         run: node scripts/prepare-release-review.mjs
+      - name: Validar hash de cada byte do site e rejeitar alteracao (F165, CI-local)
+        run: node scripts/test-staging-build-integrity-ci.mjs
       - name: Armazenar somente manifesto REVIEW-ONLY de integridade
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:

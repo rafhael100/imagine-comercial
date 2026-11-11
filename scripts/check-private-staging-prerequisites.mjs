@@ -5,6 +5,7 @@
  */
 import {lstatSync,existsSync} from 'node:fs';
 import {reviewPrivateStagingImage} from '../src/lib/private-staging-image-policy.mjs';
+import {reviewStagingBuildIntegrity} from '../src/lib/staging-build-integrity.mjs';
 
 function regular(path){
   const stat=lstatSync(path);
@@ -15,6 +16,9 @@ try{
     process.env.IMAGINE_PRIVATE_STAGING_REVIEW!=='1')
     throw Error('F164: private staging review must be explicitly enabled');
   const image=reviewPrivateStagingImage(process.env.IMAGINE_STAGING_NGINX_IMAGE);
+  const bytes=reviewStagingBuildIntegrity({
+    root:'dist',expectedTreeSha256:process.env.IMAGINE_EXPECTED_STAGING_TREE_SHA256
+  });
   const dist=lstatSync('dist');
   if(!dist.isDirectory()||dist.isSymbolicLink()||
     !regular('dist/index.html')||
@@ -25,6 +29,7 @@ try{
     throw Error('F164: staging inputs not independently reviewed');
   console.log(JSON.stringify({
     ...image,
+    buildIntegrity:bytes,
     publicBuildPresent:true,
     productionRedirectFilesAbsent:true,
     nextRequiredAction:'MANUAL_IMAGE_PROVENANCE_AND_DIGEST_VERIFICATION'
