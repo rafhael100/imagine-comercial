@@ -44,9 +44,14 @@ function tokenMatches(auth,expected){
   return supplied.length===other.length&&timingSafeEqual(supplied,other);
 }
 
-export async function startPrivateLoopbackIntakeHarness({observeMetadata=null}={}){
+export async function startPrivateLoopbackIntakeHarness({
+  observeMetadata=null,abortResponseAfterObservation=null
+}={}){
   if(observeMetadata!==null&&typeof observeMetadata!=='function')
     throw new Error('F96: synthetic observation adapter must be a function');
+  if(abortResponseAfterObservation!==null&&
+     (typeof abortResponseAfterObservation!=='function'||observeMetadata===null))
+    throw new Error('F149: response failure hook requires a synthetic durable observer');
 
   // Credentials exist only in this test process and are never logged or saved.
   const ephemeralKey=randomBytes(32).toString('hex');
@@ -118,6 +123,13 @@ export async function startPrivateLoopbackIntakeHarness({observeMetadata=null}={
       }else{
         existed=recorded.has(id);
         if(!existed)recorded.add(id);
+      }
+      // F149: CI-only network failure injected AFTER the durable observer
+      // returns. No HTTP status or fake CRM receipt may reach the client.
+      if(abortResponseAfterObservation!==null&&
+         abortResponseAfterObservation(body,Object.freeze({existed}))){
+        res.destroy();
+        return;
       }
       reply(res,202,existed?'DUPLICATE_SYNTHETIC_METADATA':
         'FIRST_SYNTHETIC_METADATA_OBSERVATION');
