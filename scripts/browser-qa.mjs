@@ -91,10 +91,24 @@ try {
       }else{
         assert.equal(await currentNav.count(),0,route+': no misleading current-page link');
       }
-      assert.equal(await page.locator('nav a[href="/comparar-solucoes/"]').count(),1,
+      assert.equal(await page.locator('nav[aria-label="Navegação principal"] a[href="/comparar-solucoes/"]').count(),1,
         route+': comparison is a permanent navigation destination');
       assert.equal(await page.locator('a.brand[aria-current="page"]').count(),route==='/'?1:0,
         route+': site logo denotes home only when current');
+      // F150: mobile navigation is accessible with native details, no JS.
+      const mobileSummary=page.locator('details.mobile-menu > summary');
+      const desktopNav=page.locator('nav[aria-label="Navegação principal"]');
+      assert.equal(await mobileSummary.isVisible(),viewport.label==='mobile',
+        route+': mobile disclosure is only visible on small screens');
+      assert.equal(await desktopNav.isVisible(),viewport.label==='desktop',
+        route+': desktop navigation remains in the correct breakpoint');
+      if(viewport.label==='mobile') {
+        const mobileCurrent=page.locator('nav[aria-label="Navegação móvel"] a[aria-current="page"]');
+        const mobilePages=new Set([...navPages,'/como-funciona/','/perguntas-frequentes/']);
+        assert.equal(await mobileCurrent.count(),mobilePages.has(route)?1:0,
+          route+': exact mobile active route');
+      }
+
       if(route.startsWith('/servicos/') && route!=='/servicos/'){
         assert.equal(await page.locator('a.cta-secondary[href="/comparar-solucoes/"]').count(),1,
           'F62 service-page comparison link points to the actual comparison page');
@@ -187,6 +201,19 @@ try {
       'F63 first keyboard focus must be skip-to-content link');
     assert.equal(await page.locator('a.skip-link:focus-visible').count(),1,
       'F63 skip link must be visible when keyboard focused');
+    if(viewport.label==='mobile'){
+      // F150: disclosure can be opened by keyboard and its links navigate.
+      await page.goto(host+'/',{waitUntil:'load',timeout});
+      const summary=page.locator('details.mobile-menu > summary');
+      await summary.focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await page.locator('details.mobile-menu').getAttribute('open'),'',
+        'F150 Enter opens native mobile menu');
+      await page.locator('nav[aria-label="Navegação móvel"] a[href="/comparar-solucoes/"]').click();
+      await page.waitForURL(host+'/comparar-solucoes/');
+      assert.equal(await page.locator('nav[aria-label="Navegação móvel"] a[aria-current="page"]').count(),1);
+      await page.goto(host+'/',{waitUntil:'load',timeout});
+    }
     // F58: real browser contract for the public service guide.
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     const goalOptions=page.locator('#service-guide-goal option');
@@ -248,6 +275,18 @@ try {
           'F72 WhatsApp link retains default no-JS href');
         assert.equal(await fallback.locator('a#contact-email').count(),1,
           'F72 email link retains default no-JS href');
+        await fallback.goto(host+'/',{waitUntil:'load',timeout});
+        const nativeMenu=fallback.locator('details.mobile-menu');
+        assert.equal(await nativeMenu.locator('summary').isVisible(),true,
+          'F150 no-JS mobile menu visible');
+        await nativeMenu.locator('summary').click();
+        assert.equal(await nativeMenu.getAttribute('open'),'',
+          'F150 no-JS disclosure opens without scripts');
+        await nativeMenu.locator('a[href="/contato/"]').click();
+        await fallback.waitForURL(host+'/contato/');
+        assert.equal(await fallback.locator('h1').count(),1,
+          'F150 no-JS navigation reaches contact');
+
         // F75: direct service channels must work even when client scripts are disabled.
         for(const service of services){
           await fallback.goto(host+'/servicos/'+service.slug+'/',{waitUntil:'load',timeout});
