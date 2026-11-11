@@ -7,8 +7,8 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('F160 actual Workerd loopback runs the same F159 private staging gate',()=>{
   const source=read('scripts/test-workers-local-migration.mjs');
   assert.match(source,/reviewPrivateStagingHttp\(\{port\}\)/);
-  assert.match(source,/privateGate\.totalHttpChecks,8/);
-  assert.match(source,/privateGate\.heldLegacyPages,4/);
+  assert.match(source,/privateGate\.totalHttpChecks,22/);
+  assert.match(source,/privateGate\.heldLegacyPages,18/);
   assert.match(source,/privateGate\.deploymentAuthorized,false/);
   assert.match(source,/privateGate\.deploymentPerformed,false/);
   assert.match(source,/const port=8798/);
