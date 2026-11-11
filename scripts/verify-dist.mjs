@@ -13,6 +13,10 @@ import {auditIndexableMetadata} from '../src/lib/site-head-inventory.mjs';
 import {auditPublicLinkGraph} from '../src/lib/public-link-graph.mjs';
 import {auditPublicHeadingStructure} from '../src/lib/heading-structure-contract.mjs';
 import {auditInPageFragments} from '../src/lib/in-page-fragment-contract.mjs';
+import {auditCrossPageFragmentTargets} from '../src/lib/cross-page-fragment-contract.mjs';
+import {auditApprovedOutboundLinks} from '../src/lib/outbound-link-contract.mjs';
+import {auditGeneratedHtmlInventory} from '../src/lib/generated-html-inventory.mjs';
+import {auditAccessibleLinkNames} from '../src/lib/accessible-link-contract.mjs';
 const paths = sitePages.map(p=>p.path==='/' ? 'index.html' : p.path.slice(1)+'index.html');
 
 const metaPages=[];
@@ -30,10 +34,13 @@ for (const [index, path] of paths.entries()) {
   auditCuratedInternalLinks(html,sitePages.map(page=>page.path));
   auditPublicHeadingStructure(html);
   auditInPageFragments(html);
+  auditApprovedOutboundLinks(html);
+  auditAccessibleLinkNames(html);
   metaPages.push({path:sitePages[index].path,html});
 }
 auditIndexableMetadata(metaPages);
 auditPublicLinkGraph(metaPages);
+auditCrossPageFragmentTargets(metaPages);
 for (const path of ['sitemap.xml', 'robots.txt']) {
   assert.ok(existsSync(join('dist', path)), 'Build missing SEO file: ' + path);
 }
@@ -58,8 +65,14 @@ function walkBuiltFiles(folder){
     return entry.isDirectory()?walkBuiltFiles(path):entry.isFile()?[path]:[];
   });
 }
+const builtFiles=walkBuiltFiles('dist');
+auditGeneratedHtmlInventory(
+  builtFiles.filter(file=>/\.html$/i.test(file))
+    .map(file=>relative('dist',file).replaceAll('\\','/')),
+  sitePages.map(page=>page.path)
+);
 let frozenAssets=0;
-for(const file of walkBuiltFiles('dist')){
+for(const file of builtFiles){
   if(!/\.(?:html|js)$/i.test(file))continue;
   assertNoUnapprovedPublicIntake(relative('dist',file),readFileSync(file,'utf8'));
   frozenAssets++;
