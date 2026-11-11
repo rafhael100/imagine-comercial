@@ -533,6 +533,49 @@ try {
         assert.equal(await sharedPage.locator(selector).inputValue(),'',
           'F169 malformed public link fails closed');
     }finally{await sharedPage.close();}
+    // F173: browser clipboard writes are asynchronous. If the visitor
+    // changes any choice before an old promise settles, no stale message
+    // or share-link confirmation may be shown. Both buttons stay disabled
+    // during the pending write to prevent concurrent writes and wrong paste.
+    await page.evaluate(()=>{
+      window.__delayedClipboard=[];
+      Object.defineProperty(navigator.clipboard,'writeText',{
+        configurable:true,value:text=>new Promise((resolve,reject)=>{
+          window.__delayedClipboard.push({text,resolve,reject});
+        })
+      });
+    });
+    await copyButton.click();
+    await page.waitForFunction(()=>window.__delayedClipboard?.length===1);
+    assert.equal(await copyButton.isDisabled(),true,'F173 prevent concurrent message writes');
+    assert.equal(await shareButton.isDisabled(),true,'F173 prevent concurrent link writes');
+    await page.locator('#priority-choice').selectOption('oferta');
+    await page.evaluate(()=>window.__delayedClipboard.shift().resolve());
+    await page.waitForFunction(()=>!document.querySelector('#copy-message').disabled);
+    assert.equal(await page.locator('#copy-message-status').textContent(),'',
+      'F173 stale clipboard success must not confirm changed briefing');
+    assert.equal(await page.locator('#copy-briefing-status').textContent(),'');
+    await page.locator('#priority-choice').selectOption('contatos');
+    await shareButton.click();
+    await page.waitForFunction(()=>window.__delayedClipboard?.length===1);
+    assert.equal(await copyButton.isDisabled(),true);
+    await page.locator('#stage-choice').selectOption('evoluindo');
+    await page.evaluate(()=>window.__delayedClipboard.shift().reject(
+      new Error('Synthetic rejected clipboard write')));
+    await page.waitForFunction(()=>!document.querySelector('#copy-briefing-link').disabled);
+    assert.equal(await page.locator('#copy-briefing-status').textContent(),'',
+      'F173 old copy failure must not obscure new briefing');
+    await page.locator('#stage-choice').selectOption('iniciando');
+    await shareButton.click();
+    await page.waitForFunction(()=>window.__delayedClipboard?.length===1);
+    await page.evaluate(()=>window.__delayedClipboard.shift().resolve());
+    await page.waitForFunction(()=>!document.querySelector('#copy-briefing-link').disabled);
+    assert.match(await page.locator('#copy-briefing-status').textContent(),
+      /Link do briefing copiado/,'F173 current choice gets valid confirmation');
+    await page.evaluate(()=>{
+      delete navigator.clipboard.writeText;
+      delete window.__delayedClipboard;
+    });
     await page.locator('#priority-choice').selectOption('presenca');
     assert.equal(await page.locator('#copy-briefing-status').textContent(),'',
       'F169 changing choice clears stale share confirmation');
