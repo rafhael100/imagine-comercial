@@ -125,3 +125,33 @@ test('P0-F177 wrong origin, malformed body and forged contact field cannot bypas
     })).status,405);
   }finally{await lab.close();}
 });
+
+test('P0-F181 cross-site proof issuance is denied before issuance quota is consumed',async()=>{
+  const lab=await startPrivateBudgetReviewLab(password,{requireRequestProof:true});
+  const url=new URL(lab.url);
+  const endpoint=url.origin+'/__lab/budget/request-proof';
+  const auth='Basic '+Buffer.from('reviewer:'+password).toString('base64');
+  try{
+    const request=(headers={})=>fetch(endpoint,{redirect:'manual',headers:{
+      Authorization:auth,...headers
+    }});
+    for(const headers of [
+      {Origin:'https://attacker.invalid'},
+      {Origin:'null'},
+      {'Sec-Fetch-Site':'cross-site'},
+      {'Sec-Fetch-Site':'same-site'},
+      {Origin:url.origin,'Sec-Fetch-Site':'cross-site'}
+    ]){
+      const denied=await request(headers);
+      assert.equal(denied.status,403);
+      assert.equal((await denied.json()).code,'PROOF_ISSUANCE_ORIGIN_DENIED');
+    }
+    const allowed=await request({Origin:url.origin,'Sec-Fetch-Site':'same-origin'});
+    assert.equal(allowed.status,200);
+    assert.match((await allowed.json()).requestProof,/^v1\./);
+    const cli=await request({'Sec-Fetch-Site':'none'});
+    assert.equal(cli.status,200);
+    assert.equal(cli.headers.get('set-cookie'),null);
+    assert.equal(cli.headers.get('cache-control'),'private, no-store');
+  }finally{await lab.close();}
+});
