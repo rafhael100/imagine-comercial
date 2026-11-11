@@ -148,6 +148,23 @@ try {
       document.documentElement.scrollWidth-window.innerWidth);
     assert.ok(filterOverflow<=2,viewport.label+': F152 guide controls must not overflow');
 
+    // F153: browser verifies native article outline navigation with no network.
+    await page.goto(host+'/conteudos/landing-page-ou-site/',{waitUntil:'load',timeout});
+    const outlineLinks=page.locator('nav[aria-label="Sumário deste guia"] a');
+    const headingTargets=page.locator('article.guide article, article.section .guide-section');
+    const editorial=articles.find(x=>x.slug==='landing-page-ou-site');
+    assert.equal(await outlineLinks.count(),editorial.sections.length,
+      'F153 each editorial section has one navigable anchor');
+    assert.equal(await page.locator('.guide-section[id]').count(),editorial.sections.length);
+    const firstSection=await outlineLinks.first().getAttribute('href');
+    assert.match(firstSection,/^#[a-z0-9-]+$/);
+    await outlineLinks.first().click();
+    await page.waitForURL(host+'/conteudos/landing-page-ou-site/'+firstSection);
+    assert.equal(await page.locator('.guide-section'+firstSection).count(),1,
+      'F153 browser navigates to exact target ID');
+    assert.equal(await page.locator('form,input,textarea').count(),0,
+      'F153 section navigation does not collect visitor data');
+
     // F65: public FAQs require no client-side scripts or personal data.
     await page.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('.faq-list').count(),4,'F65 four FAQ groups');
@@ -257,6 +274,10 @@ try {
           articles.length,'F152 all guides remain usable without JavaScript');
         assert.equal(await fallback.locator('#guide-topic-filters').isVisible(),
           false,'F152 inactive filter controls remain hidden without JavaScript');
+        await fallback.goto(host+'/conteudos/landing-page-ou-site/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('nav[aria-label="Sumário deste guia"] a').count(),
+          articles.find(x=>x.slug==='landing-page-ou-site').sections.length,
+          'F153 native outline remains usable without JavaScript');
         await fallback.goto(host+'/contato/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#external-channel-notice').isVisible(),true,
           'F72 disclosure exists without JavaScript');

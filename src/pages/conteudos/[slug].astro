@@ -1,23 +1,43 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { articles } from '../../data/articles.mjs';
+import {createEditorialOutline} from '../../lib/editorial-outline.mjs';
 
 export function getStaticPaths() {
   return articles.map(article=>({params:{slug:article.slug},props:{article}}));
 }
 const { article }=Astro.props;
 const path='/conteudos/'+article.slug+'/';
+const outline=createEditorialOutline(article);
 ---
 <BaseLayout title={article.title} description={article.description} pathname={path} articleTitle={article.heading} breadcrumb={[{label:'Conteúdos',path:'/conteudos/'},{label:article.heading,path}]}>
   <div class="shell breadcrumbs"><a href="/">Início</a> / <a href="/conteudos/">Conteúdos</a> / <span aria-current="page">{article.heading}</span></div>
   <section class="hero"><div class="shell"><p class="eyebrow">{article.eyebrow}</p><h1>{article.heading}</h1><p class="lead">{article.intro}</p></div></section>
   <article class="section shell">
-    {article.sections.map(([heading,...paragraphs]) => (
-      <section><h2>{heading}</h2>{paragraphs.map(p=><p>{p}</p>)}</section>
+    <nav class="article-toc" aria-label="Sumário deste guia">
+      <h2>O que você vai encontrar</h2>
+      <ol>
+        {outline.map(section=><li><a href={'#'+section.id}>{section.heading}</a></li>)}
+      </ol>
+    </nav>
+    {outline.map(section => (
+      <section class="guide-section" id={section.id}>
+        <h2>{section.heading}</h2>
+        {section.paragraphs.map(p=><p>{p}</p>)}
+      </section>
     ))}
     <hr style="border:0;border-top:1px solid #dce6f2;margin-block:32px" />
     <h2>Continue explorando</h2>
     <ul class="bullets">{article.links.map(link=><li><a href={link.href}>{link.label}</a></li>)}</ul>
   </article>
   <section class="section section-dark"><div class="shell"><h2>Precisa de orientação para seu projeto?</h2><p>Entre em contato com a equipe Imagine e conheça as soluções disponíveis.</p><a class="cta" href="/contato/">Solicitar uma proposta</a></div></section>
+  <style>
+    .article-toc{padding:24px 28px;background:#f3f7fc;border:1px solid #dce6f2;border-radius:16px;margin-bottom:40px}
+    .article-toc h2{font-size:1.5rem}
+    .article-toc ol{padding-left:24px;margin-bottom:0;display:grid;gap:9px}
+    .article-toc a{color:#155c9d;text-underline-offset:4px}
+    .article-toc a:focus-visible{outline-offset:5px}
+    .guide-section{scroll-margin-top:24px}
+    .guide-section + .guide-section{margin-top:36px}
+  </style>
 </BaseLayout>
