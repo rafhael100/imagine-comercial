@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { services } from '../data/services.mjs';
 import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
 import {contactObjectives} from '../data/contact-objectives.mjs';
+import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
 ---
 <BaseLayout
   title="Contato e orçamento | Imagine Comunicação Digital"
@@ -31,6 +32,23 @@ import {contactObjectives} from '../data/contact-objectives.mjs';
         </select>
         <p id="objective-help" role="status" aria-live="polite">A seleção só prepara a mensagem. Você decide se deseja abrir o canal externo.</p>
       </div>
+      <div class="contact-choice">
+        <label for="stage-choice">Em que momento está seu projeto? (opcional)</label>
+        <select id="stage-choice" name="momento" autocomplete="off" aria-describedby="stage-help">
+          <option value="">Prefiro conversar primeiro</option>
+          {briefingStages.map(item => <option value={item.code}>{item.label}</option>)}
+        </select>
+        <p id="stage-help">Use uma opção pronta. Não pedimos dados pessoais nem salvamos sua escolha.</p>
+      </div>
+      <div class="contact-choice">
+        <label for="priority-choice">Qual a prioridade principal? (opcional)</label>
+        <select id="priority-choice" name="prioridade" autocomplete="off" aria-describedby="priority-help">
+          <option value="">Ainda estou definindo</option>
+          {briefingPriorities.map(item => <option value={item.code}>{item.label}</option>)}
+        </select>
+        <p id="priority-help">Sua escolha ajuda a preparar o texto do contato, sem enviar nada pelo site.</p>
+      </div>
+      <p id="message-preview" class="message-preview" role="status" aria-live="polite" aria-atomic="true">Prévia da mensagem: Olá, gostaria de conhecer os serviços da Imagine.</p>
       <p class="contact-process-link"><a href="/como-funciona/">Entenda as etapas do projeto antes de conversar</a> · <a href="/perguntas-frequentes/">Dúvidas frequentes</a></p>
       <p id="external-channel-notice" class="contact-channel-notice">Os canais abaixo são externos ao site. Ao abrir o WhatsApp, o texto preparado aparece no serviço; confira e confirme o envio. O e-mail abre o aplicativo configurado no seu dispositivo. A Imagine não recebe uma solicitação por meio deste site apenas porque você selecionou um serviço ou objetivo.</p>
       <div class="cta-row">
@@ -53,6 +71,7 @@ import {contactObjectives} from '../data/contact-objectives.mjs';
   <script>
     import {contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
     import {composeCuratedContactLinks,contactObjectives} from '../data/contact-objectives.mjs';
+    import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from '../data/briefing-curado.mjs';
     // Somente dados estáticos de serviço: sem cookies, fetch, rastreamento ou PII.
     const choice = document.querySelector<HTMLSelectElement>('#service-choice');
     const whatsapp = document.querySelector<HTMLAnchorElement>('#contact-whatsapp');
@@ -60,20 +79,31 @@ import {contactObjectives} from '../data/contact-objectives.mjs';
     const help = document.querySelector<HTMLElement>('#service-help');
     const objective = document.querySelector<HTMLSelectElement>('#objective-choice');
     const objectiveHelp = document.querySelector<HTMLElement>('#objective-help');
-    if (choice && whatsapp && email && help && objective && objectiveHelp) {
+    const stage = document.querySelector<HTMLSelectElement>('#stage-choice');
+    const priority = document.querySelector<HTMLSelectElement>('#priority-choice');
+    const preview = document.querySelector<HTMLElement>('#message-preview');
+    if (choice && whatsapp && email && help && objective && objectiveHelp && stage && priority && preview) {
       // All identifiers originate from the server-reviewed service catalog.
       // The URL fragment contains only a public service slug, never a lead.
       const allowed = new Set([...choice.options].map(option => option.value));
       const allowedObjectives = new Set(['',...contactObjectives.map(item => item.code)]);
+      const allowedStages = new Set(['',...briefingStages.map(item => item.code)]);
+      const allowedPriorities = new Set(['',...briefingPriorities.map(item => item.code)]);
       const update = () => {
         const selected = choice.selectedOptions[0];
         const label = selected?.value ? selected.textContent?.trim() : '';
         if (!allowedObjectives.has(objective.value)) objective.value = '';
+        if (!allowedStages.has(stage.value)) stage.value = '';
+        if (!allowedPriorities.has(priority.value)) priority.value = '';
         const curated=composeCuratedContactLinks(choice.value,objective.value);
-        const whatsappMessage = curated.message;
+        const expanded=composeCuratedBriefingLinks(choice.value,objective.value,stage.value,priority.value);
+        const whatsappMessage = expanded.message;
         const emailSubject = curated.subject;
         whatsapp.href = contactWhatsAppUrl(whatsappMessage);
-        email.href = contactEmailUrl(emailSubject);
+        email.href = (stage.value || priority.value)
+          ? contactEmailUrl(emailSubject,whatsappMessage)
+          : contactEmailUrl(emailSubject);
+        preview.textContent='Prévia da mensagem: '+whatsappMessage;
         help.textContent = label
           ? 'Mensagem preparada para ' + label + '. Nenhum dado será enviado pelo site.'
           : 'Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.';
@@ -88,6 +118,8 @@ import {contactObjectives} from '../data/contact-objectives.mjs';
         update();
       };
       objective.addEventListener('change', update);
+      stage.addEventListener('change', update);
+      priority.addEventListener('change', update);
       choice.addEventListener('change', () => {
         if (!allowed.has(choice.value)) return;
         // Replace this history entry rather than adding one for every change.
@@ -106,6 +138,7 @@ import {contactObjectives} from '../data/contact-objectives.mjs';
     .contact-process-link { margin: 20px 0 0; }
     .contact-process-link a { color: #0b5ea9; font-weight: 750; text-underline-offset: 4px; }
     .contact-choice { max-width: 490px; margin-top: 22px; }
+    .message-preview { max-width: 660px; overflow-wrap: anywhere; border-left: 4px solid #1467bb; padding: 12px 16px; margin: 24px 0 0; background: #f1f7fe; color: #263d56; }
     .contact-choice label { display: block; font-weight: 800; margin-bottom: 8px; }
     .contact-choice select { width: 100%; min-height: 48px; padding: 10px 14px; border: 1px solid #9aafc5; border-radius: 10px; font: inherit; background: white; color: #182438; }
     .contact-choice p { margin: 8px 0 0; font-size: .85rem; color: #536680; }
