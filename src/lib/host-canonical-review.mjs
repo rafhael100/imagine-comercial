@@ -14,7 +14,7 @@ const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x)&&
 const fields=(x,allowed)=>plain(x)&&Reflect.ownKeys(x).every(k=>
   typeof k==='string'&&allowed.has(k)&&
   Object.hasOwn(Object.getOwnPropertyDescriptor(x,k),'value'));
-const INPUT_ROW=new Set(['host','path','state','proposedTarget',
+const INPUT_ROW=new Set(['host','path','observedHttp','state','proposedTarget',
   'queryOrFragmentSuppressed','clicks','impressions','averagePosition']);
 
 export function reviewCanonicalHostMigration(evidence){
@@ -40,11 +40,12 @@ export function reviewCanonicalHostMigration(evidence){
       !PATH.test(row.path)||row.path.includes('//')||
       row.path.split('/').some(s=>s==='.'||s==='..')||
       typeof row.queryOrFragmentSuppressed!=='boolean'||
+      typeof row.observedHttp!=='boolean'||
       !Number.isSafeInteger(row.clicks)||row.clicks<0||
       !Number.isSafeInteger(row.impressions)||row.impressions<0||
       row.clicks>row.impressions)
       throw Error('canonical host review: malformed page evidence');
-    const id=row.host+'\0'+row.path;
+    const id=row.host+'\0'+row.path+'\0'+row.observedHttp;
     if(seen.has(id))
       throw Error('canonical host review: duplicate host/path evidence');
     seen.add(id);
@@ -52,6 +53,8 @@ export function reviewCanonicalHostMigration(evidence){
     let proposedCanonical=null;
     if(row.queryOrFragmentSuppressed||row.path.includes('%')){
       status='VARIANT_HOLD';
+    }else if(row.observedHttp){
+      status='PROTOCOL_HOLD_REQUIRES_REVIEW';
     }else if(CURRENT.has(row.path)){
       if(row.host==='www.imaginecomunicacao.com.br'){
         status='HOST_ONLY_CANDIDATE_NOT_APPROVED';
@@ -60,15 +63,18 @@ export function reviewCanonicalHostMigration(evidence){
     }else if(LEGACY.has(row.path)){
       status='LEGACY_REVIEW_REQUIRED';
     }
-    actions.push({host:row.host,path:row.path,status,proposedCanonical});
+    actions.push({host:row.host,path:row.path,observedHttp:row.observedHttp,
+      status,proposedCanonical});
   }
-  actions.sort((a,b)=>a.path.localeCompare(b.path)||a.host.localeCompare(b.host));
+  actions.sort((a,b)=>a.path.localeCompare(b.path)||a.host.localeCompare(b.host)||
+    Number(a.observedHttp)-Number(b.observedHttp));
   return {
     contractVersion:'imagine.comercial.host-canonical-review.v1',
     sourceType:'unverified_offline_evidence_only',
     candidateHostOnly:actions.filter(x=>x.status==='HOST_ONLY_CANDIDATE_NOT_APPROVED').length,
     legacyHeld:actions.filter(x=>x.status==='LEGACY_REVIEW_REQUIRED').length,
     variantHeld:actions.filter(x=>x.status==='VARIANT_HOLD').length,
+    protocolHeld:actions.filter(x=>x.status==='PROTOCOL_HOLD_REQUIRES_REVIEW').length,
     unknownHeld:actions.filter(x=>x.status==='UNKNOWN_HOLD').length,
     actions,
     approvedRedirects:0,
