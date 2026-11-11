@@ -1,5 +1,20 @@
 # STATUS-ATUAL — Imagine Comercial
 
+## Continuidade funcional — F173–F180 (11/11/2026)
+
+Oito PRs **integradas somente em DEV**, com seus workflows individuais aplicáveis aprovados:
+
+- [F173 #222](https://github.com/rafhael100/imagine-comercial/pull/222): evita confirmações de clipboard antigas e cópias simultâneas.
+- [F174 #223](https://github.com/rafhael100/imagine-comercial/pull/223): comparação acessível de até duas soluções sem armazenamento.
+- [F175 #224](https://github.com/rafhael100/imagine-comercial/pull/224): link compartilhável com 15 pares de serviços curados, sem PII.
+- [P0 F176 #225](https://github.com/rafhael100/imagine-comercial/pull/225): prova HMAC com nonce sintético de 120 s e consumo único em laboratório.
+- [P0 F177 #226](https://github.com/rafhael100/imagine-comercial/pull/226): token exigido no receptor HTTP privado de revisão do orçamento.
+- [P0 F178 #227](https://github.com/rafhael100/imagine-comercial/pull/227): Chromium mobile/desktop de formulário fictício → token → revisão CRM sem recibo.
+- [P0 F179 #228](https://github.com/rafhael100/imagine-comercial/pull/228): 12 reservas PostgreSQL concorrentes de um nonce, apenas uma aceita.
+- [P0 F180 #229](https://github.com/rafhael100/imagine-comercial/pull/229): HTTP→HMAC→PostgreSQL descartável; 8 POST concorrentes, 1 diagnóstico estrutural e 7 replays negados.
+
+**Não confundir laboratório com produção.** HMAC não substitui proteção antirrobô; o PostgreSQL do runner não comprova persistência real. F70 ainda exige formulário funcional/antifraude, texto jurídico, consentimento/base legal, Portal autenticado e vínculo tenant, CRM/outbox/ACK e retenção, homologação Leaseweb, AppSec/DBA/LGPD, GSC/crawl/301, aprovação do responsável e rollback. Nenhum lead é captado publicamente. `main`, DNS e produção não foram modificados.
+
 ## Estado integrado — RC38 + F170 (11/11/2026)
 
 O trabalho de Comercial e SEO está consolidado na [PR de revisão #155](https://github.com/rafhael100/imagine-comercial/pull/155), **somente na branch de desenvolvimento**. A `main` segue documental, sem deployment, DNS, 301 produtivo, compras ou contato com dados reais.
