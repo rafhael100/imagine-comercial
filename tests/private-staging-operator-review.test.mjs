@@ -91,7 +91,7 @@ test('F167 operator review combines exact package + bcrypt + 401 + 22 HTTP check
       'canCollectPublicLeads','deploymentAuthorized','deploymentPerformed'])
       assert.equal(report[key],false,key);
     const serialization=JSON.stringify(report);
-    for(const secret of [password,htpasswdPath,bcrypt,f.expectedTreeSha256])
+    for(const secret of [password,f.htpasswdPath,bcrypt,f.expectedTreeSha256])
       assert.equal(serialization.includes(secret),false);
     assert.ok(Object.isFrozen(report));
   }finally{await rm(f.base,{recursive:true,force:true});}
