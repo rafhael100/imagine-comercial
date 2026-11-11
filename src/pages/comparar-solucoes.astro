@@ -60,6 +60,8 @@ const pathname='/comparar-solucoes/';
     <h2 id="selected-comparison-title">Sua comparação de soluções</h2>
     <p>Revise os critérios das opções selecionadas. Esta comparação é informativa, não constitui proposta ou recomendação personalizada.</p>
     <ol class="compare-grid selected-comparison-list" id="selected-comparison-list"></ol>
+    <button type="button" id="copy-comparison-link" class="cta cta-secondary" hidden>Copiar link desta comparação</button>
+    <p id="copy-comparison-status" role="status" aria-live="polite" aria-atomic="true"></p>
   </section>
   <section class="section shell">
     <h2>A comparação não substitui uma proposta.</h2>
@@ -71,16 +73,26 @@ const pathname='/comparar-solucoes/';
   </section>
   <script>
     import {comparisonOptions} from '../data/service-comparison.mjs';
+    import {encodeReviewedComparisonFragment,decodeReviewedComparisonFragment}
+      from '../data/reviewed-comparison-fragment.mjs';
     // F174: deliberate, transient shortlist of at most two curated services.
     // No visitor profile, free text, network, browser storage or URL changes.
     const buttons=[...document.querySelectorAll<HTMLButtonElement>('[data-compare-select]')];
     const selectedSection=document.querySelector<HTMLElement>('#selected-comparison');
     const selectedList=document.querySelector<HTMLOListElement>('#selected-comparison-list');
     const status=document.querySelector<HTMLElement>('#compare-chooser-status');
+    const share=document.querySelector<HTMLButtonElement>('#copy-comparison-link');
+    const shareStatus=document.querySelector<HTMLElement>('#copy-comparison-status');
     const catalog=new Map(comparisonOptions.map(item=>[item.slug,item]));
-    if(selectedSection&&selectedList&&status&&buttons.length===catalog.size){
+    if(selectedSection&&selectedList&&status&&share&&shareStatus&&buttons.length===catalog.size){
       const selected=new Set<string>();
+      let revision=0;
+      let copyPending=false;
       const render=()=>{
+        revision++;
+        shareStatus.textContent='';
+        share.hidden=selected.size!==2||!navigator.clipboard?.writeText;
+        share.disabled=copyPending;
         const cards=[...selected].map(slug=>catalog.get(slug)).filter(item=>item!==undefined);
         selectedList.replaceChildren();
         for(const item of cards){
@@ -133,14 +145,55 @@ const pathname='/comparar-solucoes/';
           const slug=button.dataset.compareSelect??'';
           if(selected.has(slug))selected.delete(slug);
           else if(selected.size<2&&catalog.has(slug))selected.add(slug);
+          const fragment=selected.size===2
+            ?encodeReviewedComparisonFragment([...selected]):'';
+          // Replace rather than push: no visitor history trail of choices.
+          window.history.replaceState(null,'',
+            window.location.pathname+window.location.search+fragment);
           render();
         });
       }
+      share.addEventListener('click',async()=>{
+        if(copyPending||selected.size!==2)return;
+        const fragment=encodeReviewedComparisonFragment([...selected]);
+        // Copy only a fixed public route and two approved service IDs.
+        // Never copy arbitrary query strings from the current page.
+        const value=window.location.origin+'/comparar-solucoes/'+fragment;
+        const ticket=++revision;
+        copyPending=true;
+        share.disabled=true;
+        shareStatus.textContent='';
+        try{
+          if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
+          await navigator.clipboard.writeText(value);
+          if(ticket===revision)
+            shareStatus.textContent='Link da comparação copiado. Compartilhe somente se desejar.';
+        }catch{
+          if(ticket===revision)
+            shareStatus.textContent='Não foi possível copiar automaticamente. Você pode explorar os serviços acima.';
+        }finally{
+          copyPending=false;
+          share.disabled=false;
+        }
+      });
+      const applyFragment=()=>{
+        const pair=decodeReviewedComparisonFragment(window.location.hash);
+        selected.clear();
+        if(pair)for(const slug of pair)selected.add(slug);
+        render();
+      };
+      window.addEventListener('hashchange',applyFragment);
+      window.addEventListener('popstate',applyFragment);
       status.hidden=false;
-      render();
+      applyFragment();
     }
   </script>
   <style>
+    #copy-comparison-link[hidden]{display:none!important}
+    #copy-comparison-link{margin-top:18px}
+    #copy-comparison-link:disabled{opacity:.6;cursor:wait}
+    #copy-comparison-status{color:#405571;margin-top:14px}
+    #copy-comparison-status:empty{display:none}
     .compare-selector{font:inherit;font-weight:750;color:#124b81;background:#f4f8fd;border:1px solid #97b1cd;border-radius:10px;padding:10px 12px;min-height:44px;cursor:pointer;margin-top:20px;text-align:left}
     .compare-selector[aria-pressed="true"]{color:#14583d;background:#e6f5ec;border-color:#287c5b}
     .compare-selector[disabled]{opacity:.55;cursor:not-allowed}
