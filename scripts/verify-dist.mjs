@@ -15,6 +15,7 @@ import {auditPublicHeadingStructure} from '../src/lib/heading-structure-contract
 import {auditInPageFragments} from '../src/lib/in-page-fragment-contract.mjs';
 import {auditCrossPageFragmentTargets} from '../src/lib/cross-page-fragment-contract.mjs';
 import {auditApprovedOutboundLinks} from '../src/lib/outbound-link-contract.mjs';
+import {auditGeneratedHtmlInventory} from '../src/lib/generated-html-inventory.mjs';
 const paths = sitePages.map(p=>p.path==='/' ? 'index.html' : p.path.slice(1)+'index.html');
 
 const metaPages=[];
@@ -62,8 +63,14 @@ function walkBuiltFiles(folder){
     return entry.isDirectory()?walkBuiltFiles(path):entry.isFile()?[path]:[];
   });
 }
+const builtFiles=walkBuiltFiles('dist');
+auditGeneratedHtmlInventory(
+  builtFiles.filter(file=>/\.html$/i.test(file))
+    .map(file=>relative('dist',file).replaceAll('\\','/')),
+  sitePages.map(page=>page.path)
+);
 let frozenAssets=0;
-for(const file of walkBuiltFiles('dist')){
+for(const file of builtFiles){
   if(!/\.(?:html|js)$/i.test(file))continue;
   assertNoUnapprovedPublicIntake(relative('dist',file),readFileSync(file,'utf8'));
   frozenAssets++;
