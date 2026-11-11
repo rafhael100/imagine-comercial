@@ -55,8 +55,10 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
         <a class="cta" id="contact-whatsapp" href={contactWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-describedby="external-channel-notice">Conversar pelo WhatsApp</a>
         <a class="cta cta-secondary" id="contact-email" href={contactEmailUrl()} aria-describedby="external-channel-notice">Enviar e-mail</a>
         <button class="cta cta-secondary contact-copy" type="button" id="copy-message" hidden aria-describedby="message-preview external-channel-notice">Copiar mensagem</button>
+        <button class="cta cta-secondary contact-copy" type="button" id="copy-briefing-link" hidden aria-describedby="external-channel-notice">Copiar link deste briefing</button>
       </div>
       <p id="copy-message-status" class="copy-message-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <p id="copy-briefing-status" class="copy-message-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </div>
   </section>
   <section class="section section-soft">
@@ -74,6 +76,7 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
     import {contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
     import {composeCuratedContactLinks,contactObjectives} from '../data/contact-objectives.mjs';
     import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from '../data/briefing-curado.mjs';
+    import {encodeCuratedBriefingFragment,decodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
     // Somente dados estáticos de serviço: sem cookies, fetch, rastreamento ou PII.
     const choice = document.querySelector<HTMLSelectElement>('#service-choice');
     const whatsapp = document.querySelector<HTMLAnchorElement>('#contact-whatsapp');
@@ -86,10 +89,12 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
     const preview = document.querySelector<HTMLElement>('#message-preview');
     const copy = document.querySelector<HTMLButtonElement>('#copy-message');
     const copyStatus = document.querySelector<HTMLElement>('#copy-message-status');
-    if (choice && whatsapp && email && help && objective && objectiveHelp && stage && priority && preview && copy && copyStatus) {
+    const share = document.querySelector<HTMLButtonElement>('#copy-briefing-link');
+    const shareStatus = document.querySelector<HTMLElement>('#copy-briefing-status');
+    if (choice && whatsapp && email && help && objective && objectiveHelp && stage && priority && preview && copy && copyStatus && share && shareStatus) {
       // Exibir o botão somente em navegadores com API de clipboard disponível.
       // Sem JS, o botão permanece oculto e os canais estáticos funcionam.
-      if (navigator.clipboard?.writeText) copy.hidden = false;
+      if (navigator.clipboard?.writeText) { copy.hidden = false; share.hidden = false; }
       // All identifiers originate from the server-reviewed service catalog.
       // The URL fragment contains only a public service slug, never a lead.
       const allowed = new Set([...choice.options].map(option => option.value));
@@ -112,6 +117,7 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
           : contactEmailUrl(emailSubject);
         preview.textContent='Prévia da mensagem: '+whatsappMessage;
         copyStatus.textContent='';
+        shareStatus.textContent='';
         help.textContent = label
           ? 'Mensagem preparada para ' + label + '. Nenhum dado será enviado pelo site.'
           : 'Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.';
@@ -121,8 +127,21 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
       };
       const applyFragment = () => {
         const requested = window.location.hash.slice(1);
-        // Unknown, malformed or arbitrary fragments fail closed.
-        choice.value = allowed.has(requested) ? requested : '';
+        // Legacy #service hash stays valid; the optional F169 format has
+        // exactly four whitelisted catalog tokens, never visitor free text.
+        const shared=decodeCuratedBriefingFragment('#'+requested);
+        if(shared){
+          choice.value=shared.service;
+          objective.value=shared.objective;
+          stage.value=shared.stage;
+          priority.value=shared.priority;
+        }else{
+          // Unknown, malformed or arbitrary fragments fail closed.
+          choice.value = allowed.has(requested) ? requested : '';
+          objective.value='';
+          stage.value='';
+          priority.value='';
+        }
         update();
       };
       copy.addEventListener('click', async () => {
@@ -135,6 +154,20 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
           copyStatus.textContent='Mensagem copiada. Cole no canal de sua preferência e confirme o envio.';
         } catch {
           copyStatus.textContent='Não foi possível copiar automaticamente. Você pode selecionar a prévia acima e copiá-la manualmente.';
+        }
+      });
+      share.addEventListener('click', async () => {
+        // Build the URL from origin + fixed public route only: never include
+        // current query params, token fragments, contact text or tracking IDs.
+        const fragment=encodeCuratedBriefingFragment(
+          choice.value,objective.value,stage.value,priority.value);
+        const link=window.location.origin+'/contato/'+fragment;
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+          await navigator.clipboard.writeText(link);
+          shareStatus.textContent='Link do briefing copiado. Compartilhe apenas se desejar; o site não recebe seus dados.';
+        } catch {
+          shareStatus.textContent='Não foi possível copiar o link automaticamente. Você pode conversar pelos canais acima.';
         }
       });
       objective.addEventListener('change', update);
