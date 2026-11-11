@@ -1,0 +1,79 @@
+name: Comercial SEO-RC36 - synthetic GSC CPF CNPJ privacy parity
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/commercial-seo-rc36-privacy-review.yml'
+      - 'docs/comercial-seo-rc36-privacy-review.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: comercial-seo-rc36-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  private-gsc-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Comercial review code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Setup Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Checkout pinned SEO RC35 for privacy regression baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: 743e24d7b14ba27aa8534911034da0c26a71afee
+          path: .qa/seo-rc35
+          persist-credentials: false
+      - name: Checkout pinned SEO RC36 privacy fix
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: 440d515c1094ed5c8e0094c5c614fe1d6d49d881
+          path: .qa/seo-rc36
+          persist-credentials: false
+      - name: Verify both complete Git revisions before tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .qa/seo-rc35 rev-parse HEAD)" = 743e24d7b14ba27aa8534911034da0c26a71afee
+          test "$(git -C .qa/seo-rc36 rev-parse HEAD)" = 440d515c1094ed5c8e0094c5c614fe1d6d49d881
+          test -z "$(git -C .qa/seo-rc36 status --porcelain --untracked-files=no)"
+      - name: Verify RC36 privacy regression and no private output
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {importGscQueriesCsv as oldImport} from './.qa/seo-rc35/src/gsc-csv.mjs';
+          import {analyzeQueryExport as oldAnalyze} from './.qa/seo-rc35/src/opportunities.mjs';
+          import {importGscQueriesCsv as newImport} from './.qa/seo-rc36/src/gsc-csv.mjs';
+          import {analyzeQueryExport as newAnalyze} from './.qa/seo-rc36/src/opportunities.mjs';
+          const period={startDate:'2026-10-01',endDate:'2026-10-07'};
+          const csv='Queries,Clicks,Impressions,CTR,Position\n'+
+            '"123.456.789-09",2,100,2%,8\n'+
+            '"12.345.678/0001-90",1,50,2%,8\n'+
+            '"sites por assinatura",5,200,2.5%,8\n';
+          const before=oldAnalyze(oldImport(csv,period));
+          const after=newAnalyze(newImport(csv,period));
+          assert.equal(before.summary.redactedRows,0);
+          assert.equal(before.summary.impressions,350);
+          assert.equal(after.summary.redactedRows,2);
+          assert.equal(after.summary.analyzedRows,1);
+          assert.equal(after.summary.clicks,5);
+          assert.equal(after.summary.impressions,200);
+          assert.doesNotMatch(JSON.stringify(after),
+            /123\.456\.789-09|12\.345\.678\/0001-90/);
+          assert.equal(after.dataSource,
+            'user_provided_search_analytics_export_not_verified');
+          console.log('RC36 GSC privacy parity passed: redacted counters restored; no customer data');
+          NODE
