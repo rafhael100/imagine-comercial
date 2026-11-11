@@ -30,6 +30,8 @@ test('F163 Nginx serves only static assets, guards 404 and forbids POST',()=>{
   assert.match(nginx,/try_files \$uri \$uri\/ \$uri\/index\.html =404;/);
   assert.match(nginx,/add_header X-Content-Type-Options "nosniff" always;/);
   assert.match(nginx,/add_header X-Frame-Options "DENY" always;/);
+  assert.match(nginx,/add_header X-Robots-Tag "noindex, nofollow, noarchive" always;/);
+  assert.match(nginx,/add_header Cache-Control "no-store" always;/);
   assert.match(nginx,/add_header Referrer-Policy "strict-origin-when-cross-origin" always;/);
   assert.match(nginx,/add_header Permissions-Policy "camera=\(\), microphone=\(\), geolocation=\(\)" always;/);
   assert.doesNotMatch(nginx,/proxy_pass|return 301|return 302|autoindex on|access_log\s+\/var/i);
