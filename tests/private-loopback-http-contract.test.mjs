@@ -118,6 +118,41 @@ test('F95: request method, content-type, malformed JSON and bounded body fail cl
   assert.equal(h.recordedCount(),0);
 });
 
+test('F149: post-observation socket abort never becomes a successful HTTP acknowledgement',async t=>{
+  const persisted=new Set();
+  let abortOnce=true;
+  const h=await startPrivateLoopbackIntakeHarness({
+    observeMetadata:async data=>{
+      const id=data.submission_reference;
+      if(persisted.has(id))return 'duplicate';
+      persisted.add(id);
+      return 'new';
+    },
+    abortResponseAfterObservation:(_data,{existed})=>{
+      if(!abortOnce)return false;
+      assert.equal(existed,false);
+      abortOnce=false;
+      return true;
+    }
+  });
+  t.after(()=>h.close());
+  await assert.rejects(post(h,body()),{name:'TypeError'});
+  assert.equal(persisted.size,1,'observer saw one synthetic event');
+  await inspect(await post(h,body()),202,'DUPLICATE_SYNTHETIC_METADATA');
+  assert.equal(persisted.size,1,'replay cannot create another observation');
+  assert.equal(h.recordedCount(),0,'no in-memory F95 fallback');
+});
+
+test('F149: transport fault injection is forbidden without injected observer',async()=>{
+  await assert.rejects(startPrivateLoopbackIntakeHarness({
+    abortResponseAfterObservation:()=>true
+  }),/response failure hook requires/);
+  await assert.rejects(startPrivateLoopbackIntakeHarness({
+    observeMetadata:async()=> 'new',
+    abortResponseAfterObservation:'disconnect'
+  }),/response failure hook requires/);
+});
+
 test('F95: harness lives only in tests, is not imported by Astro or published',()=>{
   const fixture=readFileSync(new URL('./fixtures/private-loopback-intake-harness.mjs',import.meta.url),'utf8');
   const page=readFileSync(new URL('../src/pages/contato.astro',import.meta.url),'utf8');

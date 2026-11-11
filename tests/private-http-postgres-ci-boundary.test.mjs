@@ -75,3 +75,15 @@ test('F148: unknown HTTP result after PG commit is held, replay has one outbox e
   assert.match(harness,/crmPersisted:false/);
   assert.match(harness,/visitorAcknowledgementAllowed:false/);
 });
+
+test('F149: deliberate transport loss is observed after DB commit, never as a CRM ACK',()=>{
+  assert.match(script,/const disconnectSubmission=/);
+  assert.match(script,/const disconnectEnvelope=/);
+  assert.match(script,/abortResponseAfterObservation=/);
+  assert.match(script,/await assert\.rejects\(post\(h,disconnectEnvelope\)/);
+  assert.match(script,/F149 transaction survives broken HTTP connection/);
+  assert.match(script,/F149 transport reconnect cannot insert another ledger or outbox/);
+  assert.match(harness,/abortResponseAfterObservation\(body,Object\.freeze\(\{existed\}\)\)/);
+  assert.match(harness,/res\.destroy\(\)/);
+  assert.doesNotMatch(script,/crmPersisted:true|deliveryProven:true|visitorAcknowledgementAllowed:true/);
+});
