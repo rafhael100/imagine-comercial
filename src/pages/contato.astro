@@ -54,7 +54,9 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
       <div class="cta-row">
         <a class="cta" id="contact-whatsapp" href={contactWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-describedby="external-channel-notice">Conversar pelo WhatsApp</a>
         <a class="cta cta-secondary" id="contact-email" href={contactEmailUrl()} aria-describedby="external-channel-notice">Enviar e-mail</a>
+        <button class="cta cta-secondary contact-copy" type="button" id="copy-message" hidden aria-describedby="message-preview external-channel-notice">Copiar mensagem</button>
       </div>
+      <p id="copy-message-status" class="copy-message-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </div>
   </section>
   <section class="section section-soft">
@@ -82,7 +84,12 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
     const stage = document.querySelector<HTMLSelectElement>('#stage-choice');
     const priority = document.querySelector<HTMLSelectElement>('#priority-choice');
     const preview = document.querySelector<HTMLElement>('#message-preview');
-    if (choice && whatsapp && email && help && objective && objectiveHelp && stage && priority && preview) {
+    const copy = document.querySelector<HTMLButtonElement>('#copy-message');
+    const copyStatus = document.querySelector<HTMLElement>('#copy-message-status');
+    if (choice && whatsapp && email && help && objective && objectiveHelp && stage && priority && preview && copy && copyStatus) {
+      // Exibir o botão somente em navegadores com API de clipboard disponível.
+      // Sem JS, o botão permanece oculto e os canais estáticos funcionam.
+      if (navigator.clipboard?.writeText) copy.hidden = false;
       // All identifiers originate from the server-reviewed service catalog.
       // The URL fragment contains only a public service slug, never a lead.
       const allowed = new Set([...choice.options].map(option => option.value));
@@ -104,6 +111,7 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
           ? contactEmailUrl(emailSubject,whatsappMessage)
           : contactEmailUrl(emailSubject);
         preview.textContent='Prévia da mensagem: '+whatsappMessage;
+        copyStatus.textContent='';
         help.textContent = label
           ? 'Mensagem preparada para ' + label + '. Nenhum dado será enviado pelo site.'
           : 'Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.';
@@ -117,6 +125,18 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
         choice.value = allowed.has(requested) ? requested : '';
         update();
       };
+      copy.addEventListener('click', async () => {
+        // O texto é composto somente dos catálogos públicos curados.
+        // Não pedimos entrada livre, não armazenamos dados nem enviamos uma solicitação.
+        const message=composeCuratedBriefingLinks(choice.value,objective.value,stage.value,priority.value).message;
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+          await navigator.clipboard.writeText(message);
+          copyStatus.textContent='Mensagem copiada. Cole no canal de sua preferência e confirme o envio.';
+        } catch {
+          copyStatus.textContent='Não foi possível copiar automaticamente. Você pode selecionar a prévia acima e copiá-la manualmente.';
+        }
+      });
       objective.addEventListener('change', update);
       stage.addEventListener('change', update);
       priority.addEventListener('change', update);
@@ -135,6 +155,10 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
   </script>
   <style>
     .contact-channel-notice { max-width: 740px; margin-top: 24px; font-size: .94rem; color: #3c516c; }
+    .contact-copy { cursor: pointer; font: inherit; }
+    .contact-copy[hidden] { display: none; }
+    .copy-message-status { max-width: 740px; margin: 12px 0 0; font-size: .9rem; color: #3c516c; }
+    .copy-message-status:empty { display: none; }
     .contact-process-link { margin: 20px 0 0; }
     .contact-process-link a { color: #0b5ea9; font-weight: 750; text-underline-offset: 4px; }
     .contact-choice { max-width: 490px; margin-top: 22px; }
