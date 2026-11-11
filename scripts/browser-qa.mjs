@@ -168,6 +168,18 @@ try {
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('a[href="/comparar-solucoes/"]').count()>=1,true,
       'F60 comparison linked from service directory');
+    // F145: contextual editorial conversion keeps only an approved service slug.
+    await page.goto(host+'/conteudos/landing-page-ou-site/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('a.cta[href="/contato/#criacao-de-sites/"]').count(),0,
+      'F145 canonical contact hash never adds a slash after the service slug');
+    assert.equal(await page.locator('a.cta[href="/contato/#criacao-de-sites"]').count(),1,
+      'F145 article CTA must use a reviewed service hash');
+    assert.equal(await page.locator('a[href="/contato/"]').count()>=1,true,
+      'F145 keeps an accessible generic contact fallback');
+    await page.locator('a.cta[href="/contato/#criacao-de-sites"]').click();
+    await page.waitForURL(host+'/contato/#criacao-de-sites');
+    assert.equal(await page.locator('#service-choice').inputValue(),'criacao-de-sites',
+      'F145 article visitor arrives with reviewed service preselected');
     // F63: keyboard's first stop is the visible skip-to-content control.
     await page.goto(host+'/',{waitUntil:'load',timeout});
     await page.keyboard.press('Tab');
