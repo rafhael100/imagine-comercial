@@ -148,7 +148,7 @@ test('P0-F181 cross-site proof issuance is denied before issuance quota is consu
     }
     const allowed=await request({Origin:url.origin,'Sec-Fetch-Site':'same-origin'});
     assert.equal(allowed.status,200);
-    assert.match((await allowed.json()).requestProof,/^v1\\./);
+    assert.match((await allowed.json()).requestProof,/^v1\./);
     const cli=await request({'Sec-Fetch-Site':'none'});
     assert.equal(cli.status,200);
     assert.equal(cli.headers.get('set-cookie'),null);
