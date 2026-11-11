@@ -21,5 +21,6 @@ test('F158 Chromium test and Lighthouse audits are not bypassed',()=>{
   assert.match(ci,/run: npm run test:browser/);
   assert.match(ci,/run: node scripts\/verify-dist\.mjs/);
   assert.match(lighthouse,/run: node scripts\/lighthouse-local-qa\.mjs/);
-  assert.match(lighthouse,/--output=json/);
+  const lighthouseScript=readFileSync(new URL('../scripts/lighthouse-local-qa.mjs',import.meta.url),'utf8');
+  assert.match(lighthouseScript,/--output=json/);
 });
