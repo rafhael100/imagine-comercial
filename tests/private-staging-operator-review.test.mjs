@@ -16,7 +16,8 @@ const image='nginxinc/nginx-unprivileged@sha256:'+('ab'.repeat(32));
 const bcrypt='$2y$12$'+('Ab3/'.repeat(13))+'Q';
 const published=new Set(['/','/servicos/','/conteudos/','/contato/']);
 const headers=Object.fromEntries([...localHeaderProfile,
-  ['Content-Type','text/html; charset=utf-8'],['Cache-Control','private, no-store']]);
+  ['Content-Type','text/html; charset=utf-8'],['Cache-Control','private, no-store'],
+  ['X-Robots-Tag','noindex, nofollow, noarchive']]);
 
 async function fixture(){
   const base=await mkdtemp(join(tmpdir(),'imagine-f167-'));
