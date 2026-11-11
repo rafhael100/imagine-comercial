@@ -4,10 +4,14 @@
  * An authenticated 200 response is diagnostic only: NEVER a CRM receipt.
  */
 import {createServer} from 'node:http';
-import {createHash,timingSafeEqual} from 'node:crypto';
+import {createHash,randomBytes,timingSafeEqual} from 'node:crypto';
+import {issuePrivateBudgetRequestProofLab,inspectPrivateBudgetRequestProofLab}
+  from '../../src/lib/private-budget-request-proof-lab.mjs';
 import {reviewPrivateBudgetToCrmLab} from '../../src/lib/private-budget-crm-review.mjs';
 
 const ROUTE='/__lab/budget/structural-review';
+const PROOF_ROUTE='/__lab/budget/request-proof';
+const PROOF_SCOPE='synthetic-private-review-session';
 const MAX_BODY=4096;
 const headers=Object.freeze({
   'Content-Type':'application/json; charset=utf-8',
@@ -33,11 +37,15 @@ function refusal(code){
   return {schema:'imagine.comercial.private-budget-http-review.v1',
     mode:'LAB_DENY_ONLY',code,canAcknowledgeVisitor:false,canSendToCrm:false};
 }
-export async function startPrivateBudgetReviewLab(password){
+export async function startPrivateBudgetReviewLab(password,{requireRequestProof=false}={}){
   if(typeof password!=='string'||password.length<24||password.length>128||
       !/^[\x21-\x7e]+$/.test(password))
     throw new Error('F161: a strong local-only password is required');
+  if(typeof requireRequestProof!=='boolean')
+    throw Error('F177: invalid private request proof policy');
   const expected=digest('reviewer:'+password);
+  const proofKey=requireRequestProof?randomBytes(32):null;
+  const usedNonces=new Set();
   const server=createServer(async(req,res)=>{
     for(const [key,value] of Object.entries(headers))res.setHeader(key,value);
     const socket=server.address();
@@ -47,6 +55,19 @@ export async function startPrivateBudgetReviewLab(password){
     if(!allowedBasic(req.headers.authorization,expected)){
       res.setHeader('WWW-Authenticate','Basic realm="Imagine lab", charset="UTF-8"');
       write(res,401,refusal('AUTHENTICATION_REQUIRED'));return;
+    }
+    if(requireRequestProof&&req.method==='GET'&&req.url===PROOF_ROUTE){
+      if(usedNonces.size>=256){
+        write(res,429,refusal('LAB_REPLAY_STORAGE_CAP_REACHED'));return;
+      }
+      const issued=issuePrivateBudgetRequestProofLab({
+        key:proofKey,origin:'http://127.0.0.1:'+socket.port,
+        scope:PROOF_SCOPE
+      });
+      write(res,200,{
+        ...refusal('SIGNED_ONE_TIME_LAB_PROOF_ISSUED'),
+        requestProof:issued.token,ttlSeconds:issued.ttlSeconds
+      });return;
     }
     if(req.method!=='POST'){
       res.setHeader('Allow','POST');
@@ -75,6 +96,27 @@ export async function startPrivateBudgetReviewLab(password){
     let input;
     try{input=JSON.parse(Buffer.concat(chunks).toString('utf8'));}
     catch{write(res,400,refusal('INVALID_JSON'));return;}
+    if(requireRequestProof){
+      const required=['privateDraft','envelope','storedSnapshot','expectedVersion','requestProof'];
+      if(!input||Array.isArray(input)||typeof input!=='object'||
+        Object.keys(input).length!==required.length||
+        !required.every(k=>Object.hasOwn(input,k))){
+        write(res,422,refusal('PROOF_GATED_BODY_SHAPE_REQUIRED'));return;
+      }
+      const inspected=await inspectPrivateBudgetRequestProofLab({
+        key:proofKey,token:input.requestProof,
+        origin:'http://127.0.0.1:'+socket.port,scope:PROOF_SCOPE,
+        claimNonce:nonce=>{
+          if(usedNonces.size>=256||usedNonces.has(nonce))return false;
+          usedNonces.add(nonce);return true;
+        }
+      });
+      if(inspected.oneTimeNonceClaimedInLab!==true){
+        write(res,409,refusal('SIGNED_REQUEST_PROOF_REQUIRED_OR_USED'));return;
+      }
+      const {requestProof, ...reviewInput}=input;
+      input=reviewInput;
+    }
     const result=reviewPrivateBudgetToCrmLab(input);
     write(res,200,{
       schema:'imagine.comercial.private-budget-http-review.v1',
