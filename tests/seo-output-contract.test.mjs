@@ -10,6 +10,13 @@ const html = canonical => `<!doctype html><html lang="pt-BR"><head>
 <link rel="canonical" href="${canonical}">
 <meta name="robots" content="index,follow">
 <meta property="og:url" content="${canonical}">
+<meta property="og:type" content="${canonical.includes('/conteudos/') && canonical.endsWith('/') && canonical!=='https://imaginecomunicacao.com.br/conteudos/' ? 'article' : 'website'}">
+<meta property="og:title" content="Imagine Comunicação Digital">
+<meta property="og:description" content="Serviços de tecnologia e conteúdo para empresas.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:url" content="${canonical}">
+<meta name="twitter:title" content="Imagine Comunicação Digital">
+<meta name="twitter:description" content="Serviços de tecnologia e conteúdo para empresas.">
 </head><body><h1>Imagine</h1></body></html>`;
 
 test('F21 valida canonical e OG em igualdade exata', () => {
@@ -46,4 +53,27 @@ test('F21 valida declaração única do sitemap em robots.txt', () => {
     /exactly one sitemap/);
   assert.throws(() => verifyRobotsSitemap('Sitemap: https://outro.example/sitemap.xml\n', expected),
     /Expected values to be strictly equal/);
+});
+
+test('F139 exige og:type correto e paridade de Twitter/OG por página',()=>{
+  const article='https://imaginecomunicacao.com.br/conteudos/landing-page-ou-site/';
+  assert.equal(verifyIndexablePage(html(article),article),true);
+  assert.throws(()=>verifyIndexablePage(
+    html(article).replace('content="article"','content="website"'),article),
+    /og:type does not match page kind/);
+  assert.throws(()=>verifyIndexablePage(
+    html(home).replace('twitter:card" content="summary"','twitter:card" content="summary_large_image"'),
+    home),/unsupported Twitter card type/);
+  assert.throws(()=>verifyIndexablePage(
+    html(home).replace('twitter:url" content="'+home+'"',
+      'twitter:url" content="https://evil.invalid/"'),home),
+    /twitter:url differs from canonical/);
+  assert.throws(()=>verifyIndexablePage(
+    html(home).replace('twitter:title" content="Imagine Comunicação Digital"',
+      'twitter:title" content="Alterado"'),home),
+    /differs between social previews/);
+  assert.throws(()=>verifyIndexablePage(
+    html(home).replace('twitter:description" content="Serviços de tecnologia e conteúdo para empresas."',
+      'twitter:description" content="Texto divergente"'),home),
+    /differs between social previews/);
 });
