@@ -30,7 +30,7 @@ function simulation({leakedPath,leakedStatus=200,badHeader=null}={}){
 
 test('F168 rejects any anonymous 200/404 on legacy, SEO, error or asset paths',async()=>{
   for(const path of [
-    '/servicos/',held,'/robots.txt','/sitemap.xml','/404.html',
+    '/servicos/',held,'/robots.txt','/sitemap.xml','/perguntas-frequentes/',
     '/_astro/__imagine_private_access_probe__.js'
   ]){
     for(const status of [200,404]){
