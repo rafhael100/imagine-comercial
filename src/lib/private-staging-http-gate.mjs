@@ -70,7 +70,7 @@ export async function reviewPrivateStagingHttp({
   // deny visitors BEFORE any privileged HTTP review can succeed.
   const unauthenticatedPaths=Object.freeze([
     ...publicSamples,...pendingSamples,
-    '/robots.txt','/sitemap.xml','/404.html',
+    '/robots.txt','/sitemap.xml','/perguntas-frequentes/',
     '/_astro/__imagine_private_access_probe__.js'
   ]);
   let unauthenticatedRoutesDenied=0;
