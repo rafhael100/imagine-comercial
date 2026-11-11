@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { buildServices as services } from '../../lib/build-catalog.mjs';
 import {composeCuratedContactLinks} from '../../data/contact-objectives.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../../data/contact-channels.mjs';
+import {relatedEditorialGuides} from '../../data/service-related-guides.mjs';
 
 export function getStaticPaths() {
   return services.map(s => ({ params: { slug: s.slug }, props: { s } }));
@@ -12,6 +13,7 @@ const pathname = '/servicos/' + s.slug + '/';
 const contactIntent=composeCuratedContactLinks(s.slug);
 const directWhatsAppHref=contactWhatsAppUrl(contactIntent.message);
 const directEmailHref=contactEmailUrl(contactIntent.subject);
+const relatedGuides=relatedEditorialGuides(s.slug);
 ---
 <BaseLayout
   title={s.title}
@@ -54,6 +56,22 @@ const directEmailHref=contactEmailUrl(contactIntent.subject);
       ))}
     </div>
   </section>
+  {relatedGuides.length > 0 && (
+    <section class="section shell" aria-labelledby="related-guides-title">
+      <span class="kicker">Guias de contratação</span>
+      <h2 id="related-guides-title">Aprenda mais antes de escolher</h2>
+      <p>Informações para comparar alternativas, entender o escopo e preparar suas dúvidas antes de solicitar uma proposta.</p>
+      <div class="cards">
+        {relatedGuides.map(guide => (
+          <article class="card">
+            <p class="eyebrow">{guide.label}</p>
+            <h3>{guide.title}</h3>
+            <a href={guide.href} aria-label={'Ler guia: ' + guide.title}>Ler guia completo</a>
+          </article>
+        ))}
+      </div>
+    </section>
+  )}
   <section class="section section-dark">
     <div class="shell">
       <h2>Vamos conversar sobre o seu projeto?</h2>
