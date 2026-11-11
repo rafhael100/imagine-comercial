@@ -16,6 +16,7 @@ import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.m
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
+import {assessPrivateBudgetPreview} from '../src/lib/private-budget-preflight.mjs';
 
 const port = 4328;
 const host = 'http://127.0.0.1:' + port;
@@ -490,6 +491,37 @@ try {
       await p.locator('#lead-email').fill('cliente@example.test');
       assert.equal(await p.locator('form').evaluate(form=>form.checkValidity()),true,
         'F82 HTML structural validation is never proof of consent or delivery');
+
+      // P0 F158 — the ACTUAL private form controls, read in Chromium,
+      // must match the server-side structural preflight. Neither branch
+      // submits a contact, stores PII or grants consent/CRM authority.
+      const draftFromPrivateBrowser=await p.locator('form#private-budget-preview').evaluate(form=>{
+        const value=id=>form.querySelector('#'+id).value;
+        return {
+          name:value('lead-name'),role:value('lead-role'),
+          email:value('lead-email'),phone:value('lead-phone'),
+          mobile:value('lead-mobile'),serviceSlug:value('lead-service'),
+          details:value('lead-details'),
+          challengePreview:value('lead-challenge'),
+          previewUnderstanding:form.querySelector('#preview-understanding').checked
+        };
+      });
+      const preflight=assessPrivateBudgetPreview(draftFromPrivateBrowser);
+      assert.equal(preflight.code,'STRUCTURAL_PREVIEW_ONLY_NO_AUTHORITY');
+      assert.equal(preflight.structureMatches,true);
+      for(const capability of ['publicIntakeAllowed','consentProvenanceVerified',
+        'serverAntiBotVerified','authenticatedTenantVerified','durableCrmReceiptVerified',
+        'canPersist','canSendToPortal','canSendToCrm','canAcknowledgeVisitor',
+        'canReplaceLegacyBudgetForm','canDeploy'])
+        assert.equal(preflight[capability],false,capability);
+      assert.equal(assessPrivateBudgetPreview({...draftFromPrivateBrowser,
+        email:'invalid'}).code,'INVALID_CONTACT_ROUTE');
+      assert.equal(assessPrivateBudgetPreview({...draftFromPrivateBrowser,
+        previewUnderstanding:false}).code,'PREVIEW_ACKNOWLEDGEMENT_REQUIRED');
+      const serialized=JSON.stringify(preflight);
+      for(const pii of [draftFromPrivateBrowser.name,draftFromPrivateBrowser.email,
+        draftFromPrivateBrowser.details])
+        assert.ok(!serialized.includes(pii),'F158: no contact value in diagnostic');
       assert.equal(await p.locator('form button').isDisabled(),true);
       assert.ok((await p.locator('#sending-disabled').textContent())?.includes('Envio indisponível'));
       assert.ok((await p.locator('h1').textContent())?.includes('prévia privada'));
