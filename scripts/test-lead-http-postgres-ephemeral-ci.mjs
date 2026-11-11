@@ -21,6 +21,7 @@ const tenant='11111111-1111-4111-8111-111111111111';
 const submission='f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1';
 // F148: uma segunda submissão exclusivamente sintética exercita resultado incerto.
 const unknownSubmission='f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2';
+const disconnectSubmission='f3f3f3f3-f3f3-4f3f-8f3f-f3f3f3f3f3f3';
 const envelope=Object.freeze({
   protocol:'imagine.lead-intake',schema_version:1,
   organization_reference:tenant,
@@ -31,6 +32,7 @@ const envelope=Object.freeze({
   destination_reference:'66666666-6666-4666-8666-666666666666'
 });
 const unknownEnvelope=Object.freeze({...envelope,submission_reference:unknownSubmission});
+const disconnectEnvelope=Object.freeze({...envelope,submission_reference:disconnectSubmission});
 async function pg(sql){
   const {stdout}=await exec('sudo',[
     '-u','postgres','psql','-X','-q','-A','-t',
@@ -110,7 +112,19 @@ async function run(){
     }
     return outcome;
   };
-  const h=await startPrivateLoopbackIntakeHarness({observeMetadata:uncertainObserver});
+  let disconnectOnce=true;
+  const abortResponseAfterObservation=(body,observation)=>{
+    if(body.submission_reference===disconnectSubmission&&disconnectOnce){
+      assert.equal(observation.existed,false,
+        'F149 only a first PostgreSQL observation may simulate a disconnect');
+      disconnectOnce=false;
+      return true;
+    }
+    return false;
+  };
+  const h=await startPrivateLoopbackIntakeHarness({
+    observeMetadata:uncertainObserver,abortResponseAfterObservation
+  });
   try{
     assert.match(h.url,/^http:\/\/127\.0\.0\.1:\d+\/__lab\/internal\/lead-review$/);
     const [x,y]=await Promise.all([post(h,envelope),post(h,envelope)]);
@@ -157,6 +171,33 @@ async function run(){
           AND event_kind='pending_review');`);
     assert.equal(finalUnknown,'1|1','F148 retry must not create second event');
 
+    // F149: genuinely destroy the HTTP response socket AFTER PostgreSQL
+    // committed. Unlike F148 there is no readable HTTP status at all.
+    await assert.rejects(post(h,disconnectEnvelope),{name:'TypeError'},
+      'F149 first request must fail at the transport layer');
+    const disconnectedCount=await pg(`SELECT
+      (SELECT count(*) FROM ${schema}.metadata_ledger
+        WHERE organization_reference=${asLiteral(tenant)}
+          AND submission_reference=${asLiteral(disconnectSubmission)})||'|'||
+      (SELECT count(*) FROM ${schema}.metadata_outbox
+        WHERE organization_reference=${asLiteral(tenant)}
+          AND submission_reference=${asLiteral(disconnectSubmission)}
+          AND event_kind='pending_review');`);
+    assert.equal(disconnectedCount,'1|1',
+      'F149 transaction survives broken HTTP connection');
+    const disconnectedReplay=await bodyOf(await post(h,disconnectEnvelope));
+    assert.equal(disconnectedReplay.reasonCode,'DUPLICATE_SYNTHETIC_METADATA');
+    const disconnectedCountAfter=await pg(`SELECT
+      (SELECT count(*) FROM ${schema}.metadata_ledger
+        WHERE organization_reference=${asLiteral(tenant)}
+          AND submission_reference=${asLiteral(disconnectSubmission)})||'|'||
+      (SELECT count(*) FROM ${schema}.metadata_outbox
+        WHERE organization_reference=${asLiteral(tenant)}
+          AND submission_reference=${asLiteral(disconnectSubmission)}
+          AND event_kind='pending_review');`);
+    assert.equal(disconnectedCountAfter,'1|1',
+      'F149 transport reconnect cannot insert another ledger or outbox');
+
     for(const field of [
       'organization_reference','binding_reference','site_reference',
       'form_reference','destination_reference'
@@ -187,6 +228,6 @@ async function run(){
   }finally{
     await h.close();
   }
-  console.log('F96/F148 PASS: HTTP synthetic metadata -> ephemeral PG + unknown HTTP outcome/retry; no CRM delivery.');
+  console.log('F96/F148/F149 PASS: HTTP synthetic metadata -> ephemeral PG + 503/socket-loss retry; no CRM delivery.');
 }
 await run();
