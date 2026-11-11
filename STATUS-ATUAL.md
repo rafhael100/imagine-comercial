@@ -1,5 +1,22 @@
 # STATUS-ATUAL — Imagine Comercial
 
+## Estado integrado — RC38 + F170 (11/11/2026)
+
+O trabalho de Comercial e SEO está consolidado na [PR de revisão #155](https://github.com/rafhael100/imagine-comercial/pull/155), **somente na branch de desenvolvimento**. A `main` segue documental, sem deployment, DNS, 301 produtivo, compras ou contato com dados reais.
+
+- [PR #212](https://github.com/rafhael100/imagine-comercial/pull/212) **RC38:** prévia de staging em contêiner isolado, 23 URLs legadas protegidas contra migração prematura e Workerd HTTP real em laboratório, sem contêiner executado na Leaseweb.
+- [PR #213](https://github.com/rafhael100/imagine-comercial/pull/213) **P0 F162:** browser privado com orçamento fictício atravessa HTTP de laboratório até validação estrutural CRM, **sem recebimento nem recibo durável**.
+- [PR #214](https://github.com/rafhael100/imagine-comercial/pull/214) **F165:** pacote de staging precisa corresponder byte a byte a SHA-256 obtido separadamente.
+- [PR #215](https://github.com/rafhael100/imagine-comercial/pull/215) **F166:** Basic Auth bcrypt externo obrigatório para staging; teste de HTTP 401, sem credenciais no Git.
+- [PR #216](https://github.com/rafhael100/imagine-comercial/pull/216) **F167:** diagnóstico único de imagem, pacote, credenciais e HTTP em ambiente privado de operador.
+- [PR #217](https://github.com/rafhael100/imagine-comercial/pull/217) **F168:** 26 rotas anônimas exigem 401/noindex/no-store **antes** de 22 verificações autenticadas.
+- [PR #218](https://github.com/rafhael100/imagine-comercial/pull/218) **F169:** link compartilhável de briefing com 560 combinações públicas curadas, sem PII, cookies ou requisição.
+- [PR #219](https://github.com/rafhael100/imagine-comercial/pull/219) **F170:** checklist de seis perguntas para o cliente, com marcação temporária e impressão local.
+
+Cada PR passou em seus workflows aplicáveis **antes** da integração em DEV. As verificações da HEAD conjunta devem ser avaliadas separadamente; CI verde não constitui homologação de VPS, prova de identidade, persistência real ou autorização de publicação.
+
+**Bloqueios:** acesso/segurança real Leaseweb, revisão independente da imagem/segredos/infra, F70 formulário operacional e consentimento, API autenticada Portal→CRM com isolamento por empresa, banco/outbox/ACK e retenção, GSC/crawl real/migração SEO, revisões SEG/DBA/LGPD e aprovação humana de produção.
+
 ## RC33 funcional + controles P0/F154–F161 (11/11/2026)
 
 **Estado: desenvolvimento integrado e verificável, NÃO produção.** Candidata [PR draft #155](https://github.com/rafhael100/imagine-comercial/pull/155), base `main` documental, branch `integration/comercial-rc31-functional-seo-2026-11-11`. O nome técnico da branch permanece RC31 por continuidade histórica; o conteúdo integrado corresponde às melhorias **RC33**.

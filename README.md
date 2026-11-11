@@ -4,7 +4,9 @@ Site público comercial da Imagine Comunicação Digital — `imaginecomunicacao
 
 **Decisão técnica aprovada (08/11/2026): Astro**, arquitetura **SEO-first** e **híbrida** (SSG como padrão; SSR controlado somente se necessário e após homologação). A prova de conceito comparativa com Next.js/Nuxt foi dispensada por decisão do responsável.
 
-## Versão integrada: Comercial + SEO RC33 (11/11/2026)
+## Versão integrada: Comercial + SEO RC38 / F170 (11/11/2026)
+
+A versão atual de desenvolvimento reúne a RC38 de staging privado (somente configuração), o ensaio de orçamento sintético P0, as proteções F165–F168 e as funcionalidades F169–F170 de contato/briefing. Todos os detalhes e links de PR estão no [STATUS-ATUAL.md](STATUS-ATUAL.md). **Nenhuma dessas provas substitui autorização de release.**
 
 A [candidata de desenvolvimento #155](https://github.com/rafhael100/imagine-comercial/pull/155) contém a **RC33**, além das funções comerciais e dos testes sintéticos de orçamento P0. [PR #205](https://github.com/rafhael100/imagine-comercial/pull/205) reuniu os filtros editoriais, sumários, guias relacionados e auditorias de contato sem perder o CTA contextual dos artigos. [PR #207](https://github.com/rafhael100/imagine-comercial/pull/207) reforçou WCAG/teclado, corrigiu contraste de CTA, validou links exclusivamente curados e bloqueou formulários JS não autorizados.
 
