@@ -1,0 +1,77 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { articles } from '../../data/articles.mjs';
+import {guideTopics,topicsForGuide} from '../../data/article-topics.mjs';
+---
+<BaseLayout title="Conteúdos sobre sites, SEO e performance | Imagine" description="Guias sobre criação de sites, Landing Pages, SEO e campanhas digitais para ajudar empresas a planejar sua presença online." pathname="/conteudos/" breadcrumb={[{label:'Conteúdos',path:'/conteudos/'}]}>
+  <section class="hero"><div class="shell"><p class="eyebrow">Guias Imagine</p><h1>Informações para decisões digitais melhores.</h1><p class="lead">Conteúdos sobre criação de sites, páginas comerciais, SEO e anúncios. Explore os assuntos e conheça as soluções relacionadas.</p></div></section>
+  <section class="section shell" aria-labelledby="guides-title">
+    <h2 id="guides-title">Explore nossos guias</h2>
+    <p>Escolha um assunto para encontrar orientações sobre tecnologia, marketing e contratação. Todos os guias continuam disponíveis sem JavaScript.</p>
+    <div id="guide-topic-filters" class="guide-filters" role="group" aria-label="Filtrar guias por assunto">
+      {guideTopics.map(topic=>(
+        <button type="button" class="guide-filter-button"
+          data-guide-filter={topic.code}
+          aria-pressed={topic.code==='all'?'true':'false'}
+          aria-controls="guide-list">{topic.label}</button>
+      ))}
+    </div>
+    <p id="guide-filter-status" class="guide-status" role="status" aria-live="polite" aria-atomic="true">Exibindo todos os {articles.length} guias.</p>
+    <div class="cards" id="guide-list">
+      {articles.map(article=>(
+        <article class="card" data-guide-categories={topicsForGuide(article.slug).join(' ')}>
+          <p class="eyebrow">{article.eyebrow}</p>
+          <h3>{article.heading}</h3>
+          <p>{article.intro}</p>
+          <a href={'/conteudos/'+article.slug+'/'} aria-label={'Ler: '+article.heading}>Ler guia completo</a>
+        </article>
+      ))}
+    </div>
+  </section>
+  <script>
+    // F152 — filtro local, sem campos de entrada, query string, cookies,
+    // armazenamento, requisições, analytics ou alteração de histórico.
+    const controls=document.querySelector<HTMLElement>('#guide-topic-filters');
+    const result=document.querySelector<HTMLElement>('#guide-filter-status');
+    const buttons=[...document.querySelectorAll<HTMLButtonElement>('[data-guide-filter]')];
+    const cards=[...document.querySelectorAll<HTMLElement>('[data-guide-categories]')];
+    if(controls&&result&&buttons.length&&cards.length){
+      controls.setAttribute('data-enhanced','true');
+      const topics=new Set(buttons.map(btn=>btn.dataset.guideFilter));
+      const apply=(topic:string)=>{
+        if(!topics.has(topic))return;
+        let visible=0;
+        for(const card of cards){
+          const matches=topic==='all'||(card.dataset.guideCategories??'').split(' ').includes(topic);
+          card.hidden=!matches;
+          if(matches)visible++;
+        }
+        for(const button of buttons)
+          button.setAttribute('aria-pressed',String(button.dataset.guideFilter===topic));
+        result.textContent=topic==='all'
+          ?'Exibindo todos os '+visible+' guias.'
+          :'Exibindo '+visible+' '+(visible===1?'guia':'guias')+' sobre '+(
+            buttons.find(button=>button.dataset.guideFilter===topic)?.textContent?.trim()??'o assunto'
+          )+'.';
+      };
+      for(const button of buttons){
+        button.addEventListener('click',()=>{
+          const topic=button.dataset.guideFilter;
+          if(topic)apply(topic);
+        });
+      }
+    }
+  </script>
+  <style>
+    .guide-filters{display:none;flex-wrap:wrap;gap:10px;margin:22px 0 16px}
+    .guide-filters[data-enhanced="true"]{display:flex}
+    .guide-filter-button{font:inherit;font-weight:700;cursor:pointer;
+      border:1px solid #9aafc5;border-radius:999px;background:#fff;color:#193454;
+      padding:10px 16px;min-height:44px}
+    .guide-filter-button[aria-pressed="true"]{background:#173f70;color:#fff;border-color:#173f70}
+    .guide-filter-button:hover{border-color:#1766af}
+    .guide-status{color:#536680;font-size:.95rem;margin:12px 0}
+    .cards [hidden]{display:none!important}
+    .cards{margin-top:16px}
+  </style>
+</BaseLayout>

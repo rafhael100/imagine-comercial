@@ -1,0 +1,86 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { buildServices as services } from '../../lib/build-catalog.mjs';
+import {composeCuratedContactLinks} from '../../data/contact-objectives.mjs';
+import {contactWhatsAppUrl,contactEmailUrl} from '../../data/contact-channels.mjs';
+import {relatedEditorialGuides} from '../../data/service-related-guides.mjs';
+
+export function getStaticPaths() {
+  return services.map(s => ({ params: { slug: s.slug }, props: { s } }));
+}
+const { s } = Astro.props;
+const pathname = '/servicos/' + s.slug + '/';
+const contactIntent=composeCuratedContactLinks(s.slug);
+const directWhatsAppHref=contactWhatsAppUrl(contactIntent.message);
+const directEmailHref=contactEmailUrl(contactIntent.subject);
+const relatedGuides=relatedEditorialGuides(s.slug);
+---
+<BaseLayout
+  title={s.title}
+  description={s.description}
+  pathname={pathname}
+  serviceName={s.label}
+  breadcrumb={[{label:'Soluções',path:'/servicos/'},{label:s.label,path:pathname}]}
+>
+  <div class="shell breadcrumbs"><a href="/">Início</a> / <a href="/servicos/">Soluções</a> / <span aria-current="page">{s.label}</span></div>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">{s.eyebrow}</p>
+      <h1>{s.heading}</h1>
+      <p class="lead">{s.intro}</p>
+      <div class="cta-row">
+        <a class="cta" href={'/contato/#' + s.slug}>Solicitar uma proposta</a>
+        <a class="cta cta-secondary" href="/comparar-solucoes/">Comparar soluções</a>
+        <a class="text-link service-wa-link" data-service-whatsapp href={directWhatsAppHref} target="_blank" rel="noopener noreferrer" aria-describedby="service-whatsapp-notice">Conversar no WhatsApp</a>
+        <a class="text-link service-wa-link" data-service-email href={directEmailHref} aria-describedby="service-whatsapp-notice">Enviar e-mail sobre esta solução</a>
+      </div>
+      <p id="service-whatsapp-notice" class="service-wa-notice">WhatsApp e e-mail abrem aplicativos externos. A mensagem sobre {s.label} será preparada no WhatsApp ou o assunto no e-mail; revise e confirme o envio no aplicativo escolhido. Este site não registra sua solicitação.</p>
+    </div>
+  </section>
+  <section class="section shell">
+    <span class="kicker">Nossa abordagem</span>
+    <h2>Planejamento antes de execução.</h2>
+    <p class="lead">{s.approach}</p>
+    <div class="cards">
+      {s.details.map(([heading, body]) => (
+        <article class="card"><h3>{heading}</h3><p>{body}</p></article>
+      ))}
+    </div>
+  </section>
+  <section class="section section-soft">
+    <div class="shell">
+      <span class="kicker">Perguntas frequentes</span>
+      <h2>Dúvidas sobre {s.label.toLowerCase()}</h2>
+      {s.faqs.map(([question, answer]) => (
+        <details><summary>{question}</summary><p>{answer}</p></details>
+      ))}
+    </div>
+  </section>
+  {relatedGuides.length > 0 && (
+    <section class="section shell" aria-labelledby="related-guides-title">
+      <span class="kicker">Guias de contratação</span>
+      <h2 id="related-guides-title">Aprenda mais antes de escolher</h2>
+      <p>Informações para comparar alternativas, entender o escopo e preparar suas dúvidas antes de solicitar uma proposta.</p>
+      <div class="cards">
+        {relatedGuides.map(guide => (
+          <article class="card">
+            <p class="eyebrow">{guide.label}</p>
+            <h3>{guide.title}</h3>
+            <a href={guide.href} aria-label={'Ler guia: ' + guide.title}>Ler guia completo</a>
+          </article>
+        ))}
+      </div>
+    </section>
+  )}
+  <section class="section section-dark">
+    <div class="shell">
+      <h2>Vamos conversar sobre o seu projeto?</h2>
+      <p>Envie o objetivo da sua empresa para a Imagine e receba orientações sobre os próximos passos. Valores e condições comerciais serão confirmados na proposta oficial.</p>
+      <a class="cta" href={'/contato/#' + s.slug}>Entrar em contato</a>
+    </div>
+  </section>
+  <style>
+    .service-wa-link { display: inline-flex; align-items: center; min-height: 48px; padding: 12px 8px; font-weight: 750; color: #0b5ea9; text-underline-offset: 4px; }
+    .service-wa-notice { font-size: .9rem; color: #4b5c74; margin-top: 16px; max-width: 720px; }
+  </style>
+</BaseLayout>
