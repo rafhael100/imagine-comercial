@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {comparisonGroups,compareOptionsForGroup} from '../data/service-comparison.mjs';
+const pathname='/comparar-solucoes/';
+---
+<BaseLayout
+  title="Comparar Onepage, sites, Landing Pages e anúncios | Imagine"
+  description="Compare quando considerar Onepage, site com várias páginas, Landing Page, sites por assinatura, Google Ads e Meta Ads antes de solicitar orientação."
+  pathname={pathname}
+  breadcrumb={[{label:'Soluções',path:'/servicos/'},{label:'Comparar soluções',path:pathname}]}
+>
+  <div class="shell breadcrumbs"><a href="/">Início</a> / <a href="/servicos/">Soluções</a> / <span aria-current="page">Comparar soluções</span></div>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Guia de escolha</p>
+      <h1>Compare os formatos antes de decidir.</h1>
+      <p class="lead">Uma presença institucional, uma página de campanha e uma estratégia de anúncios atendem a necessidades diferentes. Conheça o contexto de cada serviço e prepare sua conversa com a Imagine.</p>
+      <div class="cta-row">
+        <a class="cta" href="#comparacoes">Explorar as diferenças</a>
+        <a class="cta cta-secondary" href="/servicos/">Ver todos os serviços</a>
+      </div>
+    </div>
+  </section>
+  <div id="comparacoes">
+    {comparisonGroups.map((group,index)=>(
+      <section class:list={['section',index%2===0?'section-soft':'']} aria-labelledby={'compare-'+group.code}>
+        <div class="shell">
+          <p class="kicker">Comparação de soluções</p>
+          <h2 id={'compare-'+group.code}>{group.heading}</h2>
+          <p class="lead">{group.introduction}</p>
+          <div class="compare-grid">
+            {compareOptionsForGroup(group.code).map(item=>(
+              <article class="compare-card">
+                <h3>{item.label}</h3>
+                <dl>
+                  <dt>Quando considerar</dt>
+                  <dd>{item.bestFor}</dd>
+                  <dt>Como costuma se organizar</dt>
+                  <dd>{item.structure}</dd>
+                  <dt>Pergunta para começar</dt>
+                  <dd>{item.question}</dd>
+                </dl>
+                <div class="compare-links">
+                  <a href={item.detailHref} aria-label={'Conhecer o serviço '+item.label}>Conhecer {item.label}</a>
+                  <a href={item.contactHref} aria-label={'Conversar sobre '+item.label}>Conversar sobre {item.label}</a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    ))}
+  </div>
+  <section class="section shell">
+    <h2>A comparação não substitui uma proposta.</h2>
+    <p class="lead">As necessidades podem combinar mais de um serviço. O escopo contratado, as etapas, a mensalidade, o investimento em anúncios e eventuais integrações só podem ser confirmados na proposta oficial e nos documentos aplicáveis.</p>
+    <div class="cta-row">
+      <a class="cta" href="/contato/">Conversar com a Imagine</a>
+      <a class="cta cta-secondary" href="/conteudos/landing-page-ou-site/">Ler o guia Landing Page ou site</a>
+    </div>
+  </section>
+  <style>
+    .compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:18px;margin-top:32px}
+    .compare-card{background:white;color:#182438;border:1px solid #dce6f2;border-radius:16px;padding:clamp(20px,2.4vw,30px);display:flex;flex-direction:column;min-width:0}
+    .compare-card h3{margin:0 0 20px}
+    .compare-card dl{margin:0;flex:1}
+    .compare-card dt{font-size:.89rem;color:#195f9a;font-weight:800;margin-top:15px}
+    .compare-card dt:first-child{margin-top:0}
+    .compare-card dd{margin:5px 0 0;overflow-wrap:anywhere}
+    .compare-links{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:24px}
+    .compare-links a{font-weight:750;color:#0b5ea9;text-underline-offset:4px}
+    #comparacoes{scroll-margin-top:20px}
+    @media(max-width:480px){.compare-grid{grid-template-columns:1fr}.compare-card{padding:22px}}
+  </style>
+</BaseLayout>
