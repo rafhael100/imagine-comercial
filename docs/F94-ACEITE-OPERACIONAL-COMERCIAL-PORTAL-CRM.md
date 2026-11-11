@@ -31,6 +31,8 @@ Este bloco de aceitação é apenas uma **lista verificável de pré-requisitos*
 
 A F83/F84 assegurou somente **6/7 correspondências visuais** do orçamento legado, sem verificar funcionamento, exigência de campos ou mecanismo antirrobô. Esse percentual não pode virar prontidão de produto.
 
+**Atualização F156 (11/11/2026):** a prévia privada agora apresenta **7/7 campos visíveis**, incluindo um controle aritmético **somente ilustrativo**. Isso não demonstra proteção antirrobô, validação do servidor, entrega de orçamento nem paridade operacional; os gates de lançamento e a captura pública continuam bloqueados.
+
 ## Próxima implementação conjunta necessária
 
 O próximo trabalho efetivamente operacional precisa acontecer no Portal e CRM: contrato de entrada anônima com segurança, identidade do servidor para CRM, persistência, outbox persistida, recibo verificável e testes de integração em staging autorizado. Só então os requisitos poderão ser marcados individualmente como verificados pelo responsável, sem confiar em aprovações autodeclaradas por laboratórios.
