@@ -1,0 +1,113 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { services } from '../data/services.mjs';
+import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
+import {contactObjectives} from '../data/contact-objectives.mjs';
+---
+<BaseLayout
+  title="Contato e orçamento | Imagine Comunicação Digital"
+  description="Entre em contato com a Imagine Comunicação Digital para conversar sobre criação de sites, Landing Pages e performance digital."
+  pathname="/contato/"
+  breadcrumb={[{label:'Contato',path:'/contato/'}]}
+>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Entre em contato</p>
+      <h1>Conte seu objetivo. Vamos encontrar o próximo passo.</h1>
+      <p class="lead">Escolha o canal de sua preferência para falar com a Imagine. O formulário integrado ao Portal será disponibilizado após homologação.</p>
+      <div class="contact-choice">
+        <label for="service-choice">Qual solução você procura?</label>
+        <select id="service-choice" name="servico" autocomplete="off" aria-describedby="service-help">
+          <option value="">Ainda quero orientação</option>
+          {services.map(s => <option value={s.slug}>{s.label}</option>)}
+        </select>
+        <p id="service-help" role="status" aria-live="polite">Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.</p>
+      </div>
+      <div class="contact-choice">
+        <label for="objective-choice">Qual é o objetivo da conversa? (opcional)</label>
+        <select id="objective-choice" name="objetivo" autocomplete="off" aria-describedby="objective-help">
+          <option value="">Ainda quero avaliar</option>
+          {contactObjectives.map(item => <option value={item.code}>{item.label}</option>)}
+        </select>
+        <p id="objective-help" role="status" aria-live="polite">A seleção só prepara a mensagem. Você decide se deseja abrir o canal externo.</p>
+      </div>
+      <p class="contact-process-link"><a href="/como-funciona/">Entenda as etapas do projeto antes de conversar</a> · <a href="/perguntas-frequentes/">Dúvidas frequentes</a></p>
+      <p id="external-channel-notice" class="contact-channel-notice">Os canais abaixo são externos ao site. Ao abrir o WhatsApp, o texto preparado aparece no serviço; confira e confirme o envio. O e-mail abre o aplicativo configurado no seu dispositivo. A Imagine não recebe uma solicitação por meio deste site apenas porque você selecionou um serviço ou objetivo.</p>
+      <div class="cta-row">
+        <a class="cta" id="contact-whatsapp" href={contactWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-describedby="external-channel-notice">Conversar pelo WhatsApp</a>
+        <a class="cta cta-secondary" id="contact-email" href={contactEmailUrl()} aria-describedby="external-channel-notice">Enviar e-mail</a>
+      </div>
+    </div>
+  </section>
+  <section class="section section-soft">
+    <div class="shell">
+      <h2>Nossos canais de atendimento</h2>
+      <div class="cards">
+        <article class="card"><h3>E-mail</h3><p><a href={"mailto:"+contactChannels.email}>{contactChannels.email}</a></p></article>
+        <article class="card"><h3>Telefone e WhatsApp</h3><p><a href={"tel:"+contactChannels.phoneE164}>{contactChannels.phoneDisplay}</a><br /><a href={contactChannels.whatsappBaseHref} target="_blank" rel="noopener noreferrer">WhatsApp: {contactChannels.whatsappDisplay}</a></p></article>
+        <article class="card"><h3>Atendimento</h3><p>Segunda a sexta, das 8h às 12h e das 14h às 18h (horário informado no site atual).</p></article>
+      </div>
+      <p>Os canais acima constam no site público atual da Imagine. Devem ser reconfirmados antes da substituição do domínio.</p>
+    </div>
+  </section>
+  <script>
+    import {contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
+    import {composeCuratedContactLinks,contactObjectives} from '../data/contact-objectives.mjs';
+    // Somente dados estáticos de serviço: sem cookies, fetch, rastreamento ou PII.
+    const choice = document.querySelector<HTMLSelectElement>('#service-choice');
+    const whatsapp = document.querySelector<HTMLAnchorElement>('#contact-whatsapp');
+    const email = document.querySelector<HTMLAnchorElement>('#contact-email');
+    const help = document.querySelector<HTMLElement>('#service-help');
+    const objective = document.querySelector<HTMLSelectElement>('#objective-choice');
+    const objectiveHelp = document.querySelector<HTMLElement>('#objective-help');
+    if (choice && whatsapp && email && help && objective && objectiveHelp) {
+      // All identifiers originate from the server-reviewed service catalog.
+      // The URL fragment contains only a public service slug, never a lead.
+      const allowed = new Set([...choice.options].map(option => option.value));
+      const allowedObjectives = new Set(['',...contactObjectives.map(item => item.code)]);
+      const update = () => {
+        const selected = choice.selectedOptions[0];
+        const label = selected?.value ? selected.textContent?.trim() : '';
+        if (!allowedObjectives.has(objective.value)) objective.value = '';
+        const curated=composeCuratedContactLinks(choice.value,objective.value);
+        const whatsappMessage = curated.message;
+        const emailSubject = curated.subject;
+        whatsapp.href = contactWhatsAppUrl(whatsappMessage);
+        email.href = contactEmailUrl(emailSubject);
+        help.textContent = label
+          ? 'Mensagem preparada para ' + label + '. Nenhum dado será enviado pelo site.'
+          : 'Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.';
+        objectiveHelp.textContent = curated.objectiveLabel
+          ? 'Objetivo selecionado: ' + curated.objectiveLabel + '. Nenhum dado será enviado pelo site.'
+          : 'A seleção só prepara a mensagem. Você decide se deseja abrir o canal externo.';
+      };
+      const applyFragment = () => {
+        const requested = window.location.hash.slice(1);
+        // Unknown, malformed or arbitrary fragments fail closed.
+        choice.value = allowed.has(requested) ? requested : '';
+        update();
+      };
+      objective.addEventListener('change', update);
+      choice.addEventListener('change', () => {
+        if (!allowed.has(choice.value)) return;
+        // Replace this history entry rather than adding one for every change.
+        // Do not send visitor information, navigate, or change any query field.
+        const fragment = choice.value ? '#' + choice.value : '';
+        window.history.replaceState(null, '', window.location.pathname + window.location.search + fragment);
+        update();
+      });
+      window.addEventListener('hashchange', applyFragment);
+      window.addEventListener('popstate', applyFragment);
+      applyFragment();
+    }
+  </script>
+  <style>
+    .contact-channel-notice { max-width: 740px; margin-top: 24px; font-size: .94rem; color: #3c516c; }
+    .contact-process-link { margin: 20px 0 0; }
+    .contact-process-link a { color: #0b5ea9; font-weight: 750; text-underline-offset: 4px; }
+    .contact-choice { max-width: 490px; margin-top: 22px; }
+    .contact-choice label { display: block; font-weight: 800; margin-bottom: 8px; }
+    .contact-choice select { width: 100%; min-height: 48px; padding: 10px 14px; border: 1px solid #9aafc5; border-radius: 10px; font: inherit; background: white; color: #182438; }
+    .contact-choice p { margin: 8px 0 0; font-size: .85rem; color: #536680; }
+  </style>
+</BaseLayout>
