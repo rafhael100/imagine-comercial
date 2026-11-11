@@ -13,6 +13,11 @@ const commonForbidden=Object.freeze([
   ['beacon request',/\bsendBeacon\s*\(/],
   ['websocket connection',/\bWebSocket\s*\(/],
   ['event stream',/\bEventSource\s*\(/],
+  ['dynamic form creation',/\bcreateElement\s*\(\s*['"](?:form|input|textarea)['"]\s*\)/i],
+  ['form submission',/\b(?:requestSubmit|HTMLFormElement|FormData)\b|\.\s*submit\s*\(/],
+  ['unsafe HTML insertion',/\b(?:innerHTML|outerHTML|insertAdjacentHTML)\b/],
+  ['indexed database',/\bindexedDB\b/],
+  ['browser background worker',/\b(?:SharedWorker|BroadcastChannel|serviceWorker)\b/],
   ['cookie access',/\bdocument\s*\.\s*cookie\b/],
   ['local persistence',/\b(?:localStorage|sessionStorage)\b/]
 ]);
