@@ -75,11 +75,22 @@ test('F154: real HTTP review is authenticated, read-only, noindex, cacheless and
     assert.equal(method.headers.get('allow'),'GET, HEAD');
     for(const path of ['/secret.json','/artifacts/report.json','/_astro/secret.json',
       '/_astro/.env','/contato?token=SECRET_URL_461','/%2e%2e/secret.json',
-      '/contato/%2e%2e/','/contato//','/robots.txt?foo=bar']){
+      '/contato//','/robots.txt?foo=bar']){
       const res=await get(path,{headers:auth});
       assert.equal(res.status,404,path);
       assert.doesNotMatch(await res.text(),/TEST_SECRET_NOT_PUBLIC|SECRET_URL_461/);
     }
+    // WHATWG fetch normalizes dot segments before transmission. Use raw
+    // HTTP to exercise server validation of encoded traversal unchanged.
+    const rawTraversal=await new Promise((resolve,reject)=>{
+      const req=request(origin,{method:'GET',path:'/contato/%2e%2e/',headers:auth},res=>{
+        res.resume();
+        res.on('end',()=>resolve(res.statusCode));
+      });
+      req.on('error',reject);
+      req.end();
+    });
+    assert.equal(rawTraversal,404,'raw encoded traversal must be rejected');
     const fakeHost=await new Promise((resolve,reject)=>{
       const req=request(origin+'/',{method:'GET',headers:{...auth,Host:'attacker.invalid'}},res=>{
         res.resume();
