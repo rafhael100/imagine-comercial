@@ -193,14 +193,7 @@ const service = serviceName ? {
           <a href="/conteudos/" aria-current={pathname==='/conteudos/'?'page':undefined} data-section-active={contentSectionActive?'true':undefined}>Conteúdos</a>
           <a href="/como-funciona/" aria-current={pathname==='/como-funciona/'?'page':undefined}>Como funciona</a>
           <a href="/perguntas-frequentes/" aria-current={pathname==='/perguntas-frequentes/'?'page':undefined}>Perguntas frequentes</a>
-          <details class="nav-help" data-section-active={guidanceSectionActive?'true':undefined}>
-          <summary>Orientações</summary>
-          <div class="nav-help-panel">
-            <a href="/como-funciona/" aria-current={pathname==='/como-funciona/'?'page':undefined}>Como funciona</a>
-            <a href="/perguntas-frequentes/" aria-current={pathname==='/perguntas-frequentes/'?'page':undefined}>Perguntas frequentes</a>
-          </div>
-        </details>
-        <a href="/sobre/" aria-current={pathname==='/sobre/'?'page':undefined}>Sobre</a>
+          <a href="/sobre/" aria-current={pathname==='/sobre/'?'page':undefined}>Sobre</a>
           <a href="/contato/" aria-current={pathname==='/contato/'?'page':undefined}>Contato</a>
           {portalLoginUrl && <a class="nav-cta-mobile" href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}
         </nav>
