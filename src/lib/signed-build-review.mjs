@@ -8,6 +8,7 @@ import {verifySignedCatalog} from './verify-signed-catalog.mjs';
 import {enforceReleasePin, payloadSha256} from './release-pin.mjs';
 import {createReleaseReview} from './release-review.mjs';
 import {verifyIndexablePage} from './seo-output-contract.mjs';
+import {enforceSignedPublicationTime} from './build-catalog.mjs';
 import {sitePages, toAbsoluteUrl} from '../data/services.mjs';
 
 const allowedSlugs=new Set(sitePages
@@ -36,9 +37,13 @@ function singleCaptured(html, regex, label) {
  * Collects a REVIEW_ONLY record tied to both a valid catalog signature/pin
  * and the bytes of the real Astro output. No persistent replay protection.
  */
-export function createSignedBuildReview(files, envelope, trustKeys, pins) {
+export function createSignedBuildReview(files, envelope, trustKeys, pins,
+  {nowMs=Date.now()}={}) {
   const snapshot=verifySignedCatalog(envelope,trustKeys);
   enforceReleasePin(snapshot,envelope,pins);
+  // F218: verify release timing EVERY time bytes are checked (including
+  // the independent verifier after transport), not only during Astro build.
+  enforceSignedPublicationTime(snapshot.publishedAt,nowMs);
   assert.ok(snapshot.items.length>0,'signed build: empty catalog not permitted');
   const report=createReleaseReview(files);
   const htmlByPath=new Map(files.filter(file=>file.path.endsWith('.html'))
