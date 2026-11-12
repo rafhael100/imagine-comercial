@@ -63,7 +63,7 @@ test('F221 two additional publicly observed English pages remain explicit HOLD',
     assert.ok(!plan.active.some(x=>x.from===path));
     assert.ok(!toCloudflareRedirectRules(plan).includes(path));
   }
-  assert.equal(plan.entries.length,25);
+  assert.equal(plan.entries.length,27);
   assert.equal(plan.active.length,0);
 });
 
