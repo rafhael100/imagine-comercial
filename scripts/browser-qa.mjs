@@ -18,6 +18,7 @@ import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 import {composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
 import {composeReviewedComparisonContact} from '../src/data/comparison-contact.mjs';
+import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
@@ -122,6 +123,11 @@ try {
           'F62 service-page comparison link points to the actual comparison page');
         assert.equal(await page.locator('.service-faq-related a[href^="/perguntas-frequentes/#duvida-"]').count(),2,
           'F190 each service links to two reviewed FAQ answers');
+        const current=route.split('/')[2];
+        const recommended=curatedServiceComparisons(current);
+        assert.deepEqual(await page.locator('a[data-service-comparison]').evaluateAll(links=>
+          links.map(a=>a.getAttribute('href'))),recommended.map(x=>x.href),
+          'F195 two curated comparison paths are available on every service');
       }
       const anchors=await page.locator('a[href]').evaluateAll(elements=>elements.map(el=>({
         href:el.getAttribute('href'),target:el.getAttribute('target')||'',
@@ -351,6 +357,19 @@ try {
       contactEmailUrl(pairContact.subject,pairContact.message));
     assert.equal(await page.locator('#contact-comparison-whatsapp').isVisible(),true);
     assert.equal(await page.locator('#comparison-channel-disclosure').isVisible(),true);
+    // F195: a service-page link restores its two reviewed options directly.
+    await page.goto(host+'/servicos/onepage/',{waitUntil:'load',timeout});
+    const comparisonHref=curatedServiceComparisons('onepage')[0].href;
+    await page.locator('a[data-service-comparison]').first().click();
+    await page.waitForURL(host+comparisonHref);
+    assert.equal(await page.locator('#selected-comparison-list li').count(),2,
+      'F195 reviewed deep link restores exactly two relevant options');
+    // Restore the same baseline selected pair before the existing F175
+    // clipboard/reload coverage, which expects exactly two selections.
+    await page.goto(host+'/comparar-solucoes/#comparar:onepage:landing-pages',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>
+      document.querySelectorAll('#selected-comparison-list li').length===2);
     // F175: share exactly two reviewed slugs, restore after reload, and
     // reject arbitrary visitor text or altered fragments without a request.
     const shareComparison=page.locator('#copy-comparison-link');
@@ -484,7 +503,10 @@ try {
         await fallback.waitForURL(host+'/perguntas-frequentes/#duvida-precos');
         assert.equal(await fallback.locator('#duvida-precos summary').count(),1);
         assert.equal(await fallback.locator('#duvida-precos details').getAttribute('open'),null);
-        await fallback.locator('#duvida-precos summary').click();
+        // Native anchor scrolling may be in flight; keyboard activation
+        // avoids racing click stability during the no-JS fallback test.
+        await fallback.locator('#duvida-precos summary').focus();
+        await fallback.keyboard.press('Enter');
         assert.equal(await fallback.locator('#duvida-precos details').getAttribute('open'),'');
         await fallback.goto(host+'/conteudos/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#guide-list article.card:visible').count(),

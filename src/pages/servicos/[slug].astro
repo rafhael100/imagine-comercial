@@ -5,6 +5,7 @@ import {composeCuratedContactLinks} from '../../data/contact-objectives.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../../data/contact-channels.mjs';
 import {relatedEditorialGuides} from '../../data/service-related-guides.mjs';
 import {serviceFaqLinks} from '../../data/service-faq-links.mjs';
+import {curatedServiceComparisons} from '../../data/service-comparison-pairs.mjs';
 
 export function getStaticPaths() {
   return services.map(s => ({ params: { slug: s.slug }, props: { s } }));
@@ -16,6 +17,7 @@ const directWhatsAppHref=contactWhatsAppUrl(contactIntent.message);
 const directEmailHref=contactEmailUrl(contactIntent.subject);
 const relatedGuides=relatedEditorialGuides(s.slug);
 const generalFaqLinks=serviceFaqLinks(s.slug);
+const relevantComparisons=curatedServiceComparisons(s.slug);
 ---
 <BaseLayout
   title={s.title}
@@ -49,8 +51,22 @@ const generalFaqLinks=serviceFaqLinks(s.slug);
       ))}
     </div>
   </section>
-  <section class="section section-soft">
+  <section class="section section-soft" aria-labelledby="service-alternatives-heading">
     <div class="shell">
+      <span class="kicker">Explore alternativas</span>
+      <h2 id="service-alternatives-heading">Compare {s.label} com outras soluções.</h2>
+      <p>Veja as diferenças entre formatos antes de pedir orientação. As opções são editoriais, sem análise do seu perfil, valores ou proposta automática.</p>
+      <nav class="service-alternative-links" aria-label={'Comparações relacionadas a '+s.label}>
+        <ul>
+          {relevantComparisons.map(item=>(
+            <li><a data-service-comparison href={item.href}>Comparar com {item.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+  </section>
+  <section class="section shell">
+    <div>
       <span class="kicker">Perguntas frequentes</span>
       <h2>Dúvidas sobre {s.label.toLowerCase()}</h2>
       {s.faqs.map(([question, answer]) => (
@@ -90,6 +106,9 @@ const generalFaqLinks=serviceFaqLinks(s.slug);
     </div>
   </section>
   <style>
+    .service-alternative-links ul{padding:0;margin:22px 0 0;list-style:none;display:flex;flex-wrap:wrap;gap:12px}
+    .service-alternative-links a{display:inline-flex;min-height:48px;align-items:center;border:1px solid #95acc4;background:#fff;border-radius:10px;padding:10px 16px;color:#0b5ea9;font-weight:750;text-underline-offset:3px}
+    .service-alternative-links a:focus-visible{outline:3px solid #145d9d;outline-offset:3px}
     .service-faq-related{margin-top:28px;max-width:760px}
     .service-faq-related ul{padding-left:24px}
     .service-faq-related li{margin-top:10px}

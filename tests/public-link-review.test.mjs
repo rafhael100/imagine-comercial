@@ -140,3 +140,15 @@ test('F190 allows exactly the eight public FAQ question anchors across pages',()
       '/servicos/onepage/'),/broken or unapproved fragment/);
   }
 });
+
+test('F195 only canonical reviewed two-service fragments can link across pages',()=>{
+  const good='/comparar-solucoes/#comparar:onepage:landing-pages';
+  assert.equal(review([good],'/servicos/onepage/').internal,1);
+  for(const bad of [
+    '/comparar-solucoes/#comparar:landing-pages:onepage',
+    '/comparar-solucoes/#comparar:onepage:onepage',
+    '/comparar-solucoes/#comparar:onepage:evil',
+    '/comparar-solucoes/#comparar:onepage:landing-pages:extra',
+    '/comparar-solucoes/#comparar:onepage:landing-pages?token=1'
+  ])assert.throws(()=>review([bad],'/servicos/onepage/'),/broken or unapproved fragment|unsafe/);
+});
