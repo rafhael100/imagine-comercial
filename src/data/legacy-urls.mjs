@@ -82,6 +82,16 @@ export const legacyUrls = Object.freeze([
     reason: 'Rota antiga de contato/captação; verificar privacidade e equivalência.'
   },
   {
+    from: '/en-us/services/criacao-de-sites-institucional.html',
+    to: null, status: 'hold',
+    reason: 'Página pública legada Website Creation em inglês; exige decisão sobre tradução, hreflang e correspondência editorial antes de qualquer 301.'
+  },
+  {
+    from: '/en-us/services/youtube-ads-anuncios.html',
+    to: null, status: 'hold',
+    reason: 'Página pública legada YouTube Ads em inglês sem serviço equivalente publicado e aprovado; manter HOLD até decisão de escopo e idioma.'
+  },
+  {
     from: '/en-us/services/criacao-de-loja-virtual.html', to: null, status: 'hold',
     reason: 'Loja virtual em inglês sem serviço equivalente nem política de idioma.'
   },
