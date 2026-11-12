@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,sign,createHash} from 'node:crypto';
+import {services} from '../src/data/services.mjs';
 import {reviewSignedCatalogTransition as review}
   from '../src/lib/review-signed-catalog-transition.mjs';
 const {publicKey,privateKey}=generateKeyPairSync('ed25519');
@@ -103,4 +104,21 @@ test('F202 version-only update can be reviewed without claiming editorial change
   assert.equal(r.versionAdvanced,1);
   assert.equal(r.editorialChanges,0);
   assert.equal(r.canPublish,false);
+});
+
+test('F209 signed transition cannot approve duplicated SEO metadata in the final catalog',()=>{
+  const unchanged=services.find(service=>service.slug==='onepage');
+  assert.ok(unchanged);
+  const sameTitle={...landing(2,unchanged.title)};
+  assert.throws(()=>check(previous(),{...current(),items:[sameTitle]}),
+    /build catalog: duplicate public title/);
+  const sameDescription={...landing(2),description:unchanged.description};
+  assert.throws(()=>check(previous(),{...current(),items:[sameDescription]}),
+    /build catalog: duplicate public description/);
+});
+test('F209 valid signed partial releases remain reviewable but never publishable',()=>{
+  const r=check();
+  assert.equal(r.canPublish,false);
+  assert.equal(r.deploymentPerformed,false);
+  assert.equal(r.absentFromCandidatePartial,1);
 });
