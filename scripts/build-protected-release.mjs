@@ -11,6 +11,7 @@ import {assertBuildReleaseIntent} from '../src/lib/build-release-target.mjs';
 import {verifySignedCatalog} from '../src/lib/verify-signed-catalog.mjs';
 import {enforceReleasePin} from '../src/lib/release-pin.mjs';
 import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
+import {readApprovedFile} from '../src/lib/read-approved-file.mjs';
 
 const outputDir='artifacts/protected-build-review';
 // Clear old evidence even when the current request has invalid inputs.
@@ -32,10 +33,9 @@ function localFile(name,maxBytes) {
   const path=process.env[name];
   if(typeof path!=='string' || !path || path.includes('\0'))
     throw new Error('protected build: required local input missing: '+name);
-  const stat=lstatSync(path);
-  if(!stat.isFile() || stat.isSymbolicLink() || stat.size>maxBytes)
-    throw new Error('protected build: local input unsafe: '+name);
-  return readFileSync(path,'utf8');
+  // F216: one file descriptor for safety checks AND exact UTF-8 bytes.
+  // No lstat(path) -> readFile(path) TOCTOU window on signed inputs.
+  return readApprovedFile(path,maxBytes,name);
 }
 
 const envelope=JSON.parse(localFile('IMAGINE_CATALOG_ENVELOPE_FILE',2*1024*1024));
