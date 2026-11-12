@@ -66,9 +66,23 @@ const noJsContacts=services.map(s=>{
         <a class="cta cta-secondary" id="contact-email" href={contactEmailUrl()} aria-describedby="external-channel-notice">Enviar e-mail</a>
         <button class="cta cta-secondary contact-copy" type="button" id="copy-message" hidden aria-describedby="message-preview external-channel-notice">Copiar mensagem</button>
         <button class="cta cta-secondary contact-copy" type="button" id="copy-briefing-link" hidden aria-describedby="external-channel-notice">Copiar link deste briefing</button>
+        <button class="cta cta-secondary contact-print" type="button" id="print-briefing" hidden aria-describedby="external-channel-notice">Imprimir resumo do briefing</button>
       </div>
       <p id="copy-message-status" class="copy-message-status" role="status" aria-live="polite" aria-atomic="true"></p>
       <p id="copy-briefing-status" class="copy-message-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <section id="print-briefing-summary" class="print-briefing-summary" aria-labelledby="print-briefing-title">
+        <h2 id="print-briefing-title">Resumo do briefing — Imagine</h2>
+        <p>Resumo preparado localmente com opções públicas do catálogo. Nenhum pedido foi enviado pelo site.</p>
+        <dl>
+          <div><dt>Serviço de interesse</dt><dd id="print-briefing-service">A definir</dd></div>
+          <div><dt>Objetivo</dt><dd id="print-briefing-objective">A definir</dd></div>
+          <div><dt>Etapa do projeto</dt><dd id="print-briefing-stage">A definir</dd></div>
+          <div><dt>Prioridade</dt><dd id="print-briefing-priority">A definir</dd></div>
+        </dl>
+        <h3>Mensagem de contato preparada</h3>
+        <p id="print-briefing-message">Olá, gostaria de conhecer os serviços da Imagine.</p>
+        <p>Esta é uma preparação informativa. Escopo, preços, prazos e condições dependem de proposta oficial.</p>
+      </section>
       <noscript>
         <section class="contact-nojs-intents" aria-labelledby="contact-nojs-title">
           <h2 id="contact-nojs-title">Atendimento por serviço, sem JavaScript</h2>
@@ -118,11 +132,23 @@ const noJsContacts=services.map(s=>{
     const copyStatus = document.querySelector<HTMLElement>('#copy-message-status');
     const share = document.querySelector<HTMLButtonElement>('#copy-briefing-link');
     const shareStatus = document.querySelector<HTMLElement>('#copy-briefing-status');
+    const printButton = document.querySelector<HTMLButtonElement>('#print-briefing');
+    const printService = document.querySelector<HTMLElement>('#print-briefing-service');
+    const printObjective = document.querySelector<HTMLElement>('#print-briefing-objective');
+    const printStage = document.querySelector<HTMLElement>('#print-briefing-stage');
+    const printPriority = document.querySelector<HTMLElement>('#print-briefing-priority');
+    const printMessage = document.querySelector<HTMLElement>('#print-briefing-message');
     if (choice && whatsapp && email && help && objective && objectiveHelp && stage && priority && preview && copy && copyStatus && share && shareStatus) {
       // Exibir o botão somente em navegadores com API de clipboard disponível.
       // Sem JS, o botão permanece oculto e os canais estáticos funcionam.
       if (navigator.clipboard?.writeText) copy.hidden = false;
       if (navigator.clipboard?.writeText) share.hidden = false;
+      // Print is user-triggered only; the summary contains curated labels,
+      // never free-form personal details, and never leaves the browser.
+      if(printButton && typeof window.print==='function'){
+        printButton.hidden=false;
+        printButton.addEventListener('click',()=>window.print());
+      }
       // All identifiers originate from the server-reviewed service catalog.
       // The URL fragment contains only a public service slug, never a lead.
       // F173: async clipboard results must not confirm an outdated briefing.
@@ -154,6 +180,13 @@ const noJsContacts=services.map(s=>{
           ? contactEmailUrl(emailSubject,whatsappMessage)
           : contactEmailUrl(emailSubject);
         preview.textContent='Prévia da mensagem: '+whatsappMessage;
+        if(printService&&printObjective&&printStage&&printPriority&&printMessage){
+          printService.textContent=label||'Ainda quero orientação';
+          printObjective.textContent=objective.selectedOptions[0]?.textContent?.trim()||'A definir';
+          printStage.textContent=stage.selectedOptions[0]?.textContent?.trim()||'A definir';
+          printPriority.textContent=priority.selectedOptions[0]?.textContent?.trim()||'A definir';
+          printMessage.textContent=whatsappMessage;
+        }
         copyStatus.textContent='';
         shareStatus.textContent='';
         help.textContent = label
@@ -256,7 +289,21 @@ const noJsContacts=services.map(s=>{
     .contact-nojs-intents h3{margin:0 0 10px}
     .contact-nojs-links{display:grid;gap:10px}
     .contact-nojs-links a{color:#884100;font-weight:750;text-underline-offset:3px;min-height:44px;display:flex;align-items:center}
-    .contact-copy { cursor: pointer; font: inherit; }
+    .contact-copy,.contact-print { cursor: pointer; font: inherit; }
+    .contact-print[hidden]{display:none!important}
+    .print-briefing-summary{display:none}
+    @media print{
+      :global(header),:global(footer),:global(main#conteudo > :not(.hero)){display:none!important}
+      .hero{background:none!important;padding:0!important}
+      .hero>.shell>:not(.print-briefing-summary){display:none!important}
+      .print-briefing-summary{display:block!important;color:#171b19;line-height:1.5;padding:12px 0}
+      .print-briefing-summary h2{font-size:1.8rem;margin:0 0 16px}
+      .print-briefing-summary h3{font-size:1.1rem;margin:26px 0 10px}
+      .print-briefing-summary p{max-width:none}
+      .print-briefing-summary dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px;padding-block:18px;border-block:1px solid #ddd}
+      .print-briefing-summary dt{font-weight:700}
+      .print-briefing-summary dd{margin:4px 0 0;overflow-wrap:anywhere}
+    }
     .contact-copy[hidden] { display: none; }
     .copy-message-status { max-width: 740px; margin: 12px 0 0; font-size: .9rem; color: #3c516c; }
     .copy-message-status:empty { display: none; }
