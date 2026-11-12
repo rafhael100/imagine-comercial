@@ -55,7 +55,11 @@ const pathname='/como-funciona/';
           </li>
         ))}
       </ul>
-      <button id="print-briefing" type="button" class="cta cta-secondary" hidden>Imprimir roteiro para a reunião</button>
+      <div class="briefing-actions">
+        <button id="print-briefing" type="button" class="cta cta-secondary" hidden>Imprimir roteiro para a reunião</button>
+        <button id="copy-preparation-questions" type="button" class="cta cta-secondary" hidden>Copiar as seis perguntas</button>
+      </div>
+      <p id="copy-preparation-status" class="briefing-note" role="status" aria-live="polite" aria-atomic="true"></p>
       <p class="briefing-note">As marcações de preparo são temporárias e desaparecem ao fechar ou recarregar a página. Não há envio, salvamento ou acompanhamento de respostas.</p>
       <p class="briefing-note">Não envie senhas, documentos pessoais ou acessos por links de contato não homologados. Os canais e as permissões adequados devem ser combinados antes do compartilhamento.</p>
     </div>
@@ -70,12 +74,15 @@ const pathname='/como-funciona/';
     </div>
   </section>
   <script>
+    import {preparationQuestions} from '../data/commercial-process.mjs';
     // F170: six reviewed editorial tasks, optional in-page toggles/printing.
     // No user text, cookies, tracking, persistent state, URL query or transport.
     const tasks=[...document.querySelectorAll<HTMLElement>('[data-briefing-task]')];
     const progress=document.querySelector<HTMLElement>('#briefing-progress');
     const print=document.querySelector<HTMLButtonElement>('#print-briefing');
-    if(progress&&print&&tasks.length===6){
+    const copy=document.querySelector<HTMLButtonElement>('#copy-preparation-questions');
+    const copyStatus=document.querySelector<HTMLElement>('#copy-preparation-status');
+    if(progress&&print&&copy&&copyStatus&&tasks.length===6){
       const showProgress=()=>{
         const done=tasks.filter(task=>task.dataset.prepared==='true').length;
         progress.textContent=done+' de '+tasks.length+
@@ -97,6 +104,25 @@ const pathname='/como-funciona/';
       });
       print.hidden=false;
       print.addEventListener('click',()=>window.print());
+      // F192: only the six public, editorially approved prompts are copied.
+      // Checked states, user responses and device information are excluded.
+      if(navigator.clipboard?.writeText)copy.hidden=false;
+      copy.addEventListener('click',async()=>{
+        if(copy.disabled)return;
+        copy.disabled=true;
+        copyStatus.textContent='';
+        try{
+          if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
+          const text=preparationQuestions.map((question,i)=>
+            (i+1)+'. '+question).join('\n');
+          await navigator.clipboard.writeText(text);
+          copyStatus.textContent='Roteiro copiado. Cole onde preferir e revise antes de compartilhar.';
+        }catch{
+          copyStatus.textContent='Não foi possível copiar automaticamente. Use a impressão ou selecione as perguntas acima.';
+        }finally{
+          copy.disabled=false;
+        }
+      });
       showProgress();
     }
   </script>
@@ -113,10 +139,13 @@ const pathname='/como-funciona/';
     .briefing-task[data-prepared="true"]>span{font-weight:700;color:#145d53}
     .briefing-toggle{font:inherit;border:1px solid #8199b9;background:#fff;color:#173f70;border-radius:8px;padding:8px 12px;min-height:44px;cursor:pointer}
     .briefing-toggle[aria-pressed="true"]{background:#e6f5ee;border-color:#258567;color:#165b45}
-    .briefing-toggle[hidden],#print-briefing[hidden]{display:none}
+    .briefing-actions{display:flex;gap:12px;flex-wrap:wrap}
+    .briefing-actions button{font:inherit;cursor:pointer}
+    .briefing-actions button:disabled{opacity:.6;cursor:wait}
+    .briefing-toggle[hidden],#print-briefing[hidden],#copy-preparation-questions[hidden]{display:none}
     .briefing-toggle:focus-visible{outline:3px solid #145d9d;outline-offset:3px}
     .briefing-note{font-size:.94rem;color:#40556c}
-    @media print{.briefing-toggle,#print-briefing{display:none!important}.briefing-task{break-inside:avoid}}
+    @media print{.briefing-toggle,.briefing-actions,#copy-preparation-status{display:none!important}.briefing-task{break-inside:avoid}}
     #etapas{scroll-margin-top:18px}
     @media(max-width:480px){.process-list{grid-template-columns:1fr}.process-card{padding:20px;gap:12px}}
   </style>

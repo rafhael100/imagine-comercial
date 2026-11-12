@@ -31,3 +31,13 @@ test('F64 route and public links are in canonical inventory and no external/PII 
  assert.match(page,/print\.addEventListener\('click',\(\)=>window\.print\(\)\)/);
  assert.match(page,/data-briefing-task/);
 });
+
+test('F192 six approved preparation questions can be copied only by visitor action',()=>{
+ assert.match(page,/id="copy-preparation-questions"[^>]*hidden/);
+ assert.match(page,/id="copy-preparation-status"[^>]*aria-live="polite"/);
+ assert.match(page,/copy\.addEventListener\('click',async\(\)=>/);
+ assert.match(page,/preparationQuestions\.map/);
+ assert.match(page,/navigator\.clipboard\.writeText\(text\)/);
+ assert.match(page,/if\(navigator\.clipboard\?\.writeText\)copy\.hidden=false/);
+ assert.doesNotMatch(page,/fetch\(|localStorage|sessionStorage|sendBeacon|document\.cookie/);
+});
