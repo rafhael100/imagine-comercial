@@ -364,7 +364,12 @@ try {
     await page.waitForURL(host+comparisonHref);
     assert.equal(await page.locator('#selected-comparison-list li').count(),2,
       'F195 reviewed deep link restores exactly two relevant options');
-    await page.goto(host+'/comparar-solucoes/',{waitUntil:'load',timeout});
+    // Restore the same baseline selected pair before the existing F175
+    // clipboard/reload coverage, which expects exactly two selections.
+    await page.goto(host+'/comparar-solucoes/#comparar:onepage:landing-pages',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>
+      document.querySelectorAll('#selected-comparison-list li').length===2);
     // F175: share exactly two reviewed slugs, restore after reload, and
     // reject arbitrary visitor text or altered fragments without a request.
     const shareComparison=page.locator('#copy-comparison-link');
