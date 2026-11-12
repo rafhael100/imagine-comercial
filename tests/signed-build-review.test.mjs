@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
 import {sitePages,toAbsoluteUrl} from '../src/data/services.mjs';
 
@@ -123,4 +124,27 @@ test('F24 recusa slug que não pertence ao catálogo editorial, mesmo assinado',
   }]}));
   assert.throws(()=>createSignedBuildReview(sampleFiles(),env,trust,pins(env)),
     /service slug not in curated pages/);
+});
+
+test('F218 signed build review refuses a future-scheduled release even when signature and pin are valid',()=>{
+  const future=makeSnapshot({publishedAt:'2099-01-01T00:00:00Z'});
+  const env=signed(future),files=sampleFiles();
+  assert.throws(()=>createSignedBuildReview(files,env,trust,pins(env)),
+    /signed publication is in the future/);
+  assert.throws(()=>createSignedBuildReview(files,env,trust,pins(env),
+    {nowMs:Date.parse('2098-12-31T23:54:59Z')}),
+    /signed publication is in the future/);
+  const approvedWindow=createSignedBuildReview(files,env,trust,pins(env),
+    {nowMs:Date.parse('2098-12-31T23:55:00Z')});
+  assert.equal(approvedWindow.mode,
+    'SIGNED_BUILD_LAB_ONLY_NOT_AUTHORIZED_FOR_DEPLOY');
+  assert.ok(approvedWindow.treeSha256);
+  assert.throws(()=>createSignedBuildReview(files,env,trust,pins(env),
+    {nowMs:NaN}),/invalid verification time/);
+});
+test('F218 independent verifier reuses the exact dated signed-build review',()=>{
+  const verifier=readFileSync(new URL('../src/lib/protected-artifact-verification.mjs',import.meta.url),'utf8');
+  const builder=readFileSync(new URL('../scripts/build-protected-release.mjs',import.meta.url),'utf8');
+  assert.match(verifier,/createSignedBuildReview\(files,envelope,trustKeys,pins\)/);
+  assert.match(builder,/enforceSignedPublicationTime\(snapshot\.publishedAt\)/);
 });
