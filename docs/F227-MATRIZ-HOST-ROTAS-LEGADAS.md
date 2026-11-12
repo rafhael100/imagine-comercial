@@ -1,3 +1,4 @@
+> **F230 — Perfil correto:** esta matriz descreve o comportamento DESEJADO de uma futura borda pública, em simulação offline. Não é compatível com o Nginx de staging privado da Leaseweb, que exige Basic Auth, aplica X-Robots-Tag noindex a todas as respostas e não implementa redirecionamentos de host. A exigência `expectedNoindex:false` só vale para a futura página pública no edge, não para a prévia privada. Não inferir autorização para servir 404 em URLs históricas da produção.
 # F227 — Cobertura integral de rotas na migração de host (staging offline)
 
 A F225 fixou **sem www** como destino canônico. A F226 avaliou apenas as quatro raizes de host. A F227 evita que uma checagem da homepage esconda regressões de rotas.

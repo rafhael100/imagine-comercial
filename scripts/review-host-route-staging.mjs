@@ -13,6 +13,8 @@ function run(args,env){
   const privateFile=args.length===2&&args[0]==='--file'&&
     typeof args[1]==='string'&&/\.json$/i.test(args[1]);
   if(!synthetic&&!privateFile)throw Error('F228: unsupported invocation');
+  if(env.IMAGINE_PRIVATE_STAGING_REVIEW==='1')
+    throw Error('F230: this command is not the private Leaseweb staging verifier');
   if(privateFile&&env.GITHUB_ACTIONS==='true')
     throw Error('F228: private staging report forbidden in GitHub Actions');
   // Tests deliberately use static synthetic outcomes; no HTTP check occurs.
@@ -25,8 +27,9 @@ function run(args,env){
   // Print aggregate, data-free operational status only.
   console.log('F228 HOST STAGING OFFLINE '+JSON.stringify({
     source:synthetic?'SYNTHETIC_ONLY':'PRIVATE_OPERATOR_UNVERIFIED',
+    profile:report.profile,
     checks:report.checklistItems,failed:report.failures.length,
-    stagingContractPassed:report.passed,
+    futureEdgeContractPassed:report.passed,
     redirectsAuthorized:report.redirectsAuthorized,
     productionAuthorized:report.productionAuthorized
   }));
