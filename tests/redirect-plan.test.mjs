@@ -66,3 +66,29 @@ test('F221 two additional publicly observed English pages remain explicit HOLD',
   assert.equal(plan.entries.length,25);
   assert.equal(plan.active.length,0);
 });
+
+test('F221 additional GSC page paths remain HOLD without creating a redirect',()=>{
+  const additional=[
+    '/en-us/services/criacao-de-sites-institucional.html',
+    '/en-us/services/youtube-ads-anuncios.html',
+    '/o-que-fazemos/linkedin-business.html',
+    '/termos-de-uso.html'
+  ];
+  assert.equal(legacyUrls.length,27);
+  assert.equal(legacyUrls.filter(entry=>entry.status==='candidate').length,5);
+  assert.equal(legacyUrls.filter(entry=>entry.status==='hold').length,22);
+  for(const path of additional){
+    const matches=legacyUrls.filter(entry=>entry.from===path);
+    assert.equal(matches.length,1);
+    assert.equal(matches[0].status,'hold');
+    assert.equal(matches[0].to,null);
+  }
+  const plan=validateRedirectPlan(legacyUrls);
+  assert.equal(plan.entries.length,27);
+  assert.equal(plan.active.length,0);
+  assert.equal(toCloudflareRedirectRules(plan),'');
+  for(const row of plan.entries.filter(entry=>additional.includes(entry.from))){
+    assert.equal(row.status,'hold');
+    assert.equal(row.to,null);
+  }
+});
