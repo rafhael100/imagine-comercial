@@ -187,3 +187,15 @@ test('F211 reviews a genuine Ed25519 rotation with two independently trusted pub
   assert.equal(run(config).status,1);
  });
 });
+
+test('F212 CLI denies a genuinely signed future release before not-before gate',()=>{
+ fixtures(({run,signPayload,nextFile})=>{
+  const future=signPayload({...next(),publishedAt:'2099-01-01T00:00:00Z'});
+  writeFileSync(nextFile,JSON.stringify(future.envelope));
+  const result=run({IMAGINE_REVIEW_NEXT_PAYLOAD_SHA256:future.sha});
+  assert.equal(result.status,1);
+  assert.equal(result.stdout,'');
+  assert.match(result.stderr,/offline signed catalog review refused/);
+  assert.doesNotMatch(result.stderr,/2099|release_f204_after|Landing Pages/);
+ });
+});
