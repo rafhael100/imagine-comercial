@@ -2,8 +2,18 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { services } from '../data/services.mjs';
 import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
-import {contactObjectives} from '../data/contact-objectives.mjs';
+import {contactObjectives,composeCuratedContactLinks} from '../data/contact-objectives.mjs';
 import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
+// Real, approved public channels derived once at build time for visitors
+// with JavaScript disabled; no customer input or backend request.
+const noJsContacts=services.map(s=>{
+  const intent=composeCuratedContactLinks(s.slug);
+  return Object.freeze({
+    slug:s.slug,label:s.label,
+    whatsappHref:contactWhatsAppUrl(intent.message),
+    emailHref:contactEmailUrl(intent.subject)
+  });
+});
 ---
 <BaseLayout
   title="Contato e orçamento | Imagine Comunicação Digital"
@@ -59,6 +69,23 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
       </div>
       <p id="copy-message-status" class="copy-message-status" role="status" aria-live="polite" aria-atomic="true"></p>
       <p id="copy-briefing-status" class="copy-message-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <noscript>
+        <section class="contact-nojs-intents" aria-labelledby="contact-nojs-title">
+          <h2 id="contact-nojs-title">Atendimento por serviço, sem JavaScript</h2>
+          <p>Se você veio de uma página de serviço, escolha abaixo o canal correspondente. O texto é preparado, mas somente você decide se abre e envia a mensagem no aplicativo externo.</p>
+          <ul>
+            {noJsContacts.map(item=>(
+              <li id={item.slug} data-nojs-contact={item.slug}>
+                <h3>{item.label}</h3>
+                <div class="contact-nojs-links">
+                  <a data-nojs-whatsapp href={item.whatsappHref} target="_blank" rel="noopener noreferrer">WhatsApp sobre {item.label}</a>
+                  <a data-nojs-email href={item.emailHref}>E-mail sobre {item.label}</a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </noscript>
     </div>
   </section>
   <section class="section section-soft">
@@ -223,6 +250,12 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
   </script>
   <style>
     .contact-channel-notice { max-width: 740px; margin-top: 24px; font-size: .94rem; color: #3c516c; }
+    .contact-nojs-intents{padding:22px;margin-top:28px;border:1px solid #c4d7e9;background:#f6faff;border-radius:16px}
+    .contact-nojs-intents>ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px;list-style:none;padding:0;margin:18px 0}
+    .contact-nojs-intents>ul>li{background:#fff;border:1px solid #d1dfef;border-radius:10px;padding:14px;scroll-margin-top:24px}
+    .contact-nojs-intents h3{margin:0 0 10px}
+    .contact-nojs-links{display:grid;gap:10px}
+    .contact-nojs-links a{color:#0b5ea9;font-weight:750;text-underline-offset:3px;min-height:44px;display:flex;align-items:center}
     .contact-copy { cursor: pointer; font: inherit; }
     .contact-copy[hidden] { display: none; }
     .copy-message-status { max-width: 740px; margin: 12px 0 0; font-size: .9rem; color: #3c516c; }

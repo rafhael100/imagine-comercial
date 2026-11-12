@@ -623,6 +623,19 @@ try {
           'F151 copy action stays hidden without JavaScript');
         assert.equal(await fallback.locator('#copy-briefing-link').isVisible(),false,
           'F169 share action stays hidden without JavaScript');
+        // F208: without JavaScript, each service still has exact reviewed
+        // contact options, preserving incoming #service intent.
+        assert.equal(await fallback.locator('noscript [data-nojs-contact]').count(),services.length);
+        for(const service of services){
+          const intent=composeCuratedContactLinks(service.slug);
+          const card=fallback.locator('[data-nojs-contact="'+service.slug+'"]');
+          assert.equal(await card.locator('[data-nojs-whatsapp]').getAttribute('href'),
+            contactWhatsAppUrl(intent.message));
+          assert.equal(await card.locator('[data-nojs-email]').getAttribute('href'),
+            contactEmailUrl(intent.subject));
+        }
+        await fallback.goto(host+'/contato/#landing-pages',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('[data-nojs-contact="landing-pages"]').isVisible(),true);
 
         await fallback.goto(host+'/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('a[data-goal-deeplink]').count(),5);
