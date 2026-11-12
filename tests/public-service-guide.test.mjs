@@ -24,6 +24,11 @@ test('F58 guide produces only local reviewed service URLs, never prices or autho
     assert.ok(Object.isFrozen(chosen));
     assert.ok(Object.isFrozen(chosen.services));
     assert.ok(chosen.services.length===1||chosen.services.length===2);
+    if(chosen.services.length===2){
+      assert.equal(code,'anuncios');
+      assert.equal(chosen.comparisonHref,
+        '/comparar-solucoes/#comparar:gestao-google-ads:gestao-meta-ads');
+    }else assert.equal(chosen.comparisonHref,null);
     assert.ok(!/garantid[oa]|\bR\$\b|autoriza|contratar agora/i.test(chosen.explanation));
     for(const item of chosen.services){
       assert.ok(slugs.has(item.slug));
@@ -50,6 +55,8 @@ test('F58 browser-only UI does not create a form, external transport or HTML inj
   assert.match(page,/guideForGoal/);
   assert.match(page,/replaceChildren/);
   assert.match(page,/data-service-guide-contact/);
+  assert.match(page,/id="service-guide-compare"/);
+  assert.match(page,/compare.hidden=guide.comparisonHref===null/);
   assert.match(page,/contactHref/);
   assert.match(page,/textContent/);
   assert.doesNotMatch(page,/<form\b|<input\b|fetch\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|innerHTML|document\.cookie/);
