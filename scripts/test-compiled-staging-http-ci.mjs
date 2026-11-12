@@ -4,6 +4,7 @@
  * REAL built Astro dist over an ephemeral 127.0.0.1 Node HTTP fixture.
  * Deliberately NOT Nginx, Leaseweb, real credentials or an independent pin.
  */
+import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {mkdtempSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -44,6 +45,7 @@ async function run(){
   const htpasswdPath=join(base,'reviewer.htpasswd');
   writeFileSync(htpasswdPath,'reviewer:'+fakeBcrypt+'\n',{mode:0o600});
   let server;
+  let injectedFault=null;
   try{
     const headers=Object.fromEntries(localHeaderProfile);
     server=createServer((request,response)=>{
@@ -59,6 +61,12 @@ async function run(){
         response.writeHead(400);response.end();return;
       }
       if(request.headers.authorization!==basicAuth){
+        if(injectedFault==='EXPOSE_ROBOTS'&&raw==='/robots.txt'){
+          response.setHeader('Content-Type','text/plain');
+          response.writeHead(200);
+          response.end(dist.get('/robots.txt'));
+          return;
+        }
         response.setHeader('WWW-Authenticate','Basic realm="Imagine private review"');
         response.writeHead(401);response.end('Protected');return;
       }
@@ -72,6 +80,8 @@ async function run(){
       }else{
         file='/404.html';code=404;
       }
+      if(injectedFault==='WRONG_ROBOTS_MIME'&&raw==='/robots.txt')
+        type='text/html; charset=utf-8';
       const bytes=dist.get(file);
       if(!bytes||!type){response.writeHead(500);response.end();return;}
       response.setHeader('Content-Type',type);
@@ -84,25 +94,40 @@ async function run(){
     });
     const port=server.address().port;
     if(port<1024)throw Error('F238: unsafe loopback port');
-    const report=await reviewStagingOperatorCandidate({
+    const fixtureOptions=Object.freeze({
       root:'dist',
       image:fakeImage,
       expectedTreeSha256:manifest.treeSha256, // self-derived, CI-only!
       htpasswdPath,
       basicAuth,port
     });
+    const report=await reviewStagingOperatorCandidate(fixtureOptions);
     if(report.checks.servedHtmlMatchesLocalPinnedBuild!==true||
        report.checks.servedStaticAssetsMatchPinnedBuild!==true||
        report.checks.heldLegacy404Pages!==legacyUrls.length||
        report.checks.reviewedPublicPages!==sitePages.length||
        report.deploymentAuthorized!==false||report.canCollectPublicLeads!==false)
       throw Error('F238: unexpected compiled build review');
+    // F239: exercise real compiled bytes through two deliberately broken
+    // HTTP responses. A mistaken PASS must make this entire CI step FAIL.
+    injectedFault='EXPOSE_ROBOTS';
+    await assert.rejects(
+      reviewStagingOperatorCandidate(fixtureOptions),
+      /F168: private staging routes are not all protected/
+    );
+    injectedFault='WRONG_ROBOTS_MIME';
+    await assert.rejects(
+      reviewStagingOperatorCandidate(fixtureOptions),
+      /F235: private static asset parity failed closed/
+    );
+    injectedFault=null;
     console.log(JSON.stringify({
       schema:'imagine.comercial.compiled-dist-http-ci.v1',
       status:'SYNTHETIC_LOOPBACK_COMPILED_DIST_CONTRACT_PASS',
       publicRoutes:report.checks.reviewedPublicPages,
       legacyRoutes:report.checks.heldLegacy404Pages,
       staticAssets:report.checks.verifiedStaticAssets,
+      adversarialCasesRejected:2,
       pinIndependentlyVerified:false,
       privateNginxOrLeasewebVerified:false,
       deploymentAuthorized:false
