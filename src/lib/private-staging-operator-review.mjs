@@ -10,6 +10,8 @@ import {reviewPrivateStagingHtpasswd} from './private-staging-htpasswd-review.mj
 import {reviewPrivateStagingHttp} from './private-staging-http-gate.mjs';
 import {sitePages} from '../data/services.mjs';
 import {legacyUrls} from '../data/legacy-urls.mjs';
+import {join} from 'node:path';
+import {readApprovedFile} from './read-approved-file.mjs';
 
 export async function reviewStagingOperatorCandidate({
   root,image,expectedTreeSha256,htpasswdPath,basicAuth,port,transport
@@ -21,9 +23,18 @@ export async function reviewStagingOperatorCandidate({
   if(!imageReview.immutableDigestSyntax||!bytes.exactTreeBytesVerified||
      !authFile.filePermissionsPrivate||!authFile.bcryptHashSyntaxPresent)
     throw Error('F167: private staging prerequisites not satisfied');
+  // F234: read only pinned, versioned static paths. F165 validated the full
+  // tree before this point; F233 checks it again after HTTP.
+  const expectedHtmlByPath=new Map(sitePages.map(page=>[
+    page.path,
+    readApprovedFile(join(root,page.path==='/'?'index.html':
+      page.path.slice(1)+'index.html'),1024*1024,'staging HTML')
+  ]));
+  expectedHtmlByPath.set('__404_html__',
+    readApprovedFile(join(root,'404.html'),1024*1024,'staging 404 HTML'));
   // F232: the operator's final decision must check every current and historical
   // path, not only the smaller smoke-test fixture.
-  const http=await reviewPrivateStagingHttp({port,basicAuth,transport,fullCoverage:true});
+  const http=await reviewPrivateStagingHttp({port,basicAuth,transport,fullCoverage:true,expectedHtmlByPath});
   const publicCount=sitePages.length;
   const legacyCount=legacyUrls.length;
   const anonymousCount=publicCount+legacyCount+3; // SEO resources and private asset sentinel
@@ -36,6 +47,8 @@ export async function reviewStagingOperatorCandidate({
     throw Error('F233: private staging package changed during HTTP review');
   if(http.unauthenticatedEntryDenied!==true||
      http.coverageProfile!=='COMPLETE_PRIVATE_CATALOG_AND_LEGACY'||
+     http.servedHtmlMatchesLocalPinnedBuild!==true||
+     http.pinnedHtmlComparisons!==sitePages.length+legacyUrls.length||
      http.unauthenticatedRoutesDenied!==anonymousCount||
      http.reviewedPublicPages!==publicCount||
      http.heldLegacyPages!==legacyCount||
@@ -50,6 +63,8 @@ export async function reviewStagingOperatorCandidate({
       imageDigestSyntaxValid:true,
       exactBuildTreeBytesMatch:true,
       buildTreeBytesStableAfterHttp:true,
+      servedHtmlMatchesLocalPinnedBuild:true,
+      pinnedHtmlComparisons:http.pinnedHtmlComparisons,
       publishedHtmlCount:bytes.htmlPages,
       validatedFileCount:bytes.fileCount,
       privateBcryptFileSyntaxAndPermissionsValid:true,
