@@ -14,7 +14,8 @@ function approvedOrigin(input){
   try{value=new URL(input);}catch{throw Error('host review: invalid origin');}
   if(!APPROVED_HOSTS.has(value.origin)||value.username||value.password||
       value.protocol!=='https:'||value.search||value.hash||
-      value.pathname!=='/'||value.href!==value.origin+'/')
+      value.pathname!=='/'||value.href!==value.origin+'/'||
+      input!==value.origin+'/')
     throw Error('host review: unreviewed host or URL variant');
   return value.origin;
 }
