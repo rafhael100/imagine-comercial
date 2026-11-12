@@ -837,6 +837,34 @@ try {
         assert.equal(await sharedPage.locator(selector).inputValue(),'',
           'F169 malformed public link fails closed');
     }finally{await sharedPage.close();}
+    // F249: printing is an explicit, local action. No generated PDF is
+    // uploaded to the site; Chrome print rendering shows only curated labels.
+    const printBriefing=page.locator('#print-briefing');
+    assert.equal(await printBriefing.isVisible(),true,'F249 explicit print control');
+    assert.equal(await page.locator('#print-briefing-service').textContent(),'Onepage');
+    assert.equal(await page.locator('#print-briefing-message').textContent(),briefing.message);
+    await page.evaluate(()=>{
+      window.__testContactPrintCount=0;
+      window.print=()=>{window.__testContactPrintCount++;};
+    });
+    assert.equal(await page.evaluate(()=>window.__testContactPrintCount),0,
+      'F249 print never runs without click');
+    await printBriefing.click();
+    assert.equal(await page.evaluate(()=>window.__testContactPrintCount),1,
+      'F249 print only on intentional click');
+    await page.emulateMedia({media:'print'});
+    assert.equal(await page.locator('#print-briefing-summary').isVisible(),true,
+      'F249 printable summary visible in print media');
+    assert.equal(await page.locator('header').isVisible(),false,
+      'F249 print layout excludes navigation');
+    assert.equal(await page.locator('footer').isVisible(),false,
+      'F249 print layout excludes links');
+    assert.equal(await page.locator('#contact-whatsapp').isVisible(),false,
+      'F249 print layout excludes external actions');
+    await page.emulateMedia({media:'screen'});
+    assert.equal(await page.locator('#print-briefing-summary').isVisible(),false,
+      'F249 summary stays print-only on screen');
+    await page.evaluate(()=>delete window.__testContactPrintCount);
     // F173: browser clipboard writes are asynchronous. If the visitor
     // changes any choice before an old promise settles, no stale message
     // or share-link confirmation may be shown. Both buttons stay disabled
