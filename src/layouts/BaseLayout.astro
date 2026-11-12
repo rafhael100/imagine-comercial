@@ -146,8 +146,12 @@ const service = serviceName ? {
       .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
       .bullets { padding-left: 22px; max-width: 740px; }
       .bullets li + li { margin-top: 9px; }
-      .breadcrumbs { font-size: .88rem; color: #54647e; padding-top: 20px; }
-      .breadcrumbs a { text-underline-offset: 3px; }
+      .breadcrumbs { font-size: .88rem; color: #665e53; padding-top: 20px; }
+      .breadcrumbs ol { list-style: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0; padding: 0; }
+      .breadcrumbs li { min-width: 0; overflow-wrap: anywhere; }
+      .breadcrumbs li + li::before { content: '/'; color: #9a8771; padding-right: 10px; }
+      .breadcrumbs a { text-decoration: underline; text-underline-offset: 3px; color: #884100; }
+      .breadcrumbs [aria-current="page"] { font-weight: 700; color: #171b19; }
       details { border-bottom: 1px solid #d5deea; padding-block: 18px; max-width: 860px; }
       summary { cursor: pointer; font-weight: 700; }
       details p { color: #526178; }
@@ -199,7 +203,23 @@ const service = serviceName ? {
         </nav>
       </details>
     </header>
-    <main id="conteudo"><slot /></main>
+    <main id="conteudo">
+      {breadcrumb.length>0 && (
+        <nav class="shell breadcrumbs" aria-label="Caminho de navegação">
+          <ol>
+            <li><a href="/">Início</a></li>
+            {breadcrumb.map((item,index)=>(
+              <li>
+                {index===breadcrumb.length-1
+                  ? <span aria-current="page">{item.label}</span>
+                  : <a href={item.path}>{item.label}</a>}
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
+      <slot />
+    </main>
     <footer>
       <div class="shell footer-grid">
         <div><strong>Imagine Comunicação Digital</strong><div>Sites, tecnologia e performance digital.</div></div>
