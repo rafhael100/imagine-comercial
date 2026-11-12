@@ -18,6 +18,7 @@ test('F148 validates real cross-page IDs plus only cataloged contact intents',()
     crossPageFragmentsChecked:3,
     staticTargetsChecked:1,
     approvedContactIntents:2,
+    approvedOtherCuratedIntents:0,
     networkPerformed:false
   });
   assert.ok(Object.isFrozen(result));
@@ -60,4 +61,38 @@ test('F148 errors do not print sensitive fragments or URLs',()=>{
   data[0].html+='<a href="/contato/#PERSON-SECRET-IDENTIFIER">Link</a>';
   try{audit(data);assert.fail('must reject unknown intent');}
   catch(error){assert.doesNotMatch(String(error),/PERSON-SECRET/);}
+});
+
+test('F195 compiled cross-page audit permits only fifteen canonical comparison pairs',()=>{
+  const page=valid();
+  page.push({path:'/comparar-solucoes/',html:'<h1>Comparar</h1>'});
+  page[0].html+='<a href="/comparar-solucoes/#comparar:onepage:landing-pages">Duas soluções</a>';
+  const ok=audit(page);
+  assert.equal(ok.crossPageFragmentsChecked,4);
+  assert.equal(ok.approvedContactIntents,2);
+  assert.equal(ok.approvedOtherCuratedIntents,1);
+  for(const bad of [
+    'comparar:landing-pages:onepage',
+    'comparar:onepage:onepage',
+    'comparar:onepage:unknown',
+    'comparar:onepage:landing-pages:extra'
+  ]){
+    const copy=valid();copy.push({path:'/comparar-solucoes/',html:'<h1>Comparar</h1>'});
+    copy[0].html+='<a href="/comparar-solucoes/#'+bad+'">Não aprovado</a>';
+    assert.throws(()=>audit(copy),/cross-page fragment/);
+  }
+});
+
+test('F196 compiled site permits only five vetted business-goal fragments',()=>{
+  for(const goal of ['apresentar','detalhar','oferta','continuidade','anuncios']){
+    const pages=valid();pages.push(page('/servicos/','<h1>Soluções</h1>'));
+    pages[0].html+='<a href="/servicos/#objetivo:'+goal+'">Objetivo público</a>';
+    const result=audit(pages);
+    assert.equal(result.approvedOtherCuratedIntents,1);
+  }
+  for(const goal of ['__proto__','evil','oferta:extra','OFERTA']){
+    const pages=valid();pages.push(page('/servicos/','<h1>Soluções</h1>'));
+    pages[0].html+='<a href="/servicos/#objetivo:'+goal+'">Falha</a>';
+    assert.throws(()=>audit(pages),/cross-page fragment/);
+  }
 });
