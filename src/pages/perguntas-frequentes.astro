@@ -92,10 +92,8 @@ const pathname='/perguntas-frequentes/';
     const collapse=document.querySelector<HTMLButtonElement>('#faq-collapse-visible');
     const availableTopics=new Set(sections.map(section=>section.dataset.faqSection));
     const totalAnswers=approved.size;
-    let activeTopic='all';
     const applyFilter=(topic:string)=>{
       if(topic!=='all'&&!availableTopics.has(topic))return;
-      activeTopic=topic;
       for(const section of sections)
         section.hidden=topic!=='all'&&section.dataset.faqSection!==topic;
       for(const button of topicButtons)
