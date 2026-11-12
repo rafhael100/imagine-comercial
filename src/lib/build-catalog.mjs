@@ -8,26 +8,13 @@ import { services as curatedServices } from '../data/services.mjs';
 import { verifySignedCatalog } from './verify-signed-catalog.mjs';
 import { enforceReleasePin } from './release-pin.mjs';
 import { assertBuildReleaseIntent } from './build-release-target.mjs';
+import {enforceSignedPublicationTime} from './signed-publication-time.mjs';
 
 const MAX_ENVELOPE_BYTES = 2 * 1024 * 1024;
 const MAX_PUBKEY_BYTES = 16 * 1024;
 const KEY_ID = /^[a-z][a-z0-9_-]{4,63}$/;
-// F201: a signed future-dated publication must not become public early.
-// Five minutes covers small operator/runner clock skew, never a scheduled
-// release. A signature authenticates bytes, not editorial go-live timing.
-const MAX_CLOCK_SKEW_MS=5*60*1000;
-
-// F212: share the same not-before guard between staging build and
-// signed offline transition review. A signature alone cannot schedule go-live.
-export function enforceSignedPublicationTime(publishedAt,nowMs=Date.now()){
-  if(!Number.isSafeInteger(nowMs)||nowMs<1)
-    throw new Error('build catalog: invalid verification time');
-  const signedPublicationMs=Date.parse(publishedAt);
-  if(!Number.isFinite(signedPublicationMs)||
-      signedPublicationMs-nowMs>MAX_CLOCK_SKEW_MS)
-    throw new Error('build catalog: signed publication is in the future');
-  return true;
-}
+// F218: pure time gate has no eager Astro catalog side effects.
+export {enforceSignedPublicationTime} from './signed-publication-time.mjs';
 
 export function mergeApprovedServiceMetadata(curated, snapshot) {
   if (!Array.isArray(curated) || !snapshot || !Array.isArray(snapshot.items)) {
