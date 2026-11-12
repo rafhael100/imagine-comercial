@@ -986,6 +986,40 @@ try {
     assert.ok(overflow<=2,'F244 tablet no horizontal overflow');
   }
   await tablet.close();
+  // F247: CSS viewport equivalents of 1280px/640px screens at 200% zoom.
+  // This checks reflow, not the browser's native zoom UI or OS text scaling.
+  for(const variant of [
+    {width:640,height:820,label:'desktop-1280-at-200-percent'},
+    {width:320,height:720,label:'compact-640-at-200-percent'}
+  ]){
+    const zoomContext=await browser.newContext({
+      viewport:{width:variant.width,height:variant.height},deviceScaleFactor:1
+    });
+    const zoomPage=await zoomContext.newPage();
+    for(const route of ['/','/servicos/','/servicos/landing-pages/','/contato/','/conteudos/']){
+      const response=await zoomPage.goto(host+route,{waitUntil:'load',timeout});
+      assert.equal(response?.status(),200,'F247 '+variant.label+' '+route+' HTTP');
+      assert.equal(await zoomPage.locator('details.mobile-menu > summary').isVisible(),true,
+        'F247 reflow menu available');
+      assert.equal(await zoomPage.locator('nav[aria-label="Navegação principal"]').isVisible(),false,
+        'F247 reflow hides oversized desktop links');
+      const measured=await zoomPage.evaluate(()=>({
+        overflow:document.documentElement.scrollWidth-innerWidth,
+        main:document.querySelector('main#conteudo')?.getBoundingClientRect().width||0
+      }));
+      assert.ok(measured.overflow<=2,'F247 '+variant.label+' '+route+' horizontal overflow');
+      assert.ok(measured.main>0,'F247 readable main content');
+      const menu=zoomPage.locator('details.mobile-menu > summary');
+      await menu.click();
+      assert.equal(await zoomPage.locator('nav.mobile-nav a[href="/contato/"]').isVisible(),true,
+        'F247 reflow contact reachable by keyboard-native menu');
+      await menu.click();
+      if(route==='/')await zoomPage.screenshot({
+        path:artifacts+'/f247-'+variant.label+'-home.png',fullPage:true
+      });
+    }
+    await zoomContext.close();
+  }
   // F82: PRIVATE fixture only, loaded in memory; never a public Astro route.
   const privateFormSource=readFileSync(new URL('../tests/fixtures/private-contact-form-preview.html',import.meta.url),'utf8');
   assert.doesNotMatch(privateFormSource,/<script\b|\baction=|fetch\s*\(|https?:\/\//i,
