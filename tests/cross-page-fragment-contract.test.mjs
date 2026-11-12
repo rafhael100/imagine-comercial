@@ -82,3 +82,17 @@ test('F195 compiled cross-page audit permits only fifteen canonical comparison p
     assert.throws(()=>audit(copy),/cross-page fragment/);
   }
 });
+
+test('F196 compiled site permits only five vetted business-goal fragments',()=>{
+  for(const goal of ['apresentar','detalhar','oferta','continuidade','anuncios']){
+    const pages=valid();pages.push(page('/servicos/','<h1>Soluções</h1>'));
+    pages[0].html+='<a href="/servicos/#objetivo:'+goal+'">Objetivo público</a>';
+    const result=audit(pages);
+    assert.equal(result.approvedOtherCuratedIntents,1);
+  }
+  for(const goal of ['__proto__','evil','oferta:extra','OFERTA']){
+    const pages=valid();pages.push(page('/servicos/','<h1>Soluções</h1>'));
+    pages[0].html+='<a href="/servicos/#objetivo:'+goal+'">Falha</a>';
+    assert.throws(()=>audit(pages),/cross-page fragment/);
+  }
+});
