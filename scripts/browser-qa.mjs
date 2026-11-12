@@ -299,6 +299,9 @@ try {
     assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),'',
       'F191 valid question hash reveals its answer');
     await page.goto(host+'/perguntas-frequentes/#duvida-falso',{waitUntil:'load',timeout});
+    // A same-document hash change intentionally does not close an answer
+    // opened earlier. Reload to test invalid fragments on a fresh page.
+    await page.reload({waitUntil:'load',timeout});
     assert.equal(await page.locator('.faq-entry details[open]').count(),0,
       'F191 invalid question hash never expands another answer');
     assert.equal(await page.locator('nav.faq-index input').count(),0);
