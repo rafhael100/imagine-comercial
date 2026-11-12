@@ -66,3 +66,22 @@ test('F221 two additional publicly observed English pages remain explicit HOLD',
   assert.equal(plan.entries.length,25);
   assert.equal(plan.active.length,0);
 });
+
+test('F223 LinkedIn Business and Portuguese legal terms cannot silently redirect',()=>{
+  const paths=[
+    '/o-que-fazemos/linkedin-business.html',
+    '/termos-de-uso.html'
+  ];
+  const result=validateRedirectPlan(legacyUrls);
+  assert.equal(result.entries.length,27);
+  assert.equal(result.entries.filter(x=>x.status==='candidate').length,5);
+  assert.equal(result.entries.filter(x=>x.status==='hold').length,22);
+  assert.equal(result.active.length,0);
+  for(const path of paths){
+    const entry=result.entries.find(x=>x.from===path);
+    assert.ok(entry);
+    assert.equal(entry.status,'hold');
+    assert.equal(entry.to,null);
+    assert.equal(toCloudflareRedirectRules(result).includes(path),false);
+  }
+});
