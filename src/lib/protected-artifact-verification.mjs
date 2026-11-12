@@ -30,8 +30,15 @@ function exactHash(received,expected,label){
     throw new Error('protected artifact: '+label+' digest does not match trusted pin');
 }
 function record(value){
-  return value!==null && typeof value==='object' && !Array.isArray(value) &&
-    Object.getPrototypeOf(value)===Object.prototype;
+  if(value===null||typeof value!=='object'||Array.isArray(value)||
+     Object.getPrototypeOf(value)!==Object.prototype)return false;
+  // F219: a report, envelope or independent pin object must contain only
+  // ordinary enumerable JSON data. No getters, symbols or hidden fields.
+  return Reflect.ownKeys(value).every(key=>{
+    if(typeof key!=='string')return false;
+    const descriptor=Object.getOwnPropertyDescriptor(value,key);
+    return descriptor?.enumerable===true&&Object.hasOwn(descriptor,'value');
+  });
 }
 
 export function verifyProtectedArtifact({
@@ -46,7 +53,7 @@ export function verifyProtectedArtifact({
   if(intent.target==='review')throw new Error('protected artifact: review target not verifiable');
   requireDigest(expectedTreeSha256,'tree');
   const isPlain=record(review);
-  const fields=isPlain?Object.keys(review):[];
+  const fields=isPlain?Reflect.ownKeys(review):[];
   if(!isPlain || fields.length!==allowedFields.size ||
      !fields.every(k=>allowedFields.has(k))) {
     // Report diagnostic counts only, never echo fields or untrusted values.
@@ -60,7 +67,10 @@ export function verifyProtectedArtifact({
      !trustKeys.has(expectedKeyId) || !record(envelope) ||
      envelope.keyId!==expectedKeyId || review.keyId!==expectedKeyId)
     throw new Error('protected artifact: key identity is not independently trusted');
-  if(!record(pins))throw new Error('protected artifact: independent release pins required');
+  if(!record(pins)||Reflect.ownKeys(pins).length!==2||
+      !Object.hasOwn(pins,'expectedReleaseId')||
+      !Object.hasOwn(pins,'expectedPayloadSha256'))
+    throw new Error('protected artifact: independent release pins required');
   exactHash(review.compiledTreeSha256,expectedTreeSha256,'tree');
   exactHash(review.catalogPayloadSha256,pins.expectedPayloadSha256,'catalog');
   if(typeof pins.expectedReleaseId!=='string'||review.releaseId!==pins.expectedReleaseId)
