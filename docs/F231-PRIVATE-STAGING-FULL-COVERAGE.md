@@ -1,6 +1,6 @@
 # F231 — Auditoria HTTP privada com cobertura completa (Leaseweb)
 
-A revisão local F159 verificava 4 rotas públicas e 22 caminhos legados em HOLD. A F231 adiciona o modo **`fullCoverage:true`** ao mesmo verificador e o habilita por padrão **no CLI autenticado do operador**.
+A revisão local F159 verificava 4 rotas públicas e 22 caminhos legados em HOLD. A F231 adiciona o modo **`fullCoverage:true`** ao mesmo verificador e o habilita por padrão no CLI HTTP autenticado. **A F232 passa a exigir essa mesma cobertura no diagnóstico único `review-private-staging-operator.mjs`**, impedindo um falso parecer completo baseado na antiga amostragem.
 
 Com esse modo, o verificador HTTP passive usa somente `http://127.0.0.1:<porta>` de serviço preparado por operador, executa desafio HTTP 401 sem credenciais para todos os caminhos testados e então valida Basic Auth nos caminhos exatos do catálogo:
 
