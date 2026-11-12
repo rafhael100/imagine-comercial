@@ -8,7 +8,7 @@ import {verifySignedCatalog} from './verify-signed-catalog.mjs';
 import {enforceReleasePin, payloadSha256} from './release-pin.mjs';
 import {createReleaseReview} from './release-review.mjs';
 import {verifyIndexablePage} from './seo-output-contract.mjs';
-import {enforceSignedPublicationTime} from './build-catalog.mjs';
+import {enforceSignedPublicationTime} from './signed-publication-time.mjs';
 import {sitePages, toAbsoluteUrl} from '../data/services.mjs';
 
 const allowedSlugs=new Set(sitePages
