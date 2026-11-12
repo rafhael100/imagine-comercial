@@ -13,6 +13,10 @@ import { assertBuildReleaseIntent } from './build-release-target.mjs';
 const MAX_ENVELOPE_BYTES = 2 * 1024 * 1024;
 const MAX_PUBKEY_BYTES = 16 * 1024;
 const KEY_ID = /^[a-z][a-z0-9_-]{4,63}$/;
+// F201: a signed future-dated publication must not become public early.
+// Five minutes covers small operator/runner clock skew, never a scheduled
+// release. A signature authenticates bytes, not editorial go-live timing.
+const MAX_CLOCK_SKEW_MS=5*60*1000;
 
 export function mergeApprovedServiceMetadata(curated, snapshot) {
   if (!Array.isArray(curated) || !snapshot || !Array.isArray(snapshot.items)) {
@@ -88,7 +92,7 @@ function readApprovedFile(path, maxBytes, label) {
   }
 }
 
-export function loadBuildServices(env = process.env) {
+export function loadBuildServices(env = process.env, nowMs=Date.now()) {
   // A target declarado como staging/production nunca usa fallback editorial
   // nem pode ser interpretado como autorização de publicação.
   const intent=assertBuildReleaseIntent(env);
@@ -116,6 +120,12 @@ export function loadBuildServices(env = process.env) {
   enforceReleasePin(snapshot, envelope, {
     expectedReleaseId: releaseId, expectedPayloadSha256: payloadHash
   });
+  if(!Number.isSafeInteger(nowMs)||nowMs<1)
+    throw new Error('build catalog: invalid verification time');
+  const signedPublicationMs=Date.parse(snapshot.publishedAt);
+  if(!Number.isFinite(signedPublicationMs)||
+      signedPublicationMs-nowMs>MAX_CLOCK_SKEW_MS)
+    throw new Error('build catalog: signed publication is in the future');
   return mergeApprovedServiceMetadata(curatedServices, snapshot);
 }
 
