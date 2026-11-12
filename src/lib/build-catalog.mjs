@@ -29,7 +29,7 @@ export function mergeApprovedServiceMetadata(curated, snapshot) {
     }
     overrides.set(item.slug, item);
   }
-  return Object.freeze(curated.map(base => {
+  const merged=curated.map(base => {
     const next = overrides.get(base.slug);
     if (!next) return base;
     // Não sobrescrever slug, FAQ, links, descrição institucional ou preços.
@@ -38,7 +38,23 @@ export function mergeApprovedServiceMetadata(curated, snapshot) {
       ...base, title: next.title, description: next.description,
       intro: next.description
     });
-  }));
+  });
+  // F198: a partially signed update must not silently duplicate SEO titles
+  // or meta descriptions already present on any unchanged public page.
+  // Compare the FINAL six-page catalog, not only the signed delta.
+  const titles=new Set(),descriptions=new Set();
+  for(const item of merged){
+    if(typeof item.title!=='string'||typeof item.description!=='string')
+      throw Error('build catalog: invalid public SEO metadata');
+    const title=item.title.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
+    const description=item.description.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
+    if(titles.has(title))throw Error('build catalog: duplicate public title');
+    if(descriptions.has(description))
+      throw Error('build catalog: duplicate public description');
+    titles.add(title);
+    descriptions.add(description);
+  }
+  return Object.freeze(merged);
 }
 
 function readApprovedFile(path, maxBytes, label) {
