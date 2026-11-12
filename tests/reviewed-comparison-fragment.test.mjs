@@ -55,3 +55,13 @@ test('F175 share action uses only reviewed options and strips current URL query'
   ])assert.ok(browser.includes(scenario),scenario);
   assert.doesNotMatch(page,/<form\b|<input\b|<textarea\b|fetch\s*\(|localStorage|sessionStorage|document\.cookie|innerHTML/);
 });
+
+test('F205 comparison removes inherited queries and fabricated hashes without breaking local anchors',()=>{
+  const source=readFileSync(new URL('../src/pages/comparar-solucoes.astro',import.meta.url),'utf8');
+  assert.match(source,/window\.location\.pathname\+fragment/);
+  assert.doesNotMatch(source,/window\.location\.pathname\+window\.location\.search\+fragment/);
+  assert.match(source,/const cleanHash=pair\?encodeReviewedComparisonFragment\(pair\):/);
+  assert.match(source,/if\(window\.location\.search\|\|window\.location\.hash!==cleanHash\)/);
+  assert.match(source,/document\.getElementById\(localId\)/);
+  assert.match(source,/window\.location\.pathname\+cleanHash/);
+});
