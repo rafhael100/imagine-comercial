@@ -35,6 +35,8 @@ jobs:
         run: node scripts/test-private-preview-built-ci.mjs
       - name: Validar HTML gerado, sitemap e robots
         run: node scripts/verify-dist.mjs
+      - name: Exercitar auditoria privada completa contra o Astro compilado via HTTP local (F238)
+        run: node scripts/test-compiled-staging-http-ci.mjs
       - name: Obter auditor SEO independente em SHA fixo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
