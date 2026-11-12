@@ -44,6 +44,10 @@ export const legacyUrls = Object.freeze([
     reason: 'Serviço antigo LinkedIn Ads não está no catálogo novo; não confundir com gestão Meta ou Google Ads.'
   },
   {
+    from: '/o-que-fazemos/linkedin-business.html', to: null, status: 'hold',
+    reason: 'Oferta legada LinkedIn Business possui indicação em navegação pública, mas não tem página de serviço equivalente aprovada no Astro; revisar HTTP, escopo e conteúdo antes de redirecionar.'
+  },
+  {
     from: '/o-que-fazemos/marketplace-amazon.html',
     to: null, status: 'hold',
     reason: 'Marketplace Amazon é categoria diferente dos produtos novos; exige decisão sobre continuidade comercial.'
@@ -64,6 +68,10 @@ export const legacyUrls = Object.freeze([
   {
     from: '/en-us/customers.html', to: null, status: 'hold',
     reason: 'Necessária versão em inglês e política de portfólio.'
+  },
+  {
+    from: '/termos-de-uso.html', to: null, status: 'hold',
+    reason: 'Rota jurídica legada de termos de uso em português exige preservação, inventário HTTP atual e revisão legal/LGPD antes de definir destino ou status de migração.'
   },
   {
     from: '/en-us/termos-de-uso.html', to: null, status: 'hold',

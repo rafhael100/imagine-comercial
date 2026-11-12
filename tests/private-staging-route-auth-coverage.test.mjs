@@ -68,9 +68,9 @@ test('F168 unauthenticated gate has a bounded, fixed inventory and never accepts
     reviewPrivateStagingHttp({port:4321,basicAuth,transport:t}),
     /private staging HTTP gate failed closed/
   );
-  assert.equal(paths.length,29,'28 anonymous probes, then first authorized probe');
-  assert.equal(new Set(paths.slice(0,28)).size,28);
+  assert.equal(paths.length,31,'30 anonymous probes, then first authorized probe');
+  assert.equal(new Set(paths.slice(0,30)).size,30);
   assert.equal(paths[0],'/');
-  assert.ok(paths.slice(0,28).includes(held));
+  assert.ok(paths.slice(0,30).includes(held));
   assert.ok(paths.every(path=>path.startsWith('/')&&!path.includes('?')));
 });

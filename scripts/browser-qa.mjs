@@ -164,7 +164,7 @@ try {
       const candidates=legacyUrls.filter(item=>item.status==='candidate');
       const held=legacyUrls.filter(item=>item.status==='hold');
       assert.equal(candidates.length,5);
-      assert.equal(held.length,20);
+      assert.equal(held.length,22);
       for(const legacy of [...candidates,...held]){
         const response=await page.goto(host+legacy.from,{waitUntil:'load',timeout});
         assert.equal(response?.status(),404,
