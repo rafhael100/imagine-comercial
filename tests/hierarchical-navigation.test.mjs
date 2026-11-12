@@ -31,5 +31,5 @@ test('F244 tablet breakpoint retains touch targets and browser smoke',()=>{
   assert.match(browser,/F244 tablet no horizontal overflow/);
   assert.match(browser,/F244 desktop guidance entry/);
   assert.match(browser,/F244 editorial section hierarchy/);
-  assert.match(browser,/\/perguntas-frequentes\/'\]\)/);
+  assert.match(browser,/F244 guidance group current section/);
 });
