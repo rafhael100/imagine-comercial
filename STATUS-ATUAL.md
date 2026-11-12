@@ -1,5 +1,33 @@
 # STATUS-ATUAL — Imagine Comercial
 
+## Continuidade e bloqueios de release — 12/11/2026
+
+**Integração DEV:** `integration/comercial-rc31-functional-seo-2026-11-11`. `main` permanece sem alteração. [PR #155](https://github.com/rafhael100/imagine-comercial/pull/155) segue DRAFT/NO-GO. CI não equivale a autorização de produção.
+
+### Entregas recentes integradas
+- [F225–F230, #283–#288](https://github.com/rafhael100/imagine-comercial/pull/288): domínio canônico futuro sem `www`, revisão offline das quatro origens e 27 URLs históricas; separação da borda pública do staging privado. Cinco URLs candidatas NÃO aprovadas; 22 HOLD.
+- [F231 #289](https://github.com/rafhael100/imagine-comercial/pull/289): desafio anônimo 401 e resposta autenticada das rotas públicas e 27 antigas, sem 301 em staging.
+- [F232 #290](https://github.com/rafhael100/imagine-comercial/pull/290): comando único de operador exige cobertura completa.
+- [F233 #291](https://github.com/rafhael100/imagine-comercial/pull/291): árvore SHA-256 do pacote antes e depois da revisão HTTP.
+- [F234 #292](https://github.com/rafhael100/imagine-comercial/pull/292): igualdade do HTML servido com HTML do pacote pinado.
+- [F235 #293](https://github.com/rafhael100/imagine-comercial/pull/293): conferência binária dos assets estáticos e bloqueio de visita anônima a esses caminhos.
+- [F236 #294](https://github.com/rafhael100/imagine-comercial/pull/294): tipo MIME de CSS/JS/imagens/fontes/SEO e decodificação HTML UTF-8 fatal.
+
+**Implementado para revisão:** site estático Astro, conteúdo comercial/SEO, navegação acessível, contatos curados sem envio de PII, catálogo editorial com assinatura/pin de laboratório, prévia privada e testes Portal/CRM/PostgreSQL isolados. Nem um único teste de CI substitui operação real.
+
+### Bloqueios que faltam para fechar desenvolvimento operacional / publicar
+1. **Leaseweb:** executar staging privado na VPS real, pin de imagem auditado, SHA independente, secret/Basic Auth externos, rede/TLS e validação de bytes efetivamente servidos — [issue #56](https://github.com/rafhael100/imagine-comercial/issues/56).
+2. **Portal → CRM:** receptor de orçamentos seguro, privacidade/consentimento, tenant autoritativo, persistência PG e outbox, recibo/ACK durável, reconciliação, SEG/DBA — [Portal #315](https://github.com/rafhael100/imagine-portal/issues/315), [CRM #259](https://github.com/rafhael100/imagine-crm/issues/259). F70 segue bloqueada: sem formulário público ativo.
+3. **SEO:** GSC privado/crawl/backlinks, equivalência editorial e jurídica URL a URL, migração de host sem `www`, 301/HSTS/HTTPS e rollback; nenhuma regra foi ativada — [issue #3](https://github.com/rafhael100/imagine-comercial/issues/3).
+4. **CMS/Portal:** sessão real, grants/MFA, emissor, assinatura/proveniência, anti-rollback e publicação operacional — [issue #4](https://github.com/rafhael100/imagine-comercial/issues/4).
+5. **Aceite formal:** LGPD, AppSec, DBA, comercial/editorial/contratos, dono do release e plano de retorno antes de `main`, DNS/301, cobrança ou captação.
+
+### Procedimento operacional sem exposição
+`node scripts/report-launch-blockers.mjs --target=staging` relaciona os bloqueios. `ops/staging/README.md` descreve preflight e revisão por operador. `scripts/review-private-staging-operator.mjs` só funciona com contêiner previamente iniciado em ambiente autorizado e credenciais privadas; CI não o substitui.
+
+**Estado:** desenvolvimento em DEV avançado e verificado com mocks/infra efêmera; produção NÃO autorizada, VPS real ainda sem homologação aqui. Nenhum código recente foi publicado no domínio.
+
+---
 ## Continuidade funcional — F173–F180 (11/11/2026)
 
 Oito PRs **integradas somente em DEV**, com seus workflows individuais aplicáveis aprovados:
