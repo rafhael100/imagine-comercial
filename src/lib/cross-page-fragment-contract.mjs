@@ -8,12 +8,28 @@
  */
 import assert from 'node:assert/strict';
 import {services} from '../data/services.mjs';
+import {comparisonOptions} from '../data/service-comparison.mjs';
+import {encodeReviewedComparisonFragment} from '../data/reviewed-comparison-fragment.mjs';
+import {guideGoals} from './public-service-guide.mjs';
+import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
 
+const reviewedGoalHashes=new Set(guideGoals.map(goal=>
+  encodeReviewedGoalFragment(goal.code).slice(1)));
+if(reviewedGoalHashes.size!==5)throw Error('F196: invalid public goal fragments');
 const ROUTE=/^\/(?:[a-z0-9-]+\/)*$/;
 const FRAGMENT=/^[A-Za-z0-9_:-]+$/;
 const attr=(tag,name)=>new RegExp('\\b'+name+'\\s*=\\s*(["\\x27])(.*?)\\1','i')
   .exec(tag)?.[2]??null;
 const serviceSlugs=new Set(services.map(s=>s.slug));
+// Only the fifteen canonical pairs from the reviewed comparison catalog.
+const reviewedComparisonHashes=new Set();
+for(let i=0;i<comparisonOptions.length;i++)
+for(let j=i+1;j<comparisonOptions.length;j++)
+  reviewedComparisonHashes.add(encodeReviewedComparisonFragment([
+    comparisonOptions[i].slug,comparisonOptions[j].slug
+  ]).slice(1));
+if(reviewedComparisonHashes.size!==15)
+  throw Error('F195: invalid cross-page comparison catalog');
 
 export function auditCrossPageFragmentTargets(pages){
   assert.ok(Array.isArray(pages)&&pages.length>=2,
@@ -31,7 +47,7 @@ export function auditCrossPageFragmentTargets(pages){
     }
     destinations.set(entry.path,ids);
   }
-  let checked=0,semanticTargets=0;
+  let checked=0,semanticTargets=0,approvedContactIntents=0,approvedOtherCuratedIntents=0;
   for(const entry of pages){
     for(const tag of entry.html.match(/<a\b[^>]*>/gi)??[]){
       const href=attr(tag,'href');
@@ -50,16 +66,22 @@ export function auditCrossPageFragmentTargets(pages){
       const exists=destinations.get(path).has(fragment);
       const isCuratedContactIntent=path==='/contato/' &&
         serviceSlugs.has(fragment);
-      assert.ok(exists||isCuratedContactIntent,
-        'F148: cross-page fragment is neither a real ID nor approved service intent');
+      const isCuratedComparison=path==='/comparar-solucoes/' &&
+        reviewedComparisonHashes.has(fragment);
+      const isCuratedGoal=path==='/servicos/'&&reviewedGoalHashes.has(fragment);
+      assert.ok(exists||isCuratedContactIntent||isCuratedComparison||isCuratedGoal,
+        'F148: cross-page fragment is neither a real ID nor approved reviewed intent');
       checked++;
       if(exists)semanticTargets++;
+      else if(isCuratedContactIntent)approvedContactIntents++;
+      else approvedOtherCuratedIntents++;
     }
   }
   return Object.freeze({
     crossPageFragmentsChecked:checked,
     staticTargetsChecked:semanticTargets,
-    approvedContactIntents:checked-semanticTargets,
+    approvedContactIntents,
+    approvedOtherCuratedIntents,
     networkPerformed:false
   });
 }
