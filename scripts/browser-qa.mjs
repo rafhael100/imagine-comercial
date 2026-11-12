@@ -677,6 +677,31 @@ try {
       assert.ok((await notice.textContent())?.includes('revise e confirme o envio'));
       assert.equal(await page.locator('form,input,textarea').count(),0);
     }
+    // F207: sanitize contact address-bar state while preserving only fixed
+    // service/briefing tokens and valid native anchors.
+    await page.goto(host+'/contato/?probe=PRIVATE-SYNTHETIC#landing-pages',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search==='');
+    assert.equal(new URL(page.url()).hash,'#landing-pages');
+    assert.equal(await page.locator('#service-choice').inputValue(),'landing-pages');
+    await page.locator('#service-choice').selectOption('onepage');
+    assert.equal(new URL(page.url()).search,'');
+    assert.equal(new URL(page.url()).hash,'#onepage');
+    await page.goto(host+'/contato/?probe=PRIVATE-SYNTHETIC#briefing:onepage:melhorar-site:iniciando:contatos',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search==='');
+    assert.equal(new URL(page.url()).hash,'#briefing:onepage:melhorar-site:iniciando:contatos');
+    assert.equal(await page.locator('#service-choice').inputValue(),'onepage');
+    assert.equal(await page.locator('#objective-choice').inputValue(),'melhorar-site');
+    await page.goto(host+'/contato/?probe=PRIVATE-SYNTHETIC#briefing:onepage:FORGED:iniciando:contatos',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search===''&&window.location.hash==='');
+    assert.equal(await page.locator('#service-choice').inputValue(),'');
+    await page.goto(host+'/contato/?probe=PRIVATE-SYNTHETIC#conteudo',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search==='');
+    assert.equal(new URL(page.url()).hash,'#conteudo',
+      'F207 preserves skip-to-content navigation');
     // Jornada comercial: um clique deve manter o serviço de origem sem requisição ao Portal.
     await page.goto(host+'/servicos/landing-pages/',{waitUntil:'load',timeout});
     await page.locator('a.cta[href="/contato/#landing-pages"]').first().click();
