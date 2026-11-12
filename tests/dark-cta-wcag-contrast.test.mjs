@@ -18,7 +18,7 @@ const ratio=(a,b)=>{
 
 test('F158: secondary CTA on dark section has WCAG AA readable default and hover states',()=>{
  assert.match(css,/\.section-dark \.cta-secondary \{ color: #fff; border-color: #e1b779; \}/);
- assert.match(css,/\.section-dark \.cta-secondary:hover \{ color: var(--imagine-ink); background: #fff0db; \}/);
+ assert.match(css,/\.section-dark \.cta-secondary:hover \{ color: var\(--imagine-ink\); background: #fff0db; \}/);
  assert.ok(ratio('ffffff','171b19')>=4.5,'normal light CTA text on dark section');
  assert.ok(ratio('171b19','fff0db')>=4.5,'dark CTA text on pale hover background');
  assert.match(css,/:focus-visible \{ outline: 3px solid/,'keyboard focus remains present');
