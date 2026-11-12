@@ -215,3 +215,36 @@ test('F235 rejects stale CSS bytes even when all HTML and SEO content match',asy
       /F235: private static asset parity failed closed/);
   }finally{await rm(f.base,{recursive:true,force:true});}
 });
+
+test('F236 rejects CSS with incorrect MIME even when its bytes are identical',async()=>{
+  const f=await fixture(),healthy=transport(f);
+  try{
+    const wrongType=async(url,options)=>{
+      const response=await healthy.send(url,options);
+      if(options.headers?.Authorization===basicAuth &&
+         new URL(url).pathname==='/_astro/base.css'){
+        return new Response(await response.arrayBuffer(),{
+          status:200,
+          headers:{...headers,'Content-Type':'text/plain'}
+        });
+      }
+      return response;
+    };
+    await assert.rejects(review({...params(f,healthy),transport:wrongType}),
+      /F235: private static asset parity failed closed/);
+  }finally{await rm(f.base,{recursive:true,force:true});}
+});
+
+test('F236 rejects invalid UTF-8 in authenticated HTML responses',async()=>{
+  const f=await fixture(),healthy=transport(f);
+  try{
+    const damaged=async(url,options)=>{
+      if(options.headers?.Authorization===basicAuth&&new URL(url).pathname==='/'){
+        return new Response(Buffer.from([0xff,0xfe,0xfd]),{status:200,headers});
+      }
+      return healthy.send(url,options);
+    };
+    await assert.rejects(review({...params(f,healthy),transport:damaged}),
+      /F159: private staging HTTP gate failed closed/);
+  }finally{await rm(f.base,{recursive:true,force:true});}
+});
