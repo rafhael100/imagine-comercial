@@ -8,7 +8,8 @@
 import {verifySignedCatalog} from './verify-signed-catalog.mjs';
 import {enforceReleasePin} from './release-pin.mjs';
 import {services} from '../data/services.mjs';
-import {mergeApprovedServiceMetadata,enforceSignedPublicationTime} from './build-catalog.mjs';
+import {mergeApprovedServiceMetadata} from './build-catalog.mjs';
+import {enforceSignedPublicationTime} from './signed-publication-time.mjs';
 const approvedSlugs=new Set(services.map(item=>item.slug));
 
 export function reviewSignedCatalogTransition({
