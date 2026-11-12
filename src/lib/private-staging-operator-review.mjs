@@ -12,6 +12,7 @@ import {sitePages} from '../data/services.mjs';
 import {legacyUrls} from '../data/legacy-urls.mjs';
 import {join} from 'node:path';
 import {readApprovedFile} from './read-approved-file.mjs';
+import {readProtectedDist} from './read-protected-dist.mjs';
 
 export async function reviewStagingOperatorCandidate({
   root,image,expectedTreeSha256,htpasswdPath,basicAuth,port,transport
@@ -32,12 +33,22 @@ export async function reviewStagingOperatorCandidate({
   ]));
   expectedHtmlByPath.set('__404_html__',
     readApprovedFile(join(root,'404.html'),1024*1024,'staging 404 HTML'));
+  // F235: every non-HTML file in the already pinned static tree must also
+  // match what the private Nginx endpoint actually serves.
+  const expectedAssetsByPath=new Map(readProtectedDist(root)
+    .filter(file=>!file.path.endsWith('.html'))
+    .map(file=>['/'+file.path,file.bytes]));
   // F232: the operator's final decision must check every current and historical
   // path, not only the smaller smoke-test fixture.
-  const http=await reviewPrivateStagingHttp({port,basicAuth,transport,fullCoverage:true,expectedHtmlByPath});
+  const http=await reviewPrivateStagingHttp({port,basicAuth,transport,fullCoverage:true,expectedHtmlByPath,expectedAssetsByPath});
   const publicCount=sitePages.length;
   const legacyCount=legacyUrls.length;
-  const anonymousCount=publicCount+legacyCount+3; // SEO resources and private asset sentinel
+  const anonymousCount=new Set([
+    ...sitePages.map(x=>x.path),...legacyUrls.map(x=>x.from),
+    '/robots.txt','/sitemap.xml','/perguntas-frequentes/',
+    '/_astro/__imagine_private_access_probe__.js',
+    ...expectedAssetsByPath.keys()
+  ]).size;
   // F233: verify the package a second time AFTER the HTTP review. A local
   // file mutation during an otherwise successful session must fail closed.
   const stableBytes=reviewStagingBuildIntegrity({root,expectedTreeSha256});
@@ -48,6 +59,8 @@ export async function reviewStagingOperatorCandidate({
   if(http.unauthenticatedEntryDenied!==true||
      http.coverageProfile!=='COMPLETE_PRIVATE_CATALOG_AND_LEGACY'||
      http.servedHtmlMatchesLocalPinnedBuild!==true||
+     http.servedStaticAssetsMatchPinnedBuild!==true||
+     http.verifiedStaticAssets!==expectedAssetsByPath.size||
      http.pinnedHtmlComparisons!==sitePages.length+legacyUrls.length||
      http.unauthenticatedRoutesDenied!==anonymousCount||
      http.reviewedPublicPages!==publicCount||
@@ -65,6 +78,8 @@ export async function reviewStagingOperatorCandidate({
       buildTreeBytesStableAfterHttp:true,
       servedHtmlMatchesLocalPinnedBuild:true,
       pinnedHtmlComparisons:http.pinnedHtmlComparisons,
+      servedStaticAssetsMatchPinnedBuild:true,
+      verifiedStaticAssets:http.verifiedStaticAssets,
       publishedHtmlCount:bytes.htmlPages,
       validatedFileCount:bytes.fileCount,
       privateBcryptFileSyntaxAndPermissionsValid:true,
