@@ -44,13 +44,14 @@ const initialGuide=guideForGoal(guideGoals[0].code);
     </div>
   </section>
   <script>
-    import {guideForGoal} from '../../lib/public-service-guide.mjs';
+    import {guideForGoal,guideGoals} from '../../lib/public-service-guide.mjs';
+    import {encodeReviewedGoalFragment,decodeReviewedGoalFragment} from '../../data/reviewed-goal-fragment.mjs';
     // F58: local-only selection. Never collect or send any visitor input.
     const selector=document.querySelector<HTMLSelectElement>('#service-guide-goal');
     const explanation=document.querySelector<HTMLElement>('#service-guide-explanation');
     const links=document.querySelector<HTMLUListElement>('#service-guide-links');
     if(selector && explanation && links){
-      selector.addEventListener('change',()=>{
+      const renderGuide=()=>{
         const guide=guideForGoal(selector.value);
         explanation.textContent=guide.explanation;
         const suggestions=guide.services.map(item=>{
@@ -67,7 +68,22 @@ const initialGuide=guideForGoal(guideGoals[0].code);
           return li;
         });
         links.replaceChildren(...suggestions);
+      };
+      const restoreFromFragment=()=>{
+        selector.value=decodeReviewedGoalFragment(window.location.hash)||
+          guideGoals[0].code;
+        renderGuide();
+      };
+      selector.addEventListener('change',()=>{
+        // Replace the current entry with a fixed public goal token only.
+        // Drop any inherited query data; no network request is made.
+        const fragment=encodeReviewedGoalFragment(selector.value);
+        window.history.replaceState(null,'',window.location.pathname+fragment);
+        renderGuide();
       });
+      window.addEventListener('hashchange',restoreFromFragment);
+      window.addEventListener('popstate',restoreFromFragment);
+      restoreFromFragment();
     }
   </script>
   <style>
