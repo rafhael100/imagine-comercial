@@ -65,9 +65,9 @@ try{
   // F160: run the same passive gate intended for a future SSH-forwarded
   // private staging origin against the actual isolated Workerd runtime.
   const privateGate=await reviewPrivateStagingHttp({port});
-  assert.equal(privateGate.totalHttpChecks,22);
+  assert.equal(privateGate.totalHttpChecks,24);
   assert.equal(privateGate.reviewedPublicPages,4);
-  assert.equal(privateGate.heldLegacyPages,18);
+  assert.equal(privateGate.heldLegacyPages,20);
   assert.equal(privateGate.deploymentAuthorized,false);
   assert.equal(privateGate.deploymentPerformed,false);
 
@@ -75,7 +75,7 @@ try{
   const candidates=legacyUrls.filter(x=>x.status==='candidate');
   const held=legacyUrls.filter(x=>x.status==='hold');
   assert.equal(candidates.length,5);
-  assert.equal(held.length,18);
+  assert.equal(held.length,20);
   for(const {from:old,to:target} of candidates){
     const response=await probe(old);
     assert.equal(response.status,301,old+' must use real Worker 301');
