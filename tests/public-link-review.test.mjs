@@ -124,3 +124,19 @@ test('F33: an untrusted configured value cannot broaden link destinations',()=>{
     currentPath:'/',approvedPortalLoginUrl:'https://portal.imaginecomunicacao.com.br/login'
   }),/new tab lacks noopener noreferrer/);
 });
+
+test('F190 allows exactly the eight public FAQ question anchors across pages',()=>{
+  const sections=['escopo','contratacao','midia','operacao'];
+  const approved=['escolha','materiais','precos','revisoes',
+    'midia','resultados','portal','acessos'];
+  assert.equal(sections.length,4);
+  for(const question of approved){
+    assert.equal(review(['/perguntas-frequentes/#duvida-'+question],
+      '/servicos/onepage/').internal,1);
+  }
+  for(const bad of ['duvida-falso','duvida-__proto__','faq-escopo',
+    'duvida-precos-extra','duvida-maria@example.invalid']){
+    assert.throws(()=>review(['/perguntas-frequentes/#'+bad],
+      '/servicos/onepage/'),/broken or unapproved fragment/);
+  }
+});

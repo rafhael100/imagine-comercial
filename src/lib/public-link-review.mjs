@@ -6,11 +6,17 @@
 import {sitePages,services} from '../data/services.mjs';
 import {resolvePortalLoginLink} from './portal-login-link.mjs';
 import {contactChannels} from '../data/contact-channels.mjs';
+import {commercialFaqSections} from '../data/commercial-faq.mjs';
 import {isApprovedPublicExternalHref} from './outbound-link-contract.mjs';
 
 const base='http://127.0.0.1:4328';
 const destinations=new Set(sitePages.map(x=>x.path));
 const intents=new Set(services.map(x=>x.slug));
+// F190: cross-page FAQ anchors are valid ONLY for curated question IDs.
+// Do not relax the rule for arbitrary paths, sections or user-supplied hashes.
+const approvedFaqAnchors=new Set(commercialFaqSections.flatMap(section=>
+  section.questions.map(item=>'duvida-'+item.id)
+));
 const waHost='wa.me';
 const waPath='/'+contactChannels.whatsappE164;
 const emailAddress=contactChannels.email;
@@ -63,6 +69,9 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[],approvedPort
         const fragment=url.hash.slice(1);
         if(url.pathname==='/contato/' && intents.has(fragment)) {
           // Intent hash selects the public contact dropdown, not an HTML ID.
+        }else if(url.pathname==='/perguntas-frequentes/' &&
+                  approvedFaqAnchors.has(fragment)) {
+          // Reviewed public FAQ question anchors, stable across pages.
         }else if(url.pathname===currentPath && ids.has(fragment)) {
           // Page-local accessible anchor.
         }else failure(currentPath,index,'broken or unapproved fragment');
