@@ -496,6 +496,8 @@ try {
       try{
         const fallback=await noJs.newPage();
         await fallback.goto(host+'/servicos/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('noscript .service-guide-note').count(),1,
+          'F196 no-JS explains that a shared business goal cannot be restored');
         assert.equal(await fallback.locator('.cards article.card').count(),
           sitePages.filter(item=>item.path.startsWith('/servicos/')&&item.path!=='/servicos/').length,
           'F58 must preserve all public services without JavaScript');
@@ -554,6 +556,13 @@ try {
         assert.equal(await fallback.locator('#copy-briefing-link').isVisible(),false,
           'F169 share action stays hidden without JavaScript');
 
+        await fallback.goto(host+'/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('a[data-goal-deeplink]').count(),5);
+        await fallback.locator('a[data-goal-deeplink]').last().click();
+        await fallback.waitForURL(host+'/servicos/#objetivo:anuncios');
+        assert.equal(await fallback.locator('noscript .service-guide-note').count(),1);
+        assert.equal(await fallback.locator('.cards article.card').count(),services.length,
+          'F196 no-JS still exposes all published services');
         await fallback.goto(host+'/',{waitUntil:'load',timeout});
         const nativeMenu=fallback.locator('details.mobile-menu');
         assert.equal(await nativeMenu.locator('summary').isVisible(),true,
