@@ -4,6 +4,7 @@
  * data, network transport, profile, persistence, quote or commercial promise.
  */
 import {services} from '../data/services.mjs';
+import {encodeReviewedComparisonFragment} from '../data/reviewed-comparison-fragment.mjs';
 
 const bySlug=new Map(services.map(service=>[service.slug,service]));
 const guide=[
@@ -51,6 +52,9 @@ const choices=Object.freeze(Object.fromEntries(guideGoals.map(item=>[
   Object.freeze({
     code:item.code,
     explanation:item.explanation,
+    // Only a reviewed pair gets a deep link to the established comparison.
+    comparisonHref:item.slugs.length===2
+      ?'/comparar-solucoes/'+encodeReviewedComparisonFragment(item.slugs):null,
     services:Object.freeze(item.slugs.map(slug=>Object.freeze({
       slug,label:bySlug.get(slug).label,href:'/servicos/'+slug+'/',
       contactHref:'/contato/#'+slug

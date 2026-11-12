@@ -463,6 +463,11 @@ try {
         chosen.services.map(service=>({href:service.href,label:'Conhecer '+service.label})),
         viewport.label+' F58 reviewed internal suggestions'
       );
+      assert.equal(await page.locator('#service-guide-compare').isVisible(),
+        chosen.comparisonHref!==null,viewport.label+' F199 conditional pair CTA');
+      if(chosen.comparisonHref!==null)
+        assert.equal(await page.locator('#service-guide-compare').getAttribute('href'),
+          chosen.comparisonHref);
       assert.deepEqual(
         await page.locator('#service-guide-links a[data-service-guide-contact]').evaluateAll(links=>
           links.map(link=>({href:link.getAttribute('href'),label:link.textContent?.trim()}))),
@@ -470,6 +475,15 @@ try {
         viewport.label+' F59 contact links remain scoped to selected service'
       );
     }
+    // F199: selecting ads provides a direct, already reviewed comparison
+    // between Google Ads and Meta Ads, without any visitor input or POST.
+    await page.locator('#service-guide-goal').selectOption('anuncios');
+    const comparison=guideForGoal('anuncios').comparisonHref;
+    await page.locator('#service-guide-compare').click();
+    await page.waitForURL(host+comparison);
+    assert.equal(await page.locator('#selected-comparison-list li').count(),2);
+    assert.equal(await page.locator('#contact-comparison-whatsapp').isVisible(),true);
+    await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     // F59: a contact CTA carries only a service slug, no visitor identity.
     await page.locator('#service-guide-goal').selectOption('oferta');
     await page.locator('#service-guide-links a[data-service-guide-contact]').first().click();
@@ -496,6 +510,8 @@ try {
       try{
         const fallback=await noJs.newPage();
         await fallback.goto(host+'/servicos/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('#service-guide-compare').isVisible(),false,
+          'F199 no-JS conditional comparison stays hidden, all services remain listed');
         assert.equal(await fallback.locator('noscript .service-guide-note').count(),1,
           'F196 no-JS explains that a shared business goal cannot be restored');
         assert.equal(await fallback.locator('.cards article.card').count(),
