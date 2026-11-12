@@ -8,6 +8,10 @@ import {readFileSync} from 'node:fs';
 import {reviewLegacyBudgetPreviewParity} from '../src/lib/legacy-budget-parity.mjs';
 import {reviewPortalCrmOperationalBoundary} from '../src/lib/portal-crm-operational-boundary.mjs';
 import {reviewLegacyPublicOfferings} from '../src/data/legacy-public-offerings.mjs';
+import {getCanonicalHostPolicy} from '../src/lib/canonical-host-policy.mjs';
+import {buildStagingHostRouteChecklist} from '../src/lib/staging-host-route-matrix.mjs';
+import {sitePages} from '../src/data/services.mjs';
+import {legacyUrls} from '../src/data/legacy-urls.mjs';
 
 function requestedTarget(argv){
   if(argv.length===0) return 'production';
@@ -29,6 +33,19 @@ export function renderReadinessReport(argv=[]){
     legacyContactIntake,
     portalCrmIntegration:reviewPortalCrmOperationalBoundary(),
     legacyPublicServiceScope:reviewLegacyPublicOfferings(),
+    canonicalHostMigration:{
+      target:getCanonicalHostPolicy().canonicalOrigin,
+      decision:getCanonicalHostPolicy().decision,
+      publishedRoutes:sitePages.length,
+      historicalCandidateRoutes:legacyUrls.filter(x=>x.status==='candidate').length,
+      historicalHeldRoutes:legacyUrls.filter(x=>x.status==='hold').length,
+      fourHostStagingChecklistEntries:buildStagingHostRouteChecklist().length,
+      realStagingHttpVerified:false,
+      urlByUrlSeoMigrationApproved:false,
+      productionRedirectsAuthorized:0,
+      dnsChangesAuthorized:false,
+      releaseAuthorized:false
+    },
     approval:'NOT_AUTHORIZED',
     deploymentPerformed:false
   },null,2);
