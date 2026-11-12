@@ -122,3 +122,17 @@ test('F209 valid signed partial releases remain reviewable but never publishable
   assert.equal(r.deploymentPerformed,false);
   assert.equal(r.absentFromCandidatePartial,1);
 });
+
+test('F212 signed future-dated release cannot pass offline review before go-live',()=>{
+ const scheduled={...current(),publishedAt:'2099-01-01T00:00:00Z'};
+ const before=Date.parse('2098-12-31T23:54:59Z');
+ assert.throws(()=>check(previous(),scheduled,{nowMs:before}),
+   /signed publication is in the future/);
+ const atBoundary=Date.parse('2098-12-31T23:55:00Z');
+ assert.equal(check(previous(),scheduled,{nowMs:atBoundary}).canPublish,false);
+ assert.equal(check(previous(),scheduled,{nowMs:Date.parse(scheduled.publishedAt)})
+   .canPublish,false);
+ for(const bad of [0,-1,NaN,Infinity,'2099-01-01',null,{}])
+   assert.throws(()=>check(previous(),current(),{nowMs:bad}),
+     /invalid verification time/);
+});
