@@ -1,3 +1,4 @@
+> **F230 — Dois ambientes diferentes:** o campo `futurePublicEdgeChecklistEntries` conta casos de simulação de comportamento futuro do domínio público; `realStagingHttpVerified:false` continua independente. O Nginx privado da Leaseweb permanece noindex/Basic Auth e não deve ser avaliado com a matriz de redirects públicos.
 # F229 — Bloqueios de lançamento incluem política de host e matriz de rotas
 
 O comando `node scripts/report-launch-blockers.mjs --target=staging` (ou `--target=production`) agora inclui um resumo **estático e offline** de:
