@@ -5,6 +5,11 @@
 **Integração DEV:** `integration/comercial-rc31-functional-seo-2026-11-11`. `main` permanece sem alteração. [PR #155](https://github.com/rafhael100/imagine-comercial/pull/155) segue DRAFT/NO-GO. CI não equivale a autorização de produção.
 
 ### Entregas recentes integradas
+- [F238 #297](https://github.com/rafhael100/imagine-comercial/pull/297): revisão HTTP de todas as rotas e assets no build Astro compilado com servidor Node isolado; não substitui Leaseweb/Nginx.
+- [F239 #298](https://github.com/rafhael100/imagine-comercial/pull/298): casos adversariais de acesso anônimo e MIME incorreto rejeitados no build compilado em CI.
+- [F240 #300](https://github.com/rafhael100/imagine-comercial/pull/300): logomarca original do primeiro Portal Node preservada byte a byte, cores #F9941D/#171b19 e cabeçalho/hero/contato com foco e acessibilidade revisados.
+- [F241 #301](https://github.com/rafhael100/imagine-comercial/pull/301): páginas internas alinhadas à identidade visual aprovada, mantendo estados interativos e sem alterar conteúdos ou rotas.
+- [F242 #302](https://github.com/rafhael100/imagine-comercial/pull/302): importação privada JSON do Search Console deixa de gravar dados derivados em `artifacts/`, adota leitor seguro e saída agregada; CI local com testes de vazamento.
 - [F225–F230, #283–#288](https://github.com/rafhael100/imagine-comercial/pull/288): domínio canônico futuro sem `www`, revisão offline das quatro origens e 27 URLs históricas; separação da borda pública do staging privado. Cinco URLs candidatas NÃO aprovadas; 22 HOLD.
 - [F231 #289](https://github.com/rafhael100/imagine-comercial/pull/289): desafio anônimo 401 e resposta autenticada das rotas públicas e 27 antigas, sem 301 em staging.
 - [F232 #290](https://github.com/rafhael100/imagine-comercial/pull/290): comando único de operador exige cobertura completa.
