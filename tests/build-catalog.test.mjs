@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import { payloadSha256, enforceReleasePin } from '../src/lib/release-pin.mjs';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { services } from '../src/data/services.mjs';
@@ -173,5 +173,35 @@ test('F37 — protected staging and production accept a fully verified signed pi
         IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256:'a'.repeat(64)
       }),/payload digest/);
     }
+  });
+});
+
+test('F194 reject symlink release envelope and key on actual disk',()=>{
+  withFiles(signed(sample()),env=>{
+    const dir=mkdtempSync(join(tmpdir(),'imagine-f194-files-'));
+    try{
+      const envelopeLink=join(dir,'catalog-link.json');
+      const keyLink=join(dir,'key-link.pem');
+      symlinkSync(env.IMAGINE_CATALOG_ENVELOPE_FILE,envelopeLink);
+      symlinkSync(env.IMAGINE_CATALOG_PUBLIC_KEY_FILE,keyLink);
+      assert.throws(()=>loadBuildServices({...env,
+        IMAGINE_CATALOG_ENVELOPE_FILE:envelopeLink}),/unsafe envelope file/);
+      assert.throws(()=>loadBuildServices({...env,
+        IMAGINE_CATALOG_PUBLIC_KEY_FILE:keyLink}),/unsafe public key file/);
+      assert.equal(loadBuildServices(env).find(x=>x.slug==='landing-pages').title,
+        'Landing Pages empresariais atualizadas no CMS');
+    }finally{rmSync(dir,{force:true,recursive:true});}
+  });
+});
+test('F194 rejects malformed UTF-8 in a release envelope file',()=>{
+  withFiles(signed(sample()),env=>{
+    const dir=mkdtempSync(join(tmpdir(),'imagine-f194-encoding-'));
+    try{
+      const malformed=join(dir,'malformed.json');
+      writeFileSync(malformed,Buffer.from([0x7b,0x22,0xc3,0x28,0x22,0x7d]));
+      assert.throws(()=>loadBuildServices({...env,
+        IMAGINE_CATALOG_ENVELOPE_FILE:malformed}),/unsafe envelope file/);
+      assert.equal(loadBuildServices(env).length,services.length);
+    }finally{rmSync(dir,{force:true,recursive:true});}
   });
 });
