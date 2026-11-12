@@ -17,7 +17,6 @@ const contactIntent=articleContactIntent(article);
 const relevantComparison=comparisonForArticle(article.slug);
 ---
 <BaseLayout title={article.title} description={article.description} pathname={path} articleTitle={article.heading} breadcrumb={[{label:'Conteúdos',path:'/conteudos/'},{label:article.heading,path}]}>
-  <div class="shell breadcrumbs"><a href="/">Início</a> / <a href="/conteudos/">Conteúdos</a> / <span aria-current="page">{article.heading}</span></div>
   <section class="hero"><div class="shell"><p class="eyebrow">{article.eyebrow}</p><h1>{article.heading}</h1><p class="lead">{article.intro}</p></div></section>
   <article class="section shell">
     <nav class="article-toc" aria-label="Sumário deste guia">
