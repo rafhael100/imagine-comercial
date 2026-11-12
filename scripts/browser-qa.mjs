@@ -16,6 +16,7 @@ import {services} from '../src/data/services.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 import {composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
+import {composeReviewedComparisonContact} from '../src/data/comparison-contact.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
@@ -311,6 +312,14 @@ try {
       'F174 never accepts a third selected service');
     assert.equal(await page.locator('#selected-comparison-list a[href="/contato/#onepage"]').count(),1);
     assert.equal(await page.locator('#selected-comparison-list a[href="/contato/#landing-pages"]').count(),1);
+    // F188: two public choices lead only to visitor-controlled external links.
+    const pairContact=composeReviewedComparisonContact(['onepage','landing-pages']);
+    assert.equal(await page.locator('#contact-comparison-whatsapp').getAttribute('href'),
+      contactWhatsAppUrl(pairContact.message));
+    assert.equal(await page.locator('#contact-comparison-email').getAttribute('href'),
+      contactEmailUrl(pairContact.subject,pairContact.message));
+    assert.equal(await page.locator('#contact-comparison-whatsapp').isVisible(),true);
+    assert.equal(await page.locator('#comparison-channel-disclosure').isVisible(),true);
     // F175: share exactly two reviewed slugs, restore after reload, and
     // reject arbitrary visitor text or altered fragments without a request.
     const shareComparison=page.locator('#copy-comparison-link');
@@ -435,6 +444,8 @@ try {
         assert.equal(await fallback.locator('#copy-comparison-link').isVisible(),false,
           'F175 share link stays hidden without JavaScript');
         assert.equal(await fallback.locator('#selected-comparison').isVisible(),false);
+        assert.equal(await fallback.locator('#contact-comparison-whatsapp').isVisible(),false,
+          'F188 no-JS external pair enhancement remains hidden');
         await fallback.goto(host+'/conteudos/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#guide-list article.card:visible').count(),
           articles.length,'F152 all guides remain usable without JavaScript');

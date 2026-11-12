@@ -60,6 +60,11 @@ const pathname='/comparar-solucoes/';
     <h2 id="selected-comparison-title">Sua comparação de soluções</h2>
     <p>Revise os critérios das opções selecionadas. Esta comparação é informativa, não constitui proposta ou recomendação personalizada.</p>
     <ol class="compare-grid selected-comparison-list" id="selected-comparison-list"></ol>
+    <p id="comparison-channel-disclosure" class="compare-contact-note" hidden>Os canais abaixo são externos ao site. A mensagem inclui somente os nomes públicos das duas soluções. Confira e confirme o envio no aplicativo escolhido; selecionar opções não envia uma solicitação.</p>
+    <div class="compare-links">
+      <a id="contact-comparison-whatsapp" href="/contato/" target="_blank" rel="noopener noreferrer" aria-describedby="comparison-channel-disclosure" hidden>Conversar sobre as duas opções no WhatsApp</a>
+      <a id="contact-comparison-email" href="/contato/" aria-describedby="comparison-channel-disclosure" hidden>Conversar sobre as duas opções por e-mail</a>
+    </div>
     <button type="button" id="copy-comparison-link" class="cta cta-secondary" hidden>Copiar link desta comparação</button>
     <p id="copy-comparison-status" role="status" aria-live="polite" aria-atomic="true"></p>
   </section>
@@ -73,6 +78,8 @@ const pathname='/comparar-solucoes/';
   </section>
   <script>
     import {comparisonOptions} from '../data/service-comparison.mjs';
+    import {composeReviewedComparisonContact} from '../data/comparison-contact.mjs';
+    import {contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
     import {encodeReviewedComparisonFragment,decodeReviewedComparisonFragment}
       from '../data/reviewed-comparison-fragment.mjs';
     // F174: deliberate, transient shortlist of at most two curated services.
@@ -83,8 +90,11 @@ const pathname='/comparar-solucoes/';
     const status=document.querySelector<HTMLElement>('#compare-chooser-status');
     const share=document.querySelector<HTMLButtonElement>('#copy-comparison-link');
     const shareStatus=document.querySelector<HTMLElement>('#copy-comparison-status');
+    const pairWhatsApp=document.querySelector<HTMLAnchorElement>('#contact-comparison-whatsapp');
+    const pairEmail=document.querySelector<HTMLAnchorElement>('#contact-comparison-email');
+    const pairDisclosure=document.querySelector<HTMLElement>('#comparison-channel-disclosure');
     const catalog=new Map(comparisonOptions.map(item=>[item.slug,item]));
-    if(selectedSection&&selectedList&&status&&share&&shareStatus&&buttons.length===catalog.size){
+    if(selectedSection&&selectedList&&status&&share&&shareStatus&&pairWhatsApp&&pairEmail&&pairDisclosure&&buttons.length===catalog.size){
       const selected=new Set<string>();
       let revision=0;
       let copyPending=false;
@@ -123,6 +133,19 @@ const pathname='/comparar-solucoes/';
           links.append(detail,contact);
           li.append(heading,list,links);
           selectedList.append(li);
+        }
+        // F188: no browser POST: the visitor initiates a curated external link.
+        const pairReady=cards.length===2;
+        pairWhatsApp.hidden=!pairReady;
+        pairEmail.hidden=!pairReady;
+        pairDisclosure.hidden=!pairReady;
+        if(pairReady){
+          const text=composeReviewedComparisonContact([...selected]);
+          pairWhatsApp.href=contactWhatsAppUrl(text.message);
+          pairEmail.href=contactEmailUrl(text.subject,text.message);
+        }else{
+          pairWhatsApp.removeAttribute('href');
+          pairEmail.removeAttribute('href');
         }
         selectedSection.hidden=cards.length===0;
         status.textContent=cards.length===0
@@ -189,6 +212,9 @@ const pathname='/comparar-solucoes/';
     }
   </script>
   <style>
+    #contact-comparison-whatsapp[hidden],#contact-comparison-email[hidden],
+    #comparison-channel-disclosure[hidden]{display:none!important}
+    .compare-contact-note{max-width:730px;color:#405571;margin:22px 0 0}
     #copy-comparison-link[hidden]{display:none!important}
     #copy-comparison-link{margin-top:18px}
     #copy-comparison-link:disabled{opacity:.6;cursor:wait}

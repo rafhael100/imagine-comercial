@@ -6,6 +6,8 @@
 import {services} from './services.mjs';
 import {contactObjectives} from './contact-objectives.mjs';
 import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from './briefing-curado.mjs';
+import {comparisonOptions} from './service-comparison.mjs';
+import {composeReviewedComparisonContact} from './comparison-contact.mjs';
 
 const messages=new Set();
 const subjects=new Set();
@@ -21,6 +23,19 @@ for(const priority of ['',...briefingPriorities.map(item=>item.code)]){
   subjectBodyPairs.add(subject+'\0'+message);
   combinations++;
 }
+let comparisonPairs=0;
+for(let i=0;i<comparisonOptions.length;i++)
+for(let j=i+1;j<comparisonOptions.length;j++){
+  const {subject,message}=composeReviewedComparisonContact([
+    comparisonOptions[i].slug,comparisonOptions[j].slug
+  ]);
+  messages.add(message);
+  subjects.add(subject);
+  subjectBodyPairs.add(subject+'\0'+message);
+  comparisonPairs++;
+}
+if(comparisonPairs!==15)throw Error('F188: invalid pair contact catalog');
+
 if(combinations!==560||messages.size<35||subjects.size<7)
   throw Error('F159: invalid public curated contact catalog');
 
