@@ -7,7 +7,7 @@ test('F157 legacy candidate/hold paths remain unapproved in the catalog',()=>{
   const candidates=legacyUrls.filter(x=>x.status==='candidate');
   const held=legacyUrls.filter(x=>x.status==='hold');
   assert.equal(candidates.length,5);
-  assert.equal(held.length,20);
+  assert.equal(held.length,22);
   assert.ok(legacyUrls.every(x=>x.status!=='approved'));
   assert.ok(candidates.every(x=>x.to?.startsWith('/')));
   assert.ok(held.every(x=>x.to===null));
