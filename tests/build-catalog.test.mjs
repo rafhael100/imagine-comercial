@@ -234,3 +234,29 @@ test('F198 a distinct signed editorial change preserves approved remaining servi
     assert.equal(new Set(final.map(x=>x.description.normalize('NFKC').trim().toLowerCase())).size,final.length);
   });
 });
+
+test('F201 signed future publication is refused before any public HTML build',()=>{
+  const publishedAt=Date.parse(sample().publishedAt);
+  withFiles(signed(sample()),env=>{
+    for(const nowMs of [publishedAt-300000,publishedAt,publishedAt+1])
+      assert.equal(loadBuildServices(env,nowMs).length,services.length);
+    for(const nowMs of [publishedAt-300001,publishedAt-3600000,
+      Date.parse('2026-11-08T00:00:00Z')])
+      assert.throws(()=>loadBuildServices(env,nowMs),
+        /signed publication is in the future/);
+    for(const nowMs of [0,-1,NaN,Infinity,'2026-11-09',{},null])
+      assert.throws(()=>loadBuildServices(env,nowMs),
+        /invalid verification time/);
+  });
+});
+test('F201 a validly signed scheduled update stays blocked until go-live',()=>{
+  const future={...sample(),publishedAt:'2099-01-01T00:00:00Z'};
+  withFiles(signed(future),env=>{
+    const signedEnv={...env,
+      IMAGINE_CATALOG_EXPECTED_RELEASE_ID:future.releaseId};
+    assert.throws(()=>loadBuildServices(signedEnv,Date.parse('2098-12-31T23:50:00Z')),
+      /signed publication is in the future/);
+    assert.equal(loadBuildServices(signedEnv,Date.parse('2099-01-01T00:00:00Z')).length,
+      services.length);
+  });
+});
