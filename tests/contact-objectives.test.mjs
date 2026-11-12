@@ -42,6 +42,7 @@ test('F71: only public service slugs stay in URL; objective is local and no data
   assert.match(source,/composeCuratedContactLinks\(choice\.value,objective\.value\)/);
   assert.match(source,/objective\.addEventListener\('change', update\)/);
   assert.match(source,/allowedObjectives\.has\(objective\.value\)/);
-  assert.match(source,/window\.location\.pathname \+ window\.location\.search \+ fragment/);
+  assert.match(source,/window\.location\.pathname \+ fragment/);
+  assert.doesNotMatch(source,/window\.location\.pathname \+ window\.location\.search \+ fragment/);
   assert.doesNotMatch(source,/<form\b|<textarea\b|<input\b|fetch\(|sendBeacon\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|document\.cookie|innerHTML/);
 });
