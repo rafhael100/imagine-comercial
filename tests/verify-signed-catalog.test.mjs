@@ -64,3 +64,24 @@ test('rejects weak keys and missing trusted key map',()=>{
   const otherPem=other.export({type:'spki',format:'pem'}).toString();
   assert.throws(()=>verifySignedCatalog(signed(),new Map([['portal_key_01',otherPem]])),/Ed25519 key required/);
 });
+
+test('F193 rejects authentically signed malformed UTF-8 without replacement',()=>{
+  const clean=Buffer.from(JSON.stringify(makePayload()),'utf8');
+  // Mutate a single ASCII byte inside the title to an invalid UTF-8 lead.
+  // Under lossy decoding, JSON remains parseable and contains U+FFFD.
+  const needle=Buffer.from('Criação de Landing Pages profissionais','utf8');
+  const offset=clean.indexOf(needle);
+  assert.ok(offset>0);
+  for(const malformed of [Buffer.from([0xc3,0x28]),Buffer.from([0xed,0xa0,0x80])]){
+    const raw=Buffer.concat([clean.subarray(0,offset),malformed,
+      clean.subarray(offset+1)]);
+    assert.doesNotThrow(()=>JSON.parse(raw.toString('utf8')),
+      'Node replacement decoding would hide invalid UTF-8');
+    const authentic=sign(null,Buffer.concat([DOMAIN,raw]),privateKey);
+    const env={protocol:'imagine-catalog-v1',keyId:'portal_key_01',
+      payloadBase64:raw.toString('base64'),
+      signatureBase64:authentic.toString('base64')};
+    assert.throws(()=>verifySignedCatalog(env,keys),
+      /invalid UTF-8 or JSON payload/);
+  }
+});
