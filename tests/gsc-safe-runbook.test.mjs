@@ -18,5 +18,5 @@ test('F243 release handoff tracks approved visual brand and GSC confidentiality'
   for(const id of ['F238 #297','F239 #298','F240 #300','F241 #301','F242 #302'])
     assert.ok(status.includes(id),'Missing DEV increment '+id);
   assert.match(status,/logomarca original do primeiro Portal Node/);
-  assert.match(status,/não grava dados derivados/);
+  assert.match(status,/deixa de gravar dados derivados/);
 });
