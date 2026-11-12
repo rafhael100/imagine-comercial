@@ -8,11 +8,12 @@
 import {verifySignedCatalog} from './verify-signed-catalog.mjs';
 import {enforceReleasePin} from './release-pin.mjs';
 import {services} from '../data/services.mjs';
-import {mergeApprovedServiceMetadata} from './build-catalog.mjs';
+import {mergeApprovedServiceMetadata,enforceSignedPublicationTime} from './build-catalog.mjs';
 const approvedSlugs=new Set(services.map(item=>item.slug));
 
 export function reviewSignedCatalogTransition({
-  previousEnvelope,nextEnvelope,trustKeys,previousPin,nextPin
+  previousEnvelope,nextEnvelope,trustKeys,previousPin,nextPin,
+  nowMs=Date.now()
 }={}){
   const prev=verifySignedCatalog(previousEnvelope,trustKeys);
   const next=verifySignedCatalog(nextEnvelope,trustKeys);
@@ -22,6 +23,9 @@ export function reviewSignedCatalogTransition({
     throw Error('F202: repeated release identity');
   if(Date.parse(next.publishedAt)<=Date.parse(prev.publishedAt))
     throw Error('F202: nonmonotonic publishedAt');
+  // F212: the offline operator cannot mark a scheduled signed version as
+  // reviewed prematurely; apply the exact F201 production-build fence.
+  enforceSignedPublicationTime(next.publishedAt,nowMs);
   if(prev.items.some(item=>!approvedSlugs.has(item.slug))||
      next.items.some(item=>!approvedSlugs.has(item.slug)))
     throw Error('F202: unknown public service route');
