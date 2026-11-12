@@ -1,51 +1,67 @@
+#!/usr/bin/env node
 /**
- * F26 — CSV de páginas Search Console, SEM API, SEM rede e SEM _redirects.
- * CI deve usar SOMENTE --synthetic. Arquivos reais permanecem locais e ignorados
- * pelo Git; nunca copiar exportação GSC real para workflow/repositório público.
+ * F224 — safe bounded private Search Console page CSV review, OFFLINE ONLY.
+ * Synthetic fixture in CI may write REVIEW-ONLY artifacts; REAL GSC inputs
+ * MUST NOT write files inside the repository or run on GitHub Actions.
  */
-import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
+import {mkdirSync,writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
+import {readApprovedFile} from '../src/lib/read-approved-file.mjs';
 import {reviewGscPagesCsv} from '../src/lib/gsc-inventory-review.mjs';
 
-const args=process.argv.slice(2);
-if(args.length!==1 && !(args.length===2 && args[0]==='--file')){
-  throw new Error('GSC audit: use --synthetic or --file /local/private/export.csv');
+function run(args,env){
+  const synthetic=args.length===1&&args[0]==='--synthetic';
+  const privateFile=args.length===2&&args[0]==='--file';
+  if(!synthetic&&!privateFile)
+    throw Error('unreviewed invocation');
+  if(privateFile&&env.GITHUB_ACTIONS==='true')
+    throw Error('private inputs forbidden in public CI');
+  const source=synthetic?'tests/fixtures/gsc-synthetic-pages.csv':args[1];
+  if(typeof source!=='string'||!/\.csv$/i.test(source))
+    throw Error('invalid CSV input');
+  // Exact descriptor + bounded binary read and fatal UTF-8 decode. Do not
+  // use readFileSync(path,utf8) for sensitive/attacker-controlled GSC input.
+  const csv=readApprovedFile(resolve(source),2*1024*1024,'GSC CSV');
+  const result=reviewGscPagesCsv(csv);
+  const tag=synthetic?'SYNTHETIC_TEST_DATA':'PRIVATE_LOCAL_CSV_NOT_COMMITTED';
+  if(synthetic){
+    // CI intentionally retains deterministic synthetic fixtures in
+    // Git-ignored artifacts/ for QA. No real GSC export may reach this path.
+    const output='artifacts/gsc-review';
+    mkdirSync(output,{recursive:true});
+    writeFileSync(output+'/gsc-review.json',
+      JSON.stringify({
+        ...result,
+        source:tag,
+        warning:'Review only; no redirect approval, network or deployment.'
+      },null,2)+'\n',{mode:0o600});
+    const lines=[
+      '# GSC / SEO legacy URL inventory — REVIEW ONLY','',
+      'Data class: '+tag,'Mode: '+result.mode,'',
+      '- Imported rows: '+result.inputRows,
+      '- Distinct host/path/variant records: '+result.uniqueRows,
+      '- Legacy candidates requiring approval: '+result.candidateRows,
+      '- Held variants or legacy paths: '+result.heldRows,
+      '- Unknown URLs requiring investigation: '+result.unknownRows,
+      '- Local legacy paths absent from this export: '+
+        result.missingLocalLegacyPaths.length,'',
+      'No 301 redirects were activated or generated.',
+      'Export data does not prove complete historical URL coverage.'
+    ];
+    writeFileSync(output+'/REVIEW-ONLY-summary.md',
+      lines.join('\n')+'\n',{mode:0o600});
+  }
+  // Private mode intentionally prints only counts; no output files,
+  // URLs, hostnames, filenames, queries, source text or paths are logged.
+  console.log('GSC audit OFFLINE review only:',JSON.stringify({
+    source:tag,rows:result.inputRows,unique:result.uniqueRows,
+    candidates:result.candidateRows,held:result.heldRows,
+    unknown:result.unknownRows,deployedRedirects:0
+  }));
 }
-const synthetic=args.length===1 && args[0]==='--synthetic';
-if(!synthetic && args[0]!=='--file')throw new Error('GSC audit: invalid invocation');
-const source=synthetic?'tests/fixtures/gsc-synthetic-pages.csv':args[1];
-if(!/\.csv$/i.test(source))throw new Error('GSC audit: CSV extension required');
-const csv=readFileSync(resolve(source),'utf8');
-const result=reviewGscPagesCsv(csv);
-const out='artifacts/gsc-review';
-mkdirSync(out,{recursive:true});
-const report={
-  ...result,
-  warning:'Review-only. No redirect approval, no remote service, no deployment.',
-  source:synthetic?'SYNTHETIC_TEST_DATA':'PRIVATE_LOCAL_CSV_NOT_COMMITTED'
-};
-writeFileSync(out+'/gsc-review.json',JSON.stringify(report,null,2)+'\n',{mode:0o600});
-const lines=[
-  '# GSC / SEO legacy URL inventory — REVIEW ONLY',
-  '',
-  'Data class: '+report.source,
-  'Mode: '+report.mode,
-  '',
-  '- Imported rows: '+result.inputRows,
-  '- Distinct host/path/variant records: '+result.uniqueRows,
-  '- Legacy candidates requiring approval: '+result.candidateRows,
-  '- Held variants or legacy paths: '+result.heldRows,
-  '- Unknown URLs requiring investigation: '+result.unknownRows,
-  '- Local legacy paths absent from this export: '+result.missingLocalLegacyPaths.length,
-  '',
-  'No 301 redirects were activated or generated.',
-  'Export data does not prove complete historical URL coverage.',
-  'Do not upload actual GSC export or this output to a public CI or repository.'
-];
-writeFileSync(out+'/REVIEW-ONLY-summary.md',lines.join('\n')+'\n',{mode:0o600});
-console.log('GSC audit OFFLINE review only:',JSON.stringify({
-  source:report.source,rows:result.inputRows,
-  unique:result.uniqueRows,candidates:result.candidateRows,
-  held:result.heldRows,unknown:result.unknownRows,
-  deployedRedirects:0
-}));
+try{run(process.argv.slice(2),process.env);}
+catch{
+  // Never forward fs/JSON exceptions that may include local paths or bytes.
+  process.stderr.write('GSC audit: offline input refused (NO-GO)\n');
+  process.exitCode=2;
+}
