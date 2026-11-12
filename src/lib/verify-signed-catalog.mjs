@@ -7,6 +7,7 @@
  * NÃO autoriza conteúdo/tenant, não faz deploy nem substitui AuthN/AuthZ.
  */
 import { createPublicKey, verify as cryptoVerify } from 'node:crypto';
+import { TextDecoder } from 'node:util';
 import { validatePublishedCatalog } from './published-catalog.mjs';
 
 const DOMAIN=Buffer.from('imagine-commercial-catalog-v1\0','utf8');
@@ -42,7 +43,13 @@ export function verifySignedCatalog(envelope,trustKeys){
   const verified=cryptoVerify(null,Buffer.concat([DOMAIN,payload]),publicKey,signature);
   if(!verified)throw new Error('catalog signature: verification failed');
   let parsed;
-  try{parsed=JSON.parse(payload.toString('utf8'));}
-  catch {throw new Error('catalog signature: invalid JSON payload');}
+  try{
+    // F193: Buffer.toString('utf8') silently replaces malformed signed bytes
+    // with U+FFFD. A payload's signature authenticates BYTES; the displayed
+    // editorial text must not be decoded with lossy replacement.
+    const exactText=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true})
+      .decode(payload);
+    parsed=JSON.parse(exactText);
+  }catch {throw new Error('catalog signature: invalid UTF-8 or JSON payload');}
   return validatePublishedCatalog(parsed);
 }
