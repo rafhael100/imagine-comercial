@@ -54,7 +54,7 @@ test('F169 page shares only origin + fixed contact route + curated hash with exp
   assert.match(page,/window\.location\.origin\+'\/contato\/'\+fragment/);
   assert.match(page,/encodeCuratedBriefingFragment\(/);
   assert.match(page,/decodeCuratedBriefingFragment\('#'\+requested\)/);
-  assert.match(page,/choice\.value = allowed\.has\(requested\) \? requested : ''/);
+  assert.match(page,/choice\.value=allowed\.has\(requested\) \? requested : ''/);
   assert.match(page,/id="copy-briefing-status"[^>]*role="status" aria-live="polite"/);
   assert.doesNotMatch(page,/<form\b|<input\b|<textarea\b|fetch\s*\(|sendBeacon\s*\(|localStorage|sessionStorage|document\.cookie/);
 });
