@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {generateKeyPairSync,sign,createHash} from 'node:crypto';
+import {services} from '../src/data/services.mjs';
 
 const script=fileURLToPath(new URL('../scripts/review-signed-catalog-transition.mjs',import.meta.url));
 const domain=Buffer.from('imagine-commercial-catalog-v1\0');
@@ -55,7 +56,7 @@ function fixtures(fn){
   const run=overrides=>spawnSync(process.execPath,[script],{
    env:{...env,...overrides},encoding:'utf8',timeout:15000
   });
-  return fn({run,env,pem,root,previousFile,nextFile,keyFile,a,b});
+  return fn({run,env,pem,root,previousFile,nextFile,keyFile,a,b,signPayload});
  }finally{rmSync(root,{recursive:true,force:true});}
 }
 test('F204 CLI reviews two genuine signed and pinned local releases, prints no private inputs',()=>{
@@ -110,5 +111,24 @@ test('F204 refuses symlinked snapshot and key files, preserves source snapshots'
    assert.equal(run({IMAGINE_REVIEW_PUBLIC_KEY_FILE:aliasKey}).status,1);
    assert.equal(run().status,0);
    assert.deepEqual(JSON.parse(readFileSync(previousFile,'utf8')),a.envelope);
+ });
+});
+
+test('F209 offline CLI rejects genuinely signed SEO collisions with unchanged service',()=>{
+ fixtures(({run,nextFile,signPayload})=>{
+  const untouched=services.find(s=>s.slug==='onepage');
+  assert.ok(untouched);
+  for(const changed of [
+   {...entry(2,untouched.title)},
+   {...entry(2,'Landing Pages para novas campanhas'),description:untouched.description}
+  ]){
+   const amended=signPayload({...next(),items:[changed]});
+   writeFileSync(nextFile,JSON.stringify(amended.envelope));
+   const execution=run({IMAGINE_REVIEW_NEXT_PAYLOAD_SHA256:amended.sha});
+   assert.equal(execution.status,1);
+   assert.equal(execution.stdout,'');
+   assert.match(execution.stderr,/offline signed catalog review refused \(NO-GO\)/);
+   assert.ok(!execution.stderr.includes(untouched.title));
+  }
  });
 });
