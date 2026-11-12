@@ -55,9 +55,28 @@ test('F58 browser-only UI does not create a form, external transport or HTML inj
   assert.match(page,/guideForGoal/);
   assert.match(page,/replaceChildren/);
   assert.match(page,/data-service-guide-contact/);
+  assert.match(page,/id="service-guide-fallback-heading"/);
+  assert.match(page,/data-fallback-goal={goal.code}/);
+  assert.match(page,/guideForGoal\(goal.code\)\.services.map/);
   assert.match(page,/id="service-guide-compare"/);
   assert.match(page,/compare.hidden=guide.comparisonHref===null/);
   assert.match(page,/contactHref/);
   assert.match(page,/textContent/);
   assert.doesNotMatch(page,/<form\b|<input\b|fetch\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|innerHTML|document\.cookie/);
+});
+
+test('F206 no-JavaScript guide enumerates the same six approved services by five goals',()=>{
+  const visited=new Set();
+  let total=0;
+  for(const goal of guideGoals){
+    const result=guideForGoal(goal.code);
+    for(const service of result.services){
+      assert.ok(slugs.has(service.slug));
+      assert.equal(service.href,'/servicos/'+service.slug+'/');
+      total++;
+      visited.add(service.slug);
+    }
+  }
+  assert.equal(total,6);
+  assert.equal(visited.size,6);
 });

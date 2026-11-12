@@ -558,8 +558,12 @@ try {
         await fallback.goto(host+'/servicos/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#service-guide-compare').isVisible(),false,
           'F199 no-JS conditional comparison stays hidden, all services remain listed');
-        assert.equal(await fallback.locator('noscript .service-guide-note').count(),1,
-          'F196 no-JS explains that a shared business goal cannot be restored');
+        assert.equal(await fallback.locator('noscript .service-guide-fallback [data-fallback-goal]').count(),5,
+          'F206 all five public goals are legible without JavaScript');
+        assert.equal(await fallback.locator('noscript .service-guide-fallback a[href^="/servicos/"]').count(),6,
+          'F206 six distinct reviewed service links remain actionable without JavaScript');
+        assert.equal(await fallback.locator('noscript [data-fallback-goal="anuncios"] a[href="/servicos/gestao-google-ads/"]').count(),1);
+        assert.equal(await fallback.locator('noscript [data-fallback-goal="anuncios"] a[href="/servicos/gestao-meta-ads/"]').count(),1);
         assert.equal(await fallback.locator('.cards article.card').count(),
           sitePages.filter(item=>item.path.startsWith('/servicos/')&&item.path!=='/servicos/').length,
           'F58 must preserve all public services without JavaScript');
@@ -624,7 +628,7 @@ try {
         assert.equal(await fallback.locator('a[data-goal-deeplink]').count(),5);
         await fallback.locator('a[data-goal-deeplink]').last().click();
         await fallback.waitForURL(host+'/servicos/#objetivo:anuncios');
-        assert.equal(await fallback.locator('noscript .service-guide-note').count(),1);
+        assert.equal(await fallback.locator('noscript .service-guide-fallback [data-fallback-goal="anuncios"] a').count(),2);
         assert.equal(await fallback.locator('.cards article.card').count(),services.length,
           'F196 no-JS still exposes all published services');
         await fallback.goto(host+'/',{waitUntil:'load',timeout});
