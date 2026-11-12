@@ -153,6 +153,12 @@ export async function startPrivateBudgetReviewLab(password,{requireRequestProof=
       const {requestProof, ...reviewInput}=input;
       input=reviewInput;
     }
+    // F185: JSON 'null' is valid syntax but cannot be destructured by the
+    // diagnostics function. Invalid top-level values must never crash the
+    // private HTTP test harness or interrupt subsequent requests.
+    if(input===null||Array.isArray(input)||typeof input!=='object'){
+      write(res,422,refusal('REVIEW_BODY_OBJECT_REQUIRED'));return;
+    }
     const result=reviewPrivateBudgetToCrmLab(input);
     write(res,200,{
       schema:'imagine.comercial.private-budget-http-review.v1',
