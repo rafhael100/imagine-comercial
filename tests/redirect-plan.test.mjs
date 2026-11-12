@@ -63,11 +63,11 @@ test('F221 two additional publicly observed English pages remain explicit HOLD',
     assert.ok(!plan.active.some(x=>x.from===path));
     assert.ok(!toCloudflareRedirectRules(plan).includes(path));
   }
-  assert.equal(plan.entries.length,25);
+  assert.equal(plan.entries.length,27);
   assert.equal(plan.active.length,0);
 });
 
-test('F221 additional GSC page paths remain HOLD without creating a redirect',()=>{
+test('F222 reconciled GSC page paths remain HOLD without creating a redirect',()=>{
   const additional=[
     '/en-us/services/criacao-de-sites-institucional.html',
     '/en-us/services/youtube-ads-anuncios.html',
