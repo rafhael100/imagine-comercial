@@ -73,3 +73,45 @@ test('F38 rejects a mutable/forged report object before inspecting output files'
   assert.throws(()=>verifyProtectedArtifact({...data,review:[]}),
     /exact REVIEW-ONLY schema required/);
 });
+
+test('F219 refuses hidden, symbol and getter report fields without executing untrusted code',()=>{
+  let invoked=0;
+  const fields=['mode','target','releaseId','compiledTreeSha256'];
+  for(const key of fields){
+    const src=mock();
+    Object.defineProperty(src.review,key,{
+      enumerable:true,configurable:true,
+      get(){invoked++;throw Error('SENSITIVE_GETTER_SHOULD_NOT_RUN');}
+    });
+    assert.throws(()=>verifyProtectedArtifact(src),/exact REVIEW-ONLY schema/);
+  }
+  const hidden=mock();
+  Object.defineProperty(hidden.review,'secret',{
+    value:'PRIVATE_F219',enumerable:false
+  });
+  assert.throws(()=>verifyProtectedArtifact(hidden),/exact REVIEW-ONLY schema/);
+  const symbol=mock();
+  symbol.review[Symbol('customerToken')]='PRIVATE_F219';
+  assert.throws(()=>verifyProtectedArtifact(symbol),/exact REVIEW-ONLY schema/);
+  assert.equal(invoked,0);
+});
+test('F219 refuses forged envelope and pins without invoking getters',()=>{
+  let invoked=0;
+  const forgedEnvelope=mock();
+  Object.defineProperty(forgedEnvelope.envelope,'keyId',{
+    enumerable:true,get(){invoked++;throw Error('PRIVATE_F219');}
+  });
+  assert.throws(()=>verifyProtectedArtifact(forgedEnvelope),/key identity/);
+  const forgedPins=mock();
+  Object.defineProperty(forgedPins.pins,'expectedReleaseId',{
+    enumerable:true,get(){invoked++;throw Error('PRIVATE_F219');}
+  });
+  assert.throws(()=>verifyProtectedArtifact(forgedPins),/independent release pins required/);
+  const extraPins=mock();
+  extraPins.pins.oauthVerified=true;
+  assert.throws(()=>verifyProtectedArtifact(extraPins),/independent release pins required/);
+  const hiddenPins=mock();
+  Object.defineProperty(hiddenPins.pins,'accessToken',{value:'PRIVATE_F219'});
+  assert.throws(()=>verifyProtectedArtifact(hiddenPins),/independent release pins required/);
+  assert.equal(invoked,0);
+});
