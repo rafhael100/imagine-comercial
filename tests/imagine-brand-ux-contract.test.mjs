@@ -10,7 +10,7 @@ const visual=read('src/components/HeroVisual.astro');
 const logo=readFileSync(new URL('public/assets/logo-imagine.png',root));
 
 test('A marca oficial do Portal Node é o mesmo PNG original, sem redesenho',()=>{
-  const gitBlobSha=createHash('sha1').update('blob '+logo.length+'\\0').update(logo).digest('hex');
+  const gitBlobSha=createHash('sha1').update('blob '+logo.length).update(Buffer.from([0])).update(logo).digest('hex');
   assert.equal(gitBlobSha,'678adeceb3a8ecdaeb6b576b9ee18d1bf0396f77');
   assert.match(layout,/<img src="\/assets\/logo-imagine\.png" alt="Imagine Comunicação Digital"/);
   assert.match(visual,/<img src="\/assets\/logo-imagine\.png" alt=""/);
