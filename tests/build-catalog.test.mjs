@@ -205,3 +205,32 @@ test('F194 rejects malformed UTF-8 in a release envelope file',()=>{
     }finally{rmSync(dir,{force:true,recursive:true});}
   });
 });
+
+test('F198 final merged catalog rejects duplicate public SEO titles',()=>{
+  const onepage=services.find(s=>s.slug==='onepage');
+  const landing=services.find(s=>s.slug==='landing-pages');
+  const item={slug:'landing-pages',path:'/servicos/landing-pages/',
+    title:onepage.title.toUpperCase(),description:landing.description};
+  assert.throws(()=>mergeApprovedServiceMetadata(services,{items:[item]}),
+    /duplicate public title/);
+  withFiles(signed(sample({title:onepage.title})),env=>
+    assert.throws(()=>loadBuildServices(env),/duplicate public title/));
+});
+test('F198 final merged catalog rejects duplicate SEO descriptions with unchanged pages',()=>{
+  const onepage=services.find(s=>s.slug==='onepage');
+  const landing=services.find(s=>s.slug==='landing-pages');
+  const item={slug:'landing-pages',path:'/servicos/landing-pages/',
+    title:landing.title,description:' '+onepage.description+' '};
+  assert.throws(()=>mergeApprovedServiceMetadata(services,{items:[item]}),
+    /duplicate public description/);
+  withFiles(signed(sample({description:onepage.description})),env=>
+    assert.throws(()=>loadBuildServices(env),/duplicate public description/));
+});
+test('F198 a distinct signed editorial change preserves approved remaining services',()=>{
+  withFiles(signed(sample()),env=>{
+    const final=loadBuildServices(env);
+    assert.equal(final.length,services.length);
+    assert.equal(new Set(final.map(x=>x.title.normalize('NFKC').trim().toLowerCase())).size,final.length);
+    assert.equal(new Set(final.map(x=>x.description.normalize('NFKC').trim().toLowerCase())).size,final.length);
+  });
+});
