@@ -16,7 +16,7 @@ Após receber exportação oficial de **Desempenho → Páginas** do Search Cons
 node scripts/review-gsc-inventory.mjs --file /caminho/privado/Pages.csv
 ```
 
-A ferramenta lê o CSV do disco, sem realizar requisição externa. Os relatórios são gravados em `artifacts/gsc-review/`, pasta ignorada pelo Git. Os artefatos da CI **sempre** vêm do CSV sintético. **Nunca** subir CSV real ou relatórios privados de GSC a uma branch pública ou a artifacts do GitHub.
+A ferramenta lê o CSV do disco, sem realizar requisição externa. **Em modo `--file` privado, não grava relatórios ou artefatos e imprime exclusivamente contagens**, conforme a F224. Somente a execução `--synthetic` na CI pode gravar relatório em `artifacts/gsc-review/`, contendo dados inteiramente fictícios. O JSON privado F68 segue agora a mesma política (F242). **Nunca** subir CSV/JSON real ou relatórios privados de GSC a uma branch pública ou a artifacts do GitHub.
 
 ## Regras de revisão
 
