@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroVisual from '../components/HeroVisual.astro';
+import {guideGoals} from '../lib/public-service-guide.mjs';
+import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
 import { buildServices as services } from '../lib/build-catalog.mjs';
 const title = 'Criação de sites e performance digital | Imagine';
 const description = 'Sites, Landing Pages e estratégia de anúncios para empresas que buscam presença digital profissional. Conheça as soluções da Imagine.';
@@ -21,6 +23,20 @@ const additional = services.filter(s => !featured.includes(s));
         <p class="hero-support">Planejamento claro · Experiência responsiva · Acompanhamento pelo Portal</p>
       </div>
       <HeroVisual />
+    </div>
+  </section>
+  <section class="section section-soft" aria-labelledby="goal-start-heading">
+    <div class="shell">
+      <span class="kicker">Comece pelo objetivo</span>
+      <h2 id="goal-start-heading">O que sua empresa precisa resolver?</h2>
+      <p>Explore caminhos para cada necessidade. As sugestões são informativas e não substituem uma proposta.</p>
+      <nav aria-label="Explorar soluções por objetivo">
+        <ul class="home-goal-links">
+          {guideGoals.map(goal=>(
+            <li><a data-goal-deeplink href={'/servicos/'+encodeReviewedGoalFragment(goal.code)}>{goal.goal}</a></li>
+          ))}
+        </ul>
+      </nav>
     </div>
   </section>
   <section class="section shell">
@@ -76,6 +92,9 @@ const additional = services.filter(s => !featured.includes(s));
     </div>
   </section>
   <style>
+    .home-goal-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px;list-style:none;padding:0;margin:20px 0 0}
+    .home-goal-links a{display:flex;min-height:48px;align-items:center;border:1px solid #9baec4;background:#fff;border-radius:10px;padding:12px 14px;color:#0b5ea9;font-weight:750;text-underline-offset:3px}
+    .home-goal-links a:focus-visible{outline:3px solid #145d9d;outline-offset:3px}
     .hero-grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:clamp(18px,3vw,55px);align-items:center}
     .hero-copy{min-width:0}
     .hero-copy h1{font-size:clamp(2.8rem,4.7vw,4.25rem);max-width:780px}

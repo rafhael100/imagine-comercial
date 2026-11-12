@@ -10,7 +10,12 @@ import assert from 'node:assert/strict';
 import {services} from '../data/services.mjs';
 import {comparisonOptions} from '../data/service-comparison.mjs';
 import {encodeReviewedComparisonFragment} from '../data/reviewed-comparison-fragment.mjs';
+import {guideGoals} from './public-service-guide.mjs';
+import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
 
+const reviewedGoalHashes=new Set(guideGoals.map(goal=>
+  encodeReviewedGoalFragment(goal.code).slice(1)));
+if(reviewedGoalHashes.size!==5)throw Error('F196: invalid public goal fragments');
 const ROUTE=/^\/(?:[a-z0-9-]+\/)*$/;
 const FRAGMENT=/^[A-Za-z0-9_:-]+$/;
 const attr=(tag,name)=>new RegExp('\\b'+name+'\\s*=\\s*(["\\x27])(.*?)\\1','i')
@@ -63,7 +68,8 @@ export function auditCrossPageFragmentTargets(pages){
         serviceSlugs.has(fragment);
       const isCuratedComparison=path==='/comparar-solucoes/' &&
         reviewedComparisonHashes.has(fragment);
-      assert.ok(exists||isCuratedContactIntent||isCuratedComparison,
+      const isCuratedGoal=path==='/servicos/'&&reviewedGoalHashes.has(fragment);
+      assert.ok(exists||isCuratedContactIntent||isCuratedComparison||isCuratedGoal,
         'F148: cross-page fragment is neither a real ID nor approved reviewed intent');
       checked++;
       if(exists)semanticTargets++;

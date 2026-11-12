@@ -20,6 +20,7 @@ import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.m
 import {composeReviewedComparisonContact} from '../src/data/comparison-contact.mjs';
 import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
+import {encodeReviewedGoalFragment} from '../src/data/reviewed-goal-fragment.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
 import {assessPrivateBudgetPreview} from '../src/lib/private-budget-preflight.mjs';
@@ -432,6 +433,20 @@ try {
       assert.equal(await page.locator('nav[aria-label="Navegação móvel"] a[aria-current="page"]').count(),1);
       await page.goto(host+'/',{waitUntil:'load',timeout});
     }
+    // F196: homepage business-goal navigation restores a reviewed
+    // recommendation without tracking, free text, or a backend request.
+    await page.goto(host+'/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('a[data-goal-deeplink]').count(),5);
+    const targetGoal=guideGoals[2];
+    await page.locator('a[data-goal-deeplink]').nth(2).click();
+    await page.waitForURL(host+'/servicos/'+encodeReviewedGoalFragment(targetGoal.code));
+    assert.equal(await page.locator('#service-guide-goal').inputValue(),targetGoal.code);
+    assert.equal(await page.locator('#service-guide-explanation').textContent(),
+      guideForGoal(targetGoal.code).explanation);
+    await page.locator('#service-guide-goal').selectOption('anuncios');
+    assert.equal(new URL(page.url()).hash,encodeReviewedGoalFragment('anuncios'));
+    await page.goto(host+'/servicos/#objetivo:inventado',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('#service-guide-goal').inputValue(),guideGoals[0].code);
     // F58: real browser contract for the public service guide.
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     const goalOptions=page.locator('#service-guide-goal option');
@@ -481,6 +496,8 @@ try {
       try{
         const fallback=await noJs.newPage();
         await fallback.goto(host+'/servicos/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('noscript .service-guide-note').count(),1,
+          'F196 no-JS explains that a shared business goal cannot be restored');
         assert.equal(await fallback.locator('.cards article.card').count(),
           sitePages.filter(item=>item.path.startsWith('/servicos/')&&item.path!=='/servicos/').length,
           'F58 must preserve all public services without JavaScript');
@@ -539,6 +556,13 @@ try {
         assert.equal(await fallback.locator('#copy-briefing-link').isVisible(),false,
           'F169 share action stays hidden without JavaScript');
 
+        await fallback.goto(host+'/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('a[data-goal-deeplink]').count(),5);
+        await fallback.locator('a[data-goal-deeplink]').last().click();
+        await fallback.waitForURL(host+'/servicos/#objetivo:anuncios');
+        assert.equal(await fallback.locator('noscript .service-guide-note').count(),1);
+        assert.equal(await fallback.locator('.cards article.card').count(),services.length,
+          'F196 no-JS still exposes all published services');
         await fallback.goto(host+'/',{waitUntil:'load',timeout});
         const nativeMenu=fallback.locator('details.mobile-menu');
         assert.equal(await nativeMenu.locator('summary').isVisible(),true,

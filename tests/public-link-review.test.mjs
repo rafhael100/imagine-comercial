@@ -152,3 +152,15 @@ test('F195 only canonical reviewed two-service fragments can link across pages',
     '/comparar-solucoes/#comparar:onepage:landing-pages?token=1'
   ])assert.throws(()=>review([bad],'/servicos/onepage/'),/broken or unapproved fragment|unsafe/);
 });
+
+test('F196 allows exactly five public objective deep links and denies forged input',()=>{
+  for(const goal of ['apresentar','detalhar','oferta','continuidade','anuncios']){
+    assert.equal(review(['/servicos/#objetivo:'+goal],'/').internal,1);
+  }
+  for(const frag of ['objetivo:unexpected','objetivo:__proto__',
+    'objetivo:oferta:extra','objetivo:%6fferta','objetivo:oferta?utm=private',
+    'objetivo:ANUNCIOS']){
+    assert.throws(()=>review(['/servicos/#'+frag],'/'),
+      /broken or unapproved fragment|unsafe/);
+  }
+});
