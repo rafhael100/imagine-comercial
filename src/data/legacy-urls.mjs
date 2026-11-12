@@ -115,19 +115,9 @@ export const legacyUrls = Object.freeze([
     from: '/en-us/services/marketplace-mercado-livre.html', to: null, status: 'hold',
     reason: 'Marketplace Mercado Livre em inglês sem destino comercial homologado.'
   },
-  // F221: four additional PUBLIC URL PATHS observed on the property's
-  // authorized, finalized Search Console PAGES report. Do not include
-  // private query strings, counts, traffic or search terms in this repo.
-  {
-    from: '/en-us/services/criacao-de-sites-institucional.html',
-    to: null, status: 'hold',
-    reason: 'Rota institucional em inglês observada no inventário de páginas; sem versão/hreflang e equivalência editorial homologadas.'
-  },
-  {
-    from: '/en-us/services/youtube-ads-anuncios.html',
-    to: null, status: 'hold',
-    reason: 'Página de YouTube Ads em inglês exige decisão de portfólio, tradução e equivalência antes de qualquer destino.'
-  },
+  // F222: these are the two remaining public paths observed in
+  // an authorized GSC PAGE report, in addition to two F221 English paths.
+  // Do not include Search Console query strings or performance metrics.
   {
     from: '/o-que-fazemos/linkedin-business.html',
     to: null, status: 'hold',
