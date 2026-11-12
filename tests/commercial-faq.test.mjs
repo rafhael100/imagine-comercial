@@ -31,3 +31,14 @@ test('F65 route is indexable, static and has no visitors data collection',()=>{
  assert.match(file,/href="\/comparar-solucoes\/"/);
  assert.doesNotMatch(file,/<form\b|<input\b|<script\b|fetch\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|document\.cookie/);
 });
+
+test('F189 eight canonical question anchors and four topic links, no personal state',()=>{
+ const ids=commercialFaqSections.flatMap(section=>section.questions.map(item=>item.id));
+ assert.equal(new Set(ids).size,8);
+ assert.match(file,/aria-label="Índice de perguntas frequentes"/);
+ assert.match(file,/href={'#faq-'\+section\.code}/);
+ assert.match(file,/href={'#duvida-'\+item\.id}/);
+ assert.match(file,/id={'duvida-'\+item\.id}/);
+ assert.match(file,/class="faq-entry"/);
+ assert.doesNotMatch(file,/localStorage|sessionStorage|document\.cookie|fetch\(/);
+});

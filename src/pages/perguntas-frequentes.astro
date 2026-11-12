@@ -21,6 +21,22 @@ const pathname='/perguntas-frequentes/';
       </div>
     </div>
   </section>
+  <nav class="section shell faq-index" aria-label="Índice de perguntas frequentes">
+    <h2>Encontre sua dúvida</h2>
+    <p>Escolha um tema ou uma pergunta para ir diretamente à resposta. Os links não registram nem enviam sua escolha.</p>
+    <ul class="faq-index-topics">
+      {commercialFaqSections.map(section=>(
+        <li>
+          <a href={'#faq-'+section.code}>{section.title}</a>
+          <ul>
+            {section.questions.map(item=>(
+              <li><a href={'#duvida-'+item.id}>{item.question}</a></li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  </nav>
   <div id="respostas">
     {commercialFaqSections.map((section,index)=>(
       <section class:list={['section',index%2===0?'section-soft':'']} aria-labelledby={'faq-'+section.code}>
@@ -29,10 +45,12 @@ const pathname='/perguntas-frequentes/';
           <h2 id={'faq-'+section.code}>{section.title}</h2>
           <div class="faq-list">
             {section.questions.map(item=>(
-              <details class="faq-item">
-                <summary>{item.question}</summary>
-                <p>{item.answer}</p>
-              </details>
+              <div id={'duvida-'+item.id} class="faq-entry">
+                <details class="faq-item">
+                  <summary>{item.question}</summary>
+                  <p>{item.answer}</p>
+                </details>
+              </div>
             ))}
           </div>
         </div>
@@ -48,6 +66,14 @@ const pathname='/perguntas-frequentes/';
     </div>
   </section>
   <style>
+    .faq-index{padding-top:38px;padding-bottom:38px}
+    .faq-index p{max-width:700px}
+    .faq-index-topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:20px;padding:0;list-style:none}
+    .faq-index-topics>li>a{font-weight:800;color:#0b5ea9}
+    .faq-index-topics ul{padding-left:21px;margin-top:12px}
+    .faq-index-topics ul li{margin:9px 0}
+    .faq-index a{text-underline-offset:3px;overflow-wrap:anywhere}
+    .faq-entry{scroll-margin-top:18px}
     .faq-list{max-width:880px}
     .faq-item{max-width:none;background:white;border:1px solid #d5e2f0;border-radius:12px;padding:0 20px;margin:12px 0}
     .faq-item summary{font-weight:750;padding:18px 0;cursor:pointer}
