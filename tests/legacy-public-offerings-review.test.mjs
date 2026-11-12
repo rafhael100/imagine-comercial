@@ -42,7 +42,7 @@ test('F172 6 public catalog slugs do not hide 10 old categories or 2 new-only sc
 });
 test('F172 scope catalog cannot silently authorize known redirects or runtime',()=>{
   assert.equal(legacyUrls.filter(x=>x.status==='candidate').length,5);
-  assert.equal(legacyUrls.filter(x=>x.status==='hold').length,20);
+  assert.equal(legacyUrls.filter(x=>x.status==='hold').length,22);
   assert.ok(legacyUrls.every(x=>x.status!=='approved'));
   for(const args of [[],['--target=staging']]){
     const report=JSON.parse(renderReadinessReport(args));
