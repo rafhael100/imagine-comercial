@@ -96,6 +96,18 @@ try {
         const last=await trail.locator('ol > li').last().locator('[aria-current="page"]').count();
         assert.equal(last,1,'F245 last item describes the current page');
       }
+      // F246: service/help/footer contact routes remain discoverable at all sizes.
+      const footerLinks=page.locator('footer');
+      assert.equal(await footerLinks.locator('nav[aria-label="Serviços no rodapé"]').count(),1,
+        'F246 structured service links');
+      assert.equal(await footerLinks.locator('nav[aria-label="Institucional no rodapé"]').count(),1,
+        'F246 structured guidance links');
+      for(const path of ['/servicos/','/comparar-solucoes/','/como-funciona/','/perguntas-frequentes/','/contato/']){
+        assert.ok(await footerLinks.locator('a[href="'+path+'"]').count()>=1,
+          'F246 footer retains useful route '+path);
+      }
+      assert.match((await footerLinks.locator('.footer-contact p').textContent())||'',
+        /reconfirmados antes da publicação/);
       const brandImage=page.locator('header a.brand img');
       assert.equal(await brandImage.count(),1,'F240 real Imagine logo visible on every route');
       assert.equal(await brandImage.getAttribute('src'),'/logo-imagine.png');
