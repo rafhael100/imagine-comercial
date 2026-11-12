@@ -345,6 +345,19 @@ try {
     await page.locator('[data-compare-select="landing-pages"]').click();
     assert.equal(await page.locator('#selected-comparison-list li').count(),2,
       'F174 selected exactly two real services');
+    // F203: visitor-initiated print should contain only the two cards.
+    assert.equal(await page.locator('#print-comparison').isVisible(),true);
+    await page.evaluate(()=>{
+      window.__testPairPrintCount=0;
+      window.print=()=>{window.__testPairPrintCount++};
+    });
+    await page.locator('#print-comparison').click();
+    assert.equal(await page.evaluate(()=>window.__testPairPrintCount),1);
+    await page.emulateMedia({media:'print'});
+    assert.equal(await page.locator('#selected-comparison-list li:visible').count(),2);
+    assert.equal(await page.locator('#comparacoes .compare-card:visible').count(),0);
+    assert.equal(await page.locator('#print-comparison').isVisible(),false);
+    await page.emulateMedia({media:'screen'});
     assert.match(await page.locator('#compare-chooser-status').textContent(),/2 soluções selecionadas/);
     assert.equal(await page.locator('[data-compare-select="gestao-google-ads"]').isDisabled(),true,
       'F174 never accepts a third selected service');
@@ -390,6 +403,8 @@ try {
     assert.equal(await page.locator('#selected-comparison-list li').count(),2);
     await page.locator('[data-compare-select="onepage"]').click();
     assert.equal(await page.locator('#selected-comparison-list li').count(),1);
+    assert.equal(await page.locator('#print-comparison').isVisible(),false,
+      'F203 print disappears after deselecting an option');
     assert.equal(await page.locator('[data-compare-select="gestao-google-ads"]').isEnabled(),true);
     await page.locator('[data-compare-select="landing-pages"]').click();
     assert.equal(await page.locator('#selected-comparison-list li').count(),0);
@@ -526,6 +541,8 @@ try {
           'F174 shortlist buttons are hidden without JavaScript');
         assert.equal(await fallback.locator('#copy-comparison-link').isVisible(),false,
           'F175 share link stays hidden without JavaScript');
+        assert.equal(await fallback.locator('#print-comparison').isVisible(),false,
+          'F203 print enhancement stays hidden without JavaScript');
         assert.equal(await fallback.locator('#selected-comparison').isVisible(),false);
         assert.equal(await fallback.locator('#contact-comparison-whatsapp').isVisible(),false,
           'F188 no-JS external pair enhancement remains hidden');
