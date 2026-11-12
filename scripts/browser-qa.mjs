@@ -518,7 +518,10 @@ try {
         await fallback.waitForURL(host+'/perguntas-frequentes/#duvida-precos');
         assert.equal(await fallback.locator('#duvida-precos summary').count(),1);
         assert.equal(await fallback.locator('#duvida-precos details').getAttribute('open'),null);
-        await fallback.locator('#duvida-precos summary').click();
+        // Native anchor scrolling may be in flight; keyboard activation
+        // avoids racing click stability during the no-JS fallback test.
+        await fallback.locator('#duvida-precos summary').focus();
+        await fallback.keyboard.press('Enter');
         assert.equal(await fallback.locator('#duvida-precos details').getAttribute('open'),'');
         await fallback.goto(host+'/conteudos/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#guide-list article.card:visible').count(),
