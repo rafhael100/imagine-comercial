@@ -83,6 +83,11 @@ try {
       const canonical=await page.locator('link[rel="canonical"]').getAttribute('href');
       assert.equal(canonical,'https://imaginecomunicacao.com.br'+route,viewport.label+': '+route+' canonical');
       assert.equal(await page.locator('main#conteudo').count(),1,route+' main landmark');
+      const brandImage=page.locator('header a.brand img');
+      assert.equal(await brandImage.count(),1,'F240 real Imagine logo visible on every route');
+      assert.equal(await brandImage.getAttribute('src'),'/logo-imagine.png');
+      assert.equal(await brandImage.evaluate(img=>img.complete&&img.naturalWidth>0),true,
+        'F240 original Imagine PNG must load successfully');
       const portalLink=page.locator('a.nav-cta');
       assert.equal(await portalLink.count(),approvedPortalLoginUrl?1:0,
         viewport.label+': Portal link must match explicit approved build URL');
