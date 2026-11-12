@@ -5,13 +5,14 @@
  * Não converte um build sintético em release autorizado.
  */
 import {execFileSync} from 'node:child_process';
-import {readFileSync,readdirSync,lstatSync,rmSync,mkdirSync,writeFileSync} from 'node:fs';
-import {join,posix} from 'node:path';
+import {lstatSync,rmSync,mkdirSync,writeFileSync} from 'node:fs';
+import {join} from 'node:path';
 import {assertBuildReleaseIntent} from '../src/lib/build-release-target.mjs';
 import {verifySignedCatalog} from '../src/lib/verify-signed-catalog.mjs';
 import {enforceReleasePin} from '../src/lib/release-pin.mjs';
 import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
 import {readApprovedFile} from '../src/lib/read-approved-file.mjs';
+import {readProtectedDist} from '../src/lib/read-protected-dist.mjs';
 
 const outputDir='artifacts/protected-build-review';
 // Clear old evidence even when the current request has invalid inputs.
@@ -63,19 +64,9 @@ try{
 }catch{
   throw new Error('protected build: Astro compilation failed, release not verified');
 }
-function readTree(dir='dist',relative='') {
-  const out=[];
-  for(const entry of readdirSync(dir,{withFileTypes:true})){
-    const path=join(dir,entry.name);
-    const rel=relative?posix.join(relative,entry.name):entry.name;
-    if(entry.isSymbolicLink())throw new Error('protected build: output symlink prohibited');
-    if(entry.isDirectory())out.push(...readTree(path,rel));
-    else if(entry.isFile())out.push({path:rel,bytes:readFileSync(path)});
-    else throw new Error('protected build: unsupported output file');
-  }
-  return out;
-}
-const proof=createSignedBuildReview(readTree(),envelope,trustKeys,pins);
+// F217: enumerate and read bounded, symlink-resistant output *before*
+// producing the signed byte review. No unrestricted recursive read.
+const proof=createSignedBuildReview(readProtectedDist(),envelope,trustKeys,pins);
 if(proof.releaseId!==snapshot.releaseId || proof.verifiedServiceCount<1)
   throw new Error('protected build: signed HTML verification incomplete');
 const report=Object.freeze({
