@@ -313,6 +313,44 @@ try {
     assert.equal(await firstFaq.getAttribute('open'),'',
       'F65 native details expands on keyboard and pointer activation');
     assert.ok((await firstFaq.locator('p').textContent())?.length>90);
+    // F248: progressive FAQ filters act on exactly the eight public answers.
+    const faqTopicButtons=page.locator('#faq-topic-controls [data-faq-topic]');
+    assert.equal(await faqTopicButtons.count(),5,'F248 four topic filters plus all topics');
+    assert.equal(await page.locator('#faq-filter-status').textContent(),
+      'Exibindo todas as 8 perguntas.');
+    await page.locator('[data-faq-topic="midia"]').click();
+    assert.equal(await page.locator('#respostas [data-faq-section]:visible').count(),1,
+      'F248 topic filtering limits visible FAQ categories');
+    assert.equal(await page.locator('[data-faq-topic="midia"]').getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('#faq-filter-status').textContent(),
+      'Exibindo 2 perguntas do tema Campanhas e resultados.');
+    await page.locator('#faq-expand-visible').click();
+    assert.equal(await page.locator('#respostas [data-faq-section="midia"] details[open]').count(),2,
+      'F248 expand only visible topic');
+    await page.locator('#faq-collapse-visible').click();
+    assert.equal(await page.locator('#respostas details[open]').count(),1,
+      'F248 collapsed visible topic while previously opened hidden topic stays untouched');
+    await page.evaluate(()=>{window.location.hash='duvida-precos';});
+    await page.waitForFunction(()=>document.querySelector('#duvida-precos details')?.open===true);
+    assert.equal(await page.locator('#respostas [data-faq-section]:visible').count(),4,
+      'F248 valid FAQ deep link reveals hidden section');
+    assert.equal(await page.locator('#faq-filter-status').textContent(),
+      'Exibindo todas as 8 perguntas.');
+    if(viewport.label==='mobile'){
+      const noJsFaq=await browser.newContext({
+        viewport:{width:375,height:812},javaScriptEnabled:false
+      });
+      const noJsFaqPage=await noJsFaq.newPage();
+      await noJsFaqPage.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
+      assert.equal(await noJsFaqPage.locator('#faq-topic-controls').isVisible(),false,
+        'F248 filter controls remain hidden when JS is disabled');
+      assert.equal(await noJsFaqPage.locator('#respostas [data-faq-section]:visible').count(),4,
+        'F248 all public FAQ categories remain accessible without scripts');
+      await noJsFaqPage.locator('.faq-item summary').first().click();
+      assert.equal(await noJsFaqPage.locator('.faq-item[open]').count(),1,
+        'F248 native FAQ details remain usable without JS');
+      await noJsFaq.close();
+    }
     // F64: process page keeps the public briefing self-service and static.
     await page.goto(host+'/como-funciona/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('.process-card').count(),6,'F64 six process stages');

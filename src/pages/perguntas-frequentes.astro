@@ -23,6 +23,17 @@ const pathname='/perguntas-frequentes/';
   <nav class="section shell faq-index" aria-label="Índice de perguntas frequentes">
     <h2>Encontre sua dúvida</h2>
     <p>Escolha um tema ou uma pergunta para ir diretamente à resposta. Os links não registram nem enviam sua escolha.</p>
+    <div id="faq-topic-controls" class="faq-topic-controls" role="group" aria-label="Filtrar perguntas por tema" hidden>
+      <button type="button" data-faq-topic="all" aria-pressed="true" aria-controls="respostas">Todos os temas</button>
+      {commercialFaqSections.map(section=>(
+        <button type="button" data-faq-topic={section.code} aria-pressed="false" aria-controls="respostas">{section.title}</button>
+      ))}
+    </div>
+    <p id="faq-filter-status" class="faq-filter-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+    <div class="faq-answer-controls" id="faq-answer-controls" hidden>
+      <button type="button" id="faq-expand-visible" aria-controls="respostas">Expandir respostas visíveis</button>
+      <button type="button" id="faq-collapse-visible" aria-controls="respostas">Recolher respostas visíveis</button>
+    </div>
     <ul class="faq-index-topics">
       {commercialFaqSections.map(section=>(
         <li>
@@ -38,7 +49,7 @@ const pathname='/perguntas-frequentes/';
   </nav>
   <div id="respostas">
     {commercialFaqSections.map((section,index)=>(
-      <section class:list={['section',index%2===0?'section-soft':'']} aria-labelledby={'faq-'+section.code}>
+      <section class:list={['section',index%2===0?'section-soft':'']} data-faq-section={section.code} aria-labelledby={'faq-'+section.code}>
         <div class="shell">
           <p class="kicker">Perguntas frequentes</p>
           <h2 id={'faq-'+section.code}>{section.title}</h2>
@@ -69,10 +80,56 @@ const pathname='/perguntas-frequentes/';
     // Navigation is local; no client data is read, stored or transmitted.
     const approved=new Set([...document.querySelectorAll<HTMLElement>('.faq-entry[id]')]
       .map(item=>item.id));
+    // F248 progressive enhancement: filters and expand/collapse operate on
+    // the eight public, pre-rendered answers only. No search text, storage,
+    // URL params, network calls, analytics, cookies or visitor identification.
+    const topicControls=document.querySelector<HTMLElement>('#faq-topic-controls');
+    const topicButtons=[...document.querySelectorAll<HTMLButtonElement>('[data-faq-topic]')];
+    const sections=[...document.querySelectorAll<HTMLElement>('[data-faq-section]')];
+    const status=document.querySelector<HTMLElement>('#faq-filter-status');
+    const answerControls=document.querySelector<HTMLElement>('#faq-answer-controls');
+    const expand=document.querySelector<HTMLButtonElement>('#faq-expand-visible');
+    const collapse=document.querySelector<HTMLButtonElement>('#faq-collapse-visible');
+    const availableTopics=new Set(sections.map(section=>section.dataset.faqSection));
+    const totalAnswers=approved.size;
+    const applyFilter=(topic:string)=>{
+      if(topic!=='all'&&!availableTopics.has(topic))return;
+      for(const section of sections)
+        section.hidden=topic!=='all'&&section.dataset.faqSection!==topic;
+      for(const button of topicButtons)
+        button.setAttribute('aria-pressed',String(button.dataset.faqTopic===topic));
+      const visible=sections.filter(section=>!section.hidden);
+      const count=visible.reduce((sum,section)=>sum+section.querySelectorAll('.faq-entry').length,0);
+      if(status)status.textContent=topic==='all'
+        ? 'Exibindo todas as '+totalAnswers+' perguntas.'
+        : 'Exibindo '+count+' perguntas do tema '+(visible[0]?.querySelector('h2')?.textContent?.trim()||'selecionado')+'.';
+    };
+    if(topicControls&&status&&answerControls&&expand&&collapse&&topicButtons.length===sections.length+1){
+      topicControls.hidden=false;
+      status.hidden=false;
+      answerControls.hidden=false;
+      for(const button of topicButtons)
+        button.addEventListener('click',()=>applyFilter(button.dataset.faqTopic||'all'));
+      const toggleVisible=(open:boolean)=>{
+        for(const section of sections){
+          if(section.hidden)continue;
+          for(const item of section.querySelectorAll<HTMLDetailsElement>('details.faq-item'))
+            item.open=open;
+        }
+      };
+      expand.addEventListener('click',()=>toggleVisible(true));
+      collapse.addEventListener('click',()=>toggleVisible(false));
+      // Static anchor links always remain usable, even after a filter.
+      for(const link of document.querySelectorAll<HTMLAnchorElement>('.faq-index a[href^="#"]'))
+        link.addEventListener('click',()=>applyFilter('all'));
+      applyFilter('all');
+    }
     const reveal=()=>{
       const anchor=window.location.hash.slice(1);
       if(!approved.has(anchor))return;
       const entry=document.getElementById(anchor);
+      if(entry?.closest<HTMLElement>('[data-faq-section]')?.hidden)
+        applyFilter('all'); // valid deep links must never stay hidden
       const answer=entry?.querySelector<HTMLDetailsElement>('details.faq-item');
       if(answer)answer.open=true;
     };
@@ -82,6 +139,14 @@ const pathname='/perguntas-frequentes/';
   <style>
     .faq-index{padding-top:38px;padding-bottom:38px}
     .faq-index p{max-width:700px}
+    .faq-topic-controls{display:flex;gap:9px;flex-wrap:wrap;margin:22px 0 12px}
+    .faq-topic-controls[hidden],.faq-answer-controls[hidden],.faq-filter-status[hidden],#respostas [data-faq-section][hidden]{display:none!important}
+    .faq-topic-controls button,.faq-answer-controls button{min-height:44px;padding:10px 14px;border-radius:10px;border:1px solid #d1bda5;background:#fff;color:#884100;font:inherit;font-weight:700;cursor:pointer}
+    .faq-topic-controls button:hover,.faq-answer-controls button:hover{background:#fff0db}
+    .faq-topic-controls button[aria-pressed="true"]{background:#171b19;color:#fff;border-color:#171b19}
+    .faq-filter-status{font-size:.91rem;font-weight:650;color:#5c574e;margin:10px 0}
+    .faq-answer-controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+    .faq-topic-controls button:focus-visible,.faq-answer-controls button:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
     .faq-index-topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:20px;padding:0;list-style:none}
     .faq-index-topics>li>a{font-weight:800;color:#884100}
     .faq-index-topics ul{padding-left:21px;margin-top:12px}
