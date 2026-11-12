@@ -13,7 +13,7 @@ import {enforceReleasePin} from '../src/lib/release-pin.mjs';
 import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
 import {readApprovedFile} from '../src/lib/read-approved-file.mjs';
 import {readProtectedDist} from '../src/lib/read-protected-dist.mjs';
-import {enforceSignedPublicationTime} from '../src/lib/build-catalog.mjs';
+import {enforceSignedPublicationTime} from '../src/lib/signed-publication-time.mjs';
 
 const outputDir='artifacts/protected-build-review';
 // Clear old evidence even when the current request has invalid inputs.
