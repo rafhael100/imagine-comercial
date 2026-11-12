@@ -16,7 +16,7 @@ const pendingSamples=Object.freeze(
   legacyUrls.filter(x=>x.status==='hold').map(x=>x.from)
 );
 const catalog=new Set(sitePages.map(x=>x.path));
-if(publicSamples.some(x=>!catalog.has(x))||pendingSamples.length!==20)
+if(publicSamples.some(x=>!catalog.has(x))||pendingSamples.length!==22)
   throw Error('F159: stale approved route manifest');
 
 async function boundedHtml(response) {
