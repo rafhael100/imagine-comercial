@@ -116,6 +116,16 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
     assert.equal(accepted.status,200);
     assert.equal(accepted.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
   }
+  // F185: valid JSON scalars/arrays cannot crash the async HTTP listener.
+  for(const literal of ['null','false','42','"texto"','[]']){
+    const denied=await rawPost(Buffer.from(literal,'utf8'));
+    assert.equal(denied.status,422);
+    assert.equal(denied.payload.code,'REVIEW_BODY_OBJECT_REQUIRED');
+    assert.equal(denied.payload.canSendToCrm,false);
+  }
+  const afterRejectedScalars=await rawPost(validBytes);
+  assert.equal(afterRejectedScalars.status,200);
+  assert.equal(afterRejectedScalars.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
   for(const bytes of [
     Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xc3,0x28,0x22,0x7d]),
     Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xed,0xa0,0x80,0x22,0x7d])
