@@ -24,7 +24,7 @@ test('F150: a native details mobile menu uses only reviewed internal pages',()=>
 
 test('F150: mobile menu is keyboard accessible and not script-dependent',()=>{
   assert.match(layout,/\.mobile-menu\s*\{\s*display:\s*none;/);
-  assert.match(layout,/@media \(max-width: 820px\)/);
+  assert.match(layout,/@media \(max-width: 1020px\)/);
   assert.match(layout,/\.header > nav\[aria-label="Navegação principal"\]\s*\{\s*display: none;/);
   assert.match(layout,/\.mobile-menu\s*\{\s*display: block;/);
   assert.doesNotMatch(layout,/<script[^>]*>[\s\S]*?mobile-menu[\s\S]*?<\/script>/);
