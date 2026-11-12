@@ -147,4 +147,9 @@ test('F218 independent verifier reuses the exact dated signed-build review',()=>
   const builder=readFileSync(new URL('../scripts/build-protected-release.mjs',import.meta.url),'utf8');
   assert.match(verifier,/createSignedBuildReview\(files,envelope,trustKeys,pins\)/);
   assert.match(builder,/enforceSignedPublicationTime\(snapshot\.publishedAt\)/);
+  assert.match(builder,/signed-publication-time\.mjs/);
+  assert.doesNotMatch(builder,/from '\.\.\/src\/lib\/build-catalog\.mjs'/);
+  const signedSource=readFileSync(new URL('../src/lib/signed-build-review.mjs',import.meta.url),'utf8');
+  assert.match(signedSource,/signed-publication-time\.mjs/);
+  assert.doesNotMatch(signedSource,/from '\.\/build-catalog\.mjs'/);
 });
