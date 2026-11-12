@@ -1,3 +1,4 @@
+> **F230 — Atenção operacional:** apesar do nome histórico do script, `review-host-route-staging.mjs` valida apenas um contrato OFFLINE da futura borda pública (redirects e indexabilidade), NÃO uma instalação privada Leaseweb. Para avaliar o staging privado real com Basic Auth, localhost e noindex obrigatório, utilizar `review-private-staging-http.mjs` e `review-private-staging-operator.mjs` conforme `ops/staging/README.md`. A variável `IMAGINE_PRIVATE_STAGING_REVIEW=1` é recusada neste auditor da futura borda, para prevenir confusão entre os dois ambientes.
 # F228 — CLI privada da auditoria de hosts/rotas (sem rede)
 
 A F227 criou uma matriz completa de rotas atuais e 27 URLs historicas para os quatro hosts. A F228 oferece um comando local para avaliar **observações fornecidas pelo operador**:
