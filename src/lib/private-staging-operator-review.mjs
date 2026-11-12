@@ -27,6 +27,13 @@ export async function reviewStagingOperatorCandidate({
   const publicCount=sitePages.length;
   const legacyCount=legacyUrls.length;
   const anonymousCount=publicCount+legacyCount+3; // SEO resources and private asset sentinel
+  // F233: verify the package a second time AFTER the HTTP review. A local
+  // file mutation during an otherwise successful session must fail closed.
+  const stableBytes=reviewStagingBuildIntegrity({root,expectedTreeSha256});
+  if(stableBytes.fileCount!==bytes.fileCount||
+     stableBytes.htmlPages!==bytes.htmlPages||
+     stableBytes.packageBytes!==bytes.packageBytes)
+    throw Error('F233: private staging package changed during HTTP review');
   if(http.unauthenticatedEntryDenied!==true||
      http.coverageProfile!=='COMPLETE_PRIVATE_CATALOG_AND_LEGACY'||
      http.unauthenticatedRoutesDenied!==anonymousCount||
@@ -42,6 +49,7 @@ export async function reviewStagingOperatorCandidate({
     checks:Object.freeze({
       imageDigestSyntaxValid:true,
       exactBuildTreeBytesMatch:true,
+      buildTreeBytesStableAfterHttp:true,
       publishedHtmlCount:bytes.htmlPages,
       validatedFileCount:bytes.fileCount,
       privateBcryptFileSyntaxAndPermissionsValid:true,

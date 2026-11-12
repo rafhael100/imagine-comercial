@@ -81,6 +81,7 @@ test('F232 operator review combines package + bcrypt + 401 + full catalog HTTP c
     const report=await review(params(f,t));
     assert.equal(report.status,'PRIVATE_CANDIDATE_REVIEWED_STILL_NO_RELEASE_AUTHORITY');
     assert.equal(report.checks.authenticatedHttpChecks,httpCheckCount);
+    assert.equal(report.checks.buildTreeBytesStableAfterHttp,true);
     assert.equal(report.checks.coverageProfile,'COMPLETE_PRIVATE_CATALOG_AND_LEGACY');
     assert.equal(report.checks.legacyCandidatesStillHeld,5);
     assert.equal(report.checks.unauthenticatedHomepageDenied,true);
@@ -136,4 +137,26 @@ test('F167 CLI refuses GitHub Actions and never echoes a supplied synthetic secr
   assert.equal(output.status,2);
   assert.match(output.stderr,/not verified \(HOLD\)/);
   assert.doesNotMatch(output.stdout+output.stderr,new RegExp(secret));
+});
+
+test('F233 rejects package mutation during a passing authenticated HTTP review',async()=>{
+  const f=await fixture();
+  const healthy=transport();
+  let sent=0;
+  const changeDuringReview=async(url,options)=>{
+    sent++;
+    if(sent===3){
+      // Mutation after initial hash validation, before the final integrity read.
+      await writeFile(join(f.root,'index.html'),'<html><h1>CHANGED DURING REVIEW</h1></html>');
+    }
+    return healthy.send(url,options);
+  };
+  try{
+    await assert.rejects(review({
+      ...params(f,healthy),transport:changeDuringReview
+    }),/F165: candidate staging bytes do not match expected tree SHA-256/);
+    assert.ok(sent>0,'HTTP session must have started after the first hash validation');
+  }finally{
+    await rm(f.base,{recursive:true,force:true});
+  }
 });
