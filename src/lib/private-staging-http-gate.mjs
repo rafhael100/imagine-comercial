@@ -8,6 +8,7 @@
 import {sitePages,toAbsoluteUrl} from '../data/services.mjs';
 import {legacyUrls} from '../data/legacy-urls.mjs';
 import {localHeaderProfile} from './security-headers-preview.mjs';
+import {timingSafeEqual} from 'node:crypto';
 
 const publicSamples=Object.freeze([
   '/','/servicos/','/conteudos/','/contato/'
@@ -36,6 +37,23 @@ async function boundedHtml(response) {
     return text+decoder.decode();
   }finally{reader.releaseLock();}
 }
+async function boundedBytes(response,limit=10*1024*1024){
+  if(!response.body||typeof response.body.getReader!=='function')
+    throw Error('F235: missing asset stream');
+  const reader=response.body.getReader();
+  const chunks=[];let size=0;
+  try{
+    for(;;){
+      const {value,done}=await reader.read();
+      if(done)break;
+      if(!(value instanceof Uint8Array))throw Error('F235: invalid asset chunk');
+      size+=value.byteLength;
+      if(size>limit)throw Error('F235: asset exceeds limit');
+      chunks.push(Buffer.from(value));
+    }
+    return Buffer.concat(chunks,size);
+  }finally{reader.releaseLock();}
+}
 const hasMeta=(html,name,value)=>new RegExp(
   '<meta\\b[^>]*\\bname=["\\x27]'+name+'["\\x27][^>]*\\bcontent=["\\x27]'+
   value+'["\\x27]','i').test(html);
@@ -45,7 +63,7 @@ const canonical=html=>{
 };
 
 export async function reviewPrivateStagingHttp({
-  port,transport=fetch,timeoutMs=5000,basicAuth,fullCoverage=false,expectedHtmlByPath
+  port,transport=fetch,timeoutMs=5000,basicAuth,fullCoverage=false,expectedHtmlByPath,expectedAssetsByPath
 }={}){
   if(!Number.isSafeInteger(port)||port<1024||port>65535||
     typeof transport!=='function'||
@@ -85,6 +103,26 @@ export async function reviewPrivateStagingHttp({
       throw Error('F234: incomplete pinned HTML evidence');
     htmlExpected=new Map(expectedHtmlByPath);
   }
+  // F235: only files enumerated by the independent pinned dist reader.
+  // Disallow path injection, symlinks, duplicate URLs and arbitrary fetches.
+  let assetExpected;
+  if(expectedAssetsByPath!==undefined){
+    if(!fullCoverage||basicAuth===undefined||htmlExpected===undefined||
+       !(expectedAssetsByPath instanceof Map)||expectedAssetsByPath.size<2||
+       expectedAssetsByPath.size>100)
+      throw Error('F235: bounded asset parity requires pinned private HTML review');
+    assetExpected=new Map();
+    for(const [path,bytes] of expectedAssetsByPath){
+      if(typeof path!=='string'||path.length>300||
+         !/^\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(?:txt|xml|css|js|svg|png|jpg|jpeg|webp|avif|ico|woff|woff2)$/.test(path)||
+         path.includes('..')||path.includes('//')||
+         !Buffer.isBuffer(bytes)||bytes.length>10*1024*1024)
+        throw Error('F235: invalid bounded asset file');
+      assetExpected.set(path,Buffer.from(bytes));
+    }
+    if(!assetExpected.has('/robots.txt')||!assetExpected.has('/sitemap.xml'))
+      throw Error('F235: SEO assets must be pinned');
+  }
   const reviewedPublic=fullCoverage?sitePages.map(x=>x.path):publicSamples;
   const reviewedLegacy=fullCoverage?legacyUrls.map(x=>x.from):pendingSamples;
   const hasToken=(header,token)=>typeof header==='string'&&
@@ -101,7 +139,8 @@ export async function reviewPrivateStagingHttp({
   const unauthenticatedPaths=Object.freeze([...new Set([
     ...reviewedPublic,...reviewedLegacy,
     '/robots.txt','/sitemap.xml','/perguntas-frequentes/',
-    '/_astro/__imagine_private_access_probe__.js'
+    '/_astro/__imagine_private_access_probe__.js',
+    ...(assetExpected===undefined?[]:[...assetExpected.keys()])
   ])]);
   let unauthenticatedRoutesDenied=0;
   if(basicAuth!==undefined){
@@ -174,6 +213,33 @@ export async function reviewPrivateStagingHttp({
       throw Error('F159: private staging HTTP gate failed closed');
     }
   }
+  let checkedAssets=0;
+  if(assetExpected!==undefined){
+    for(const [path,expected] of assetExpected){
+      try{
+        const response=await transport(base+path,{
+          method:'GET',redirect:'manual',credentials:'omit',
+          headers:{Authorization:basicAuth},
+          signal:AbortSignal.timeout(timeoutMs)
+        });
+        if(!(response instanceof Response)||response.status!==200||
+          response.redirected||!noPrivateState(response)||
+          response.headers.get('content-type')?.toLowerCase().startsWith('text/html')){
+          throw Error('F235: expected private static asset');
+        }
+        for(const [name,value] of localHeaderProfile){
+          if(response.headers.get(name)!==value)
+            throw Error('F235: static asset missing security header');
+        }
+        const body=await boundedBytes(response);
+        if(body.length!==expected.length||!timingSafeEqual(body,expected))
+          throw Error('F235: static asset bytes differ');
+        checkedAssets++;
+      }catch{
+        throw Error('F235: private static asset parity failed closed');
+      }
+    }
+  }
   return Object.freeze({
     schema:'imagine.comercial.private-staging-http-review.v1',
     scope:'LOOPBACK_ONLY_PRIVATE_REVIEW',
@@ -197,6 +263,10 @@ export async function reviewPrivateStagingHttp({
         pinnedHtmlComparisons:checked
       })
     }:{}),
+    ...(assetExpected===undefined?{}:{
+      servedStaticAssetsMatchPinnedBuild:true,
+      verifiedStaticAssets:checkedAssets
+    }),
     result:'STAGING_HTTP_SMOKE_ONLY_NO_RELEASE_AUTHORITY'
   });
 }
