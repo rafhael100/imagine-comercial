@@ -132,3 +132,58 @@ test('F209 offline CLI rejects genuinely signed SEO collisions with unchanged se
   }
  });
 });
+
+test('F211 reviews a genuine Ed25519 rotation with two independently trusted public keys',()=>{
+ fixtures(({run,root,keyFile,nextFile,b,env})=>{
+  const newId='portal_f211_rotated_02';
+  const newPair=generateKeyPairSync('ed25519');
+  const nextPem=newPair.publicKey.export({format:'pem',type:'spki'}).toString();
+  const nextKeyFile=join(root,'rotated-trust.pem');
+  writeFileSync(nextKeyFile,nextPem);
+  const bytes=Buffer.from(JSON.stringify(next()));
+  const rotatedEnvelope={protocol:'imagine-catalog-v1',keyId:newId,
+    payloadBase64:bytes.toString('base64'),
+    signatureBase64:sign(null,Buffer.concat([domain,bytes]),newPair.privateKey)
+      .toString('base64')};
+  writeFileSync(nextFile,JSON.stringify(rotatedEnvelope));
+  const config={
+   IMAGINE_REVIEW_PUBLIC_KEY_FILE:'',
+   IMAGINE_REVIEW_TRUSTED_KEY_ID:'',
+   IMAGINE_REVIEW_PREVIOUS_PUBLIC_KEY_FILE:keyFile,
+   IMAGINE_REVIEW_PREVIOUS_TRUSTED_KEY_ID:keyId,
+   IMAGINE_REVIEW_NEXT_PUBLIC_KEY_FILE:nextKeyFile,
+   IMAGINE_REVIEW_NEXT_TRUSTED_KEY_ID:newId
+  };
+  const success=run(config);
+  assert.equal(success.status,0,success.stderr);
+  const output=JSON.parse(success.stdout);
+  assert.equal(output.editorialChanges,1);
+  assert.equal(output.canPublish,false);
+  assert.equal(output.tenantAuthorizationVerified,false);
+  for(const v of [nextPem,env.IMAGINE_REVIEW_PREVIOUS_ENVELOPE_FILE,
+    nextFile,nextKeyFile,newId,keyId])assert.ok(!success.stdout.includes(v));
+  for(const bad of [
+   {IMAGINE_REVIEW_NEXT_TRUSTED_KEY_ID:keyId},
+   {IMAGINE_REVIEW_NEXT_TRUSTED_KEY_ID:'portal_wrong_02'},
+   {IMAGINE_REVIEW_NEXT_PUBLIC_KEY_FILE:keyFile},
+   {IMAGINE_REVIEW_NEXT_PUBLIC_KEY_FILE:''},
+   {IMAGINE_REVIEW_PUBLIC_KEY_FILE:keyFile},
+   {IMAGINE_REVIEW_PREVIOUS_TRUSTED_KEY_ID:''}
+  ]){
+   const denied=run({...config,...bad});
+   assert.equal(denied.status,1);
+   assert.equal(denied.stdout,'');
+   assert.match(denied.stderr,/offline signed catalog review refused/);
+   assert.ok(!denied.stderr.includes(nextKeyFile));
+  }
+  if(process.platform!=='win32'){
+   const link=join(root,'rotated-trust-link.pem');
+   symlinkSync(nextKeyFile,link);
+   assert.equal(run({...config,
+     IMAGINE_REVIEW_NEXT_PUBLIC_KEY_FILE:link}).status,1);
+  }
+  // Exact same signed content but an untrusted key ID is still denied.
+  writeFileSync(nextFile,JSON.stringify({...rotatedEnvelope,keyId:keyId}));
+  assert.equal(run(config).status,1);
+ });
+});
