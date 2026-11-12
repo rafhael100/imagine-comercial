@@ -85,3 +85,16 @@ test('F193 rejects authentically signed malformed UTF-8 without replacement',()=
       /invalid UTF-8 or JSON payload/);
   }
 });
+
+test('F197 even correctly signed deceptive editorial Unicode cannot reach the build',()=>{
+  for(const title of [
+    'Serviços digitais \u202e com direção falsa',
+    'Serviços digitais \u200b ocultos',
+    'Cria\u0301cao de páginas empresariais',
+    'Serviços digitais \ud800 perigosos'
+  ]){
+    const payload=makePayload();
+    payload.items[0].title=title;
+    assert.throws(()=>verifySignedCatalog(signed(payload),keys),/invalid plain text/);
+  }
+});
