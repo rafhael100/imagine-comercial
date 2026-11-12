@@ -295,6 +295,7 @@ try {
     await page.locator('#duvida-precos summary').click();
     assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),'');
     assert.equal(await page.locator('nav.faq-index input').count(),0);
+    await page.goto(host+'/como-funciona/',{waitUntil:'load',timeout});
     await page.locator('a[href="#etapas"]').click();
     await page.waitForURL(host+'/como-funciona/#etapas');
     await page.goto(host+'/',{waitUntil:'load',timeout});
