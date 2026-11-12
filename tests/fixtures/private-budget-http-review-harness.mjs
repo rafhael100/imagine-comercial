@@ -90,6 +90,13 @@ export async function startPrivateBudgetReviewLab(password,{requireRequestProof=
     if(req.headers.origin!=='http://127.0.0.1:'+socket.port){
       write(res,403,refusal('UNTRUSTED_ORIGIN'));return;
     }
+    // F184: a matching Origin is necessary but not sufficient when a
+    // client explicitly declares a different browser Fetch Metadata site.
+    // CLI clients may omit this header; deny cross-site/same-site claims.
+    const fetchSite=req.headers['sec-fetch-site'];
+    if(fetchSite!==undefined&&!['same-origin','none'].includes(fetchSite)){
+      write(res,403,refusal('UNTRUSTED_FETCH_CONTEXT'));return;
+    }
     if(!/^application\/json(?:; charset=utf-8)?$/i.test(req.headers['content-type']||'')){
       write(res,415,refusal('UNSUPPORTED_MEDIA_TYPE'));return;
     }
