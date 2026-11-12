@@ -11,14 +11,14 @@
 import {readFileSync,readdirSync,lstatSync} from 'node:fs';
 import {join,posix} from 'node:path';
 import {verifyProtectedArtifact} from '../src/lib/protected-artifact-verification.mjs';
+import {readApprovedFile} from '../src/lib/read-approved-file.mjs';
 
 function localFile(path,max,label) {
   if(typeof path!=='string' || path.includes('\0'))
     throw new Error('protected artifact: invalid '+label+' path');
-  const stat=lstatSync(path);
-  if(!stat.isFile()||stat.isSymbolicLink()||stat.size>max)
-    throw new Error('protected artifact: unsafe '+label+' file');
-  return readFileSync(path,'utf8');
+  // F216: prevent symlink swap between stat and subsequent read; reject
+  // lossy UTF-8 rather than silently replacing signed/review JSON bytes.
+  return readApprovedFile(path,max,label);
 }
 let totalFiles=0,totalBytes=0;
 function readTree(folder='dist',relative='') {
