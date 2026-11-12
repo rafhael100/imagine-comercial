@@ -36,3 +36,12 @@ test('F196 page links restore local-only objective without collecting visitors',
   assert.match(directory,/Sem JavaScript, o objetivo vindo de outro link não atualiza este guia/);
   assert.doesNotMatch(home+directory,/<form\b|<input\b|fetch\s*\(|localStorage|sessionStorage|sendBeacon/);
 });
+
+test('F205 goal selection removes unreviewed query and fragment text, retains genuine anchors',()=>{
+  const source=readFileSync(new URL('../src/pages/servicos/index.astro',import.meta.url),'utf8');
+  assert.match(source,/const code=decodeReviewedGoalFragment\(window\.location\.hash\)/);
+  assert.match(source,/const cleanHash=code\?encodeReviewedGoalFragment\(code\):/);
+  assert.match(source,/window\.location\.pathname\+cleanHash/);
+  assert.match(source,/document\.getElementById\(localId\)/);
+  assert.doesNotMatch(source,/window\.location\.pathname\+window\.location\.search/);
+});

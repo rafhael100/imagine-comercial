@@ -78,8 +78,16 @@ const initialGuide=guideForGoal(guideGoals[0].code);
         else compare.href='/comparar-solucoes/';
       };
       const restoreFromFragment=()=>{
-        selector.value=decodeReviewedGoalFragment(window.location.hash)||
-          guideGoals[0].code;
+        const code=decodeReviewedGoalFragment(window.location.hash);
+        const localId=window.location.hash.slice(1);
+        const isLocalAnchor=/^[a-z][a-z0-9-]{0,63}$/.test(localId)&&
+          document.getElementById(localId)!==null;
+        const cleanHash=code?encodeReviewedGoalFragment(code):
+          isLocalAnchor?window.location.hash:'';
+        // F205: remove unreviewed query/fragment, not legitimate anchors.
+        if(window.location.search||window.location.hash!==cleanHash)
+          window.history.replaceState(null,'',window.location.pathname+cleanHash);
+        selector.value=code||guideGoals[0].code;
         renderGuide();
       };
       selector.addEventListener('change',()=>{

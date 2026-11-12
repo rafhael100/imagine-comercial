@@ -396,6 +396,22 @@ try {
     await page.reload({waitUntil:'load',timeout});
     assert.equal(await page.locator('#selected-comparison-list li').count(),2,
       'F175 valid two-service link restores comparison after reload');
+    // F205: strip unreviewed search parameters and malformed fragments
+    // while retaining a canonical reviewed pair or real in-page anchor.
+    await page.goto(host+'/comparar-solucoes/?probe=synthetic-private#comparar:onepage:landing-pages',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search==='');
+    assert.equal(new URL(page.url()).hash,'#comparar:onepage:landing-pages');
+    assert.equal(await page.locator('#selected-comparison-list li').count(),2);
+    await page.goto(host+'/comparar-solucoes/?probe=synthetic-private#comparar:onepage:FORGED',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search===''&&window.location.hash==='');
+    assert.equal(await page.locator('#selected-comparison').isVisible(),false);
+    await page.goto(host+'/comparar-solucoes/?probe=synthetic-private#comparacoes',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search==='');
+    assert.equal(new URL(page.url()).hash,'#comparacoes',
+      'F205 preserves an approved local anchor while removing query data');
     await page.goto(host+'/comparar-solucoes/#comparar:onepage:EXFILTRATION',{waitUntil:'load',timeout});
     assert.equal(await page.locator('#selected-comparison').isVisible(),false,
       'F175 malformed comparison fragments must fail closed');
@@ -462,6 +478,21 @@ try {
     assert.equal(new URL(page.url()).hash,encodeReviewedGoalFragment('anuncios'));
     await page.goto(host+'/servicos/#objetivo:inventado',{waitUntil:'load',timeout});
     assert.equal(await page.locator('#service-guide-goal').inputValue(),guideGoals[0].code);
+    // F205: the objective guide also discards inherited query information.
+    await page.goto(host+'/servicos/?probe=synthetic-private#objetivo:anuncios',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search==='');
+    assert.equal(new URL(page.url()).hash,'#objetivo:anuncios');
+    assert.equal(await page.locator('#service-guide-goal').inputValue(),'anuncios');
+    await page.goto(host+'/servicos/?probe=synthetic-private#objetivo:FORGED',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search===''&&window.location.hash==='');
+    assert.equal(await page.locator('#service-guide-goal').inputValue(),guideGoals[0].code);
+    await page.goto(host+'/servicos/?probe=synthetic-private#conteudo',
+      {waitUntil:'load',timeout});
+    await page.waitForFunction(()=>window.location.search==='');
+    assert.equal(new URL(page.url()).hash,'#conteudo',
+      'F205 preserves native skip-to-content navigation');
     // F58: real browser contract for the public service guide.
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     const goalOptions=page.locator('#service-guide-goal option');
