@@ -26,6 +26,7 @@ test('F228 synthetic CI path reviews the entire matrix without any release autho
     const result=run(['--synthetic']);
     assert.equal(result.status,0,result.stderr);
     assert.match(result.stdout,/"source":"SYNTHETIC_ONLY"/);
+    assert.match(result.stdout,/"profile":"FUTURE_PUBLIC_EDGE_TARGET_SIMULATION_NOT_LEASEWEB_PRIVATE"/);
     assert.match(result.stdout,/"failed":0/);
     assert.match(result.stdout,/"productionAuthorized":false/);
     assert.equal(existsSync(join(dir,'artifacts')),false);
@@ -48,7 +49,7 @@ test('F228 genuine mismatch stays NO-GO even if the JSON schema is valid',()=>{
     writeFileSync(file,JSON.stringify(rows));
     const result=run();
     assert.equal(result.status,1);
-    assert.match(result.stdout,/"stagingContractPassed":false/);
+    assert.match(result.stdout,/"futureEdgeContractPassed":false/);
     assert.match(result.stdout,/"productionAuthorized":false/);
     assert.doesNotMatch(result.stdout+result.stderr,/clientes\.html/);
     assert.equal(existsSync(join(dir,'artifacts')),false);
@@ -57,6 +58,7 @@ test('F228 genuine mismatch stays NO-GO even if the JSON schema is valid',()=>{
 test('F228 rejects files inside GitHub Actions and unknown CLI arguments',()=>{
   withFixture(({file,run})=>{
     const blocked=run(undefined,{GITHUB_ACTIONS:'true'});
+    assert.equal(run(undefined,{IMAGINE_PRIVATE_STAGING_REVIEW:'1'}).status,2);
     assert.equal(blocked.status,2);
     assert.equal(blocked.stdout,'');
     assert.equal(blocked.stderr,'F228 staging evidence refused (NO-GO)\n');
