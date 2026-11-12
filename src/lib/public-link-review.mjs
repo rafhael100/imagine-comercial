@@ -9,6 +9,8 @@ import {contactChannels} from '../data/contact-channels.mjs';
 import {commercialFaqSections} from '../data/commercial-faq.mjs';
 import {comparisonOptions} from '../data/service-comparison.mjs';
 import {encodeReviewedComparisonFragment} from '../data/reviewed-comparison-fragment.mjs';
+import {guideGoals} from './public-service-guide.mjs';
+import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
 import {isApprovedPublicExternalHref} from './outbound-link-contract.mjs';
 
 const base='http://127.0.0.1:4328';
@@ -29,6 +31,10 @@ for(let j=i+1;j<comparisonOptions.length;j++)
   ]).slice(1));
 if(approvedComparisonHashes.size!==15)
   throw Error('F195: invalid comparison fragment catalog');
+const approvedGoalHashes=new Set(guideGoals.map(goal=>
+  encodeReviewedGoalFragment(goal.code).slice(1)));
+if(approvedGoalHashes.size!==5)
+  throw Error('F196: invalid public objective links');
 const waHost='wa.me';
 const waPath='/'+contactChannels.whatsappE164;
 const emailAddress=contactChannels.email;
@@ -81,6 +87,9 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[],approvedPort
         const fragment=url.hash.slice(1);
         if(url.pathname==='/contato/' && intents.has(fragment)) {
           // Intent hash selects the public contact dropdown, not an HTML ID.
+        }else if(url.pathname==='/servicos/' &&
+                  approvedGoalHashes.has(fragment)) {
+          // Only an editorial business goal, never user data or search text.
         }else if(url.pathname==='/comparar-solucoes/' &&
                   approvedComparisonHashes.has(fragment)) {
           // A canonical, two-service editorial comparison without visitor data.
