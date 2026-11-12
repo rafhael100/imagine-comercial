@@ -20,7 +20,9 @@ const publicHtml=path=>'<html><head><meta name="robots" content="index,follow">'
   '<body><h1>Synthetic</h1></body></html>';
 const missingHtml='<html><head><meta name="robots" content="noindex,nofollow"></head>'+
   '<body><h1>Não encontramos</h1></body></html>';
-const authCheckCount=sitePages.length+legacyUrls.length+3;
+const staticPaths=new Set(['/robots.txt','/sitemap.xml','/_astro/base.css']);
+const authCheckCount=sitePages.length+legacyUrls.length+4; // 3 gate paths + extra CSS asset
+const staticCheckCount=staticPaths.size;
 const httpCheckCount=sitePages.length+legacyUrls.length;
 const headers=Object.fromEntries([...localHeaderProfile,
   ['Content-Type','text/html; charset=utf-8'],['Cache-Control','private, no-store'],
@@ -65,6 +67,12 @@ function transport(f){
       if(!authenticated)return new Response('Denied',{status:401,
         headers:{...headers,'WWW-Authenticate':'Basic realm="private"',
           'X-Robots-Tag':'noindex, nofollow, noarchive'}});
+      if(staticPaths.has(path)){
+        const bytes=await readFile(join(f.root,path.slice(1)));
+        const assetHeaders={...headers,'Content-Type':
+          path.endsWith('.css')?'text/css':path.endsWith('.xml')?'application/xml':'text/plain'};
+        return new Response(bytes,{status:200,headers:assetHeaders});
+      }
       const exists=published.has(path);
       const filename=exists?(path==='/'?'index.html':path.slice(1)+'index.html'):'404.html';
       const html=await readFile(join(f.root,filename),'utf8');
@@ -84,16 +92,18 @@ test('F232 operator review combines package + bcrypt + 401 + full catalog HTTP c
     assert.equal(report.checks.buildTreeBytesStableAfterHttp,true);
     assert.equal(report.checks.servedHtmlMatchesLocalPinnedBuild,true);
     assert.equal(report.checks.pinnedHtmlComparisons,httpCheckCount);
+    assert.equal(report.checks.servedStaticAssetsMatchPinnedBuild,true);
+    assert.equal(report.checks.verifiedStaticAssets,staticCheckCount);
     assert.equal(report.checks.coverageProfile,'COMPLETE_PRIVATE_CATALOG_AND_LEGACY');
     assert.equal(report.checks.legacyCandidatesStillHeld,5);
     assert.equal(report.checks.unauthenticatedHomepageDenied,true);
   assert.equal(report.checks.unauthenticatedRoutesDenied,authCheckCount);
     assert.equal(report.checks.heldLegacy404Pages,legacyUrls.length);
     assert.equal(report.checks.publishedHtmlCount,sitePages.length);
-    assert.equal(t.seen.length,authCheckCount+httpCheckCount);
+    assert.equal(t.seen.length,authCheckCount+httpCheckCount+staticCheckCount);
     assert.ok(t.seen.slice(0,authCheckCount).every(x=>!x.authenticated));
     assert.ok(t.seen.slice(authCheckCount).every(x=>x.authenticated&&
-      (published.has(x.path)||legacyUrls.some(v=>v.from===x.path))));
+      (published.has(x.path)||legacyUrls.some(v=>v.from===x.path)||staticPaths.has(x.path))));
     for(const key of ['imageProvenanceVerified','independentHashPinProvenanceVerified',
       'authIdentityAndMfaVerified','externalTlsAndNetworkVerified','portalCrmOperationalVerified',
       'independentAppSecReviewCompleted','legacy301ReleaseAuthorized',
@@ -185,5 +195,23 @@ test('F234 refuses HTTP response from a different static build even with valid S
     await assert.rejects(review({...params(f,healthy),transport:wrongBuild}),
       /private staging HTTP gate failed closed/);
     assert.equal(altered,1);
+  }finally{await rm(f.base,{recursive:true,force:true});}
+});
+
+test('F235 rejects stale CSS bytes even when all HTML and SEO content match',async()=>{
+  const f=await fixture(),healthy=transport(f);
+  try{
+    const serveStaleCss=async(url,options)=>{
+      if(options.headers?.Authorization===basicAuth &&
+         new URL(url).pathname==='/_astro/base.css'){
+        return new Response('body { color: red }',{
+          status:200,
+          headers:{...headers,'Content-Type':'text/css'}
+        });
+      }
+      return healthy.send(url,options);
+    };
+    await assert.rejects(review({...params(f,healthy),transport:serveStaleCss}),
+      /F235: private static asset parity failed closed/);
   }finally{await rm(f.base,{recursive:true,force:true});}
 });
