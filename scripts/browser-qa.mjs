@@ -284,6 +284,17 @@ try {
     assert.equal(await page.locator('a[href="/contato/"]').count()>=1,true);
     assert.equal(await page.locator('form,input,textarea').count(),0,
       'F64 guide does not collect visitors information');
+    // F189: static FAQ section and question anchors work without storing
+    // visitor input and without requiring JavaScript.
+    await page.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('nav.faq-index a[href^="#faq-"]').count(),4);
+    assert.equal(await page.locator('nav.faq-index a[href^="#duvida-"]').count(),8);
+    await page.locator('nav.faq-index a[href="#duvida-precos"]').click();
+    await page.waitForURL(host+'/perguntas-frequentes/#duvida-precos');
+    assert.equal(await page.locator('#duvida-precos details.faq-item').count(),1);
+    await page.locator('#duvida-precos summary').click();
+    assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),'');
+    assert.equal(await page.locator('nav.faq-index input').count(),0);
     await page.locator('a[href="#etapas"]').click();
     await page.waitForURL(host+'/como-funciona/#etapas');
     await page.goto(host+'/',{waitUntil:'load',timeout});
@@ -446,6 +457,12 @@ try {
         assert.equal(await fallback.locator('#selected-comparison').isVisible(),false);
         assert.equal(await fallback.locator('#contact-comparison-whatsapp').isVisible(),false,
           'F188 no-JS external pair enhancement remains hidden');
+        await fallback.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('.faq-index a[href^="#duvida-"]').count(),8,
+          'F189 no-JS question navigation works');
+        await fallback.locator('.faq-index a[href="#duvida-precos"]').click();
+        await fallback.waitForURL(host+'/perguntas-frequentes/#duvida-precos');
+        assert.equal(await fallback.locator('#duvida-precos summary').count(),1);
         await fallback.goto(host+'/conteudos/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#guide-list article.card:visible').count(),
           articles.length,'F152 all guides remain usable without JavaScript');
