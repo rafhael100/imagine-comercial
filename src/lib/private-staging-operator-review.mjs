@@ -8,6 +8,8 @@ import {reviewPrivateStagingImage} from './private-staging-image-policy.mjs';
 import {reviewStagingBuildIntegrity} from './staging-build-integrity.mjs';
 import {reviewPrivateStagingHtpasswd} from './private-staging-htpasswd-review.mjs';
 import {reviewPrivateStagingHttp} from './private-staging-http-gate.mjs';
+import {sitePages} from '../data/services.mjs';
+import {legacyUrls} from '../data/legacy-urls.mjs';
 
 export async function reviewStagingOperatorCandidate({
   root,image,expectedTreeSha256,htpasswdPath,basicAuth,port,transport
@@ -19,11 +21,19 @@ export async function reviewStagingOperatorCandidate({
   if(!imageReview.immutableDigestSyntax||!bytes.exactTreeBytesVerified||
      !authFile.filePermissionsPrivate||!authFile.bcryptHashSyntaxPresent)
     throw Error('F167: private staging prerequisites not satisfied');
-  const http=await reviewPrivateStagingHttp({port,basicAuth,transport});
+  // F232: the operator's final decision must check every current and historical
+  // path, not only the smaller smoke-test fixture.
+  const http=await reviewPrivateStagingHttp({port,basicAuth,transport,fullCoverage:true});
+  const publicCount=sitePages.length;
+  const legacyCount=legacyUrls.length;
+  const anonymousCount=publicCount+legacyCount+3; // SEO resources and private asset sentinel
   if(http.unauthenticatedEntryDenied!==true||
-     http.unauthenticatedRoutesDenied!==30||
-     http.reviewedPublicPages!==4||http.heldLegacyPages!==22||
-     http.totalHttpChecks!==26)
+     http.coverageProfile!=='COMPLETE_PRIVATE_CATALOG_AND_LEGACY'||
+     http.unauthenticatedRoutesDenied!==anonymousCount||
+     http.reviewedPublicPages!==publicCount||
+     http.heldLegacyPages!==legacyCount||
+     http.legacyCandidatesStillHeld!==legacyUrls.filter(x=>x.status==='candidate').length||
+     http.totalHttpChecks!==publicCount+legacyCount)
     throw Error('F167: private staging HTTP evidence incomplete');
   return Object.freeze({
     schema:'imagine.comercial.private-staging-operator-review.v1',
@@ -39,7 +49,9 @@ export async function reviewStagingOperatorCandidate({
       unauthenticatedRoutesDenied:http.unauthenticatedRoutesDenied,
       reviewedPublicPages:http.reviewedPublicPages,
       heldLegacy404Pages:http.heldLegacyPages,
-      authenticatedHttpChecks:http.totalHttpChecks
+      authenticatedHttpChecks:http.totalHttpChecks,
+      coverageProfile:'COMPLETE_PRIVATE_CATALOG_AND_LEGACY',
+      legacyCandidatesStillHeld:http.legacyCandidatesStillHeld
     }),
     imageProvenanceVerified:false,
     independentHashPinProvenanceVerified:false,

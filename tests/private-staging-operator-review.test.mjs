@@ -14,7 +14,9 @@ const password='Synthetic-F167-Long-Local-Secret';
 const basicAuth='Basic '+Buffer.from('reviewer:'+password).toString('base64');
 const image='nginxinc/nginx-unprivileged@sha256:'+('ab'.repeat(32));
 const bcrypt='$2y$12$'+('Ab3/'.repeat(13))+'Q';
-const published=new Set(['/','/servicos/','/conteudos/','/contato/']);
+const published=new Set(sitePages.map(page=>page.path));
+const authCheckCount=sitePages.length+legacyUrls.length+3;
+const httpCheckCount=sitePages.length+legacyUrls.length;
 const headers=Object.fromEntries([...localHeaderProfile,
   ['Content-Type','text/html; charset=utf-8'],['Cache-Control','private, no-store'],
   ['X-Robots-Tag','noindex, nofollow, noarchive']]);
@@ -73,20 +75,22 @@ function transport(){
 const params=(f,t)=>({root:f.root,htpasswdPath:f.htpasswdPath,
   expectedTreeSha256:f.expectedTreeSha256,image,basicAuth,port:4321,
   transport:t.send});
-test('F167 operator review combines exact package + bcrypt + 401 + 26 HTTP checks',async()=>{
+test('F232 operator review combines package + bcrypt + 401 + full catalog HTTP checks',async()=>{
   const f=await fixture();const t=transport();
   try{
     const report=await review(params(f,t));
     assert.equal(report.status,'PRIVATE_CANDIDATE_REVIEWED_STILL_NO_RELEASE_AUTHORITY');
-    assert.equal(report.checks.authenticatedHttpChecks,26);
+    assert.equal(report.checks.authenticatedHttpChecks,httpCheckCount);
+    assert.equal(report.checks.coverageProfile,'COMPLETE_PRIVATE_CATALOG_AND_LEGACY');
+    assert.equal(report.checks.legacyCandidatesStillHeld,5);
     assert.equal(report.checks.unauthenticatedHomepageDenied,true);
-  assert.equal(report.checks.unauthenticatedRoutesDenied,30);
-    assert.equal(report.checks.heldLegacy404Pages,22);
+  assert.equal(report.checks.unauthenticatedRoutesDenied,authCheckCount);
+    assert.equal(report.checks.heldLegacy404Pages,legacyUrls.length);
     assert.equal(report.checks.publishedHtmlCount,sitePages.length);
-    assert.equal(t.seen.length,56);
-    assert.ok(t.seen.slice(0,30).every(x=>!x.authenticated));
-    assert.ok(t.seen.slice(30).every(x=>x.authenticated&&
-      (published.has(x.path)||legacyUrls.some(v=>v.from===x.path&&v.status==='hold'))));
+    assert.equal(t.seen.length,authCheckCount+httpCheckCount);
+    assert.ok(t.seen.slice(0,authCheckCount).every(x=>!x.authenticated));
+    assert.ok(t.seen.slice(authCheckCount).every(x=>x.authenticated&&
+      (published.has(x.path)||legacyUrls.some(v=>v.from===x.path))));
     for(const key of ['imageProvenanceVerified','independentHashPinProvenanceVerified',
       'authIdentityAndMfaVerified','externalTlsAndNetworkVerified','portalCrmOperationalVerified',
       'independentAppSecReviewCompleted','legacy301ReleaseAuthorized',
