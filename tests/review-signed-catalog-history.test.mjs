@@ -5,7 +5,7 @@ import {services} from '../src/data/services.mjs';
 import {reviewSignedCatalogHistory as history}
   from '../src/lib/review-signed-catalog-history.mjs';
 
-const domain=Buffer.from('imagine-commercial-catalog-v1\\0');
+const domain=Buffer.from('imagine-commercial-catalog-v1\0');
 const kp=generateKeyPairSync('ed25519');
 const keyId='portal_f214_signed_01';
 const trustKeys=new Map([[keyId,
