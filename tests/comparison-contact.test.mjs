@@ -35,8 +35,8 @@ test('F188 rejects all unreviewed input and free-text outbound messages',()=>{
 });
 test('F188 contacts are hidden without JS or selection and never perform intake',()=>{
   const source=readFileSync(new URL('../src/pages/comparar-solucoes.astro',import.meta.url),'utf8');
-  assert.match(source,/id="contact-comparison-whatsapp"[^>]*href="#"/);
-  assert.match(source,/id="contact-comparison-email"[^>]*href="#"/);
+  assert.match(source,/id="contact-comparison-whatsapp"[^>]*href="\/contato\/"/);
+  assert.match(source,/id="contact-comparison-email"[^>]*href="\/contato\/"/);
   assert.match(source,/pairWhatsApp\.hidden=!pairReady/);
   assert.match(source,/pairEmail\.hidden=!pairReady/);
   assert.match(source,/contactWhatsAppUrl\(text\.message\)/);
