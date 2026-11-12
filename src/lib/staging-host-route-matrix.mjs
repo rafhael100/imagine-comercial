@@ -75,6 +75,9 @@ export function reviewStagingHostRouteObservations(rows){
   if(seen.size!==expected.length)throw TypeError('F227: incomplete route evidence');
   return Object.freeze({
     contractVersion:'imagine.comercial.host-route-staging-review.v1',
+    profile:'FUTURE_PUBLIC_EDGE_TARGET_SIMULATION_NOT_LEASEWEB_PRIVATE',
+    realPublicEdgeVerified:false,
+    privateLeasewebStagingVerified:false,
     source:'OPERATOR_SUPPLIED_UNVERIFIED_OFFLINE_EVIDENCE',
     checklistItems:expected.length,
     publicRoutes:indexed.size,
@@ -85,6 +88,6 @@ export function reviewStagingHostRouteObservations(rows){
     redirectsAuthorized:0,
     productionAuthorized:false,
     dnsChangeAuthorized:false,
-    warning:'Private staging contract only; not real network proof, migration mapping, redirect authorization or release.'
+    warning:'Future public-edge target simulation ONLY. Leaseweb private Nginx intentionally serves all responses with X-Robots-Tag noindex, uses localhost/Basic Auth, and does not implement these host redirects. Never use this result as real staging, migration or release proof.'
   });
 }
