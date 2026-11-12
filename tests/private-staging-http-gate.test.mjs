@@ -40,8 +40,8 @@ test('F159 verifies reviewed private HTTP pages without granting production auth
     schema:'imagine.comercial.private-staging-http-review.v1',
     scope:'LOOPBACK_ONLY_PRIVATE_REVIEW',
     reviewedPublicPages:4,
-    heldLegacyPages:18,
-    totalHttpChecks:22,
+    heldLegacyPages:20,
+    totalHttpChecks:24,
     headerProfile:'F28_REVIEWED_HEADERS',
     outboundExternalRequests:false,
     redirectsEnabled:false,
@@ -50,7 +50,7 @@ test('F159 verifies reviewed private HTTP pages without granting production auth
     result:'STAGING_HTTP_SMOKE_ONLY_NO_RELEASE_AUTHORITY'
   });
   assert.ok(Object.isFrozen(result));
-  assert.equal(client.seen.length,22);
+  assert.equal(client.seen.length,24);
   assert.ok(client.seen.every(x=>x.url.startsWith('http://127.0.0.1:4321/')));
   assert.ok(client.seen.every(x=>x.options.redirect==='manual'&&
     x.options.method==='GET'&&x.options.credentials==='omit'));
@@ -125,9 +125,9 @@ test('F159 performs actual TCP HTTP checks against ephemeral 127.0.0.1 server',a
   try{
     const port=server.address().port;
     const result=await review({port});
-    assert.equal(result.totalHttpChecks,22);
+    assert.equal(result.totalHttpChecks,24);
     assert.equal(result.deploymentAuthorized,false);
-    assert.equal(observed.length,22);
+    assert.equal(observed.length,24);
     assert.ok(observed.every(x=>x.method==='GET'));
     assert.ok(observed.every(x=>approved.has(x.path)||held.has(x.path)));
   }finally{

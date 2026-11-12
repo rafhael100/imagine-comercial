@@ -41,15 +41,15 @@ function transportFor({tamperedPath,tamper,anonymous=false}={}){
   return {transport,calls};
 }
 
-test('F171 valid 26 anonymous + 22 authenticated routes are never indexable or cookie-backed',async()=>{
+test('F171 valid 28 anonymous + 24 authenticated routes are never indexable or cookie-backed',async()=>{
   const fake=transportFor();
   const result=await review({port:4321,basicAuth,transport:fake.transport});
-  assert.equal(result.unauthenticatedRoutesDenied,26);
-  assert.equal(result.totalHttpChecks,22);
+  assert.equal(result.unauthenticatedRoutesDenied,28);
+  assert.equal(result.totalHttpChecks,24);
   assert.equal(result.deploymentAuthorized,false);
-  assert.equal(fake.calls.length,48);
-  assert.ok(fake.calls.slice(0,26).every(x=>!x.authorized));
-  assert.ok(fake.calls.slice(26).every(x=>x.authorized));
+  assert.equal(fake.calls.length,52);
+  assert.ok(fake.calls.slice(0,28).every(x=>!x.authorized));
+  assert.ok(fake.calls.slice(28).every(x=>x.authorized));
 });
 test('F171 fail closed if authenticated 200/404 emits cache, robots or cookie leak',async()=>{
   const changes=[
@@ -67,7 +67,7 @@ test('F171 fail closed if authenticated 200/404 emits cache, robots or cookie le
       await assert.rejects(review({
         port:4321,basicAuth,transport:fake.transport
       }),/private staging HTTP gate failed closed/);
-      assert.equal(fake.calls.slice(0,26).filter(x=>x.authorized).length,0);
+      assert.equal(fake.calls.slice(0,28).filter(x=>x.authorized).length,0);
       assert.ok(fake.calls.some(x=>x.path===path&&x.authorized));
     }
   }

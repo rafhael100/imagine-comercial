@@ -35,24 +35,24 @@ const transportFactory=(access='allowed')=>{
   };
   return {transport,seen};
 };
-test('F168 staging denies all 26 anonymous routes BEFORE 22 authenticated routes',async()=>{
+test('F168 staging denies all 28 anonymous routes BEFORE 24 authenticated routes',async()=>{
   const fake=transportFactory();
   const report=await review({port:4321,basicAuth,transport:fake.transport});
-  assert.equal(report.totalHttpChecks,22);
+  assert.equal(report.totalHttpChecks,24);
   assert.equal(report.reviewedPublicPages,4);
-  assert.equal(report.heldLegacyPages,18);
+  assert.equal(report.heldLegacyPages,20);
   assert.equal(report.unauthenticatedEntryDenied,true);
-  assert.equal(report.unauthenticatedRoutesDenied,26);
+  assert.equal(report.unauthenticatedRoutesDenied,28);
   assert.equal(report.deploymentAuthorized,false);
-  assert.equal(fake.seen.length,48);
+  assert.equal(fake.seen.length,52);
   assert.deepEqual(fake.seen[0],{path:'/',method:'GET',hasAuth:false});
-  assert.ok(fake.seen.slice(0,26).every(x=>!x.hasAuth&&x.method==='GET'));
-  assert.ok(fake.seen.slice(26).every(x=>x.hasAuth&&x.method==='GET'&&
+  assert.ok(fake.seen.slice(0,28).every(x=>!x.hasAuth&&x.method==='GET'));
+  assert.ok(fake.seen.slice(28).every(x=>x.hasAuth&&x.method==='GET'&&
     (publicPaths.has(x.path)||legacyPaths.has(x.path))));
-  assert.equal(new Set(fake.seen.slice(0,26).map(x=>x.path)).size,26);
+  assert.equal(new Set(fake.seen.slice(0,28).map(x=>x.path)).size,28);
   for(const path of ['/robots.txt','/sitemap.xml','/perguntas-frequentes/',
     '/_astro/__imagine_private_access_probe__.js'])
-    assert.ok(fake.seen.slice(0,26).some(x=>x.path===path));
+    assert.ok(fake.seen.slice(0,28).some(x=>x.path===path));
   assert.equal(JSON.stringify(report).includes(password),false);
   assert.ok(Object.isFrozen(report));
 });

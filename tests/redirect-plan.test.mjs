@@ -48,3 +48,21 @@ test('legacy privacy/terms page remains protected from an unrelated redirect',()
   const plan=validateRedirectPlan(legacyUrls);
   assert.ok(!toCloudflareRedirectRules(plan).includes('termos-de-uso'));
 });
+
+test('F221 two additional publicly observed English pages remain explicit HOLD',()=>{
+  const paths=[
+    '/en-us/services/criacao-de-sites-institucional.html',
+    '/en-us/services/youtube-ads-anuncios.html'
+  ];
+  const plan=validateRedirectPlan(legacyUrls);
+  for(const path of paths){
+    const entry=plan.entries.find(item=>item.from===path);
+    assert.ok(entry,'reviewed public route must remain inventoried');
+    assert.equal(entry.status,'hold');
+    assert.equal(entry.to,null);
+    assert.ok(!plan.active.some(x=>x.from===path));
+    assert.ok(!toCloudflareRedirectRules(plan).includes(path));
+  }
+  assert.equal(plan.entries.length,25);
+  assert.equal(plan.active.length,0);
+});

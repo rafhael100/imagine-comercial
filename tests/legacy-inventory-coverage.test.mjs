@@ -64,6 +64,6 @@ test('F67: eight additional historical paths require individual HOLD and never a
     assert.ok(entry.reason.length>=45);
   }
   assert.equal(legacyUrls.filter(x=>x.status==='candidate').length,5);
-  assert.equal(legacyUrls.filter(x=>x.status==='hold').length,18);
+  assert.equal(legacyUrls.filter(x=>x.status==='hold').length,20);
   assert.ok(legacyUrls.every(x=>x.status!=='approved'));
 });
