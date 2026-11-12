@@ -622,6 +622,44 @@ try {
     assert.equal(await page.locator('#selected-comparison-list li').count(),2);
     assert.equal(await page.locator('#contact-comparison-whatsapp').isVisible(),true);
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
+    // F250: the service catalog groups only pre-rendered approved services.
+    const allCatalogCards=page.locator('#service-catalog .card');
+    const groupButtons=page.locator('#service-catalog-filters [data-service-category]');
+    assert.equal(await groupButtons.count(),4,'F250 four reviewed service groups');
+    assert.equal(await allCatalogCards.count(),services.length,'F250 full static service catalog');
+    assert.equal(await page.locator('#service-catalog .card:visible').count(),6,
+      'F250 all services initially visible');
+    const previousAddress=page.url();
+    await page.locator('[data-service-category="sites"]').click();
+    assert.equal(await page.locator('#service-catalog .card:visible').count(),3,
+      'F250 sites category has exactly three services');
+    assert.equal(await page.locator('[data-service-category="sites"]').getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('#service-catalog-status').textContent(),
+      'Exibindo 3 serviços de Sites e páginas.');
+    await page.locator('[data-service-category="anuncios"]').click();
+    assert.equal(await page.locator('#service-catalog .card:visible').count(),2,
+      'F250 ads category has exactly two services');
+    await page.locator('[data-service-category="assinaturas"]').click();
+    assert.equal(await page.locator('#service-catalog .card:visible').count(),1,
+      'F250 subscription category has one reviewed service');
+    await page.locator('[data-service-category="all"]').click();
+    assert.equal(await page.locator('#service-catalog .card:visible').count(),6,
+      'F250 show-all restores every published service');
+    assert.equal(page.url(),previousAddress,'F250 filters never modify URL or browser history');
+    if(viewport.label==='mobile'){
+      const noJsCatalog=await browser.newContext({
+        viewport:{width:375,height:812},javaScriptEnabled:false
+      });
+      try{
+        const noJsPage=await noJsCatalog.newPage();
+        const noJsResponse=await noJsPage.goto(host+'/servicos/',{waitUntil:'load',timeout});
+        assert.equal(noJsResponse?.status(),200,'F250 no-JS service directory HTTP');
+        assert.equal(await noJsPage.locator('#service-catalog-filters').isVisible(),false,
+          'F250 filter controls are invisible without JS');
+        assert.equal(await noJsPage.locator('#service-catalog .card:visible').count(),6,
+          'F250 all services remain visible without JS');
+      }finally{await noJsCatalog.close();}
+    }
     // F59: a contact CTA carries only a service slug, no visitor identity.
     await page.locator('#service-guide-goal').selectOption('oferta');
     await page.locator('#service-guide-links a[data-service-guide-contact]').first().click();
