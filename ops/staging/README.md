@@ -1,3 +1,4 @@
+> **F230 — Não confundir com a borda pública.** O CLI `review-host-route-staging.mjs` e a matriz F227/F228 descrevem SOMENTE a simulação offline do futuro comportamento público HTTP/HTTPS e www/sem www. Este Nginx de staging privado serve via localhost com Basic Auth, sem redirects de host, e aplica noindex por cabeçalho a **todas** as respostas, inclusive páginas que serão indexáveis quando publicadas. Para este contêiner usar exclusivamente as verificações F159/F167 descritas abaixo. Nenhum resultado do edge-simulator comprova TLS, DNS ou homologação Leaseweb.
 # Comercial SEO-F163 — Container de homologação privado, isolado e sem publicação
 
 Esta configuração prepara uma forma de executar o build Astro no servidor Leaseweb **somente depois que o administrador confirmar acesso e consentir com uma revisão de staging**. Ela não executa comandos Docker, não abre portas no servidor e não instala serviços automaticamente.
