@@ -54,6 +54,15 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
   assert.equal(reply.canDeploy,false);
   assert.equal(res.headers.get('cache-control'),'private, no-store');
   assert.equal(res.headers.get('set-cookie'),null);
+  // F187: both success and denial must forbid framing/cross-origin reads.
+  for(const reply of [res,unauth]){
+    assert.equal(reply.headers.get('x-frame-options'),'DENY');
+    assert.equal(reply.headers.get('cross-origin-resource-policy'),'same-origin');
+    assert.match(reply.headers.get('content-security-policy')||'',
+      /frame-ancestors 'none'/);
+    assert.equal(reply.headers.get('cache-control'),'private, no-store');
+    assert.equal(reply.headers.get('set-cookie'),null);
+  }
   for(const text of ['Pessoa Fictícia','lab@example.invalid','bde4f010-aacf-4ad7',
    'Demonstração fictícia'])assert.equal(JSON.stringify(reply).includes(text),false);
 
@@ -63,7 +72,14 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
   assert.equal((await (await request(JSON.stringify(stale))).json()).reasonCode,
     'STALE_SNAPSHOT_RECONCILE');
   assert.equal((await fetch(server.url,{method:'GET',headers:baseHeaders})).status,405);
-  assert.equal((await request(JSON.stringify(example()),{headers:{Origin:'https://evil.invalid'}})).status,403);
+  const forbiddenOrigin=await request(JSON.stringify(example()),{
+    headers:{Origin:'https://evil.invalid'}
+  });
+  assert.equal(forbiddenOrigin.status,403);
+  assert.equal(forbiddenOrigin.headers.get('x-frame-options'),'DENY');
+  assert.equal(forbiddenOrigin.headers.get('cross-origin-resource-policy'),'same-origin');
+  assert.match(forbiddenOrigin.headers.get('content-security-policy')||'',
+    /frame-ancestors 'none'/);
   assert.equal((await request(JSON.stringify(example()),{headers:{'Content-Type':'text/plain'}})).status,415);
   assert.equal((await request('not-json')).status,400);
   assert.equal((await request('x'.repeat(5000))).status,413);

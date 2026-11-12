@@ -19,8 +19,10 @@ const headers=Object.freeze({
   'Cache-Control':'private, no-store',
   'X-Robots-Tag':'noindex, nofollow, noarchive',
   'X-Content-Type-Options':'nosniff',
+  'X-Frame-Options':'DENY',
+  'Cross-Origin-Resource-Policy':'same-origin',
   'Referrer-Policy':'no-referrer',
-  'Content-Security-Policy':"default-src 'none'; base-uri 'none'; form-action 'none'"
+  'Content-Security-Policy':"default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 });
 const digest=value=>createHash('sha256').update(value,'utf8').digest();
 function allowedBasic(header,expected){
