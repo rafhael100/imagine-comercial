@@ -1,31 +1,36 @@
+#!/usr/bin/env node
 /**
- * F68: local private JSON file only. No Google API, no CI uploads, no deploy.
- * Throws generic error messages; never echoes raw URLs/queries/tokens.
+ * F242 — private GSC page JSON review with zero artifact persistence.
+ * CI must refuse real inputs. No network, redirects, user data or deploy.
  */
-import {readFileSync,mkdirSync,writeFileSync,chmodSync} from 'node:fs';
 import {resolve} from 'node:path';
+import {readApprovedFile} from '../src/lib/read-approved-file.mjs';
 import {reviewGscSearchAnalyticsPages} from '../src/lib/gsc-search-analytics-review.mjs';
 
-if(process.env.GITHUB_ACTIONS==='true')
- throw new Error('F68: private GSC export is not permitted in GitHub Actions');
-const args=process.argv.slice(2);
-if(args.length!==2||args[0]!=='--file'||!args[1].endsWith('.json'))
- throw new Error('F68: use --file /private/search-analytics-pages.json');
-const source=resolve(args[1]);
-const bytes=readFileSync(source);
-if(bytes.length>2*1024*1024||bytes.length===0)
- throw new Error('F68: private source size refused');
-let data;
-try{data=JSON.parse(bytes.toString('utf8'));}
-catch{throw new Error('F68: malformed private JSON');}
-const result=reviewGscSearchAnalyticsPages(data);
-const dir='artifacts/gsc-review';
-mkdirSync(dir,{recursive:true,mode:0o700});
-const path=dir+'/GSC-PRIVATE-REVIEW-ONLY.json';
-writeFileSync(path,JSON.stringify(result,null,2)+'\n',{mode:0o600});
-chmodSync(path,0o600);
-console.log('F68 private GSC offline review:',JSON.stringify({
-  total:result.uniqueRows,candidates:result.candidateRows,
-  hold:result.heldRows,unknown:result.unknownRows,
-  approvedRedirects:0
-}));
+try{
+  if(process.env.GITHUB_ACTIONS==='true')
+    throw Error('F242: real private Search Console inputs forbidden in GitHub Actions');
+  const args=process.argv.slice(2);
+  if(args.length!==2||args[0]!=='--file'||
+     typeof args[1]!=='string'||!/\.json$/i.test(args[1]))
+    throw Error('F242: private JSON file required');
+  const source=readApprovedFile(resolve(args[1]),2*1024*1024,'private GSC JSON');
+  const payload=JSON.parse(source);
+  const report=reviewGscSearchAnalyticsPages(payload);
+  // Print ONLY aggregates, never URLs, paths, dimensions, query fragments,
+  // labels, siteUrl, raw payload or the full report.
+  console.log('GSC private JSON OFFLINE review only: '+JSON.stringify({
+    source:'PRIVATE_JSON_NOT_COMMITTED',
+    pagesReviewed:report.uniqueRows,
+    candidateRows:report.candidateRows,
+    heldRows:report.heldRows,
+    unknownRows:report.unknownRows,
+    approvedRedirects:0,
+    productionAuthorized:false,
+    artifactsWritten:0
+  }));
+}catch{
+  // Do not forward JS errors that might contain private paths or URL tokens.
+  process.stderr.write('GSC private JSON: offline input refused (NO-GO)\n');
+  process.exitCode=2;
+}
