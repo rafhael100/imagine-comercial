@@ -43,7 +43,24 @@ const initialGuide=guideForGoal(guideGoals[0].code);
           </a>
         </div>
         <p class="service-guide-note">Todos os serviços continuam disponíveis abaixo. Os valores e as condições oficiais são confirmados na proposta.</p>
-        <noscript><p class="service-guide-note">Sem JavaScript, o objetivo vindo de outro link não atualiza este guia. Confira todas as soluções listadas abaixo antes de escolher.</p></noscript>
+        <noscript>
+          <div class="service-guide-fallback" aria-labelledby="service-guide-fallback-heading">
+            <h3 id="service-guide-fallback-heading">Soluções por objetivo sem JavaScript</h3>
+            <p>Seu objetivo pode ser consultado diretamente abaixo, sem depender do seletor interativo. Todas as soluções também continuam disponíveis no catálogo.</p>
+            <ul>
+              {guideGoals.map(goal=>(
+                <li data-fallback-goal={goal.code}>
+                  <strong>{goal.goal}</strong>
+                  <ul>
+                    {guideForGoal(goal.code).services.map(item=>(
+                      <li><a href={item.href}>{item.label}</a></li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </noscript>
       </div>
     </div>
   </section>
@@ -117,6 +134,11 @@ const initialGuide=guideForGoal(guideGoals[0].code);
     #service-guide-compare[hidden]{display:none!important}
     #service-guide-compare:focus-visible{outline:3px solid #145d9d;outline-offset:3px}
     .service-guide-note{font-size:.91rem;color:#536680;margin-top:16px}
+    .service-guide-fallback{background:#fff;border:1px solid #c5d7e9;border-radius:14px;padding:22px;margin-top:26px}
+    .service-guide-fallback>ul{display:grid;gap:20px;list-style:none;padding:0}
+    .service-guide-fallback>ul>li{border-top:1px solid #dce6f2;padding-top:12px}
+    .service-guide-fallback ul ul{padding-left:22px;margin-top:6px}
+    .service-guide-fallback a{color:#0b5ea9;text-underline-offset:3px;font-weight:700}
   </style>
   <section class="section shell" aria-labelledby="compare-invite-heading">
     <span class="kicker">Antes de contratar</span>
