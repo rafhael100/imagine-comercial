@@ -17,6 +17,18 @@ const KEY_ID = /^[a-z][a-z0-9_-]{4,63}$/;
 // release. A signature authenticates bytes, not editorial go-live timing.
 const MAX_CLOCK_SKEW_MS=5*60*1000;
 
+// F212: share the same not-before guard between staging build and
+// signed offline transition review. A signature alone cannot schedule go-live.
+export function enforceSignedPublicationTime(publishedAt,nowMs=Date.now()){
+  if(!Number.isSafeInteger(nowMs)||nowMs<1)
+    throw new Error('build catalog: invalid verification time');
+  const signedPublicationMs=Date.parse(publishedAt);
+  if(!Number.isFinite(signedPublicationMs)||
+      signedPublicationMs-nowMs>MAX_CLOCK_SKEW_MS)
+    throw new Error('build catalog: signed publication is in the future');
+  return true;
+}
+
 export function mergeApprovedServiceMetadata(curated, snapshot) {
   if (!Array.isArray(curated) || !snapshot || !Array.isArray(snapshot.items)) {
     throw new Error('build catalog: validated snapshot and curated services required');
@@ -88,12 +100,7 @@ export function loadBuildServices(env = process.env, nowMs=Date.now()) {
   enforceReleasePin(snapshot, envelope, {
     expectedReleaseId: releaseId, expectedPayloadSha256: payloadHash
   });
-  if(!Number.isSafeInteger(nowMs)||nowMs<1)
-    throw new Error('build catalog: invalid verification time');
-  const signedPublicationMs=Date.parse(snapshot.publishedAt);
-  if(!Number.isFinite(signedPublicationMs)||
-      signedPublicationMs-nowMs>MAX_CLOCK_SKEW_MS)
-    throw new Error('build catalog: signed publication is in the future');
+  enforceSignedPublicationTime(snapshot.publishedAt,nowMs);
   return mergeApprovedServiceMetadata(curatedServices, snapshot);
 }
 
