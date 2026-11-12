@@ -32,5 +32,7 @@ test('F196 page links restore local-only objective without collecting visitors',
   assert.match(home,/encodeReviewedGoalFragment\(goal\.code\)/);
   assert.match(directory,/decodeReviewedGoalFragment\(window\.location\.hash\)/);
   assert.match(directory,/history\.replaceState/);
+  assert.match(directory,/<noscript>/);
+  assert.match(directory,/Sem JavaScript, o objetivo vindo de outro link não atualiza este guia/);
   assert.doesNotMatch(home+directory,/<form\b|<input\b|fetch\s*\(|localStorage|sessionStorage|sendBeacon/);
 });
