@@ -24,7 +24,7 @@ async function boundedHtml(response) {
   if(!response.body||typeof response.body.getReader!=='function')
     throw Error('F159: missing HTML stream');
   const reader=response.body.getReader();
-  const decoder=new TextDecoder();
+  const decoder=new TextDecoder('utf-8',{fatal:true});
   let size=0,text='';
   try{
     for(;;){
@@ -53,6 +53,26 @@ async function boundedBytes(response,limit=10*1024*1024){
     }
     return Buffer.concat(chunks,size);
   }finally{reader.releaseLock();}
+}
+const expectedAssetMimeTypes=Object.freeze({
+  txt:['text/plain'],
+  xml:['application/xml','text/xml'],
+  css:['text/css'],
+  js:['text/javascript','application/javascript','application/x-javascript'],
+  svg:['image/svg+xml'],
+  png:['image/png'],
+  jpg:['image/jpeg'],
+  jpeg:['image/jpeg'],
+  webp:['image/webp'],
+  avif:['image/avif'],
+  ico:['image/x-icon','image/vnd.microsoft.icon'],
+  woff:['font/woff','application/font-woff','application/x-font-woff'],
+  woff2:['font/woff2']
+});
+function hasCorrectAssetMime(path,response){
+  const extension=path.split('.').at(-1);
+  const type=response.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
+  return expectedAssetMimeTypes[extension]?.includes(type)===true;
 }
 const hasMeta=(html,name,value)=>new RegExp(
   '<meta\\b[^>]*\\bname=["\\x27]'+name+'["\\x27][^>]*\\bcontent=["\\x27]'+
@@ -224,7 +244,7 @@ export async function reviewPrivateStagingHttp({
         });
         if(!(response instanceof Response)||response.status!==200||
           response.redirected||!noPrivateState(response)||
-          response.headers.get('content-type')?.toLowerCase().startsWith('text/html')){
+          !hasCorrectAssetMime(path,response)){
           throw Error('F235: expected private static asset');
         }
         for(const [name,value] of localHeaderProfile){
