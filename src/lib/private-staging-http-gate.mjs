@@ -45,11 +45,12 @@ const canonical=html=>{
 };
 
 export async function reviewPrivateStagingHttp({
-  port,transport=fetch,timeoutMs=5000,basicAuth
+  port,transport=fetch,timeoutMs=5000,basicAuth,fullCoverage=false
 }={}){
   if(!Number.isSafeInteger(port)||port<1024||port>65535||
     typeof transport!=='function'||
-    !Number.isSafeInteger(timeoutMs)||timeoutMs<1000||timeoutMs>10000)
+    !Number.isSafeInteger(timeoutMs)||timeoutMs<1000||timeoutMs>10000||
+    typeof fullCoverage!=='boolean')
     throw Error('F159: invalid private staging parameters');
 
   // F166: only the trusted private operator CLI can opt into Basic Auth.
@@ -64,6 +65,10 @@ export async function reviewPrivateStagingHttp({
       !/^reviewer:[\x21-\x7e]{24,128}$/.test(pair))
       throw Error('F166: invalid private staging reviewer identity');
   }
+  if(fullCoverage&&basicAuth===undefined)
+    throw Error('F231: authenticated private review is required for full coverage');
+  const reviewedPublic=fullCoverage?sitePages.map(x=>x.path):publicSamples;
+  const reviewedLegacy=fullCoverage?legacyUrls.map(x=>x.from):pendingSamples;
   const hasToken=(header,token)=>typeof header==='string'&&
     header.toLowerCase().split(',').map(x=>x.trim()).includes(token);
   const noPrivateState=response=>
@@ -75,11 +80,11 @@ export async function reviewPrivateStagingHttp({
   // F168: a protected homepage alone is not enough. Every published
   // sample and held legacy URL, plus public SEO/error/asset endpoints, must
   // deny visitors BEFORE any privileged HTTP review can succeed.
-  const unauthenticatedPaths=Object.freeze([
-    ...publicSamples,...pendingSamples,
+  const unauthenticatedPaths=Object.freeze([...new Set([
+    ...reviewedPublic,...reviewedLegacy,
     '/robots.txt','/sitemap.xml','/perguntas-frequentes/',
     '/_astro/__imagine_private_access_probe__.js'
-  ]);
+  ])]);
   let unauthenticatedRoutesDenied=0;
   if(basicAuth!==undefined){
     try{
@@ -101,7 +106,7 @@ export async function reviewPrivateStagingHttp({
     }
   }
   let checked=0,good=0,held=0;
-  for(const path of [...publicSamples,...pendingSamples]){
+  for(const path of [...reviewedPublic,...reviewedLegacy]){
     let response;
     try{
       response=await transport(base+path,{
@@ -111,7 +116,7 @@ export async function reviewPrivateStagingHttp({
       });
       if(!(response instanceof Response))
         throw Error('F159: invalid HTTP response');
-      const expected=publicSamples.includes(path)?200:404;
+      const expected=reviewedPublic.includes(path)?200:404;
       if(response.status!==expected||
         response.redirected||
         !/^text\/html(?:;|$)/i.test(response.headers.get('content-type')??''))
@@ -163,6 +168,10 @@ export async function reviewPrivateStagingHttp({
       unauthenticatedEntryDenied:unauthenticatedRoutesDenied===unauthenticatedPaths.length,
       unauthenticatedRoutesDenied
     }),
+    ...(fullCoverage?{
+      coverageProfile:'COMPLETE_PRIVATE_CATALOG_AND_LEGACY',
+      legacyCandidatesStillHeld:legacyUrls.filter(x=>x.status==='candidate').length
+    }:{}),
     result:'STAGING_HTTP_SMOKE_ONLY_NO_RELEASE_AUTHORITY'
   });
 }
