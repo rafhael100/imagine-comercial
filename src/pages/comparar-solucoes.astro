@@ -176,8 +176,10 @@ const pathname='/comparar-solucoes/';
           const fragment=selected.size===2
             ?encodeReviewedComparisonFragment([...selected]):'';
           // Replace rather than push: no visitor history trail of choices.
+          // The selection URL contains only reviewed public slugs. Do not
+          // retain inherited query values in the address bar or history.
           window.history.replaceState(null,'',
-            window.location.pathname+window.location.search+fragment);
+            window.location.pathname+fragment);
           render();
         });
       }
@@ -208,6 +210,14 @@ const pathname='/comparar-solucoes/';
       });
       const applyFragment=()=>{
         const pair=decodeReviewedComparisonFragment(window.location.hash);
+        const localId=window.location.hash.slice(1);
+        // Real in-page anchors (including the skip link) must still work.
+        const isLocalAnchor=/^[a-z][a-z0-9-]{0,63}$/.test(localId)&&
+          document.getElementById(localId)!==null;
+        const cleanHash=pair?encodeReviewedComparisonFragment(pair):
+          isLocalAnchor?window.location.hash:'';
+        if(window.location.search||window.location.hash!==cleanHash)
+          window.history.replaceState(null,'',window.location.pathname+cleanHash);
         selected.clear();
         if(pair)for(const slug of pair)selected.add(slug);
         render();
