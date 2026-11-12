@@ -8,6 +8,7 @@
 import {verifySignedCatalog} from './verify-signed-catalog.mjs';
 import {enforceReleasePin} from './release-pin.mjs';
 import {services} from '../data/services.mjs';
+import {mergeApprovedServiceMetadata} from './build-catalog.mjs';
 const approvedSlugs=new Set(services.map(item=>item.slug));
 
 export function reviewSignedCatalogTransition({
@@ -24,6 +25,10 @@ export function reviewSignedCatalogTransition({
   if(prev.items.some(item=>!approvedSlugs.has(item.slug))||
      next.items.some(item=>!approvedSlugs.has(item.slug)))
     throw Error('F202: unknown public service route');
+  // F209: a signed transition report must enforce the exact production
+  // build's FINAL six-page SEO metadata rule, including untouched pages.
+  // Signatures and pins are not editorial SEO approvals.
+  mergeApprovedServiceMetadata(services,next);
   const prevBySlug=new Map(prev.items.map(item=>[item.slug,item]));
   const prevById=new Map(prev.items.map(item=>[item.id,item.slug]));
   let compared=0,advanced=0,edited=0,newInPartial=0;
