@@ -21,9 +21,9 @@ export async function reviewStagingOperatorCandidate({
     throw Error('F167: private staging prerequisites not satisfied');
   const http=await reviewPrivateStagingHttp({port,basicAuth,transport});
   if(http.unauthenticatedEntryDenied!==true||
-     http.unauthenticatedRoutesDenied!==28||
-     http.reviewedPublicPages!==4||http.heldLegacyPages!==20||
-     http.totalHttpChecks!==24)
+     http.unauthenticatedRoutesDenied!==30||
+     http.reviewedPublicPages!==4||http.heldLegacyPages!==22||
+     http.totalHttpChecks!==26)
     throw Error('F167: private staging HTTP evidence incomplete');
   return Object.freeze({
     schema:'imagine.comercial.private-staging-operator-review.v1',
