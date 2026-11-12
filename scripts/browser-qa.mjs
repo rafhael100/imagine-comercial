@@ -295,7 +295,7 @@ try {
     await page.waitForURL(host+'/perguntas-frequentes/#duvida-precos');
     assert.equal(await page.locator('#duvida-precos details.faq-item').count(),1);
     await page.waitForFunction(()=>
-      document.querySelector<HTMLDetailsElement>('#duvida-precos details')?.open===true);
+      document.querySelector('#duvida-precos details')?.open===true);
     assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),'',
       'F191 valid question hash reveals its answer');
     await page.goto(host+'/perguntas-frequentes/#duvida-falso',{waitUntil:'load',timeout});
