@@ -98,7 +98,8 @@ try {
       assert.equal(await page.locator('a[href="/servicos/"]').count()>=1,true,route+' internal service navigation');
       // F63: indicate current *page*, not an unrelated parent route.
       const navPages=new Set(['/servicos/','/comparar-solucoes/',
-        '/servicos/landing-pages/','/conteudos/','/sobre/','/contato/']);
+        '/servicos/landing-pages/','/conteudos/','/sobre/','/contato/',
+        '/como-funciona/','/perguntas-frequentes/']);
       const currentNav=page.locator('nav[aria-label="Navegação principal"] a[aria-current="page"]');
       if(navPages.has(route)){
         assert.equal(await currentNav.count(),1,route+': one current navigation link');
@@ -110,6 +111,29 @@ try {
         route+': comparison is a permanent navigation destination');
       assert.equal(await page.locator('a.brand[aria-current="page"]').count(),route==='/'?1:0,
         route+': site logo denotes home only when current');
+      // F244: a parent section is highlighted on child routes, without
+      // falsely marking a different URL as the exact current page.
+      const servicesSection=page.locator('nav[aria-label="Navegação principal"] a[href="/servicos/"][data-section-active="true"]');
+      const contentSection=page.locator('nav[aria-label="Navegação principal"] a[href="/conteudos/"][data-section-active="true"]');
+      assert.equal(await servicesSection.count(),route.startsWith('/servicos/')?1:0,
+        'F244 services section hierarchy');
+      assert.equal(await contentSection.count(),route.startsWith('/conteudos/')?1:0,
+        'F244 editorial section hierarchy');
+      const guidance=page.locator('header .nav-help');
+      assert.equal(await guidance.getAttribute('data-section-active'),
+        ['/como-funciona/','/perguntas-frequentes/'].includes(route)?'true':null,
+        'F244 guidance group current section');
+      if(viewport.label==='desktop'&&route==='/'){
+        const disclosure=guidance.locator('summary');
+        await disclosure.click();
+        assert.equal(await guidance.locator('a[href="/como-funciona/"]').isVisible(),true,
+          'F244 desktop guidance entry');
+        assert.equal(await guidance.locator('a[href="/perguntas-frequentes/"]').isVisible(),true,
+          'F244 desktop FAQ entry');
+        await disclosure.click();
+        assert.equal(await guidance.locator('a[href="/como-funciona/"]').isVisible(),false,
+          'F244 guidance closes without JS');
+      }
       // F150: mobile navigation is accessible with native details, no JS.
       const mobileSummary=page.locator('details.mobile-menu > summary');
       const desktopNav=page.locator('nav[aria-label="Navegação principal"]');
@@ -920,6 +944,23 @@ try {
     assert.deepEqual(errors,[],viewport.label+' runtime errors');
     await context.close();
   }
+  // F244: dedicated tablet responsive smoke avoids re-running full browser
+  // flows, while confirming the menu is usable between phone and desktop.
+  const tablet=await browser.newContext({viewport:{width:960,height:720}});
+  const tabletPage=await tablet.newPage();
+  for(const route of ['/','/servicos/landing-pages/','/contato/']){
+    const response=await tabletPage.goto(host+route,{waitUntil:'load',timeout});
+    assert.equal(response?.status(),200,'F244 tablet '+route+' HTTP');
+    assert.equal(await tabletPage.locator('nav[aria-label="Navegação principal"]').isVisible(),false);
+    const tabletMenu=tabletPage.locator('details.mobile-menu');
+    assert.equal(await tabletMenu.locator('summary').isVisible(),true,'F244 tablet menu toggle');
+    await tabletMenu.locator('summary').click();
+    assert.equal(await tabletMenu.locator('a[href="/contato/"]').isVisible(),true,
+      'F244 tablet full navigation');
+    const overflow=await tabletPage.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+    assert.ok(overflow<=2,'F244 tablet no horizontal overflow');
+  }
+  await tablet.close();
   // F82: PRIVATE fixture only, loaded in memory; never a public Astro route.
   const privateFormSource=readFileSync(new URL('../tests/fixtures/private-contact-form-preview.html',import.meta.url),'utf8');
   assert.doesNotMatch(privateFormSource,/<script\b|\baction=|fetch\s*\(|https?:\/\//i,
