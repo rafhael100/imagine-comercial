@@ -138,21 +138,31 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
       };
       const applyFragment = () => {
         const requested = window.location.hash.slice(1);
-        // Legacy #service hash stays valid; the optional F169 format has
-        // exactly four whitelisted catalog tokens, never visitor free text.
+        // Legacy #service and canonical F169 hashes are the only business
+        // states allowed in the address bar. Keep real static anchors.
         const shared=decodeCuratedBriefingFragment('#'+requested);
+        let cleanHash='';
         if(shared){
           choice.value=shared.service;
           objective.value=shared.objective;
           stage.value=shared.stage;
           priority.value=shared.priority;
+          cleanHash=encodeCuratedBriefingFragment(
+            shared.service,shared.objective,shared.stage,shared.priority);
         }else{
-          // Unknown, malformed or arbitrary fragments fail closed.
-          choice.value = allowed.has(requested) ? requested : '';
+          choice.value=allowed.has(requested) ? requested : '';
           objective.value='';
           stage.value='';
           priority.value='';
+          const isLocalAnchor=/^[a-z][a-z0-9-]{0,63}$/.test(requested)&&
+            document.getElementById(requested)!==null;
+          cleanHash=choice.value?'#'+choice.value:
+            isLocalAnchor?window.location.hash:'';
         }
+        // F207: an inherited query/hash must not persist in navigation,
+        // history, copied addresses or external channel context.
+        if(window.location.search||window.location.hash!==cleanHash)
+          window.history.replaceState(null,'',window.location.pathname+cleanHash);
         update();
       };
       copy.addEventListener('click', async () => {
@@ -203,7 +213,7 @@ import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
         // Replace this history entry rather than adding one for every change.
         // Do not send visitor information, navigate, or change any query field.
         const fragment = choice.value ? '#' + choice.value : '';
-        window.history.replaceState(null, '', window.location.pathname + window.location.search + fragment);
+        window.history.replaceState(null, '', window.location.pathname + fragment);
         update();
       });
       window.addEventListener('hashchange', applyFragment);

@@ -14,7 +14,8 @@ test('F62 contact deep links remain constrained to the reviewed service select',
   assert.match(page,/window\.addEventListener\('hashchange', applyFragment\)/);
   assert.match(page,/window\.addEventListener\('popstate', applyFragment\)/);
   assert.match(page,/window\.history\.replaceState\(null, ''/);
-  assert.match(page,/window\.location\.pathname \+ window\.location\.search \+ fragment/);
+  assert.match(page,/window\.location\.pathname \+ fragment/);
+  assert.doesNotMatch(page,/window\.location\.pathname \+ window\.location\.search \+ fragment/);
   assert.equal(services.length,6);
   assert.ok(services.every(s=>/^[a-z0-9-]+$/.test(s.slug)));
 });
