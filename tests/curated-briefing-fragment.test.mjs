@@ -58,3 +58,13 @@ test('F169 page shares only origin + fixed contact route + curated hash with exp
   assert.match(page,/id="copy-briefing-status"[^>]*role="status" aria-live="polite"/);
   assert.doesNotMatch(page,/<form\b|<input\b|<textarea\b|fetch\s*\(|sendBeacon\s*\(|localStorage|sessionStorage|document\.cookie/);
 });
+
+test('F207 strips contact URL query and fabricated hashes while preserving reviewed intents',()=>{
+  const page=readFileSync(new URL('../src/pages/contato.astro',import.meta.url),'utf8');
+  assert.match(page,/const shared=decodeCuratedBriefingFragment\('#'\+requested\)/);
+  assert.match(page,/cleanHash=encodeCuratedBriefingFragment\(/);
+  assert.match(page,/window\.history\.replaceState\(null,'',window\.location\.pathname\+cleanHash\)/);
+  assert.match(page,/document\.getElementById\(requested\)/);
+  assert.match(page,/window\.location\.pathname \+ fragment/);
+  assert.doesNotMatch(page,/window\.location\.pathname \+ window\.location\.search \+ fragment/);
+});
