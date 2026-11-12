@@ -65,6 +65,21 @@ const pathname='/perguntas-frequentes/';
       <a class="cta cta-secondary" href="/comparar-solucoes/">Comparar soluções</a>
     </div>
   </section>
+  <script>
+    // F191: only known FAQ question IDs can expand native answers.
+    // Navigation is local; no client data is read, stored or transmitted.
+    const approved=new Set([...document.querySelectorAll<HTMLElement>('.faq-entry[id]')]
+      .map(item=>item.id));
+    const reveal=()=>{
+      const anchor=window.location.hash.slice(1);
+      if(!approved.has(anchor))return;
+      const entry=document.getElementById(anchor);
+      const answer=entry?.querySelector<HTMLDetailsElement>('details.faq-item');
+      if(answer)answer.open=true;
+    };
+    window.addEventListener('hashchange',reveal);
+    reveal();
+  </script>
   <style>
     .faq-index{padding-top:38px;padding-bottom:38px}
     .faq-index p{max-width:700px}
