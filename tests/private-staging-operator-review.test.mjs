@@ -165,3 +165,25 @@ test('F233 rejects package mutation during a passing authenticated HTTP review',
     await rm(f.base,{recursive:true,force:true});
   }
 });
+
+test('F234 refuses HTTP response from a different static build even with valid SEO markup',async()=>{
+  const f=await fixture();
+  const healthy=transport(f);
+  let altered=0;
+  const wrongBuild=async(url,options)=>{
+    const original=await healthy.send(url,options);
+    if(options.headers?.Authorization===basicAuth && new URL(url).pathname==='/'){
+      altered++;
+      const html=await original.text();
+      // Keep canonical, robots and H1 intact: only byte parity catches this.
+      return new Response(html.replace('</body>','<p>STALE-HTML-BUILD</p></body>'),
+        {status:200,headers});
+    }
+    return original;
+  };
+  try{
+    await assert.rejects(review({...params(f,healthy),transport:wrongBuild}),
+      /private staging HTTP gate failed closed/);
+    assert.equal(altered,1);
+  }finally{await rm(f.base,{recursive:true,force:true});}
+});
