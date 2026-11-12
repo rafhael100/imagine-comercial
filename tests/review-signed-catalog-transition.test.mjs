@@ -58,16 +58,16 @@ test('F202 authentic pinned partial update reports overlap without inventing del
 test('F202 refuses rollback, identity replacement and edits without a version change',()=>{
   for(const changed of [
     {...landing(),title:'Landing Pages com outra mensagem'},
-    {...landing(0)},
-    {...landing(2),id:'service_other_01'},
-    {...landing(2),offerRef:'offer_moved_01'}
+    {...landing(2),id:'service_other_01'}
   ]){
-    // An offer-ref change with a version increment IS permitted in the
-    // contract, so only test unauthorized changes in this group.
-    if(changed.version===2&&changed.offerRef)continue;
     assert.throws(()=>check(previous(),{...current(),items:[changed]}),
-      /without version advance|version rollback|identity replaced/);
+      /without version advance|identity replaced/);
   }
+  assert.throws(()=>check({...previous(),items:[landing(3)]},
+    {...current(),items:[landing(2)]}),/version rollback/);
+  const approvedOfferChange={...landing(2),offerRef:'offer_moved_01'};
+  assert.equal(check(previous(),{...current(),items:[approvedOfferChange]})
+    .versionAdvanced,1);
 });
 test('F202 detects forbidden slug migrations and unknown public services',()=>{
   const renamed={...landing(2),slug:'onepage',path:'/servicos/onepage/'};
