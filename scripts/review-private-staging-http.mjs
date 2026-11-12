@@ -21,7 +21,7 @@ if(process.env.IMAGINE_PRIVATE_STAGING_REVIEW!=='1'||
       !/^[\x21-\x7e]+$/.test(password))
       throw Error('F166: private staging reviewer password required');
     const basicAuth='Basic '+Buffer.from('reviewer:'+password).toString('base64');
-    const report=await reviewPrivateStagingHttp({port,basicAuth});
+    const report=await reviewPrivateStagingHttp({port,basicAuth,fullCoverage:true});
     console.log(JSON.stringify(report,null,2));
   }catch{
     console.error('F159: private staging evidence not verified (HOLD)');
