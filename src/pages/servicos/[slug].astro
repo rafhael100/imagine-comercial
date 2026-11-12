@@ -4,6 +4,7 @@ import { buildServices as services } from '../../lib/build-catalog.mjs';
 import {composeCuratedContactLinks} from '../../data/contact-objectives.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../../data/contact-channels.mjs';
 import {relatedEditorialGuides} from '../../data/service-related-guides.mjs';
+import {serviceFaqLinks} from '../../data/service-faq-links.mjs';
 
 export function getStaticPaths() {
   return services.map(s => ({ params: { slug: s.slug }, props: { s } }));
@@ -14,6 +15,7 @@ const contactIntent=composeCuratedContactLinks(s.slug);
 const directWhatsAppHref=contactWhatsAppUrl(contactIntent.message);
 const directEmailHref=contactEmailUrl(contactIntent.subject);
 const relatedGuides=relatedEditorialGuides(s.slug);
+const generalFaqLinks=serviceFaqLinks(s.slug);
 ---
 <BaseLayout
   title={s.title}
@@ -54,6 +56,14 @@ const relatedGuides=relatedEditorialGuides(s.slug);
       {s.faqs.map(([question, answer]) => (
         <details><summary>{question}</summary><p>{answer}</p></details>
       ))}
+      <nav class="service-faq-related" aria-label={'Outras dúvidas sobre '+s.label}>
+        <h3>Outras perguntas úteis antes de contratar</h3>
+        <ul>
+          {generalFaqLinks.map(item=>(
+            <li><a href={item.href}>{item.label}</a></li>
+          ))}
+        </ul>
+      </nav>
     </div>
   </section>
   {relatedGuides.length > 0 && (
@@ -80,6 +90,10 @@ const relatedGuides=relatedEditorialGuides(s.slug);
     </div>
   </section>
   <style>
+    .service-faq-related{margin-top:28px;max-width:760px}
+    .service-faq-related ul{padding-left:24px}
+    .service-faq-related li{margin-top:10px}
+    .service-faq-related a{color:#0b5ea9;font-weight:700;text-underline-offset:3px}
     .service-wa-link { display: inline-flex; align-items: center; min-height: 48px; padding: 12px 8px; font-weight: 750; color: #0b5ea9; text-underline-offset: 4px; }
     .service-wa-notice { font-size: .9rem; color: #4b5c74; margin-top: 16px; max-width: 720px; }
   </style>
