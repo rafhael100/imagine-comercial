@@ -16,7 +16,8 @@ for(const target of [[],['--target=staging']]){
     assert.equal(host.historicalCandidateRoutes,5);
     assert.equal(host.historicalHeldRoutes,22);
     assert.equal(host.historicalCandidateRoutes+host.historicalHeldRoutes,legacyUrls.length);
-    assert.equal(host.fourHostStagingChecklistEntries,buildStagingHostRouteChecklist().length);
+    assert.equal(host.futurePublicEdgeChecklistEntries,buildStagingHostRouteChecklist().length);
+    assert.equal(host.publicEdgeHttpVerified,false);
     assert.equal(host.realStagingHttpVerified,false);
     assert.equal(host.urlByUrlSeoMigrationApproved,false);
     assert.equal(host.productionRedirectsAuthorized,0);
