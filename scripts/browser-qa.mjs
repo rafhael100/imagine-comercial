@@ -13,6 +13,7 @@ import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {articles} from '../src/data/articles.mjs';
 import {relatedGuidesFor} from '../src/data/related-articles.mjs';
 import {services} from '../src/data/services.mjs';
+import {preparationQuestions} from '../src/data/commercial-process.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 import {composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
@@ -278,6 +279,14 @@ try {
     assert.equal(await page.locator('#print-briefing').isVisible(),true);
     await page.locator('#print-briefing').click();
     assert.equal(await page.evaluate(()=>window.__testPrintCount),1,'F170 print only by direct click');
+    // F192: clipboard contains only fixed published questions, not flags.
+    const copyGuide=page.locator('#copy-preparation-questions');
+    assert.equal(await copyGuide.isVisible(),true);
+    await copyGuide.click();
+    const copied=await page.evaluate(()=>navigator.clipboard.readText());
+    assert.equal(copied,preparationQuestions.map((q,i)=>(i+1)+'. '+q).join('\n'));
+    assert.match(await page.locator('#copy-preparation-status').textContent(),
+      /Roteiro copiado/);
     await page.reload({waitUntil:'load',timeout});
     assert.match(await page.locator('#briefing-progress').textContent(),/0 de 6 perguntas preparadas/,
       'F170 selections are ephemeral, never persisted');
@@ -489,6 +498,8 @@ try {
           'F170 no-JS checklist remains readable and inert');
         assert.equal(await fallback.locator('#print-briefing').isVisible(),false,
           'F170 print enhancement stays hidden without JavaScript');
+        assert.equal(await fallback.locator('#copy-preparation-questions').isVisible(),false,
+          'F192 clipboard enhancement remains hidden without JavaScript');
         await fallback.goto(host+'/contato/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#external-channel-notice').isVisible(),true,
           'F72 disclosure exists without JavaScript');
