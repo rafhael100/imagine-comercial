@@ -9,6 +9,10 @@ const ITEM = fieldSet(['id', 'slug', 'title', 'description', 'path', 'version', 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const IDENTIFIER = /^[a-z][a-z0-9_-]{5,79}$/;
 const OFFER = /^offer_[a-z0-9_-]{6,80}$/;
+// Invisible and bidirectional control characters must never enter signed
+// customer-facing titles/descriptions. Reject rather than rewrite signed text.
+const NONDISPLAY=/[\u007f-\u009f\u00ad\u034f\u061c\u180e\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/u;
+const UNPAIRED_SURROGATE=/[\ud800-\udfff]/u;
 const dateIsIso = value => typeof value === 'string' &&
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value) &&
   !Number.isNaN(Date.parse(value)) &&
@@ -27,7 +31,8 @@ function assertFields(obj, allowed, context) {
 
 function plainString(value, name, min, max) {
   if (typeof value !== 'string' || value.length < min || value.length > max ||
-      /[<>\x00-\x1F]/.test(value)) {
+      /[<>\x00-\x1F]/.test(value) || NONDISPLAY.test(value) ||
+      UNPAIRED_SURROGATE.test(value) || value.normalize('NFC')!==value) {
     throw new Error(name + ': invalid plain text');
   }
   return value;
