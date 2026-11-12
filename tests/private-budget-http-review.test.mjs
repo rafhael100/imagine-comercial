@@ -91,9 +91,9 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
   });
   assert.equal(hostileHost,421);
   // F183: raw malformed UTF-8 must not be silently replaced before JSON parse.
-  const rawPost=(bytes)=>new Promise((resolve,reject)=>{
+  const rawPost=(bytes,overrides={})=>new Promise((resolve,reject)=>{
     const req=httpRequest(server.url,{method:'POST',headers:{
-      ...baseHeaders,'Content-Length':bytes.length
+      ...baseHeaders,...overrides,'Content-Length':bytes.length
     }},res=>{
       const pieces=[];
       res.on('data',chunk=>pieces.push(chunk));
@@ -103,6 +103,19 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
     req.once('error',reject);
     req.end(bytes);
   });
+  // F184: reject forged browser metadata, even when the Origin is correct.
+  const validBytes=Buffer.from(JSON.stringify(example()),'utf8');
+  for(const site of ['cross-site','same-site','unknown']){
+    const denied=await rawPost(validBytes,{'Sec-Fetch-Site':site});
+    assert.equal(denied.status,403);
+    assert.equal(denied.payload.code,'UNTRUSTED_FETCH_CONTEXT');
+    assert.equal(denied.payload.canSendToCrm,false);
+  }
+  for(const site of ['same-origin','none']){
+    const accepted=await rawPost(validBytes,{'Sec-Fetch-Site':site});
+    assert.equal(accepted.status,200);
+    assert.equal(accepted.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
+  }
   for(const bytes of [
     Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xc3,0x28,0x22,0x7d]),
     Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xed,0xa0,0x80,0x22,0x7d])
