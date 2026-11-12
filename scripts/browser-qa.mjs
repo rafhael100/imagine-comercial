@@ -294,8 +294,16 @@ try {
     await page.locator('nav.faq-index a[href="#duvida-precos"]').click();
     await page.waitForURL(host+'/perguntas-frequentes/#duvida-precos');
     assert.equal(await page.locator('#duvida-precos details.faq-item').count(),1);
-    await page.locator('#duvida-precos summary').click();
-    assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),'');
+    await page.waitForFunction(()=>
+      document.querySelector('#duvida-precos details')?.open===true);
+    assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),'',
+      'F191 valid question hash reveals its answer');
+    await page.goto(host+'/perguntas-frequentes/#duvida-falso',{waitUntil:'load',timeout});
+    // A same-document hash change intentionally does not close an answer
+    // opened earlier. Reload to test invalid fragments on a fresh page.
+    await page.reload({waitUntil:'load',timeout});
+    assert.equal(await page.locator('.faq-entry details[open]').count(),0,
+      'F191 invalid question hash never expands another answer');
     assert.equal(await page.locator('nav.faq-index input').count(),0);
     await page.goto(host+'/como-funciona/',{waitUntil:'load',timeout});
     await page.locator('a[href="#etapas"]').click();
@@ -466,6 +474,9 @@ try {
         await fallback.locator('.faq-index a[href="#duvida-precos"]').click();
         await fallback.waitForURL(host+'/perguntas-frequentes/#duvida-precos');
         assert.equal(await fallback.locator('#duvida-precos summary').count(),1);
+        assert.equal(await fallback.locator('#duvida-precos details').getAttribute('open'),null);
+        await fallback.locator('#duvida-precos summary').click();
+        assert.equal(await fallback.locator('#duvida-precos details').getAttribute('open'),'');
         await fallback.goto(host+'/conteudos/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#guide-list article.card:visible').count(),
           articles.length,'F152 all guides remain usable without JavaScript');

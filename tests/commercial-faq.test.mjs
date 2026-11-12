@@ -29,7 +29,7 @@ test('F65 route is indexable, static and has no visitors data collection',()=>{
  assert.match(file,/href="\/contato\/"/);
  assert.match(file,/href="\/como-funciona\/"/);
  assert.match(file,/href="\/comparar-solucoes\/"/);
- assert.doesNotMatch(file,/<form\b|<input\b|<script\b|fetch\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|document\.cookie/);
+ assert.doesNotMatch(file,/<form\b|<input\b|fetch\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|document\.cookie/);
 });
 
 test('F189 eight canonical question anchors and four topic links, no personal state',()=>{
@@ -41,4 +41,14 @@ test('F189 eight canonical question anchors and four topic links, no personal st
  assert.match(file,/id={'duvida-'\+item\.id}/);
  assert.match(file,/class="faq-entry"/);
  assert.doesNotMatch(file,/localStorage|sessionStorage|document\.cookie|fetch\(/);
+});
+
+test('F191 valid FAQ anchors reveal native details without saving visitor state',()=>{
+ assert.match(file,/const approved=new Set/);
+ assert.match(file,/\.faq-entry\[id\]/);
+ assert.match(file,/const anchor=window\.location\.hash\.slice\(1\)/);
+ assert.match(file,/if\(!approved\.has\(anchor\)\)return/);
+ assert.match(file,/answer\.open=true/);
+ assert.match(file,/window\.addEventListener\('hashchange',reveal\)/);
+ assert.doesNotMatch(file,/localStorage|sessionStorage|fetch\s*\(|document\.cookie/);
 });
