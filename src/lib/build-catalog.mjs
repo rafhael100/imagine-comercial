@@ -3,8 +3,7 @@
  * Sem HTTP, tokens, preços, checkout ou acesso do visitante à chave de publicação.
  * Versão 1 deliberadamente limitada a slugs já aprovados editorialmente.
  */
-import { openSync, fstatSync, readSync, closeSync, constants } from 'node:fs';
-import { TextDecoder } from 'node:util';
+import {readApprovedFile} from './read-approved-file.mjs';
 import { services as curatedServices } from '../data/services.mjs';
 import { verifySignedCatalog } from './verify-signed-catalog.mjs';
 import { enforceReleasePin } from './release-pin.mjs';
@@ -59,37 +58,6 @@ export function mergeApprovedServiceMetadata(curated, snapshot) {
     descriptions.add(description);
   }
   return Object.freeze(merged);
-}
-
-function readApprovedFile(path, maxBytes, label) {
-  if (typeof path !== 'string' || path.length < 1 || path.includes('\0')) {
-    throw new Error('build catalog: invalid ' + label + ' path');
-  }
-  // F194: one descriptor for check and read; no symlink at final path.
-  // A concurrent replacement of path cannot change the opened inode.
-  let fd;
-  try {
-    fd=openSync(path,constants.O_RDONLY|constants.O_NOFOLLOW);
-    const stat=fstatSync(fd);
-    if(!stat.isFile()||stat.size>maxBytes)throw Error('unsafe');
-    const chunks=[];
-    let total=0;
-    while(true){
-      const chunk=Buffer.allocUnsafe(Math.min(65536,maxBytes-total+1));
-      const bytes=readSync(fd,chunk,0,chunk.length,null);
-      if(bytes===0)break;
-      total+=bytes;
-      if(total>maxBytes)throw Error('oversize');
-      chunks.push(chunk.subarray(0,bytes));
-    }
-    return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true})
-      .decode(Buffer.concat(chunks,total));
-  }catch{
-    // Error messages must not reveal paths, payload content or key material.
-    throw new Error('build catalog: unsafe ' + label + ' file');
-  }finally{
-    if(fd!==undefined)closeSync(fd);
-  }
 }
 
 export function loadBuildServices(env = process.env, nowMs=Date.now()) {
