@@ -65,7 +65,10 @@ const pathname='/comparar-solucoes/';
       <a id="contact-comparison-whatsapp" href="/contato/" target="_blank" rel="noopener noreferrer" aria-describedby="comparison-channel-disclosure" hidden>Conversar sobre as duas opções no WhatsApp</a>
       <a id="contact-comparison-email" href="/contato/" aria-describedby="comparison-channel-disclosure" hidden>Conversar sobre as duas opções por e-mail</a>
     </div>
-    <button type="button" id="copy-comparison-link" class="cta cta-secondary" hidden>Copiar link desta comparação</button>
+    <div class="compare-output-actions">
+      <button type="button" id="copy-comparison-link" class="cta cta-secondary" hidden>Copiar link desta comparação</button>
+      <button type="button" id="print-comparison" class="cta cta-secondary" hidden>Imprimir apenas as duas opções</button>
+    </div>
     <p id="copy-comparison-status" role="status" aria-live="polite" aria-atomic="true"></p>
   </section>
   <section class="section shell">
@@ -89,12 +92,13 @@ const pathname='/comparar-solucoes/';
     const selectedList=document.querySelector<HTMLOListElement>('#selected-comparison-list');
     const status=document.querySelector<HTMLElement>('#compare-chooser-status');
     const share=document.querySelector<HTMLButtonElement>('#copy-comparison-link');
+    const print=document.querySelector<HTMLButtonElement>('#print-comparison');
     const shareStatus=document.querySelector<HTMLElement>('#copy-comparison-status');
     const pairWhatsApp=document.querySelector<HTMLAnchorElement>('#contact-comparison-whatsapp');
     const pairEmail=document.querySelector<HTMLAnchorElement>('#contact-comparison-email');
     const pairDisclosure=document.querySelector<HTMLElement>('#comparison-channel-disclosure');
     const catalog=new Map(comparisonOptions.map(item=>[item.slug,item]));
-    if(selectedSection&&selectedList&&status&&share&&shareStatus&&pairWhatsApp&&pairEmail&&pairDisclosure&&buttons.length===catalog.size){
+    if(selectedSection&&selectedList&&status&&share&&print&&shareStatus&&pairWhatsApp&&pairEmail&&pairDisclosure&&buttons.length===catalog.size){
       const selected=new Set<string>();
       let revision=0;
       let copyPending=false;
@@ -102,6 +106,7 @@ const pathname='/comparar-solucoes/';
         revision++;
         shareStatus.textContent='';
         share.hidden=selected.size!==2||!navigator.clipboard?.writeText;
+        print.hidden=selected.size!==2||typeof window.print!=='function';
         share.disabled=copyPending;
         const cards=[...selected].map(slug=>catalog.get(slug)).filter(item=>item!==undefined);
         selectedList.replaceChildren();
@@ -176,6 +181,8 @@ const pathname='/comparar-solucoes/';
           render();
         });
       }
+      // F203: explicit visitor print, with no persisted or submitted data.
+      print.addEventListener('click',()=>{if(selected.size===2)window.print();});
       share.addEventListener('click',async()=>{
         if(copyPending||selected.size!==2)return;
         const fragment=encodeReviewedComparisonFragment([...selected]);
@@ -215,7 +222,9 @@ const pathname='/comparar-solucoes/';
     #contact-comparison-whatsapp[hidden],#contact-comparison-email[hidden],
     #comparison-channel-disclosure[hidden]{display:none!important}
     .compare-contact-note{max-width:730px;color:#405571;margin:22px 0 0}
-    #copy-comparison-link[hidden]{display:none!important}
+    .compare-output-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+    .compare-output-actions button{font:inherit;cursor:pointer}
+    #print-comparison[hidden],#copy-comparison-link[hidden]{display:none!important}
     #copy-comparison-link{margin-top:18px}
     #copy-comparison-link:disabled{opacity:.6;cursor:wait}
     #copy-comparison-status{color:#405571;margin-top:14px}
@@ -239,5 +248,18 @@ const pathname='/comparar-solucoes/';
     .compare-links a{font-weight:750;color:#0b5ea9;text-underline-offset:4px}
     #comparacoes{scroll-margin-top:20px}
     @media(max-width:480px){.compare-grid{grid-template-columns:1fr}.compare-card{padding:22px}}
+    /* A printed pair includes only the two selected cards, not the
+       complete service directory or controls for external channels. */
+    @media print{
+      :global(header),:global(footer),:global(.skip-link){display:none!important}
+      :global(main#conteudo > :not(#selected-comparison)){display:none!important}
+      :global(main#conteudo > #selected-comparison){display:block!important}
+      .selected-comparison{padding:0!important;width:100%;max-width:none}
+      .selected-comparison-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .selected-comparison-list .compare-card{break-inside:avoid;border-color:#7b8b9e}
+      .selected-comparison-list .compare-links{display:none!important}
+      .compare-output-actions,.compare-contact-note,#copy-comparison-status,
+      #contact-comparison-whatsapp,#contact-comparison-email{display:none!important}
+    }
   </style>
 </BaseLayout>
