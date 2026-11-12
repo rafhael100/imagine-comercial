@@ -45,7 +45,7 @@ const canonical=html=>{
 };
 
 export async function reviewPrivateStagingHttp({
-  port,transport=fetch,timeoutMs=5000,basicAuth,fullCoverage=false
+  port,transport=fetch,timeoutMs=5000,basicAuth,fullCoverage=false,expectedHtmlByPath
 }={}){
   if(!Number.isSafeInteger(port)||port<1024||port>65535||
     typeof transport!=='function'||
@@ -67,6 +67,24 @@ export async function reviewPrivateStagingHttp({
   }
   if(fullCoverage&&basicAuth===undefined)
     throw Error('F231: authenticated private review is required for full coverage');
+  // F234: optional operator-only exact HTML comparison with pinned local dist.
+  // Do not trust arbitrary caller-supplied paths, extra keys or map mutation.
+  let htmlExpected;
+  if(expectedHtmlByPath!==undefined){
+    if(!fullCoverage||basicAuth===undefined||
+       !(expectedHtmlByPath instanceof Map)||
+       expectedHtmlByPath.size!==sitePages.length+1)
+      throw Error('F234: pinned HTML parity requires full private authenticated review');
+    const allowed=new Set([...sitePages.map(x=>x.path),'__404_html__']);
+    for(const [path,html] of expectedHtmlByPath){
+      if(!allowed.has(path)||typeof html!=='string'||
+         html.length===0||Buffer.byteLength(html,'utf8')>1024*1024)
+        throw Error('F234: invalid pinned HTML evidence');
+    }
+    if([...allowed].some(path=>!expectedHtmlByPath.has(path)))
+      throw Error('F234: incomplete pinned HTML evidence');
+    htmlExpected=new Map(expectedHtmlByPath);
+  }
   const reviewedPublic=fullCoverage?sitePages.map(x=>x.path):publicSamples;
   const reviewedLegacy=fullCoverage?legacyUrls.map(x=>x.from):pendingSamples;
   const hasToken=(header,token)=>typeof header==='string'&&
@@ -130,6 +148,9 @@ export async function reviewPrivateStagingHttp({
       if(basicAuth!==undefined&&!noPrivateState(response))
         throw Error('F171: authenticated staging private headers absent');
       const html=await boundedHtml(response);
+      if(htmlExpected!==undefined &&
+         html!==htmlExpected.get(expected===200?path:'__404_html__'))
+        throw Error('F234: response does not match pinned HTML bytes');
       const canonicalLinks=canonical(html);
       if(expected===200){
         if(canonicalLinks.length!==1||
@@ -170,7 +191,11 @@ export async function reviewPrivateStagingHttp({
     }),
     ...(fullCoverage?{
       coverageProfile:'COMPLETE_PRIVATE_CATALOG_AND_LEGACY',
-      legacyCandidatesStillHeld:legacyUrls.filter(x=>x.status==='candidate').length
+      legacyCandidatesStillHeld:legacyUrls.filter(x=>x.status==='candidate').length,
+      ...(htmlExpected===undefined?{}:{
+        servedHtmlMatchesLocalPinnedBuild:true,
+        pinnedHtmlComparisons:checked
+      })
     }:{}),
     result:'STAGING_HTTP_SMOKE_ONLY_NO_RELEASE_AUTHORITY'
   });
