@@ -8,20 +8,20 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
 test('F161 private staging covers every legacy HOLD entry, not a short sample',()=>{
   const held=legacyUrls.filter(x=>x.status==='hold');
-  assert.equal(held.length,20);
-  assert.equal(new Set(held.map(x=>x.from)).size,20);
+  assert.equal(held.length,22);
+  assert.equal(new Set(held.map(x=>x.from)).size,22);
   assert.ok(held.every(x=>x.to===null));
   assert.ok(held.every(x=>!sitePages.some(s=>s.path===x.from)));
   const source=read('src/lib/private-staging-http-gate.mjs');
   assert.match(source,/legacyUrls\.filter\(x=>x\.status==='hold'\)\.map/);
   assert.doesNotMatch(source,/\.slice\(0,4\)/);
-  assert.match(source,/pendingSamples\.length!==20/);
+  assert.match(source,/pendingSamples\.length!==22/);
 });
 
-test('F161 all 20 held paths are checked by real Workerd and documented',()=>{
+test('F161 all 22 held paths are checked by real Workerd and documented',()=>{
   const code=read('scripts/test-workers-local-migration.mjs');
-  assert.match(code,/privateGate\.heldLegacyPages,20/);
-  assert.match(code,/privateGate\.totalHttpChecks,24/);
+  assert.match(code,/privateGate\.heldLegacyPages,22/);
+  assert.match(code,/privateGate\.totalHttpChecks,26/);
   assert.match(code,/const held=legacyUrls\.filter\(x=>x\.status==='hold'\)/);
   assert.match(code,/for\(const blocked of \[/);
   assert.match(code,/assert\.equal\(response\.status,404/);
