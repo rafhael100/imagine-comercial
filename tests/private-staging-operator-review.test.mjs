@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,rm,chmod} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,rm,chmod} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -15,6 +15,11 @@ const basicAuth='Basic '+Buffer.from('reviewer:'+password).toString('base64');
 const image='nginxinc/nginx-unprivileged@sha256:'+('ab'.repeat(32));
 const bcrypt='$2y$12$'+('Ab3/'.repeat(13))+'Q';
 const published=new Set(sitePages.map(page=>page.path));
+const publicHtml=path=>'<html><head><meta name="robots" content="index,follow">'+
+  '<link rel="canonical" href="'+toAbsoluteUrl(path)+'"></head>'+
+  '<body><h1>Synthetic</h1></body></html>';
+const missingHtml='<html><head><meta name="robots" content="noindex,nofollow"></head>'+
+  '<body><h1>Não encontramos</h1></body></html>';
 const authCheckCount=sitePages.length+legacyUrls.length+3;
 const httpCheckCount=sitePages.length+legacyUrls.length;
 const headers=Object.fromEntries([...localHeaderProfile,
@@ -27,14 +32,14 @@ async function fixture(){
   const files=[];
   for(const page of sitePages){
     const path=page.path==='/'?'index.html':page.path.slice(1)+'index.html';
-    const bytes=Buffer.from('<html><h1>Synthetic</h1></html>');
+    const bytes=Buffer.from(publicHtml(page.path));
     const dir=join(root,...path.split('/').slice(0,-1));
     await mkdir(dir,{recursive:true});
     await writeFile(join(root,path),bytes);
     files.push({path,bytes});
   }
   for(const [path,value] of [
-    ['404.html','<h1>Missing</h1>'],
+    ['404.html',missingHtml],
     ['robots.txt','User-agent: *\nAllow: /'],
     ['sitemap.xml','<urlset></urlset>'],
     ['_astro/base.css','body { color: black }']
@@ -49,7 +54,7 @@ async function fixture(){
   const expectedTreeSha256=createReleaseReview(files).treeSha256;
   return {base,root,htpasswdPath,expectedTreeSha256};
 }
-function transport(){
+function transport(f){
   const seen=[];
   return {
     seen,
@@ -61,14 +66,9 @@ function transport(){
         headers:{...headers,'WWW-Authenticate':'Basic realm="private"',
           'X-Robots-Tag':'noindex, nofollow, noarchive'}});
       const exists=published.has(path);
-      return new Response(exists?
-        '<html><head><meta name="robots" content="index,follow">'+
-        '<link rel="canonical" href="'+toAbsoluteUrl(path)+'">'+
-        '</head><body><h1>Synthetic</h1></body></html>':
-        '<html><head><meta name="robots" content="noindex,nofollow">'+
-        '</head><body><h1>Não encontramos</h1></body></html>',
-        {status:exists?200:404,headers}
-      );
+      const filename=exists?(path==='/'?'index.html':path.slice(1)+'index.html'):'404.html';
+      const html=await readFile(join(f.root,filename),'utf8');
+      return new Response(html,{status:exists?200:404,headers});
     }
   };
 }
@@ -76,12 +76,14 @@ const params=(f,t)=>({root:f.root,htpasswdPath:f.htpasswdPath,
   expectedTreeSha256:f.expectedTreeSha256,image,basicAuth,port:4321,
   transport:t.send});
 test('F232 operator review combines package + bcrypt + 401 + full catalog HTTP checks',async()=>{
-  const f=await fixture();const t=transport();
+  const f=await fixture();const t=transport(f);
   try{
     const report=await review(params(f,t));
     assert.equal(report.status,'PRIVATE_CANDIDATE_REVIEWED_STILL_NO_RELEASE_AUTHORITY');
     assert.equal(report.checks.authenticatedHttpChecks,httpCheckCount);
     assert.equal(report.checks.buildTreeBytesStableAfterHttp,true);
+    assert.equal(report.checks.servedHtmlMatchesLocalPinnedBuild,true);
+    assert.equal(report.checks.pinnedHtmlComparisons,httpCheckCount);
     assert.equal(report.checks.coverageProfile,'COMPLETE_PRIVATE_CATALOG_AND_LEGACY');
     assert.equal(report.checks.legacyCandidatesStillHeld,5);
     assert.equal(report.checks.unauthenticatedHomepageDenied,true);
@@ -104,14 +106,14 @@ test('F232 operator review combines package + bcrypt + 401 + full catalog HTTP c
   }finally{await rm(f.base,{recursive:true,force:true});}
 });
 test('F167 tampered package, unknown image and weak auth file fail BEFORE sending HTTP',async()=>{
-  const f=await fixture();const t=transport();
+  const f=await fixture();const t=transport(f);
   try{
     await writeFile(join(f.root,'index.html'),'<h1>TAMPERED</h1>');
     await assert.rejects(review(params(f,t)),/bytes do not match/);
     assert.equal(t.seen.length,0);
     await assert.rejects(review({...params(f,t),image:'nginx:latest'}),/F164/);
     assert.equal(t.seen.length,0);
-    await writeFile(join(f.root,'index.html'),'<html><h1>Synthetic</h1></html>');
+    await writeFile(join(f.root,'index.html'),publicHtml('/'));
     await chmod(f.htpasswdPath,0o644);
     await assert.rejects(review(params(f,t)),/F166/);
     assert.equal(t.seen.length,0);
@@ -120,7 +122,7 @@ test('F167 tampered package, unknown image and weak auth file fail BEFORE sendin
 test('F167 does not treat a 200 public homepage as private staging success',async()=>{
   const f=await fixture();let count=0;
   try{
-    await assert.rejects(review({...params(f,transport()),
+    await assert.rejects(review({...params(f,transport(f)),
       transport:async(url)=>{count++;return new Response('Public',{status:200,headers});}
     }),/private staging routes are not all protected/);
     assert.equal(count,1);
@@ -141,15 +143,18 @@ test('F167 CLI refuses GitHub Actions and never echoes a supplied synthetic secr
 
 test('F233 rejects package mutation during a passing authenticated HTTP review',async()=>{
   const f=await fixture();
-  const healthy=transport();
+  const healthy=transport(f);
   let sent=0;
   const changeDuringReview=async(url,options)=>{
     sent++;
-    if(sent===3){
-      // Mutation after initial hash validation, before the final integrity read.
+    // Change the package AFTER the last authenticated response body was read,
+    // so only the post-HTTP hash check can detect it.
+    const response=await healthy.send(url,options);
+    if(options.headers?.Authorization===basicAuth &&
+       new URL(url).pathname===legacyUrls.at(-1).from){
       await writeFile(join(f.root,'index.html'),'<html><h1>CHANGED DURING REVIEW</h1></html>');
     }
-    return healthy.send(url,options);
+    return response;
   };
   try{
     await assert.rejects(review({
