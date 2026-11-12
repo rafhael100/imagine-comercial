@@ -91,9 +91,11 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
   });
   assert.equal(hostileHost,421);
   // F183: raw malformed UTF-8 must not be silently replaced before JSON parse.
-  const rawPost=(bytes,overrides={})=>new Promise((resolve,reject)=>{
+  const rawPost=(bytes,overrides={},chunked=false)=>new Promise((resolve,reject)=>{
     const req=httpRequest(server.url,{method:'POST',headers:{
-      ...baseHeaders,...overrides,'Content-Length':bytes.length
+      ...baseHeaders,...overrides,...(chunked
+        ? {'Transfer-Encoding':'chunked'}
+        : {'Content-Length':bytes.length})
     }},res=>{
       const pieces=[];
       res.on('data',chunk=>pieces.push(chunk));
@@ -101,7 +103,11 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
         payload:JSON.parse(Buffer.concat(pieces).toString('utf8'))}));
     });
     req.once('error',reject);
-    req.end(bytes);
+    if(chunked){
+      const half=Math.floor(bytes.length/2);
+      req.write(bytes.subarray(0,half));
+      req.end(bytes.subarray(half));
+    }else req.end(bytes);
   });
   // F184: reject forged browser metadata, even when the Origin is correct.
   const validBytes=Buffer.from(JSON.stringify(example()),'utf8');
@@ -126,6 +132,20 @@ test('P0 F161: authenticated local HTTP review never issues receipt or leaks fie
   const afterRejectedScalars=await rawPost(validBytes);
   assert.equal(afterRejectedScalars.status,200);
   assert.equal(afterRejectedScalars.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
+  // F186: 4096 is inclusive, for declared-length and chunked transports.
+  // The 4097th *actual byte* is refused even without Content-Length.
+  const maxBody=Buffer.concat([validBytes,
+    Buffer.alloc(4096-validBytes.length,0x20)]);
+  assert.equal(maxBody.length,4096);
+  for(const isChunked of [false,true]){
+    const accepted=await rawPost(maxBody,{},isChunked);
+    assert.equal(accepted.status,200);
+    assert.equal(accepted.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
+    const denied=await rawPost(Buffer.concat([maxBody,Buffer.from(' ')]),{},isChunked);
+    assert.equal(denied.status,413);
+    assert.equal(denied.payload.code,'BODY_TOO_LARGE');
+    assert.equal(denied.payload.canSendToCrm,false);
+  }
   for(const bytes of [
     Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xc3,0x28,0x22,0x7d]),
     Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xed,0xa0,0x80,0x22,0x7d])
