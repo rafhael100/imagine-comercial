@@ -119,6 +119,8 @@ try {
       if(route.startsWith('/servicos/') && route!=='/servicos/'){
         assert.equal(await page.locator('a.cta-secondary[href="/comparar-solucoes/"]').count(),1,
           'F62 service-page comparison link points to the actual comparison page');
+        assert.equal(await page.locator('.service-faq-related a[href^="/perguntas-frequentes/#duvida-"]').count(),2,
+          'F190 each service links to two reviewed FAQ answers');
       }
       const anchors=await page.locator('a[href]').evaluateAll(elements=>elements.map(el=>({
         href:el.getAttribute('href'),target:el.getAttribute('target')||'',
