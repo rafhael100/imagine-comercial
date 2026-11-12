@@ -84,3 +84,43 @@ test('F197 valid NFC Portuguese accents and complete emoji remain representable'
   assert.equal(result.items[0].title,title);
   assert.equal(result.items[0].description,description);
 });
+
+test('F213 rejects accessor/getter and hidden object fields without invoking them',()=>{
+  let accessed=0;
+  const badRoot=makeSnapshot();
+  Object.defineProperty(badRoot,'releaseId',{enumerable:true,
+    get(){accessed++;throw Error('GETTER_SENSITIVE_SECRET');}});
+  fails(badRoot,/catalog: object required/);
+  const badItem=makeItem();
+  Object.defineProperty(badItem,'title',{enumerable:true,
+    get(){accessed++;throw Error('GETTER_SENSITIVE_SECRET');}});
+  fails(makeSnapshot({items:[badItem]}),/item 0: object required/);
+  assert.equal(accessed,0);
+  const hidden=makeItem();
+  Object.defineProperty(hidden,'customerEmail',
+    {value:'private@example.invalid',enumerable:false});
+  fails(makeSnapshot({items:[hidden]}),/object required/);
+  const symbol=makeSnapshot();
+  symbol[Symbol('private')]='PRIVATE-F213';
+  fails(symbol,/catalog: object required/);
+});
+test('F213 rejects sparse, decorated, inherited and accessor-bearing items arrays',()=>{
+  const sparse=new Array(2);sparse[1]=makeItem();
+  const decorated=[makeItem()];
+  Object.defineProperty(decorated,'secret',{value:'PRIVATE-F213',enumerable:false});
+  const getter=[makeItem()];
+  let accessed=0;
+  Object.defineProperty(getter,'0',{enumerable:true,configurable:true,
+    get(){accessed++;throw Error('PRIVATE-F213');}});
+  const inherited=[makeItem()];
+  Object.setPrototypeOf(inherited,Object.create(Array.prototype));
+  for(const items of [sparse,decorated,getter,inherited])
+    fails(makeSnapshot({items}),/invalid items/);
+  assert.equal(accessed,0);
+});
+test('F213 JSON-parsed payload stays accepted with strictly enumerable data fields',()=>{
+  const ordinary=JSON.parse(JSON.stringify(makeSnapshot()));
+  const result=validatePublishedCatalog(ordinary);
+  assert.equal(result.items.length,1);
+  assert.ok(Object.isFrozen(result));
+});

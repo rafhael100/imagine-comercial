@@ -19,13 +19,34 @@ const dateIsIso = value => typeof value === 'string' &&
   new Date(value).toISOString() === (value.includes('.') ? value : value.replace('Z', '.000Z'));
 
 function isRecord(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    && Object.getPrototypeOf(value) === Object.prototype;
+  if(value===null||typeof value!=='object'||Array.isArray(value)||
+     Object.getPrototypeOf(value)!==Object.prototype)return false;
+  // F213: only enumerable, own JSON data fields. Never execute a getter,
+  // silently skip a nonenumerable private field or accept symbol metadata.
+  return Reflect.ownKeys(value).every(key=>{
+    if(typeof key!=='string')return false;
+    const descriptor=Object.getOwnPropertyDescriptor(value,key);
+    return descriptor?.enumerable===true&&Object.hasOwn(descriptor,'value');
+  });
 }
 
-function assertFields(obj, allowed, context) {
-  for (const key of Object.keys(obj)) {
-    if (!allowed.has(key)) throw new Error(context + ': unsupported/private field: ' + key);
+function isDenseDataArray(value,max){
+  if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype||
+     value.length>max)return false;
+  const keys=Reflect.ownKeys(value);
+  if(keys.length!==value.length+1)return false;
+  for(let i=0;i<value.length;i++){
+    const descriptor=Object.getOwnPropertyDescriptor(value,String(i));
+    if(!descriptor||descriptor.enumerable!==true||
+       !Object.hasOwn(descriptor,'value'))return false;
+  }
+  return true;
+}
+
+function assertFields(obj,allowed,context){
+  for(const key of Reflect.ownKeys(obj)){
+    if(!allowed.has(key))
+      throw new Error(context+': unsupported/private field');
   }
 }
 
@@ -46,7 +67,7 @@ export function validatePublishedCatalog(input) {
     throw new Error('catalog: invalid releaseId');
   }
   if (!dateIsIso(input.publishedAt)) throw new Error('catalog: invalid publishedAt');
-  if (!Array.isArray(input.items) || input.items.length > 10000) {
+  if (!isDenseDataArray(input.items,10000)) {
     throw new Error('catalog: invalid items');
   }
 
