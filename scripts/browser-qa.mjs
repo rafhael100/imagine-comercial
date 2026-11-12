@@ -83,6 +83,19 @@ try {
       const canonical=await page.locator('link[rel="canonical"]').getAttribute('href');
       assert.equal(canonical,'https://imaginecomunicacao.com.br'+route,viewport.label+': '+route+' canonical');
       assert.equal(await page.locator('main#conteudo').count(),1,route+' main landmark');
+      // F245: visible breadcrumb navigation is derived from the same reviewed
+      // Astro route data as JSON-LD, with exactly one current page.
+      const trail=page.locator('main nav[aria-label="Caminho de navegação"]');
+      assert.equal(await trail.count(),route==='/'?0:1,'F245 breadcrumb on internal pages');
+      if(route!=='/'){
+        assert.equal(await trail.locator('ol > li').count()>=2,true,'F245 semantic trail');
+        assert.equal(await trail.locator('a[href="/"]').count(),1,'F245 route home ancestor');
+        assert.equal(await trail.locator('[aria-current="page"]').count(),1,'F245 exact current crumb');
+        assert.equal(await trail.locator('[aria-current="page"]').first().textContent().then(x=>!!x?.trim()),true,
+          'F245 current crumb has a readable label');
+        const last=await trail.locator('ol > li').last().locator('[aria-current="page"]').count();
+        assert.equal(last,1,'F245 last item describes the current page');
+      }
       const brandImage=page.locator('header a.brand img');
       assert.equal(await brandImage.count(),1,'F240 real Imagine logo visible on every route');
       assert.equal(await brandImage.getAttribute('src'),'/logo-imagine.png');
