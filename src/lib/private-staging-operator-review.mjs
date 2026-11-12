@@ -43,7 +43,12 @@ export async function reviewStagingOperatorCandidate({
   const http=await reviewPrivateStagingHttp({port,basicAuth,transport,fullCoverage:true,expectedHtmlByPath,expectedAssetsByPath});
   const publicCount=sitePages.length;
   const legacyCount=legacyUrls.length;
-  const anonymousCount=publicCount+legacyCount+3; // SEO resources and private asset sentinel
+  const anonymousCount=new Set([
+    ...sitePages.map(x=>x.path),...legacyUrls.map(x=>x.from),
+    '/robots.txt','/sitemap.xml','/perguntas-frequentes/',
+    '/_astro/__imagine_private_access_probe__.js',
+    ...expectedAssetsByPath.keys()
+  ]).size;
   // F233: verify the package a second time AFTER the HTTP review. A local
   // file mutation during an otherwise successful session must fail closed.
   const stableBytes=reviewStagingBuildIntegrity({root,expectedTreeSha256});
