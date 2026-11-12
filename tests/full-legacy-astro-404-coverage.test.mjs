@@ -4,13 +4,13 @@ import {readFileSync} from 'node:fs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {sitePages} from '../src/data/services.mjs';
 
-test('F162 browser tests must cover all 23 known legacy URLs without sampling',()=>{
+test('F162 browser tests must cover all 25 known legacy URLs without sampling',()=>{
   const source=readFileSync(new URL('../scripts/browser-qa.mjs',import.meta.url),'utf8');
   const candidates=legacyUrls.filter(x=>x.status==='candidate');
   const held=legacyUrls.filter(x=>x.status==='hold');
   assert.equal(candidates.length,5);
-  assert.equal(held.length,18);
-  assert.equal(new Set(legacyUrls.map(x=>x.from)).size,23);
+  assert.equal(held.length,20);
+  assert.equal(new Set(legacyUrls.map(x=>x.from)).size,25);
   assert.ok(legacyUrls.every(x=>!sitePages.some(p=>p.path===x.from)));
   assert.match(source,/const candidates=legacyUrls\.filter\(item=>item\.status==='candidate'\);/);
   assert.match(source,/const held=legacyUrls\.filter\(item=>item\.status==='hold'\);/);
