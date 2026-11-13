@@ -585,6 +585,22 @@ try {
     await page.waitForFunction(()=>window.location.search==='');
     assert.equal(new URL(page.url()).hash,'#conteudo',
       'F205 preserves native skip-to-content navigation');
+    // F252: homepage shortcuts prepare a reviewed service on the contact
+    // page without a public form, analytics, token or automatic message.
+    await page.goto(host+'/',{waitUntil:'load',timeout});
+    const featuredContact=page.locator('a[data-home-service-contact]');
+    assert.equal(await featuredContact.count(),3,
+      'F252 three featured solutions offer contact shortcuts');
+    assert.deepEqual(await featuredContact.evaluateAll(links=>
+      links.map(a=>a.getAttribute('href'))),
+      ['/contato/#criacao-de-sites','/contato/#landing-pages','/contato/#gestao-google-ads'],
+      'F252 homepage shortcuts use reviewed public service slugs');
+    assert.equal(await page.locator('#home-featured-contact-notice').isVisible(),true,
+      'F252 visitors see the no-send note');
+    await featuredContact.first().click();
+    await page.waitForURL(host+'/contato/#criacao-de-sites');
+    assert.equal(await page.locator('#service-choice').inputValue(),'criacao-de-sites',
+      'F252 homepage link selects the correct service in contact');
     // F58: real browser contract for the public service guide.
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     const goalOptions=page.locator('#service-guide-goal option');
