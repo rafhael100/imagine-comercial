@@ -27,6 +27,8 @@ jobs:
           cache: npm
       - name: Testar contratos sem dependencias
         run: npm test
+      - name: Bloquear configuracao Nginx/Compose diferente do staging privado revisado (F253)
+        run: node scripts/check-reviewed-staging-config.mjs
       - name: Instalar dependencias reproduziveis
         run: npm ci --no-audit --no-fund
       - name: Gerar paginas Astro
