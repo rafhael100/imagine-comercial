@@ -20,7 +20,7 @@ test('F170 all six reviewed questions are present in progressively enhanced chec
 test('F170 public process checklist stores no data, never submits forms or creates external calls',()=>{
   assert.doesNotMatch(page,/<form\b|<input\b|<textarea\b|fetch\s*\(|sendBeacon\s*\(|XMLHttpRequest|localStorage|sessionStorage|document\.cookie/);
   assert.match(page,/As marcações de preparo são temporárias/);
-  assert.match(page,/\.briefing-toggle\[hidden\],#print-briefing\[hidden\],#copy-preparation-questions\[hidden\]\{display:none\}/);
+  assert.match(page,/\.briefing-toggle\[hidden\],#reset-preparation\[hidden\],#print-briefing\[hidden\],#copy-preparation-questions\[hidden\]\{display:none\}/);
   assert.match(page,/@media print\{/);
 });
 test('F170 browser QA tests interaction, reset, printing and no-JavaScript fallback',()=>{
