@@ -77,3 +77,17 @@ test('F283 unvalidated GSC or decisions cannot spoof source authority',()=>{
   ];
   for(const input of inputs)assert.throws(()=>review(input));
 });
+
+
+test('F283 rejects hidden or accessor-bearing evidence bundles before evaluation',()=>{
+  let calls=0;
+  const evidence={inspections:[seen('/en-us/')],decisions:[]};
+  Object.defineProperty(evidence,'decisions',{enumerable:true,
+    get(){calls++;throw Error('PRIVATE-F283-ACCESSOR');}
+  });
+  assert.throws(()=>review(evidence),/invalid private source bundle/);
+  assert.equal(calls,0);
+  const hidden={inspections:[seen('/en-us/')],decisions:[]};
+  Object.defineProperty(hidden,'productionAuthorized',{value:true,enumerable:false});
+  assert.throws(()=>review(hidden),/invalid private source bundle/);
+});
