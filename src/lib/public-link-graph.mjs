@@ -4,10 +4,9 @@
  * The route list is supplied by the curated site catalog, no HTTP is used.
  */
 import assert from 'node:assert/strict';
+import {anchorOpeningTags,requiredAnchorHref} from './html-anchor-reader.mjs';
 
 const ROUTE=/^\/(?:[a-z0-9-]+\/)*$/;
-const hrefOf=tag=>/\bhref\s*=\s*(["'])(.*?)\1/i.exec(tag)?.[2]??null;
-const hrefTags=html=>html.match(/<a\b[^>]*>/gi)??[];
 
 export function auditPublicLinkGraph(pages,{maxClicks=3}={}){
   assert.ok(Array.isArray(pages)&&pages.length>=2,
@@ -26,8 +25,8 @@ export function auditPublicLinkGraph(pages,{maxClicks=3}={}){
   const neighbors=new Map();
   for(const [path,html] of map){
     const links=new Set();
-    for(const tag of hrefTags(html)){
-      const href=hrefOf(tag);
+    for(const tag of anchorOpeningTags(html)){
+      const href=requiredAnchorHref(tag);
       if(typeof href!=='string'||!href.startsWith('/')||
         href.startsWith('//'))continue;
       const dest=href.split('#',1)[0];

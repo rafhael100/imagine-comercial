@@ -5,9 +5,8 @@
  * Does not fetch, navigate, or collect visitor/session information.
  */
 import assert from 'node:assert/strict';
+import {anchorOpeningTags,requiredAnchorHref} from './html-anchor-reader.mjs';
 
-const TAG=/<a\b[^>]*>/gi;
-const HREF=/\bhref\s*=\s*(["'])(.*?)\1/i;
 const ROOT_ROUTE=/^\/(?:[a-z0-9-]+\/)*$/;
 const SAFE_FRAGMENT=/^[A-Za-z0-9_:-]+$/;
 const EXTERNAL=/^(?:https:\/\/[^\/\s?#]+(?:[^\s]*)?|mailto:[^\s]+|tel:[+0-9-]+)$/i;
@@ -23,8 +22,8 @@ export function auditCuratedInternalLinks(html,availableRoutes){
     approved.add(path);
   }
   let checked=0;
-  for(const match of html.matchAll(TAG)){
-    const href=HREF.exec(match[0])?.[2];
+  for(const tag of anchorOpeningTags(html)){
+    const href=requiredAnchorHref(tag);
     assert.ok(typeof href==='string','F143: link without href');
     assert.ok(href.length>0&&href.length<=2048&&
       !/[\s\\\x00-\x1f\x7f<>]/.test(href),
