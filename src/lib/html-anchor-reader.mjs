@@ -8,11 +8,11 @@ const ATTRIBUTE=/([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>]+)))?
 
 export function anchorOpeningTags(html){
   if(typeof html!=='string')throw Error('F268: compiled HTML required');
-  // F275: browser-inert comments, scripts, styles and templates cannot
-  // contribute navigable links. Keep noscript: those links are genuinely
-  // navigable when JavaScript is disabled.
+  // F285: raw-text/RCDATA containers are not public navigation. HTML
+  // source examples inside textarea/title/iframe must not satisfy link
+  // reachability; preserve noscript because its links work without JS.
   const source=html.replace(/<!--[\s\S]*?(?:-->|$)/g,'')
-    .replace(/<(script|style|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'');
+    .replace(/<(script|style|template|textarea|title|xmp|iframe|noembed|noframes)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'');
   const tags=[];
   TAG_START.lastIndex=0;
   let match;
