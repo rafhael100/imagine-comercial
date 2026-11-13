@@ -273,8 +273,9 @@ const service = serviceName ? {
       // F290: Escape closes only an expanded native navigation disclosure,
       // returning keyboard focus to its summary. Without JS, the native
       // Enter/click behavior remains available; no network or storage.
-      for(const item of document.querySelectorAll<HTMLDetailsElement>(
-        'header details.mobile-menu, header details.nav-help')){
+      const navDisclosures=[...document.querySelectorAll<HTMLDetailsElement>(
+        'header details.mobile-menu, header details.nav-help')];
+      for(const item of navDisclosures){
         item.addEventListener('keydown',event=>{
           if(event.key!=='Escape'||!item.open)return;
           item.open=false;
@@ -283,6 +284,15 @@ const service = serviceName ? {
           event.stopPropagation();
         });
       }
+      // F295: dismiss only when the visitor deliberately presses outside
+      // the disclosure. Do not cancel that pointer event or hijack focus;
+      // a click on a real navigation link must still navigate normally.
+      document.addEventListener('pointerdown',event=>{
+        const target=event.target;
+        if(!(target instanceof Node))return;
+        for(const item of navDisclosures)
+          if(item.open&&!item.contains(target))item.open=false;
+      });
     </script>
   </body>
 </html>
