@@ -58,6 +58,12 @@ const noJsContacts=services.map(s=>{
         </select>
         <p id="priority-help">Sua escolha ajuda a preparar o texto do contato, sem enviar nada pelo site.</p>
       </div>
+      <div class="contact-reset-controls">
+        <button type="button" id="reset-briefing" class="contact-reset" hidden
+          aria-controls="service-choice objective-choice stage-choice priority-choice message-preview">
+          Limpar escolhas
+        </button>
+      </div>
       <p id="message-preview" class="message-preview" role="status" aria-live="polite" aria-atomic="true">Prévia da mensagem: Olá, gostaria de conhecer os serviços da Imagine.</p>
       <p class="contact-process-link"><a href="/como-funciona/">Entenda as etapas do projeto antes de conversar</a> · <a href="/perguntas-frequentes/">Dúvidas frequentes</a></p>
       <p id="external-channel-notice" class="contact-channel-notice">Os canais abaixo são externos ao site. Ao abrir o WhatsApp, o texto preparado aparece no serviço; confira e confirme o envio. O e-mail abre o aplicativo configurado no seu dispositivo. A Imagine não recebe uma solicitação por meio deste site apenas porque você selecionou um serviço ou objetivo.</p>
@@ -133,12 +139,13 @@ const noJsContacts=services.map(s=>{
     const share = document.querySelector<HTMLButtonElement>('#copy-briefing-link');
     const shareStatus = document.querySelector<HTMLElement>('#copy-briefing-status');
     const printButton = document.querySelector<HTMLButtonElement>('#print-briefing');
+    const reset = document.querySelector<HTMLButtonElement>('#reset-briefing');
     const printService = document.querySelector<HTMLElement>('#print-briefing-service');
     const printObjective = document.querySelector<HTMLElement>('#print-briefing-objective');
     const printStage = document.querySelector<HTMLElement>('#print-briefing-stage');
     const printPriority = document.querySelector<HTMLElement>('#print-briefing-priority');
     const printMessage = document.querySelector<HTMLElement>('#print-briefing-message');
-    if (choice && whatsapp && email && help && objective && objectiveHelp && stage && priority && preview && copy && copyStatus && share && shareStatus) {
+    if (choice && whatsapp && email && help && objective && objectiveHelp && stage && priority && preview && copy && copyStatus && share && shareStatus && reset) {
       // Exibir o botão somente em navegadores com API de clipboard disponível.
       // Sem JS, o botão permanece oculto e os canais estáticos funcionam.
       if (navigator.clipboard?.writeText) copy.hidden = false;
@@ -166,6 +173,7 @@ const noJsContacts=services.map(s=>{
       const allowedPriorities = new Set(['',...briefingPriorities.map(item => item.code)]);
       const update = () => {
         clipboardRevision++;
+        reset.hidden = !(choice.value || objective.value || stage.value || priority.value);
         const selected = choice.selectedOptions[0];
         const label = selected?.value ? selected.textContent?.trim() : '';
         if (!allowedObjectives.has(objective.value)) objective.value = '';
@@ -265,6 +273,18 @@ const noJsContacts=services.map(s=>{
           setClipboardPending(false);
         }
       });
+      // F287: clear all temporary curated selections in one deliberate action.
+      // Reset both history fragment and copied-message revision; never send
+      // a request or preserve visitor choices in storage.
+      reset.addEventListener('click',()=>{
+        choice.value='';
+        objective.value='';
+        stage.value='';
+        priority.value='';
+        window.history.replaceState(null,'',window.location.pathname);
+        update();
+        choice.focus();
+      });
       objective.addEventListener('change', update);
       stage.addEventListener('change', update);
       priority.addEventListener('change', update);
@@ -290,6 +310,13 @@ const noJsContacts=services.map(s=>{
     .contact-nojs-links{display:grid;gap:10px}
     .contact-nojs-links a{color:#884100;font-weight:750;text-underline-offset:3px;min-height:44px;display:flex;align-items:center}
     .contact-copy,.contact-print { cursor: pointer; font: inherit; }
+    .contact-reset-controls{margin-top:16px}
+    .contact-reset{display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;
+      border:1px solid #bba893;border-radius:10px;background:#fff;color:#884100;
+      font:inherit;font-weight:750;cursor:pointer}
+    .contact-reset[hidden]{display:none!important}
+    .contact-reset:hover{background:#fff8ed}
+    .contact-reset:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
     .contact-print[hidden]{display:none!important}
     .print-briefing-summary{display:none}
     @media print{
