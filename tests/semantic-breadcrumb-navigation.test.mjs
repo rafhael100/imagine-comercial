@@ -31,7 +31,10 @@ test('F245 older duplicate crumbs removed without losing catalog breadcrumb prop
   }
 });
 test('F245 all public navigation remains safe, with no script or privacy dependency',()=>{
-  const source=layout.slice(layout.indexOf('<main id="conteudo">'));
+  // F291 makes main programmatically focusable for the keyboard skip link.
+  const mainStart=layout.search(/<main id="conteudo"(?:\s[^>]*)?>/);
+  assert.ok(mainStart>=0,'main landmark must exist');
+  const source=layout.slice(mainStart);
   const nav=source.slice(0,source.indexOf('<slot />'));
   assert.doesNotMatch(nav,/\bfetch\s*\(|window\.location|localStorage|sessionStorage|<form\b|<input\b/);
   assert.match(nav,/breadcrumb.length>0/);
