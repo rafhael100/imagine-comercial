@@ -36,6 +36,16 @@ try{
   safeDiagnostic={stage:'effective-review',
     topLevelFieldCount:Object.keys(document??{}).length,
     serviceFieldCount:Object.keys(service).length,
+    // Field NAMES are from an entirely synthetic, source-locked model.
+    // Only fixed-schema identifiers can be displayed; never values.
+    serviceFieldNames:Object.keys(service).sort().map(k=>
+      /^[a-z_]{1,40}$/.test(k)?k:'UNRECOGNIZED_FIELD_NAME'),
+    tmpfsKinds:Array.isArray(service.tmpfs)?service.tmpfs.map(v=>
+      typeof v==='string'?'string':Array.isArray(v)?'array':
+        (v===null?'null':typeof v)) :[],
+    tmpfsFieldNames:Array.isArray(service.tmpfs)?service.tmpfs.map(v=>
+      v!==null&&typeof v==='object'&&!Array.isArray(v)?
+        Object.keys(v).sort().map(k=>/^[a-z_]{1,40}$/.test(k)?k:'UNRECOGNIZED_FIELD_NAME'):[]) :[],
     portsCount:ports.length,portHasLoopback:ports[0]?.host_ip==='127.0.0.1',
     serviceReadonly:service.read_only===true,
     volumeCount:volumes.length,
