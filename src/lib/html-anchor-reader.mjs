@@ -50,6 +50,6 @@ export function requiredAnchorHref(tag){
       href=found[2]??found[3];
     }
   }
-  if(href===null)throw Error('F268: anchor without href attribute');
+  if(href===null)throw Error('F268: link without href attribute');
   return href;
 }
