@@ -44,10 +44,10 @@ export function evaluateReadOnlyPrivateStagingChain({
     methods?.productionAuthorized===false&&
     methods?.deploymentPerformed===false);
   yes(reserved?.status==='RESERVED_PATHS_DENIED_PINNED_404_NO_RELEASE_AUTHORITY'&&
-    reserved?.protectedPaths===6&&
-    reserved?.anonymousProtected===6&&
-    reserved?.authenticatedPinned404===6&&
-    reserved?.totalChecks===12&&
+    reserved?.protectedPaths===12&&
+    reserved?.anonymousProtected===12&&
+    reserved?.authenticatedPinned404===12&&
+    reserved?.totalChecks===24&&
     reserved?.onlyLoopbackUsed===true&&
     reserved?.private404MatchesIndependentlyPinnedBuild===true&&
     reserved?.productionAuthorized===false&&

@@ -26,7 +26,7 @@ export const PRIVATE_STAGING_REVIEW_STAGES=Object.freeze([
   }),
   Object.freeze({
     id:'reserved-paths',script:'scripts/check-private-staging-reserved-routes.mjs',
-    requirement:'Sensitive internal paths denied with pinned 404 body even when authenticated'
+    requirement:'12 sensitive root and nested paths denied, anonymous and authenticated, with pinned 404 body'
   })
 ]);
 

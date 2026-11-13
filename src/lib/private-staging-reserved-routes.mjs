@@ -11,8 +11,14 @@ const HOLD='F293: reserved private staging paths not verified (HOLD)';
 const RESERVED=Object.freeze([
   '/.env',
   '/.env.local',
+  '/.env.production',
   '/.git/config',
+  '/.gitignore',
   '/.github/workflows/ci.yml',
+  '/.htpasswd',
+  '/assets/.env',
+  '/assets/.git/config',
+  '/public/.hidden/file.txt',
   '/_redirects',
   '/_headers'
 ]);

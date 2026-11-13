@@ -27,8 +27,8 @@ function healthy(){
     },
     reserved:{
       status:'RESERVED_PATHS_DENIED_PINNED_404_NO_RELEASE_AUTHORITY',
-      protectedPaths:6,anonymousProtected:6,authenticatedPinned404:6,
-      totalChecks:12,onlyLoopbackUsed:true,
+      protectedPaths:12,anonymousProtected:12,authenticatedPinned404:12,
+      totalChecks:24,onlyLoopbackUsed:true,
       private404MatchesIndependentlyPinnedBuild:true,
       productionAuthorized:false,canCollectPublicLeads:false,
       deploymentPerformed:false
