@@ -74,3 +74,24 @@ test('F277 accessor and symbol spoofing cannot execute secret getters',()=>{
   symbol[Symbol('private')]='secret';
   assert.throws(()=>review([symbol]),/F277:/);
 });
+
+
+test('F277 decorated, sparse, inherited and accessor-bearing arrays are rejected first',()=>{
+  const one=legacyUrls[0].from;
+  const ordinary={from:one,plan:'pending'};
+  const sparse=new Array(2);
+  sparse[1]=ordinary;
+  const decorated=[ordinary];
+  Object.defineProperty(decorated,'secret',{value:'PRIVATE-F277',enumerable:false});
+  const inherited=[ordinary];
+  Object.setPrototypeOf(inherited,Object.create(Array.prototype));
+  const getter=[ordinary];
+  let called=0;
+  Object.defineProperty(getter,'0',{enumerable:true,configurable:true,
+    get(){called++;throw Error('PRIVATE-F277');}
+  });
+  for(const value of [sparse,decorated,inherited,getter])
+    assert.throws(()=>review(value),/invalid legacy cutover decisions/);
+  assert.equal(called,0);
+  assert.equal(review(JSON.parse(JSON.stringify([ordinary]))).pendingDecisions,1);
+});
