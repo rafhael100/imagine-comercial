@@ -449,6 +449,14 @@ try {
       document.querySelector('#duvida-precos details')?.open===true);
     assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),'',
       'F191 valid question hash reveals its answer');
+    // F297: each topic provides a keyboard-accessible return to the index.
+    assert.equal(await page.locator('.faq-back-index a[href="#faq-index-heading"]').count(),4,
+      'F297 every FAQ topic offers an index return');
+    await page.locator('.faq-back-index a[href="#faq-index-heading"]').first().click();
+    await page.waitForURL(host+'/perguntas-frequentes/#faq-index-heading');
+    assert.equal(await page.locator('#faq-index-heading').evaluate(
+      el=>document.activeElement===el),true,
+      'F297 return link transfers focus to the FAQ index heading');
     await page.goto(host+'/perguntas-frequentes/#duvida-falso',{waitUntil:'load',timeout});
     // A same-document hash change intentionally does not close an answer
     // opened earlier. Reload to test invalid fragments on a fresh page.
