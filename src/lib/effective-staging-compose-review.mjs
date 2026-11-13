@@ -11,7 +11,10 @@ import {reviewPrivateStagingImage} from './private-staging-image-policy.mjs';
 
 const REQUIRED_SERVICE_KEYS=new Set([
   'image','restart','ports','user','read_only','cap_drop','security_opt',
-  'pids_limit','mem_limit','cpus','volumes','tmpfs','environment','networks'
+  'pids_limit','mem_limit','cpus','volumes','tmpfs','environment','networks',
+  // Docker Compose v2 canonical JSON adds null defaults even when omitted
+  // from reviewed YAML. Nonempty overrides remain forbidden.
+  'command','entrypoint'
 ]);
 const TARGETS=Object.freeze([
   '/usr/share/nginx/html',
@@ -62,9 +65,19 @@ function checkNetworks(root,service){
     Object.hasOwn(root.networks,'default'));
   const n=root.networks.default;
   requireThat(object(n)&&
-    exactKeys(n,new Set(['name']))&&
+    exactKeys(n,new Set(['name','ipam']))&&
     (n.name===undefined||
       (typeof n.name==='string'&&/^[a-zA-Z0-9_.-]{1,128}$/.test(n.name))));
+  // Compose V2 emits an empty/default IPAM section for its generated bridge
+  // network. Never accept custom subnets, drivers, options or external joins.
+  if(n.ipam!==undefined){
+    requireThat(exactKeys(n.ipam,new Set(['driver','config','options'])));
+    requireThat((n.ipam.driver===undefined||n.ipam.driver==='default')&&
+      (n.ipam.config===undefined||
+        Array.isArray(n.ipam.config)&&n.ipam.config.length===0)&&
+      (n.ipam.options===undefined||
+        object(n.ipam.options)&&Object.keys(n.ipam.options).length===0));
+  }
 }
 /**
  * expectedImage and expectedAuthPath come from the operator's already-
@@ -92,6 +105,11 @@ export function reviewEffectivePrivateStagingCompose(
 
   const service=document.services['static-review'];
   requireThat(exactKeys(service,REQUIRED_SERVICE_KEYS));
+  for(const field of ['command','entrypoint']){
+    const value=service[field];
+    requireThat(value===undefined||value===null||
+      (Array.isArray(value)&&value.length===0));
+  }
   requireThat(service.user==='101:101'&&service.read_only===true&&
     service.restart==='no'&&
     Array.isArray(service.cap_drop)&&service.cap_drop.length===1&&
@@ -99,7 +117,7 @@ export function reviewEffectivePrivateStagingCompose(
     Array.isArray(service.security_opt)&&service.security_opt.length===1&&
     service.security_opt[0]==='no-new-privileges:true'&&
     service.pids_limit===64&&
-    oneOf(service.mem_limit,'256m',268435456)&&
+    oneOf(service.mem_limit,'256m',268435456,'268435456')&&
     oneOf(service.cpus,0.5,'0.5'));
   requireThat(object(service.environment)&&
     Object.keys(service.environment).length===1&&service.environment.TZ==='UTC');
