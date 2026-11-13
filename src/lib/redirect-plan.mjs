@@ -25,6 +25,25 @@ const hasDotSegments = path => path.split('/').some(segment => segment === '.' |
 // caller-supplied `{active:[...]}` that could inject unreviewed redirect text.
 const issuedPlans=new WeakSet();
 
+/**
+ * F282 — Only inspect own, enumerable data properties of a plain object.
+ * Getters, inherited fields, symbols and hidden review flags are not
+ * trustworthy sources for redirect decisions. Never invoke an accessor.
+ */
+const FIELDS=new Set(['from','to','status','reason']);
+function plainRedirectEntry(value){
+  if(value===null||typeof value!=='object'||Array.isArray(value)||
+    Object.getPrototypeOf(value)!==Object.prototype)return false;
+  const keys=Reflect.ownKeys(value);
+  if(keys.length!==4)return false;
+  return keys.every(key=>{
+    if(typeof key!=='string'||!FIELDS.has(key))return false;
+    const desc=Object.getOwnPropertyDescriptor(value,key);
+    return desc?.enumerable===true&&Object.hasOwn(desc,'value');
+  });
+}
+
+
 export function validateRedirectPlan(entries, {publicPaths = sitePages.map(x=>x.path)} = {}) {
   if (!Array.isArray(entries) || entries.length > 10000) throw new Error('redirects: array required, <=10000 entries');
   const known = new Set(publicPaths);
@@ -32,9 +51,8 @@ export function validateRedirectPlan(entries, {publicPaths = sitePages.map(x=>x.
   const results = [];
   for (const [index, entry] of entries.entries()) {
     const label = 'entry ' + index;
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error(label + ': object expected');
-    const fields = Object.keys(entry);
-    if (fields.some(key=> !['from','to','status','reason'].includes(key))) throw new Error(label + ': unsupported field');
+    if (!plainRedirectEntry(entry))
+      throw new Error(label + ': own-data redirect object required');
     if (typeof entry.from !== 'string' || !validPath.test(entry.from) || entry.from.includes('//') ||
         entry.from.startsWith('/./') || entry.from.includes('/../') || entry.from === '/' ||
         /[*?#\\]/.test(entry.from) || hasDotSegments(entry.from)) throw new Error(label + ': invalid source');
