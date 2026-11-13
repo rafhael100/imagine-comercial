@@ -23,12 +23,12 @@ test('F269 HTML parser distinguishes exact SEO attributes from prefixed fields',
   assert.equal(attr('<meta title="content=evil" content="index,follow"/>','content'),'index,follow');
   assert.equal(attr('<meta data-name="robots" />','name'),null);
   assert.equal(attr('<meta name='+"'"+'robots'+"'"+' content="index,follow"/>','name'),'robots');
-  for(const tag of [
-    '<link rel="canonical" REL="canonical"/>',
-    '<meta name=robots content="index,follow"/>',
-    '<link rel="canonical" href="a" href="b"/>',
-    '<meta name="robots" data-x=bad<broken/>'
-  ])assert.throws(()=>attr(tag,tag.startsWith('<meta')?'name':'href'),/F269:/);
+  for(const [tag,target] of [
+    ['<link rel="canonical" REL="canonical"/>','rel'],
+    ['<meta name=robots content="index,follow"/>','name'],
+    ['<link rel="canonical" href="a" href="b"/>','href'],
+    ['<meta name="robots" data-x=bad<broken/>','content']
+  ])assert.throws(()=>attr(tag,target),/F269:/);
 });
 
 test('F269 compiled metadata audit rejects a fake canonical or robot directive',()=>{
