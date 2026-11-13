@@ -98,3 +98,32 @@ test('F197 even correctly signed deceptive editorial Unicode cannot reach the bu
     assert.throws(()=>verifySignedCatalog(signed(payload),keys),/invalid plain text/);
   }
 });
+
+
+test('F263 rejects malicious envelope getters without invoking any accessor',()=>{
+  let called=0;
+  for(const field of ['protocol','keyId','payloadBase64','signatureBase64']){
+    const malicious=signed();
+    Object.defineProperty(malicious,field,{enumerable:true,configurable:true,
+      get(){called++;throw Error('PRIVATE_GETTER_MUST_NOT_RUN');}
+    });
+    assert.throws(()=>verifySignedCatalog(malicious,keys),/invalid envelope field descriptor/);
+  }
+  assert.equal(called,0);
+});
+
+test('F263 rejects hidden, decorated and inherited envelope properties',()=>{
+  const hidden=signed();
+  Object.defineProperty(hidden,'customerEmail',{enumerable:false,value:'PRIVATE-NOT-LOGGED'});
+  assert.throws(()=>verifySignedCatalog(hidden,keys),/unexpected field/);
+  const symbol=signed();
+  symbol[Symbol('secret')]='PRIVATE-NOT-LOGGED';
+  assert.throws(()=>verifySignedCatalog(symbol,keys),/unexpected field/);
+  const nonEnumerable=signed();
+  Object.defineProperty(nonEnumerable,'signatureBase64',{enumerable:false});
+  assert.throws(()=>verifySignedCatalog(nonEnumerable,keys),/invalid envelope field descriptor/);
+  const inherited=signed();
+  Object.setPrototypeOf(inherited,{protocol:'imagine-catalog-v1'});
+  assert.throws(()=>verifySignedCatalog(inherited,keys),/plain object required/);
+  assert.equal(verifySignedCatalog(JSON.parse(JSON.stringify(signed())),keys).items.length,1);
+});
