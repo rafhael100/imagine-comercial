@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * F258 — one operator command, FIVE read-only evidence checks, no deploy.
+ * F258 — one operator command, SIX read-only evidence checks, no deploy.
  * Preconditions: private staging container ALREADY started by authorized
  * operator, independent package SHA-256 and secrets supplied outside Git.
  * Does not print raw subprocess outputs, URLs, paths, hashes or passwords.
@@ -15,7 +15,8 @@ const stages=Object.freeze([
   ['running-container','scripts/inspect-running-private-staging.mjs',[]],
   ['active-nginx','scripts/check-running-private-nginx.mjs',[]],
   ['full-http','scripts/review-private-staging-operator.mjs',['--port=4321']],
-  ['http-methods','scripts/check-private-staging-methods.mjs',['--port=4321']]
+  ['http-methods','scripts/check-private-staging-methods.mjs',['--port=4321']],
+  ['reserved-paths','scripts/check-private-staging-reserved-routes.mjs',['--port=4321']]
 ]);
 let stage='operator-ack';
 try{
@@ -41,7 +42,8 @@ try{
   stage='correlation';
   const report=evaluateReadOnlyPrivateStagingChain({
     preflight:evidence[0],container:evidence[1],
-    nginx:evidence[2],http:evidence[3],methods:evidence[4]
+    nginx:evidence[2],http:evidence[3],methods:evidence[4],
+    reserved:evidence[5]
   });
   console.log(JSON.stringify(report));
 }catch{
