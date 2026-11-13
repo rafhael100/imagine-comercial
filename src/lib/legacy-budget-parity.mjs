@@ -43,8 +43,15 @@ function actualPreviewIds(previewHtml){
     const old=counts.get(id)||{count:0,visible:false};
     counts.set(id,{count:old.count+1,visible:old.visible||!obscured});
   }
-  return new Set([...counts].filter(([,row])=>row.count===1&&row.visible)
-    .map(([id])=>id));
+  // A visible control without one matching label is not a usable form field.
+  // This remains an offline fixture heuristic, never a substitute for browser QA.
+  const labelCounts=new Map();
+  for(const match of previewHtml.matchAll(/<label\b[^>]*>/gi)){
+    const id=match[0].match(/\bfor="([^"]+)"/i)?.[1];
+    if(id&&allowedControlId.test(id))labelCounts.set(id,(labelCounts.get(id)||0)+1);
+  }
+  return new Set([...counts].filter(([id,row])=>
+    row.count===1&&row.visible&&labelCounts.get(id)===1).map(([id])=>id));
 }
 
 /**
