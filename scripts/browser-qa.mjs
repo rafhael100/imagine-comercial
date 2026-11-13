@@ -465,6 +465,13 @@ try {
     await page.locator('[data-compare-select="onepage"]').click();
     assert.equal(await page.locator('#selected-comparison-list li').count(),1);
     assert.equal(await page.locator('[data-compare-select="onepage"]').getAttribute('aria-pressed'),'true');
+    // F289: selected choices use the approved Imagine orange/charcoal
+    // with real computed color at mobile and desktop breakpoints.
+    const activeColors=await page.locator('[data-compare-select="onepage"]')
+      .evaluate(el=>({background:getComputedStyle(el).backgroundColor,
+        color:getComputedStyle(el).color}));
+    assert.deepEqual(activeColors,{background:'rgb(249, 148, 29)',
+      color:'rgb(23, 27, 25)'},'F289 active service control preserves Imagine identity');
     await page.locator('[data-compare-select="landing-pages"]').click();
     assert.equal(await page.locator('#selected-comparison-list li').count(),2,
       'F174 selected exactly two real services');
