@@ -25,11 +25,26 @@ function decodeBase64(value,max,name){
   return bytes;
 }
 
-export function verifySignedCatalog(envelope,trustKeys){
-  if(!envelope||typeof envelope!=='object'||Array.isArray(envelope)||Object.getPrototypeOf(envelope)!==Object.prototype){
+/**
+ * F263: reject accessors, hidden metadata and symbols before reading any
+ * untrusted envelope property. A getter must never execute during review.
+ */
+function assertPlainEnvelope(envelope){
+  if(!envelope||typeof envelope!=='object'||Array.isArray(envelope)||
+     Object.getPrototypeOf(envelope)!==Object.prototype)
     throw new Error('catalog signature: plain object required');
+  const keys=Reflect.ownKeys(envelope);
+  if(keys.length!==EXPECTED.size||keys.some(key=>typeof key!=='string'||!EXPECTED.has(key)))
+    throw new Error('catalog signature: unexpected field');
+  for(const key of keys){
+    const descriptor=Object.getOwnPropertyDescriptor(envelope,key);
+    if(!descriptor||descriptor.enumerable!==true||!Object.hasOwn(descriptor,'value'))
+      throw new Error('catalog signature: invalid envelope field descriptor');
   }
-  if(Object.keys(envelope).some(key=>!EXPECTED.has(key)))throw new Error('catalog signature: unexpected field');
+}
+
+export function verifySignedCatalog(envelope,trustKeys){
+  assertPlainEnvelope(envelope);
   if(envelope.protocol!=='imagine-catalog-v1')throw new Error('catalog signature: unsupported protocol');
   if(typeof envelope.keyId!=='string'||!KEY_ID.test(envelope.keyId))throw new Error('catalog signature: invalid key ID');
   if(!(trustKeys instanceof Map))throw new Error('catalog signature: trusted key map required');
