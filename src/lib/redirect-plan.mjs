@@ -14,6 +14,9 @@ const heldLegacyPaths=new Set(legacyUrls.filter(x=>x.status==='hold').map(x=>x.f
 // essenciais de indexação, mesmo quando o manifesto marca uma linha como HOLD.
 const protectedPaths = new Set(['/robots.txt', '/sitemap.xml', '/404.html']);
 const hasDotSegments = path => path.split('/').some(segment => segment === '.' || segment === '..');
+// F279: validation result capability must not be reconstructed by JSON or a
+// caller-supplied `{active:[...]}` that could inject unreviewed redirect text.
+const issuedPlans=new WeakSet();
 
 export function validateRedirectPlan(entries, {publicPaths = sitePages.map(x=>x.path)} = {}) {
   if (!Array.isArray(entries) || entries.length > 10000) throw new Error('redirects: array required, <=10000 entries');
@@ -54,13 +57,16 @@ export function validateRedirectPlan(entries, {publicPaths = sitePages.map(x=>x.
   for (const [from, to] of redirects) {
     if (froms.has(to)) throw new Error('redirects: chain or loop through ' + to);
   }
-  return Object.freeze({ entries:Object.freeze(results), active:Object.freeze(
+  const plan=Object.freeze({ entries:Object.freeze(results), active:Object.freeze(
     [...redirects].map(([from,to])=>Object.freeze({from,to,statusCode:301}))
   )});
+  issuedPlans.add(plan);
+  return plan;
 }
 
 export function toCloudflareRedirectRules(manifest) {
-  if (!manifest || !Array.isArray(manifest.active)) throw new Error('validated manifest required');
+  if (!manifest || !issuedPlans.has(manifest))
+    throw new Error('validated manifest required');
   // Isto é apenas uma representação para revisão: não escreve _redirects nem altera DNS.
   return manifest.active.map(({from,to,statusCode})=>from+' '+to+' '+statusCode).join('\n');
 }
