@@ -108,6 +108,16 @@ try {
       }
       assert.match((await footerLinks.locator('.footer-contact p').textContent())||'',
         /reconfirmados antes da publicação/);
+      // F259: verify real computed clickable geometry, not just a CSS text contract.
+      const touchTargets=await page.locator(viewport.label==='desktop'
+        ? 'header > nav[aria-label="Navegação principal"] > a, footer .footer-links a, footer .footer-contact a'
+        : 'footer .footer-links a, footer .footer-contact a')
+        .evaluateAll(links=>links.filter(link=>link.getClientRects().length>0).map(link=>({
+          href:link.getAttribute('href'),height:link.getBoundingClientRect().height
+        })));
+      assert.ok(touchTargets.length>=5,'F259 enough navigation targets are visible');
+      for(const link of touchTargets)
+        assert.ok(link.height>=43.5,'F259 minimum 44px touch target: '+link.href);
       const brandImage=page.locator('header a.brand img');
       assert.equal(await brandImage.count(),1,'F240 real Imagine logo visible on every route');
       assert.equal(await brandImage.getAttribute('src'),'/logo-imagine.png');

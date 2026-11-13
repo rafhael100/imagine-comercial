@@ -93,6 +93,8 @@ const service = serviceName ? {
       .brand { display: inline-flex; align-items: center; min-height: 52px; max-width: 46%; text-decoration: none; color: var(--imagine-ink); } .brand img { display:block; width: min(190px, 100%); height: auto; max-height: 64px; object-fit: contain; object-position: left center; }
       nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(12px, 2vw, 24px); font-size: .91rem; font-weight: 650; }
       nav a { text-decoration: none; }
+      /* F259: desktop navigation and client portal links meet minimum pointer target size. */
+      .header > nav[aria-label="Navegação principal"] > a { display: inline-flex; align-items: center; min-height: 44px; }
       nav a:hover, nav a:focus-visible, .text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
       nav a[aria-current="page"], .brand[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; }
       .nav-cta { border-radius: 9px; background: #fff0db; color: #793800; padding: 10px 16px; border: 1px solid #f5d3a4; }
@@ -163,7 +165,7 @@ const service = serviceName ? {
       .footer-brand img { display: block; width: min(170px,100%); height: auto; }
       .footer-links { display: grid; align-content: start; gap: 7px; }
       .footer-links h2, .footer-contact h2 { font-size: .98rem; letter-spacing: -.015em; margin: 0 0 8px; color: #171b19; }
-      .footer-links a, .footer-contact a { display: inline-flex; align-items: center; width: fit-content; min-height: 36px; text-decoration: underline; text-underline-offset: 3px; color: #884100; }
+      .footer-links a, .footer-contact a { display: inline-flex; align-items: center; width: fit-content; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; color: #884100; }
       .footer-links a:hover, .footer-contact a:hover { color: #633000; }
       .footer-contact { display: grid; align-content: start; gap: 6px; overflow-wrap: anywhere; }
       .footer-contact p { margin: 6px 0 0; font-size: .77rem; line-height: 1.6; color: #665f56; }
