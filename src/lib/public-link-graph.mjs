@@ -7,8 +7,6 @@ import assert from 'node:assert/strict';
 import {anchorOpeningTags,requiredAnchorHref} from './html-anchor-reader.mjs';
 
 const ROUTE=/^\/(?:[a-z0-9-]+\/)*$/;
-const hrefOf=tag=>/\bhref\s*=\s*(["'])(.*?)\1/i.exec(tag)?.[2]??null;
-const hrefTags=html=>html.match(/<a\b[^>]*>/gi)??[];
 
 export function auditPublicLinkGraph(pages,{maxClicks=3}={}){
   assert.ok(Array.isArray(pages)&&pages.length>=2,
