@@ -80,6 +80,9 @@ try{
     rootNetworkSingleDefault:Object.keys(document.networks??{}).length===1,
     rootDefaultNetworkOnlyName:Object.keys(document.networks?.default??{})
       .every(k=>k==='name'),
+    rootDefaultNetworkFieldNames:Object.keys(document.networks?.default??{})
+      .sort().map(k=>/^[a-z_]{1,40}$/.test(k)?k:'UNRECOGNIZED_FIELD_NAME'),
+    normalizedMemLimitBytes:service.mem_limit==='268435456',
     firstMountCorrect:volumes.some(v=>v.target==='/usr/share/nginx/html'&&
       v.source===resolve('dist')),
     secondMountCorrect:volumes.some(v=>v.target==='/etc/nginx/conf.d/default.conf'&&
