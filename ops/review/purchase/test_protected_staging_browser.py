@@ -12,6 +12,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+from shutil import which
 from threading import Thread
 from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright
@@ -85,10 +86,18 @@ def check_and_walk(origin: str, user: str, secret: str, *, remote: bool) -> None
         finally:
             unauth.dispose()
 
-        browser = p.chromium.launch(
-            executable_path=os.environ.get("CHROMIUM_PATH", "/usr/bin/google-chrome"),
-            headless=True, args=["--no-sandbox", "--disable-background-networking"],
-        )
+        # Prefer the installed system browser in CI; otherwise use the
+        # local Playwright-managed Chromium, including on Windows hosts.
+        launch = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-background-networking"],
+        }
+        executable = (os.environ.get("CHROMIUM_PATH") or
+                      which("google-chrome") or which("chromium") or
+                      which("chrome"))
+        if executable:
+            launch["executable_path"] = executable
+        browser = p.chromium.launch(**launch)
         try:
             context = browser.new_context(
                 http_credentials={"username": user, "password": secret},
