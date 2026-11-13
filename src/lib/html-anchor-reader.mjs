@@ -8,14 +8,19 @@ const ATTRIBUTE=/([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>]+)))?
 
 export function anchorOpeningTags(html){
   if(typeof html!=='string')throw Error('F268: compiled HTML required');
+  // F275: browser-inert comments, scripts, styles and templates cannot
+  // contribute navigable links. Keep noscript: those links are genuinely
+  // navigable when JavaScript is disabled.
+  const source=html.replace(/<!--[\s\S]*?(?:-->|$)/g,'')
+    .replace(/<(script|style|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'');
   const tags=[];
   TAG_START.lastIndex=0;
   let match;
-  while((match=TAG_START.exec(html))!==null){
+  while((match=TAG_START.exec(source))!==null){
     const begin=match.index;
     let quote=null, end=-1;
-    for(let i=begin+2;i<html.length;i++){
-      const ch=html[i];
+    for(let i=begin+2;i<source.length;i++){
+      const ch=source[i];
       if(quote){
         if(ch===quote)quote=null;
         continue;
@@ -25,7 +30,7 @@ export function anchorOpeningTags(html){
       if(ch==='>'){end=i;break;}
     }
     if(end<0)throw Error('F268: unterminated anchor opening tag');
-    tags.push(html.slice(begin,end+1));
+    tags.push(source.slice(begin,end+1));
     TAG_START.lastIndex=end+1;
   }
   return tags;
