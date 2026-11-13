@@ -12,9 +12,9 @@ IMAGINE_PRIVATE_STAGING_REVIEW=1 node scripts/check-private-staging-reserved-rou
 
 Pré-requisitos: `IMAGINE_STAGING_REVIEW_PASSWORD` (senha privada), `IMAGINE_EXPECTED_STAGING_TREE_SHA256` (pin independente do pacote) e `dist/` legível. O comando é **bloqueado no GitHub Actions** e não inicia Docker, não altera DNS ou firewall, não grava respostas e não usa dados reais.
 
-O diagnóstico testa seis caminhos fixos de risco: `/.env`, `/.env.local`, `/.git/config`, `/.github/workflows/ci.yml`, `/_redirects`, `/_headers`, cada qual com GET anônimo e GET autenticado. O anônimo pode resultar em 401 com desafio Basic ou em 404 com corpo idêntico ao fallback revisado. O autenticado **deve** responder 404 com conteúdo HTML byte a byte igual ao artefato pinado. Todos devem emitir noindex, nofollow, no-store, cabeçalhos de segurança e nenhum cookie, redirect ou CORS permissivo.
+A F303 amplia o diagnóstico de seis para **doze caminhos fixos**: `/.env`, `/.env.local`, `/.env.production`, `/.git/config`, `/.gitignore`, `/.github/workflows/ci.yml`, `/.htpasswd`, `/assets/.env`, `/assets/.git/config`, `/public/.hidden/file.txt`, `/_redirects`, `/_headers`, cada qual com GET anônimo e GET autenticado. O anônimo pode resultar em 401 com desafio Basic ou em 404 com corpo idêntico ao fallback revisado. O autenticado **deve** responder 404 com conteúdo HTML byte a byte igual ao artefato pinado. Todos devem emitir noindex, nofollow, no-store, cabeçalhos de segurança e nenhum cookie, redirect ou CORS permissivo.
 
-A saída contém apenas contagens: seis caminhos, seis proteções anônimas, seis 404 autenticados correspondentes ao pacote. **Nunca** revela senha, valor de `.env`, cabeçalhos recebidos, caminhos locais, IP do servidor, URLs de terceiros ou trechos do corpo.
+A saída contém apenas contagens: **12 caminhos, 12 proteções anônimas, 12 respostas 404 autenticadas** correspondentes ao pacote. **Nunca** revela senha, valor de `.env`, cabeçalhos recebidos, caminhos locais, IP do servidor, URLs de terceiros ou trechos do corpo.
 
 ## Cadeia única de homologação
 
