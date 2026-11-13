@@ -409,6 +409,13 @@ try {
     const firstToggle=checklist.first();
     await firstToggle.click();
     assert.equal(await firstToggle.getAttribute('aria-pressed'),'true');
+    // F298: the prepared state uses the original Imagine orange and ink.
+    const selectedPrepColors=await firstToggle.evaluate(el=>({
+      background:getComputedStyle(el).backgroundColor,
+      color:getComputedStyle(el).color
+    }));
+    assert.deepEqual(selectedPrepColors,{background:'rgb(249, 148, 29)',color:'rgb(23, 27, 25)'},
+      'F298 prepared checklist action retains Imagine palette');
     assert.match(await page.locator('#briefing-progress').textContent(),/1 de 6 pergunta preparada/);
     assert.equal(await page.locator('[data-briefing-task][data-prepared="true"]').count(),1);
     await firstToggle.click();
