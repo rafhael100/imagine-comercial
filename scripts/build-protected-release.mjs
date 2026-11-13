@@ -14,6 +14,8 @@ import {createSignedBuildReview} from '../src/lib/signed-build-review.mjs';
 import {readApprovedFile} from '../src/lib/read-approved-file.mjs';
 import {readProtectedDist} from '../src/lib/read-protected-dist.mjs';
 import {enforceSignedPublicationTime} from '../src/lib/signed-publication-time.mjs';
+import {getPinnedHistoryInputs,verifyPinnedSignedCatalogHistory}
+  from '../src/lib/pinned-signed-catalog-history.mjs';
 
 const outputDir='artifacts/protected-build-review';
 // Clear old evidence even when the current request has invalid inputs.
@@ -56,7 +58,12 @@ enforceReleasePin(snapshot,envelope,pins);
 // F218: reject a future-scheduled envelope before launching Astro and
 // generating any candidate output.
 enforceSignedPublicationTime(snapshot.publishedAt);
-
+// F306: independently pinned cumulative catalog must be verified BEFORE
+// compiling any candidate bytes, even for a synthetic staging review.
+const historyInputs=getPinnedHistoryInputs(process.env);
+if(historyInputs)verifyPinnedSignedCatalogHistory({
+  ...historyInputs,envelope,trustKeys,pins
+});
 
 const astro='node_modules/.bin/astro';
 let verified=false;
@@ -70,7 +77,8 @@ try{
 }
 // F217: enumerate and read bounded, symlink-resistant output *before*
 // producing the signed byte review. No unrestricted recursive read.
-const proof=createSignedBuildReview(readProtectedDist(),envelope,trustKeys,pins);
+const proof=createSignedBuildReview(readProtectedDist(),envelope,trustKeys,pins,
+  historyInputs||{});
 if(proof.releaseId!==snapshot.releaseId || proof.verifiedServiceCount<1)
   throw new Error('protected build: signed HTML verification incomplete');
 const report=Object.freeze({

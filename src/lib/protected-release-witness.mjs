@@ -22,7 +22,7 @@ export async function verifyProtectedReleaseWithWitness({
  files,review,envelope,catalogTrustKeys,expectedCatalogKeyId,
  catalogPins,expectedRelease,receipt,witnessPolicyEnvelope,
  rootKeys,expectedRootKeyId,minPolicySequence,publisherKeyId,
- nowSeconds,ledger
+ nowSeconds,ledger,historyText,expectedHistorySha256
 }={}){
  if(!exact(expectedRelease,['releaseId','target','treeSha256','witnessKeyId'])||
   typeof expectedRelease.releaseId!=='string'||!ID.test(expectedRelease.releaseId)||
@@ -39,7 +39,8 @@ export async function verifyProtectedReleaseWithWitness({
   expectedKeyId:expectedCatalogKeyId,
   pins:catalogPins,
   expectedTarget:expectedRelease.target,
-  expectedTreeSha256:expectedRelease.treeSha256
+  expectedTreeSha256:expectedRelease.treeSha256,
+  historyText,expectedHistorySha256
  });
  const witness=await verifyReceiptWithSignedWitnessPolicy({
   receipt,expected:expectedRelease,envelope:witnessPolicyEnvelope,

@@ -43,7 +43,8 @@ function record(value){
 
 export function verifyProtectedArtifact({
   files,review,envelope,trustKeys,expectedKeyId,
-  pins,expectedTarget,expectedTreeSha256
+  pins,expectedTarget,expectedTreeSha256,
+  historyText,expectedHistorySha256
 }={}) {
   // Expected target MUST be a separately provided trusted input.
   const intent=assertBuildReleaseIntent({
@@ -77,7 +78,9 @@ export function verifyProtectedArtifact({
     throw new Error('protected artifact: release ID does not match trusted pin');
 
   // Re-read and recompute the complete tree, canonical/meta and signed fields.
-  const actual=createSignedBuildReview(files,envelope,trustKeys,pins);
+  const actual=createSignedBuildReview(files,envelope,trustKeys,pins,{
+    historyText,expectedHistorySha256
+  });
   exactHash(actual.treeSha256,expectedTreeSha256,'tree');
   exactHash(actual.payloadSha256,pins.expectedPayloadSha256,'catalog');
   assert.equal(review.compiledTreeSha256,actual.treeSha256,
