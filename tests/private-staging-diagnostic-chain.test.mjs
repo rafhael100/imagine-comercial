@@ -25,6 +25,14 @@ function healthy(){
       expectedStaticConfigLoaded:true,unapprovedAdditionalConfigFileAbsent:true,
       duplicateServerBlockAbsent:true,deployAuthorized:false,deployedByThisCheck:false
     },
+    reserved:{
+      status:'RESERVED_PATHS_DENIED_PINNED_404_NO_RELEASE_AUTHORITY',
+      protectedPaths:6,anonymousProtected:6,authenticatedPinned404:6,
+      totalChecks:12,onlyLoopbackUsed:true,
+      private404MatchesIndependentlyPinnedBuild:true,
+      productionAuthorized:false,canCollectPublicLeads:false,
+      deploymentPerformed:false
+    },
     methods:{
       status:'PRIVATE_METHODS_REVIEWED_NO_RELEASE_AUTHORITY',
       anonymousHeadChallengesPassed:6,
@@ -49,13 +57,13 @@ function healthy(){
     }
   };
 }
-test('F258 all five READ-ONLY results never become deployment approval',()=>{
+test('F258 all six READ-ONLY results never become deployment approval',()=>{
   const report=evaluate(healthy());
-  assert.equal(report.validatedGates,5);
+  assert.equal(report.validatedGates,6);
   assert.equal(report.status,'PRIVATE_DIAGNOSTIC_CHAIN_PASSED_NOT_RELEASE_APPROVAL');
   for(const k of ['localSourceAndBuildPreflightPassed',
     'runningContainerInspectPassed','loadedNginxConfigPassed',
-    'completePrivateHttpByteParityPassed','privateHttpMethodBoundaryPassed'])assert.equal(report[k],true,k);
+    'completePrivateHttpByteParityPassed','privateHttpMethodBoundaryPassed','privateReservedRouteByteParityPassed'])assert.equal(report[k],true,k);
   for(const k of ['externalTlsAndFirewallIndependentlyVerified',
     'imageOriginAndLiveDigestIndependentlyVerified',
     'portalCrmDurableDeliveryVerified',
@@ -95,6 +103,17 @@ test('F258 missing, mismatched or misleading gate results fail closed',()=>{
     r=>r.methods.onlyLoopbackTargetUsed=false,
     r=>r.methods.canCollectPublicLeads=true,
     r=>r.methods.productionAuthorized=true,
+    r=>r.reserved.status='UNREVIEWED',
+    r=>r.reserved.protectedPaths=5,
+    r=>r.reserved.anonymousProtected=5,
+    r=>r.reserved.authenticatedPinned404=5,
+    r=>r.reserved.totalChecks=11,
+    r=>r.reserved.onlyLoopbackUsed=false,
+    r=>r.reserved.private404MatchesIndependentlyPinnedBuild=false,
+    r=>r.reserved.productionAuthorized=true,
+    r=>r.reserved.canCollectPublicLeads=true,
+    r=>r.reserved.deploymentPerformed=true,
+    r=>{delete r.reserved;},
     r=>r.methods.deploymentPerformed=true,
     r=>{delete r.methods;},
     r=>{delete r.http.checks;}
@@ -106,7 +125,7 @@ test('F258 missing, mismatched or misleading gate results fail closed',()=>{
   }
   assert.throws(()=>evaluate(),/F258/);
 });
-test('F258 actual CLI invokes five non-deploying scripts sequentially',()=>{
+test('F258 actual CLI invokes six non-deploying scripts sequentially',()=>{
   const entry=new URL('../scripts/review-private-staging-chain.mjs',import.meta.url);
   const source=readFileSync(entry,'utf8');
   for(const path of [
@@ -114,7 +133,8 @@ test('F258 actual CLI invokes five non-deploying scripts sequentially',()=>{
     'scripts/inspect-running-private-staging.mjs',
     'scripts/check-running-private-nginx.mjs',
     'scripts/review-private-staging-operator.mjs',
-    'scripts/check-private-staging-methods.mjs'
+    'scripts/check-private-staging-methods.mjs',
+    'scripts/check-private-staging-reserved-routes.mjs'
   ])assert.ok(source.includes(path));
   assert.match(source,/stages=Object\.freeze\(\[/);
   assert.match(source,/evaluateReadOnlyPrivateStagingChain\(/);
