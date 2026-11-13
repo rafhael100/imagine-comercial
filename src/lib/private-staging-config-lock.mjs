@@ -15,12 +15,16 @@ const EXPECTED=Object.freeze({
 });
 function canonicalize(source){
   if(typeof source!=='string'||source.length<20||source.length>16384||
-     /[^\x0a\x20-\x7e]/.test(source))
+     /[\r\t\0]/.test(source))
     throw Error('F253: staging configuration not reviewed (HOLD)');
-  return source.split('\n')
+  // Comments may contain Portuguese UTF-8; Nginx/YAML executable
+  // directives must still be strict ASCII and match the exact baseline.
+  const active=source.split('\n')
     .map(line=>line.trimEnd())
-    .filter(line=>line.trim().length>0&&!line.trimStart().startsWith('#'))
-    .join('\n');
+    .filter(line=>line.trim().length>0&&!line.trimStart().startsWith('#'));
+  if(active.some(line=>/[^\x20-\x7e]/.test(line)))
+    throw Error('F253: staging configuration not reviewed (HOLD)');
+  return active.join('\n');
 }
 export function reviewPrivateStagingConfiguration({compose,nginx}={}){
   if(canonicalize(compose)!==EXPECTED.compose||
