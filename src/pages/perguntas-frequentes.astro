@@ -59,6 +59,14 @@ const pathname='/perguntas-frequentes/';
                 <details class="faq-item">
                   <summary>{item.question}</summary>
                   <p>{item.answer}</p>
+                  <div class="faq-copy-row" data-faq-share hidden>
+                    <button type="button" data-faq-copy={item.id}
+                      aria-label={'Copiar link da resposta: '+item.question}>
+                      Copiar link desta resposta
+                    </button>
+                    <span role="status" aria-live="polite" aria-atomic="true"
+                      data-faq-copy-status></span>
+                  </div>
                 </details>
               </div>
             ))}
@@ -93,6 +101,31 @@ const pathname='/perguntas-frequentes/';
     const collapse=document.querySelector<HTMLButtonElement>('#faq-collapse-visible');
     const availableTopics=new Set(sections.map(section=>section.dataset.faqSection));
     const totalAnswers=approved.size;
+    // F300: answer permalinks contain only approved FAQ IDs. The action
+    // is opt-in, hidden without JS/clipboard, no query or visitor input.
+    if(navigator.clipboard?.writeText){
+      for(const button of document.querySelectorAll<HTMLButtonElement>('[data-faq-copy]')){
+        const anchor='duvida-'+button.dataset.faqCopy;
+        const region=button.closest<HTMLElement>('[data-faq-share]');
+        const feedback=region?.querySelector<HTMLElement>('[data-faq-copy-status]');
+        if(!approved.has(anchor)||!region||!feedback)continue;
+        region.hidden=false;
+        button.addEventListener('click',async()=>{
+          if(button.disabled)return;
+          button.disabled=true;
+          feedback.textContent='';
+          const href=window.location.origin+'/perguntas-frequentes/#'+anchor;
+          try{
+            await navigator.clipboard.writeText(href);
+            feedback.textContent='Link da resposta copiado.';
+          }catch{
+            feedback.textContent='Não foi possível copiar automaticamente. Use o link da pergunta no índice.';
+          }finally{
+            button.disabled=false;
+          }
+        });
+      }
+    }
     const applyFilter=(topic:string)=>{
       if(topic!=='all'&&!availableTopics.has(topic))return;
       for(const section of sections)
@@ -144,6 +177,16 @@ const pathname='/perguntas-frequentes/';
     reveal();
   </script>
   <style>
+    .faq-copy-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+      margin:0 0 18px}
+    .faq-copy-row[hidden]{display:none!important}
+    .faq-copy-row button{min-height:44px;padding:9px 13px;font:inherit;font-weight:750;
+      border:1px solid #d1bda5;border-radius:9px;color:#884100;
+      background:#fff8ed;cursor:pointer}
+    .faq-copy-row button:hover{background:#fff0db}
+    .faq-copy-row button:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .faq-copy-row button:disabled{opacity:.65;cursor:wait}
+    .faq-copy-row [role="status"]{font-size:.9rem;color:#5c574e}
     .faq-index{padding-top:38px;padding-bottom:38px}
     #faq-index-heading{scroll-margin-top:18px}
     .faq-back-index{margin:22px 0 0}
