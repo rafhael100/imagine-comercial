@@ -1,0 +1,185 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {request as httpRequest} from 'node:http';
+import {startPrivateBudgetReviewLab} from './fixtures/private-budget-http-review-harness.mjs';
+const password='SyntheticOnlyReviewPass_2026_NoSecrets';
+const ids=[
+  'bde4f010-aacf-4ad7-a302-94c507bb1111',
+  'bde4f010-aacf-4ad7-a302-94c507bb2222',
+  'bde4f010-aacf-4ad7-a302-94c507bb3333',
+  'bde4f010-aacf-4ad7-a302-94c507bb4444',
+  'bde4f010-aacf-4ad7-a302-94c507bb5555',
+  'bde4f010-aacf-4ad7-a302-94c507bb6666'
+];
+function example(){
+ const envelope={
+  protocol:'imagine.lead-intake',schema_version:1,
+  organization_reference:ids[0],binding_reference:ids[1],
+  submission_reference:ids[2],site_reference:ids[3],
+  form_reference:ids[4],destination_reference:ids[5]
+ };
+ return {
+  privateDraft:{name:'Pessoa Fictícia',role:'',email:'lab@example.invalid',
+   phone:'',mobile:'',serviceSlug:'onepage',
+   details:'Demonstração fictícia sem contato real.',
+   challengePreview:'5',previewUnderstanding:true},
+  envelope,storedSnapshot:{original:envelope,phase:'open',version:0},expectedVersion:0
+ };
+}
+test('P0 F161: authenticated local HTTP review never issues receipt or leaks fields',async()=>{
+ const server=await startPrivateBudgetReviewLab(password);
+ const url=new URL(server.url);
+ const baseHeaders={
+  'Host':url.host,'Origin':url.origin,
+  'Content-Type':'application/json',
+  'Authorization':'Basic '+Buffer.from('reviewer:'+password).toString('base64')
+ };
+ const request=(body,opts={})=>fetch(server.url,{
+  method:'POST',headers:{...baseHeaders,...opts.headers},body,redirect:'manual'
+ });
+ try{
+  const unauth=await fetch(server.url,{method:'POST',headers:{
+   Host:url.host,Origin:url.origin,'Content-Type':'application/json'
+  },body:JSON.stringify(example())});
+  assert.equal(unauth.status,401);
+  assert.equal((await unauth.json()).canSendToCrm,false);
+  const res=await request(JSON.stringify(example()));
+  assert.equal(res.status,200);
+  const reply=await res.json();
+  assert.equal(reply.mode,'LAB_DIAGNOSTIC_NOT_RECEIPT');
+  assert.equal(reply.reasonCode,'ATOMIC_STORE_REQUIRED');
+  assert.equal(reply.canSendToCrm,false);
+  assert.equal(reply.canAcknowledgeVisitor,false);
+  assert.equal(reply.canDeploy,false);
+  assert.equal(res.headers.get('cache-control'),'private, no-store');
+  assert.equal(res.headers.get('set-cookie'),null);
+  // F187: both success and denial must forbid framing/cross-origin reads.
+  for(const reply of [res,unauth]){
+    assert.equal(reply.headers.get('x-frame-options'),'DENY');
+    assert.equal(reply.headers.get('cross-origin-resource-policy'),'same-origin');
+    assert.match(reply.headers.get('content-security-policy')||'',
+      /frame-ancestors 'none'/);
+    assert.equal(reply.headers.get('cache-control'),'private, no-store');
+    assert.equal(reply.headers.get('set-cookie'),null);
+  }
+  for(const text of ['Pessoa Fictícia','lab@example.invalid','bde4f010-aacf-4ad7',
+   'Demonstração fictícia'])assert.equal(JSON.stringify(reply).includes(text),false);
+
+  const bad=example();bad.privateDraft.email='invalid';
+  assert.equal((await (await request(JSON.stringify(bad))).json()).reasonCode,'INVALID_CONTACT_ROUTE');
+  const stale=example();stale.expectedVersion=3;
+  assert.equal((await (await request(JSON.stringify(stale))).json()).reasonCode,
+    'STALE_SNAPSHOT_RECONCILE');
+  assert.equal((await fetch(server.url,{method:'GET',headers:baseHeaders})).status,405);
+  const forbiddenOrigin=await request(JSON.stringify(example()),{
+    headers:{Origin:'https://evil.invalid'}
+  });
+  assert.equal(forbiddenOrigin.status,403);
+  assert.equal(forbiddenOrigin.headers.get('x-frame-options'),'DENY');
+  assert.equal(forbiddenOrigin.headers.get('cross-origin-resource-policy'),'same-origin');
+  assert.match(forbiddenOrigin.headers.get('content-security-policy')||'',
+    /frame-ancestors 'none'/);
+  assert.equal((await request(JSON.stringify(example()),{headers:{'Content-Type':'text/plain'}})).status,415);
+  assert.equal((await request('not-json')).status,400);
+  assert.equal((await request('x'.repeat(5000))).status,413);
+  // F182: declared oversize and compressed bodies are refused before review.
+  const encoded=await request(JSON.stringify(example()),{
+    headers:{'Content-Encoding':'gzip'}
+  });
+  assert.equal(encoded.status,415);
+  assert.equal((await encoded.json()).code,'UNSUPPORTED_CONTENT_ENCODING');
+  const identity=await request(JSON.stringify(example()),{
+    headers:{'Content-Encoding':'identity'}
+  });
+  assert.equal(identity.status,200);
+  const oversized=await request('x'.repeat(4097));
+  assert.equal(oversized.status,413);
+  assert.equal((await oversized.json()).code,'BODY_TOO_LARGE');
+  // Undici/fetch may override Host with the target URL authority. Use
+  // node:http directly to send a genuinely forged Host header.
+  const hostileHost=await new Promise((resolve,reject)=>{
+   const req=httpRequest(server.url,{
+    method:'POST',headers:{...baseHeaders,Host:'evil.invalid'}
+   },res=>{res.resume();res.on('end',()=>resolve(res.statusCode));});
+   req.once('error',reject);
+   req.end(JSON.stringify(example()));
+  });
+  assert.equal(hostileHost,421);
+  // F183: raw malformed UTF-8 must not be silently replaced before JSON parse.
+  const rawPost=(bytes,overrides={},chunked=false)=>new Promise((resolve,reject)=>{
+    const req=httpRequest(server.url,{method:'POST',headers:{
+      ...baseHeaders,...overrides,...(chunked
+        ? {'Transfer-Encoding':'chunked'}
+        : {'Content-Length':bytes.length})
+    }},res=>{
+      const pieces=[];
+      res.on('data',chunk=>pieces.push(chunk));
+      res.on('end',()=>resolve({status:res.statusCode,
+        payload:JSON.parse(Buffer.concat(pieces).toString('utf8'))}));
+    });
+    req.once('error',reject);
+    if(chunked){
+      const half=Math.floor(bytes.length/2);
+      req.write(bytes.subarray(0,half));
+      req.end(bytes.subarray(half));
+    }else req.end(bytes);
+  });
+  // F184: reject forged browser metadata, even when the Origin is correct.
+  const validBytes=Buffer.from(JSON.stringify(example()),'utf8');
+  for(const site of ['cross-site','same-site','unknown']){
+    const denied=await rawPost(validBytes,{'Sec-Fetch-Site':site});
+    assert.equal(denied.status,403);
+    assert.equal(denied.payload.code,'UNTRUSTED_FETCH_CONTEXT');
+    assert.equal(denied.payload.canSendToCrm,false);
+  }
+  for(const site of ['same-origin','none']){
+    const accepted=await rawPost(validBytes,{'Sec-Fetch-Site':site});
+    assert.equal(accepted.status,200);
+    assert.equal(accepted.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
+  }
+  // F185: valid JSON scalars/arrays cannot crash the async HTTP listener.
+  for(const literal of ['null','false','42','"texto"','[]']){
+    const denied=await rawPost(Buffer.from(literal,'utf8'));
+    assert.equal(denied.status,422);
+    assert.equal(denied.payload.code,'REVIEW_BODY_OBJECT_REQUIRED');
+    assert.equal(denied.payload.canSendToCrm,false);
+  }
+  const afterRejectedScalars=await rawPost(validBytes);
+  assert.equal(afterRejectedScalars.status,200);
+  assert.equal(afterRejectedScalars.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
+  // F186: 4096 is inclusive, for declared-length and chunked transports.
+  // The 4097th *actual byte* is refused even without Content-Length.
+  const maxBody=Buffer.concat([validBytes,
+    Buffer.alloc(4096-validBytes.length,0x20)]);
+  assert.equal(maxBody.length,4096);
+  for(const isChunked of [false,true]){
+    const accepted=await rawPost(maxBody,{},isChunked);
+    assert.equal(accepted.status,200);
+    assert.equal(accepted.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
+    const denied=await rawPost(Buffer.concat([maxBody,Buffer.from(' ')]),{},isChunked);
+    assert.equal(denied.status,413);
+    assert.equal(denied.payload.code,'BODY_TOO_LARGE');
+    assert.equal(denied.payload.canSendToCrm,false);
+  }
+  for(const bytes of [
+    Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xc3,0x28,0x22,0x7d]),
+    Buffer.from([0x7b,0x22,0x78,0x22,0x3a,0x22,0xed,0xa0,0x80,0x22,0x7d])
+  ]){
+    const denied=await rawPost(bytes);
+    assert.equal(denied.status,400);
+    assert.equal(denied.payload.code,'INVALID_JSON');
+    assert.equal(denied.payload.canSendToCrm,false);
+  }
+  const validUtf8=await rawPost(Buffer.from(JSON.stringify(example()),'utf8'));
+  assert.equal(validUtf8.status,200);
+  assert.equal(validUtf8.payload.reasonCode,'ATOMIC_STORE_REQUIRED');
+ }finally{await server.close();}
+});
+test('P0 F161: test-only server is not importable by Astro public pages',()=>{
+ const code=readFileSync(new URL('./fixtures/private-budget-http-review-harness.mjs',import.meta.url),'utf8');
+ assert.match(code,/server\.listen\(0,'127\.0\.0\.1'/);
+ const astro=readFileSync(new URL('../src/pages/contato.astro',import.meta.url),'utf8');
+ assert.doesNotMatch(astro,/<form\b|<input\b|private-budget-http-review|fetch\s*\(/);
+ assert.doesNotMatch(code,/\bwriteFile\s*\(|\bcreateWriteStream\s*\(/);
+});

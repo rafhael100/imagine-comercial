@@ -1,0 +1,169 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {processStages,preparationQuestions} from '../data/commercial-process.mjs';
+const pathname='/como-funciona/';
+---
+<BaseLayout
+  title="Como funciona um projeto com a Imagine | Etapas e briefing"
+  description="Entenda as etapas para planejar um site, Landing Page ou campanha digital com a Imagine: objetivo, proposta, aprovações, execução e acompanhamento."
+  pathname={pathname}
+  breadcrumb={[{label:'Como funciona',path:pathname}]}
+>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Planejamento e transparência</p>
+      <h1>Do primeiro objetivo ao acompanhamento: entenda as etapas.</h1>
+      <p class="lead">Um projeto começa por uma conversa sobre necessidades. Veja os pontos que costumam orientar a definição de escopo, proposta, aprovações e entregas — sem confundir orientação com condições contratuais.</p>
+      <div class="cta-row">
+        <a class="cta" href="#etapas">Conhecer as etapas</a>
+        <a class="cta cta-secondary" href="/comparar-solucoes/">Comparar formatos</a>
+      </div>
+    </div>
+  </section>
+  <section class="section shell" id="etapas" aria-labelledby="etapas-heading">
+    <p class="kicker">Roteiro de trabalho</p>
+    <h2 id="etapas-heading">Seis pontos para planejar com clareza.</h2>
+    <p class="lead">A sequência é ilustrativa: o formato, as etapas contratadas e as responsabilidades são definidos na proposta. Ela não representa um prazo ou uma oferta automática.</p>
+    <ol class="process-list">
+      {processStages.map((stage,index)=>(
+        <li class="process-card">
+          <div class="process-number" aria-hidden="true">{String(index+1).padStart(2,'0')}</div>
+          <div>
+            <h3>{stage.title}</h3>
+            <p>{stage.summary}</p>
+            <p class="process-question"><strong>Pergunta útil:</strong> {stage.confirmation}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+  <section class="section section-soft" aria-labelledby="briefing-heading">
+    <div class="shell">
+      <p class="kicker">Antes de conversar</p>
+      <h2 id="briefing-heading">O que preparar para o briefing?</h2>
+      <p class="lead">Não é necessário enviar informações pelo site. As respostas ajudam a organizar uma conversa futura com a equipe.</p>
+      <p id="briefing-progress" class="briefing-note" role="status" aria-live="polite" aria-atomic="true">Seis perguntas para ajudar no planejamento. Não é necessário responder pelo site.</p>
+      <ul id="briefing-list" class="briefing-list">
+        {preparationQuestions.map((question,index)=>(
+          <li class="briefing-task" data-briefing-task>
+            <span id={'briefing-question-'+index}>{question}</span>
+            <button type="button" class="briefing-toggle" hidden aria-pressed="false"
+              aria-labelledby={'briefing-question-'+index+' briefing-action-'+index}>
+              <span id={'briefing-action-'+index}>Marcar como preparado</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div class="briefing-actions">
+        <button id="reset-preparation" type="button" class="cta cta-secondary"
+          hidden aria-controls="briefing-list briefing-progress">Limpar marcações</button>
+        <button id="print-briefing" type="button" class="cta cta-secondary" hidden>Imprimir roteiro para a reunião</button>
+        <button id="copy-preparation-questions" type="button" class="cta cta-secondary" hidden>Copiar as seis perguntas</button>
+      </div>
+      <p id="copy-preparation-status" class="briefing-note" role="status" aria-live="polite" aria-atomic="true"></p>
+      <p class="briefing-note">As marcações de preparo são temporárias e desaparecem ao fechar ou recarregar a página. Não há envio, salvamento ou acompanhamento de respostas.</p>
+      <p class="briefing-note">Não envie senhas, documentos pessoais ou acessos por links de contato não homologados. Os canais e as permissões adequados devem ser combinados antes do compartilhamento.</p>
+    </div>
+  </section>
+  <section class="section shell">
+    <h2>O que só a proposta oficial pode definir?</h2>
+    <p class="lead">Investimentos, implantação e mensalidades, quantidades de revisões, materiais, integrações, prazos, condições de cancelamento e suporte variam conforme a contratação. Nenhuma etapa descrita acima garante vendas, posição no Google ou publicação imediata.</p>
+    <div class="cta-row">
+      <a class="cta" href="/contato/">Conversar sobre um projeto</a>
+      <a class="cta cta-secondary" href="/servicos/">Conhecer as soluções</a>
+      <a class="cta cta-secondary" href="/perguntas-frequentes/">Ver perguntas frequentes</a>
+    </div>
+  </section>
+  <script>
+    import {preparationQuestions} from '../data/commercial-process.mjs';
+    // F170: six reviewed editorial tasks, optional in-page toggles/printing.
+    // No user text, cookies, tracking, persistent state, URL query or transport.
+    const tasks=[...document.querySelectorAll<HTMLElement>('[data-briefing-task]')];
+    const progress=document.querySelector<HTMLElement>('#briefing-progress');
+    const print=document.querySelector<HTMLButtonElement>('#print-briefing');
+    const reset=document.querySelector<HTMLButtonElement>('#reset-preparation');
+    const copy=document.querySelector<HTMLButtonElement>('#copy-preparation-questions');
+    const copyStatus=document.querySelector<HTMLElement>('#copy-preparation-status');
+    if(progress&&print&&copy&&copyStatus&&reset&&tasks.length===6){
+      const showProgress=()=>{
+        const done=tasks.filter(task=>task.dataset.prepared==='true').length;
+        reset.hidden=done===0;
+        progress.textContent=done+' de '+tasks.length+
+          (done===1?' pergunta preparada.':' perguntas preparadas.')+
+          ' Esta seleção é temporária e não é enviada.';
+      };
+      tasks.forEach(task=>{
+        const button=task.querySelector<HTMLButtonElement>('.briefing-toggle');
+        const label=button?.querySelector<HTMLElement>('span');
+        if(!button||!label)return;
+        button.hidden=false;
+        button.addEventListener('click',()=>{
+          const active=button.getAttribute('aria-pressed')!=='true';
+          button.setAttribute('aria-pressed',String(active));
+          task.dataset.prepared=String(active);
+          label.textContent=active?'Desmarcar preparo':'Marcar como preparado';
+          showProgress();
+        });
+      });
+      // F296: one action resets only in-memory toggles, never answers.
+      // Native buttons stay usable without any network or persisted state.
+      reset.addEventListener('click',()=>{
+        for(const task of tasks){
+          const button=task.querySelector<HTMLButtonElement>('.briefing-toggle');
+          const label=button?.querySelector<HTMLElement>('span');
+          if(!button||!label)continue;
+          button.setAttribute('aria-pressed','false');
+          task.dataset.prepared='false';
+          label.textContent='Marcar como preparado';
+        }
+        showProgress();
+        tasks[0]?.querySelector<HTMLButtonElement>('.briefing-toggle')?.focus();
+      });
+      print.hidden=false;
+      print.addEventListener('click',()=>window.print());
+      // F192: only the six public, editorially approved prompts are copied.
+      // Checked states, user responses and device information are excluded.
+      if(navigator.clipboard?.writeText)copy.hidden=false;
+      copy.addEventListener('click',async()=>{
+        if(copy.disabled)return;
+        copy.disabled=true;
+        copyStatus.textContent='';
+        try{
+          if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
+          const text=preparationQuestions.map((question,i)=>
+            (i+1)+'. '+question).join('\n');
+          await navigator.clipboard.writeText(text);
+          copyStatus.textContent='Roteiro copiado. Cole onde preferir e revise antes de compartilhar.';
+        }catch{
+          copyStatus.textContent='Não foi possível copiar automaticamente. Use a impressão ou selecione as perguntas acima.';
+        }finally{
+          copy.disabled=false;
+        }
+      });
+      showProgress();
+    }
+  </script>
+  <style>
+    .process-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;list-style:none;padding:0;margin:32px 0 0}
+    .process-card{border:1px solid #e3d9cf;border-radius:16px;padding:24px;display:flex;gap:17px;min-width:0;background:#fff}
+    .process-number{font-size:1.4rem;font-weight:850;color:#b45b00;flex-shrink:0}
+    .process-card h3{margin:0 0 10px}
+    .process-card p{margin:0;color:#645d55}
+    .process-card .process-question{margin-top:16px;color:#322e29}
+    .briefing-list{max-width:840px;padding-left:24px;margin:28px 0}
+    .briefing-list li{padding:10px 0}
+    .briefing-task{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .briefing-task[data-prepared="true"]>span{font-weight:700;color:var(--imagine-ink)}
+    .briefing-toggle{font:inherit;border:1px solid #cdb59b;background:#fff;color:#793800;border-radius:8px;padding:8px 12px;min-height:44px;cursor:pointer}
+    .briefing-toggle[aria-pressed="true"]{background:var(--imagine-orange);border-color:#c3730f;color:var(--imagine-ink)}
+    .briefing-actions{display:flex;gap:12px;flex-wrap:wrap}
+    .briefing-actions button{font:inherit;cursor:pointer}
+    .briefing-actions button:disabled{opacity:.6;cursor:wait}
+    .briefing-toggle[hidden],#reset-preparation[hidden],#print-briefing[hidden],#copy-preparation-questions[hidden]{display:none}
+    .briefing-toggle:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .briefing-note{font-size:.94rem;color:#5c574e}
+    @media print{.briefing-toggle,.briefing-actions,#copy-preparation-status{display:none!important}.briefing-task{break-inside:avoid}}
+    #etapas{scroll-margin-top:18px}
+    @media(max-width:480px){.process-list{grid-template-columns:1fr}.process-card{padding:20px;gap:12px}}
+  </style>
+</BaseLayout>

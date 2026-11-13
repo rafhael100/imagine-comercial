@@ -1,0 +1,121 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroVisual from '../components/HeroVisual.astro';
+import {guideGoals} from '../lib/public-service-guide.mjs';
+import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
+import { buildServices as services } from '../lib/build-catalog.mjs';
+const title = 'Criação de sites e performance digital | Imagine';
+const description = 'Sites, Landing Pages e estratégia de anúncios para empresas que buscam presença digital profissional. Conheça as soluções da Imagine.';
+const featured = services.filter(s => ['criacao-de-sites','landing-pages','gestao-google-ads'].includes(s.slug));
+const additional = services.filter(s => !featured.includes(s));
+---
+<BaseLayout title={title} description={description} pathname="/">
+  <section class="hero hero-main">
+    <div class="shell hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Tecnologia + comunicação digital</p>
+        <h1>Sua empresa mais forte no digital começa por uma estratégia clara.</h1>
+        <p class="lead">Sites profissionais, páginas comerciais e gestão de campanhas para apresentar seu negócio com confiança e construir novas oportunidades.</p>
+        <div class="cta-row">
+          <a class="cta" href="/contato/">Solicitar uma proposta</a>
+          <a class="cta cta-secondary" href="/servicos/">Conhecer os serviços</a>
+        </div>
+        <p class="hero-support">Planejamento claro · Experiência responsiva · Acompanhamento pelo Portal</p>
+      </div>
+      <HeroVisual />
+    </div>
+  </section>
+  <section class="section section-soft" aria-labelledby="goal-start-heading">
+    <div class="shell">
+      <span class="kicker">Comece pelo objetivo</span>
+      <h2 id="goal-start-heading">O que sua empresa precisa resolver?</h2>
+      <p>Explore caminhos para cada necessidade. As sugestões são informativas e não substituem uma proposta.</p>
+      <nav aria-label="Explorar soluções por objetivo">
+        <ul class="home-goal-links">
+          {guideGoals.map(goal=>(
+            <li><a data-goal-deeplink href={'/servicos/'+encodeReviewedGoalFragment(goal.code)}>{goal.goal}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+  </section>
+  <section class="section shell">
+    <span class="kicker">Soluções Imagine</span>
+    <h2>Uma presença digital construída para o seu negócio.</h2>
+    <p class="lead">Cada objetivo exige uma combinação diferente entre apresentação, conteúdo, experiência e divulgação.</p>
+    <div class="cards">
+      {featured.map(s => (
+        <article class="card">
+          <p class="eyebrow">{s.eyebrow}</p>
+          <h3>{s.label}</h3>
+          <p>{s.intro}</p>
+          <div class="home-featured-actions">
+            <a href={'/servicos/' + s.slug + '/'} aria-label={'Conheça ' + s.label}>Conheça a solução</a>
+            <a data-home-service-contact href={'/contato/#'+s.slug}
+              aria-label={'Preparar contato sobre '+s.label}
+              aria-describedby="home-featured-contact-notice">Preparar contato</a>
+          </div>
+        </article>
+      ))}
+    </div>
+    <p id="home-featured-contact-notice" class="home-featured-contact-notice">Escolher “Preparar contato” abre uma página com o serviço já selecionado, sem enviar um pedido.</p>
+    <div class="related-services">
+      <h3>Outras soluções para diferentes objetivos</h3>
+      <ul>
+        {additional.map(s => <li><a href={'/servicos/' + s.slug + '/'}>{s.label} <span aria-hidden="true">↗</span></a></li>)}
+      </ul>
+    </div>
+    <div class="cta-row">
+      <a class="text-link" href="/servicos/">Veja todos os serviços</a>
+      <a class="text-link" href="/comparar-solucoes/">Comparar os formatos</a>
+    </div>
+  </section>
+  <section class="section section-soft">
+    <div class="shell">
+      <span class="kicker">Processo transparente</span>
+      <h2>Da estratégia ao acompanhamento.</h2>
+      <p>As etapas, prazos, revisões e condições dependem da proposta de cada serviço.</p>
+      <a class="text-link" href="/como-funciona/">Entender o processo e preparar o briefing</a>
+      <div class="cards">
+        <article class="card"><h3>1. Diagnóstico</h3><p>Entendimento do negócio, do público e das oportunidades.</p></article>
+        <article class="card"><h3>2. Planejamento</h3><p>Escolha do formato, da mensagem e dos objetivos do projeto.</p></article>
+        <article class="card"><h3>3. Implementação</h3><p>Produção e acompanhamento das etapas conforme o serviço contratado.</p></article>
+        <article class="card"><h3>4. Evolução</h3><p>Revisão de resultados e oportunidades de melhoria.</p></article>
+      </div>
+    </div>
+  </section>
+  <section class="section shell">
+    <span class="kicker">Entenda antes de contratar</span>
+    <h2>Landing Page ou site: qual escolher?</h2>
+    <p class="lead">A escolha depende do objetivo, da quantidade de conteúdo e do caminho que você quer oferecer aos visitantes.</p>
+    <a class="cta cta-secondary" href="/conteudos/landing-page-ou-site/">Ler nosso guia</a>
+  </section>
+  <section class="section section-dark">
+    <div class="shell">
+      <h2>Seu próximo projeto merece um plano claro.</h2>
+      <p>Converse com a Imagine sobre o seu objetivo e conheça os formatos disponíveis.</p>
+      <a class="cta" href="/contato/">Entrar em contato</a>
+    </div>
+  </section>
+  <style>
+    .home-goal-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px;list-style:none;padding:0;margin:20px 0 0}
+    .home-goal-links a{display:flex;min-height:48px;align-items:center;border:1px solid #ddcbb8;background:#fff;border-radius:10px;padding:12px 14px;color:#884100;font-weight:750;text-underline-offset:3px}
+    .home-goal-links a:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .hero-grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:clamp(18px,3vw,55px);align-items:center}
+    .hero-copy{min-width:0}
+    .hero-copy h1{font-size:clamp(2.8rem,4.7vw,4.25rem);max-width:780px}
+    .hero-support{font-size:.87rem;color:#56534e;margin-top:24px;font-weight:650}
+    .home-featured-actions{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:16px}
+    .home-featured-actions a{display:inline-flex;align-items:center;min-height:44px;font-weight:750}
+    .home-featured-actions a[data-home-service-contact]{border:1px solid #d3b99d;background:#fff8ed;color:#884100;border-radius:9px;padding:10px 13px;text-decoration:none}
+    .home-featured-actions a[data-home-service-contact]:hover{background:#fff0db}
+    .home-featured-actions a:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .home-featured-contact-notice{margin:18px 0 0;font-size:.89rem;color:#655f57}
+    .related-services{margin:36px 0 24px;padding:24px 28px;border-radius:15px;background:#f7f7f8}
+    .related-services h3{margin:0 0 14px}
+    .related-services ul{padding:0;margin:0;display:flex;gap:15px 28px;flex-wrap:wrap;list-style:none}
+    .related-services a{color:#884100;font-weight:750;text-underline-offset:4px}
+    @media(max-width:850px){.hero-grid{grid-template-columns:1fr}.hero-copy h1{font-size:clamp(2.35rem,7vw,3.6rem)}}
+    @media(max-width:480px){.hero-support{line-height:1.5}.related-services ul{display:grid;gap:12px}.related-services{padding:22px}}
+  </style>
+</BaseLayout>

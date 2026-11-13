@@ -1,0 +1,34 @@
+name: "Imagine Comercial - P0 orçamento: contratos sem navegador"
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/private-budget-*.mjs'
+      - 'tests/private-budget-*.test.mjs'
+      - 'tests/fixtures/private-budget-http-review-harness.mjs'
+      - 'scripts/review-private-budget-to-crm.mjs'
+      - 'scripts/browser-qa.mjs'
+      - '.github/workflows/commercial-budget-p0-unit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Orçamento -> CRM | testes de contratos sem serviços externos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Obter código sem credenciais persistidas
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Usar Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+      - name: Executar todos os contratos Node sem npm install
+        run: npm test
+      - name: Exercitar matriz de cinco cenários sintéticos sem dados de clientes
+        run: node scripts/review-private-budget-to-crm.mjs > /dev/null
