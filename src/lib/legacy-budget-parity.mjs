@@ -28,21 +28,23 @@ const allowedControlId=/^lead-[a-z][a-z0-9-]*$/;
 function actualPreviewIds(previewHtml){
   if(typeof previewHtml!=='string'||previewHtml.length<1||previewHtml.length>500_000)
     throw new Error('F83: invalid private preview');
-  const set=new Set();
+  const counts=new Map();
   const tagPattern=/<(?:input|select|textarea)\b[^>]*>/gi;
   for(const match of previewHtml.matchAll(tagPattern)){
     const tag=match[0];
-    // Hidden, aria-hidden and disabled controls cannot count as usable fields.
-    // This is an offline HTML fixture check, not a general browser visibility engine.
-    if(/\s(?:hidden|disabled)(?=[\s=>])/i.test(tag)||
-       /\btype\s*=\s*["']hidden["']/i.test(tag)||
-       /\baria-hidden\s*=\s*["']true["']/i.test(tag)||
-       /\bstyle\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(tag))
-      continue;
     const id=tag.match(/\bid="([^"]+)"/i)?.[1];
-    if(id&&allowedControlId.test(id))set.add(id);
+    if(!id||!allowedControlId.test(id))continue;
+    // F264: a second control with the same ID is ambiguous even if hidden:
+    // it can misdirect a <label for> or automated field mapping.
+    const obscured=/\s(?:hidden|disabled|inert)(?=[\s=>])/i.test(tag)||
+      /\btype\s*=\s*["']?hidden(?:["'\s>])/i.test(tag)||
+      /\baria-hidden\s*=\s*["']?true(?:["'\s>])/i.test(tag)||
+      /\bstyle\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(tag);
+    const old=counts.get(id)||{count:0,visible:false};
+    counts.set(id,{count:old.count+1,visible:old.visible||!obscured});
   }
-  return set;
+  return new Set([...counts].filter(([,row])=>row.count===1&&row.visible)
+    .map(([id])=>id));
 }
 
 /**
