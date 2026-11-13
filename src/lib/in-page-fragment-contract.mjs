@@ -4,9 +4,11 @@
  * excluded because that page's reviewed client-side logic handles them.
  */
 import assert from 'node:assert/strict';
+import {readStrictHtmlAttribute} from './html-attribute-reader.mjs';
+import {anchorOpeningTags,requiredAnchorHref} from './html-anchor-reader.mjs';
 
-const attr=(tag,name)=>new RegExp('\\b'+name+'\\s*=\\s*(["\\x27])(.*?)\\1','i')
-  .exec(tag)?.[2]??null;
+const attr=(tag,name)=>readStrictHtmlAttribute(tag,name);
+
 
 export function auditInPageFragments(html){
   assert.equal(typeof html,'string','F147: compiled HTML required');
@@ -19,8 +21,8 @@ export function auditInPageFragments(html){
     ids.add(id);
   }
   let checked=0;
-  for(const match of html.matchAll(/<a\b[^>]*>/gi)){
-    const href=attr(match[0],'href');
+  for(const tag of anchorOpeningTags(html)){
+    const href=requiredAnchorHref(tag);
     if(!href?.startsWith('#'))continue;
     const fragment=href.slice(1);
     assert.ok(fragment.length>0&&ids.has(fragment),
