@@ -56,6 +56,30 @@ try {
   browser=await chromium.launch({headless:true});
   await mkdir(artifacts,{recursive:true});
 
+  // Direct purchase-intent CTAs must never silently send a message or depend on a questionnaire.
+  for(const width of [320,768,1440]){
+    const quickContext=await browser.newContext({viewport:{width,height:950}});
+    const quickPage=await quickContext.newPage();
+    await quickPage.goto(host+'/',{waitUntil:'networkidle'});
+    const cards=quickPage.locator('[data-quick-hire]');
+    assert.equal(await cards.count(),services.length,'Quick hiring covers all six published services');
+    for(const service of services){
+      const card=quickPage.locator('[data-quick-hire="'+service.slug+'"]');
+      const link=card.locator('[data-quick-hire-action]');
+      assert.equal(await link.getAttribute('href'),contactWhatsAppUrl(composeCuratedContactLinks(service.slug).message),'Direct CTA preserves reviewed public contact message');
+      assert.equal(await link.getAttribute('target'),'_blank');
+      assert.equal(await link.getAttribute('rel'),'noopener noreferrer');
+      assert.ok((await link.textContent()).includes('Quero contratar'));
+      assert.ok(await link.isVisible());
+    }
+    assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Sua empresa mais forte no digital começa por uma estratégia clara.');
+    assert.ok((await quickPage.locator('#quick-hire-notice').textContent()).includes('nenhum pagamento'));
+    assert.ok(await quickPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'Quick hiring has no horizontal overflow');
+    await quickPage.screenshot({path:artifacts+'/quick-hire-'+width+'.png',fullPage:true});
+    await quickContext.close();
+  }
+
+
   for(const viewport of [{width:375,height:812,label:'mobile'},{width:1440,height:900,label:'desktop'}]){
     const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1});
     // F151: local-only clipboard QA; does not grant network/storage permissions.

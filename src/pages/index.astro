@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroVisual from '../components/HeroVisual.astro';
+import QuickServiceRequest from '../components/QuickServiceRequest.astro';
 import {guideGoals} from '../lib/public-service-guide.mjs';
 import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
 import { buildServices as services } from '../lib/build-catalog.mjs';
@@ -25,6 +26,7 @@ const additional = services.filter(s => !featured.includes(s));
       <HeroVisual />
     </div>
   </section>
+  <QuickServiceRequest />
   <section class="section section-soft" aria-labelledby="goal-start-heading">
     <div class="shell">
       <span class="kicker">Comece pelo objetivo</span>
