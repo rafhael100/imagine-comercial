@@ -10,6 +10,8 @@ import {createReleaseReview} from './release-review.mjs';
 import {verifyIndexablePage} from './seo-output-contract.mjs';
 import {enforceSignedPublicationTime} from './signed-publication-time.mjs';
 import {sitePages, toAbsoluteUrl} from '../data/services.mjs';
+import {verifyPinnedSignedCatalogHistory}
+  from './pinned-signed-catalog-history.mjs';
 
 const allowedSlugs=new Set(sitePages
   .map(page=>page.path.match(/^\/servicos\/([a-z0-9-]+)\/$/)?.[1])
@@ -38,17 +40,25 @@ function singleCaptured(html, regex, label) {
  * and the bytes of the real Astro output. No persistent replay protection.
  */
 export function createSignedBuildReview(files, envelope, trustKeys, pins,
-  {nowMs=Date.now()}={}) {
+  {nowMs=Date.now(),historyText,expectedHistorySha256}={}) {
   const snapshot=verifySignedCatalog(envelope,trustKeys);
   enforceReleasePin(snapshot,envelope,pins);
   // F218: verify release timing EVERY time bytes are checked (including
   // the independent verifier after transport), not only during Astro build.
   enforceSignedPublicationTime(snapshot.publishedAt,nowMs);
   assert.ok(snapshot.items.length>0,'signed build: empty catalog not permitted');
+  // An optional cumulative history must be independently SHA-pinned and
+  // reproduce every earlier signed service edit, not just the latest delta.
+  const hasHistory=historyText!==undefined||
+    expectedHistorySha256!==undefined;
+  const historical=hasHistory?verifyPinnedSignedCatalogHistory({
+    historyText,expectedHistorySha256,envelope,trustKeys,pins,nowMs
+  }):null;
+  const catalogItems=historical?.effectiveItems??snapshot.items;
   const report=createReleaseReview(files);
   const htmlByPath=new Map(files.filter(file=>file.path.endsWith('.html'))
     .map(file=>[file.path,file.bytes.toString('utf8')]));
-  for(const item of snapshot.items) {
+  for(const item of catalogItems) {
     assert.ok(allowedSlugs.has(item.slug),'signed build: service slug not in curated pages');
     const htmlPath='servicos/'+item.slug+'/index.html';
     assert.ok(htmlByPath.has(htmlPath),'signed build: published service output absent');
@@ -72,6 +82,6 @@ export function createSignedBuildReview(files, envelope, trustKeys, pins,
     payloadSha256:payloadSha256(envelope),
     treeSha256:report.treeSha256,
     fileCount:report.fileCount,
-    verifiedServiceCount:snapshot.items.length
+    verifiedServiceCount:catalogItems.length
   });
 }
