@@ -660,6 +660,21 @@ try {
           'F250 all services remain visible without JS');
       }finally{await noJsCatalog.close();}
     }
+    // F251: every approved service card has a direct, curated contact route.
+    const directCatalogLinks=page.locator('#service-catalog a[data-service-card-contact]');
+    assert.equal(await directCatalogLinks.count(),services.length,
+      'F251 all service cards offer direct preparation links');
+    assert.deepEqual(await directCatalogLinks.evaluateAll(links=>
+      links.map(a=>a.getAttribute('href'))),
+      services.map(item=>'/contato/#'+item.slug),
+      'F251 links contain only reviewed public service identifiers');
+    assert.equal(await page.locator('#service-catalog-contact-notice').isVisible(),true,
+      'F251 the visitor sees no-send boundary');
+    await directCatalogLinks.nth(4).click();
+    await page.waitForURL(host+'/contato/#gestao-google-ads');
+    assert.equal(await page.locator('#service-choice').inputValue(),'gestao-google-ads',
+      'F251 direct card-to-contact link preselects reviewed service');
+    await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     // F59: a contact CTA carries only a service slug, no visitor identity.
     await page.locator('#service-guide-goal').selectOption('oferta');
     await page.locator('#service-guide-links a[data-service-guide-contact]').first().click();
