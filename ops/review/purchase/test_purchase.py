@@ -36,7 +36,7 @@ with sync_playwright() as p:
         assert data['notes'][7]['note']=='Rever briefing fictício'
         for width in [320,390,768,1280]:
             page.set_viewport_size({'width':width,'height':900})
-            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+2')
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+2'), (product,width,page.evaluate('document.documentElement.scrollWidth'))
         assert not errors,errors
         page.close()
     browser.close()
