@@ -107,7 +107,7 @@ export function reviewEffectivePrivateStagingCompose(
     Array.isArray(service.security_opt)&&service.security_opt.length===1&&
     service.security_opt[0]==='no-new-privileges:true'&&
     service.pids_limit===64&&
-    oneOf(service.mem_limit,'256m',268435456)&&
+    oneOf(service.mem_limit,'256m',268435456,'268435456')&&
     oneOf(service.cpus,0.5,'0.5'));
   requireThat(object(service.environment)&&
     Object.keys(service.environment).length===1&&service.environment.TZ==='UTC');
