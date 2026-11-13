@@ -11,8 +11,9 @@ const basicAuth='Basic '+Buffer.from('reviewer:'+secret).toString('base64');
 const expected404Html='<!doctype html><html lang="pt-BR"><head><meta name="robots" '+
   'content="noindex,nofollow"></head><body><h1>Rota não disponível</h1>'+
   '<p>Somente página pública sintética do laboratório, sem dados pessoais.</p></body></html>';
-const paths=['/.env','/.env.local','/.git/config','/.github/workflows/ci.yml',
-  '/_redirects','/_headers'];
+const paths=['/.env','/.env.local','/.env.production','/.git/config',
+  '/.gitignore','/.github/workflows/ci.yml','/.htpasswd','/assets/.env',
+  '/assets/.git/config','/public/.hidden/file.txt','/_redirects','/_headers'];
 const headers=()=>({
   ...Object.fromEntries(localHeaderProfile),
   'Content-Type':'text/html; charset=utf-8',
@@ -39,16 +40,16 @@ function fixture(inject={}){
   return {transport,calls};
 }
 
-test('F293 all six reserved routes have private pinned 404 bytes',async()=>{
+test('F293 all twelve reserved routes have private pinned 404 bytes',async()=>{
   const f=fixture();
   const result=await review({port:4321,basicAuth,expected404Html,transport:f.transport});
   assert.deepEqual(result,{
     schema:'imagine.comercial.private-staging-reserved-paths.v1',
     status:'RESERVED_PATHS_DENIED_PINNED_404_NO_RELEASE_AUTHORITY',
-    protectedPaths:6,
-    anonymousProtected:6,
-    authenticatedPinned404:6,
-    totalChecks:12,
+    protectedPaths:12,
+    anonymousProtected:12,
+    authenticatedPinned404:12,
+    totalChecks:24,
     onlyLoopbackUsed:true,
     private404MatchesIndependentlyPinnedBuild:true,
     remoteFirewallAndTlsVerified:false,
@@ -56,7 +57,7 @@ test('F293 all six reserved routes have private pinned 404 bytes',async()=>{
     productionAuthorized:false,
     deploymentPerformed:false
   });
-  assert.equal(f.calls.length,12);
+  assert.equal(f.calls.length,24);
   assert.deepEqual([...new Set(f.calls.map(x=>x.uri))],paths);
   assert.ok(f.calls.every(x=>x.method==='GET'));
   assert.ok(!JSON.stringify(result).includes(secret));
@@ -81,7 +82,7 @@ test('F293 404 status alone cannot hide leaked .env or git config body',async()=
     await assert.rejects(review({
       port:4321,basicAuth,expected404Html,transport:f.transport
     }),/F293: reserved private staging paths not verified/);
-    assert.ok(f.calls.length<=12);
+    assert.ok(f.calls.length<=24);
   }
 });
 
@@ -121,8 +122,8 @@ test('F293 actual HTTP over ephemeral 127.0.0.1 enforces pinned 404',async()=>{
     const result=await review({
       port:server.address().port,basicAuth,expected404Html
     });
-    assert.equal(result.totalChecks,12);
-    assert.equal(seen.length,12);
+    assert.equal(result.totalChecks,24);
+    assert.equal(seen.length,24);
     assert.ok(seen.every(x=>paths.includes(x.path)));
   }finally{
     await new Promise((resolve,reject)=>
