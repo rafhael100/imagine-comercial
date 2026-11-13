@@ -349,7 +349,7 @@ try {
     // F261: repeat a link for the *same* fragment after hiding/collapsing it.
     // No hashchange fires in this case; the index click must reopen the answer.
     await page.locator('[data-faq-topic="midia"]').click();
-    await page.locator('#duvida-precos details').evaluate((node:HTMLDetailsElement)=>{node.open=false;});
+    await page.locator('#duvida-precos details').evaluate(node=>{node.open=false;});
     assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),null);
     const repeatedFaqUrl=page.url();
     await page.locator('.faq-index a[href="#duvida-precos"]').click();
