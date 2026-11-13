@@ -35,3 +35,9 @@ jobs:
           "$RUNNER_TEMP/purchase-browser/bin/pip" install --disable-pip-version-check 'playwright==1.56.0'
           export CHROMIUM_PATH="$(command -v google-chrome || command -v chromium)"
           "$RUNNER_TEMP/purchase-browser/bin/python" ops/review/purchase/test_purchase.py
+      - name: Real HTTP browser journey from four built commercial CTAs
+        env:
+          IMAGINE_PRIVATE_PURCHASE_PREPARED_ROOT: ${{ runner.temp }}/comercial-purchase-review
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/purchase-browser/bin/python" ops/review/purchase/test_home_to_purchase_http.py
