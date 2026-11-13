@@ -21,7 +21,7 @@ const pathname='/perguntas-frequentes/';
     </div>
   </section>
   <nav class="section shell faq-index" aria-label="Índice de perguntas frequentes">
-    <h2>Encontre sua dúvida</h2>
+    <h2 id="faq-index-heading" tabindex="-1">Encontre sua dúvida</h2>
     <p>Escolha um tema ou uma pergunta para ir diretamente à resposta. Os links não registram nem enviam sua escolha.</p>
     <div id="faq-topic-controls" class="faq-topic-controls" role="group" aria-label="Filtrar perguntas por tema" hidden>
       <button type="button" data-faq-topic="all" aria-pressed="true" aria-controls="respostas">Todos os temas</button>
@@ -63,6 +63,7 @@ const pathname='/perguntas-frequentes/';
               </div>
             ))}
           </div>
+          <p class="faq-back-index"><a href="#faq-index-heading">Voltar ao índice de perguntas</a></p>
         </div>
       </section>
     ))}
@@ -144,6 +145,11 @@ const pathname='/perguntas-frequentes/';
   </script>
   <style>
     .faq-index{padding-top:38px;padding-bottom:38px}
+    #faq-index-heading{scroll-margin-top:18px}
+    .faq-back-index{margin:22px 0 0}
+    .faq-back-index a{display:inline-flex;align-items:center;min-height:44px;
+      color:#884100;font-weight:750;text-underline-offset:4px}
+    .faq-back-index a:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
     .faq-index p{max-width:700px}
     .faq-topic-controls{display:flex;gap:9px;flex-wrap:wrap;margin:22px 0 12px}
     .faq-topic-controls[hidden],.faq-answer-controls[hidden],.faq-filter-status[hidden],#respostas [data-faq-section][hidden]{display:none!important}
