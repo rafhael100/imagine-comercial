@@ -41,12 +41,17 @@ test('F35 — every checkout is unauthenticated after clone and SEO Engine stays
   assert.ok(validate,'Missing main site validation workflow');
   const steps=validate.split(/(?=^[ \t]*-[ \t]+name:)/m);
   const checkout=steps.filter(s=>s.includes('uses: actions/checkout@'));
-  assert.equal(checkout.length,2,'Expected self and pinned independent SEO Engine checkout');
+  assert.equal(checkout.length,3,
+    'Expected self and independently pinned SEO Engine and Portal PHP signer checkouts');
   for(const step of checkout){
     assert.match(step,/^[ \t]*persist-credentials:[ \t]*false[ \t]*$/m);
   }
   assert.match(validate,/ref:[ \t]*bbcc198b5eb88585534c0a0374ed8c787f40e7ca/,
     'Independent SEO Engine audit must not use a mutable ref');
+  assert.match(validate,/repository:[ \t]*rafhael100\/imagine-portal/,
+    'F307 PHP signer must come from the reviewed Portal repository');
+  assert.match(validate,/ref:[ \t]*fc67d01747f53bc2f49a54769611a0397ebde5a1/,
+    'F307 PHP signer must be pinned to the exact reviewed commit SHA');
   assert.doesNotMatch(validate,/^[ \t]*uses:[ \t]*[^\r\n]+@v[0-9]+/m,
     'Actions must never depend on a mutable major-version tag');
 });
