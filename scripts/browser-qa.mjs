@@ -474,6 +474,15 @@ try {
       document.querySelector('#duvida-precos details')?.open===true);
     assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),'',
       'F191 valid question hash reveals its answer');
+    // F300: an open answer can share only its static indexed permalink.
+    assert.equal(await page.locator('[data-faq-copy]').count(),8,
+      'F300 every reviewed FAQ answer has a copy action');
+    await page.locator('#duvida-precos [data-faq-copy]').click();
+    assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),
+      host+'/perguntas-frequentes/#duvida-precos',
+      'F300 copied FAQ address contains no search or private information');
+    assert.match(await page.locator('#duvida-precos [data-faq-copy-status]').textContent(),
+      /Link da resposta copiado/);
     // F297: each topic provides a keyboard-accessible return to the index.
     assert.equal(await page.locator('.faq-back-index a[href="#faq-index-heading"]').count(),4,
       'F297 every FAQ topic offers an index return');
@@ -911,6 +920,11 @@ try {
           'F153 native outline remains usable without JavaScript');
         assert.equal(await fallback.locator('.related-reading a').count(),2,
           'F154 related guides remain visible without JavaScript');
+        await fallback.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
+        assert.equal(await fallback.locator('[data-faq-copy]:visible').count(),0,
+          'F300 FAQ copy controls hidden without JS');
+        assert.equal(await fallback.locator('.faq-entry details').count(),8,
+          'F300 no-JS FAQ answers remain available');
         await fallback.goto(host+'/como-funciona/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#briefing-list .briefing-task').count(),6);
         assert.equal(await fallback.locator('.briefing-toggle:visible').count(),0,
