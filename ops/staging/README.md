@@ -24,6 +24,10 @@ A cadeia de diagnóstico F258 agora contém **cinco etapas**: pré-requisitos/by
 
 Esta verificação **não** autoriza publicar o site nem substituir os demais testes de release.
 
+## F293 — caminhos privados nunca servidos com bytes inesperados
+
+A cadeia F258 passa a ter **seis etapas**, incluindo a revisão de caminhos reservados com corpo de 404 comprovadamente igual ao `dist/404.html` obtido de um pacote com SHA-256 independente. O operador poderá executar `IMAGINE_PRIVATE_STAGING_REVIEW=1 node scripts/check-private-staging-reserved-routes.mjs --port=4321` apenas depois de revisar o build, a senha e o ambiente de rede privado. Este comando prova no máximo a observação HTTP do momento, e continua **sem autorização de produção**. Consulte `docs/F293-PRIVATE-STAGING-RESERVED-ROUTES.md`.
+
 ## Procedimento futuro para operador autorizado
 
 1. **Não executar no servidor de produção nem reutilizar dados pessoais.** Preparar um workspace privado/contêiner isolado. Validar o código e o pacote com `npm ci --no-audit --no-fund`, `npm run build` e `node scripts/verify-dist.mjs` antes de copiar artefatos.
