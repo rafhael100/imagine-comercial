@@ -77,6 +77,7 @@ export function reviewEffectivePrivateStagingCompose(
   requireThat(object(document.services)&&
     Object.keys(document.services).length===1&&
     Object.hasOwn(document.services,'static-review'));
+  requireThat(object(document.services['static-review']));
   requireThat(typeof projectRoot==='string'&&isAbsolute(projectRoot)&&
     typeof expectedAuthPath==='string'&&isAbsolute(expectedAuthPath)&&
     expectedAuthPath!==projectRoot&&
