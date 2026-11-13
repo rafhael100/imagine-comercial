@@ -145,7 +145,10 @@ test('F218 signed build review refuses a future-scheduled release even when sign
 test('F218 independent verifier reuses the exact dated signed-build review',()=>{
   const verifier=readFileSync(new URL('../src/lib/protected-artifact-verification.mjs',import.meta.url),'utf8');
   const builder=readFileSync(new URL('../scripts/build-protected-release.mjs',import.meta.url),'utf8');
-  assert.match(verifier,/createSignedBuildReview\(files,envelope,trustKeys,pins\)/);
+  // F306 passes independently checked history pins to the same HTML
+  // verifier without weakening the original F218 publication-time check.
+  assert.match(verifier,/createSignedBuildReview\(files,envelope,trustKeys,pins,\{/);
+  assert.match(verifier,/historyText,expectedHistorySha256/);
   assert.match(builder,/enforceSignedPublicationTime\(snapshot\.publishedAt\)/);
   assert.match(builder,/signed-publication-time\.mjs/);
   assert.doesNotMatch(builder,/from '\.\.\/src\/lib\/build-catalog\.mjs'/);
