@@ -33,6 +33,12 @@ function actualPreviewIds(previewHtml){
   const activeMarkup=previewHtml
     .replace(/<!--[\s\S]*?-->/g,'')
     .replace(/<(script|style|template|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'');
+  // F267: a private preview hidden at the form/fieldset/dialog/main
+  // level cannot claim any visible field merely because child inputs lack
+  // individual hidden attributes. Fail closed: a browser still owns actual
+  // CSS visibility validation.
+  const containerHidden=/<(?:form|fieldset|dialog|main)\b[^>]*(?:\s(?:hidden|inert)(?=[\s=>])|\baria-hidden\s*=\s*["']?true(?:["'\s>])|\bstyle\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden))/i;
+  if(containerHidden.test(activeMarkup))return new Set();
   const counts=new Map();
   const tagPattern=/<(?:input|select|textarea)\b[^>]*>/gi;
   for(const match of activeMarkup.matchAll(tagPattern)){
@@ -52,11 +58,19 @@ function actualPreviewIds(previewHtml){
   // This remains an offline fixture heuristic, never a substitute for browser QA.
   const labelCounts=new Map();
   for(const match of activeMarkup.matchAll(/<label\b[^>]*>/gi)){
-    const id=match[0].match(/\bfor="([^"]+)"/i)?.[1];
-    if(id&&allowedControlId.test(id))labelCounts.set(id,(labelCounts.get(id)||0)+1);
+    const tag=match[0];
+    const id=tag.match(/\bfor="([^"]+)"/i)?.[1];
+    if(!id||!allowedControlId.test(id))continue;
+    const hidden=/\s(?:hidden|inert)(?=[\s=>])/i.test(tag)||
+      /\baria-hidden\s*=\s*["']?true(?:["'\s>])/i.test(tag)||
+      /\bstyle\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)/i.test(tag);
+    const old=labelCounts.get(id)||{count:0,visible:false};
+    labelCounts.set(id,{count:old.count+1,visible:old.visible||!hidden});
   }
-  return new Set([...counts].filter(([id,row])=>
-    row.count===1&&row.visible&&labelCounts.get(id)===1).map(([id])=>id));
+  return new Set([...counts].filter(([id,row])=>{
+    const label=labelCounts.get(id);
+    return row.count===1&&row.visible&&label?.count===1&&label.visible;
+  }).map(([id])=>id));
 }
 
 /**

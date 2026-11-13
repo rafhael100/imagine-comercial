@@ -156,3 +156,32 @@ test('F265: comment-only labels do not authenticate otherwise visible controls',
   assert.deepEqual(result.unresolvedFields,['telephone']);
   assert.equal(result.legacyContactIntakeParityApproved,false);
 });
+
+
+test('F267: hidden top-level form, fieldset or dialog cannot fake seven visible fields',()=>{
+  const modified=[
+    html.replace('<fieldset>','<fieldset hidden>'),
+    html.replace('<fieldset>','<fieldset inert>'),
+    html.replace('<dialog open','<dialog open aria-hidden="true"'),
+    html.replace('id="private-budget-preview"','id="private-budget-preview" style="display:none"'),
+    html.replace('<main>','<main style="visibility:hidden">')
+  ];
+  for(const variant of modified){
+    const assessment=reviewLegacyBudgetPreviewParity(variant);
+    assert.equal(assessment.visibleFields,0);
+    assert.equal(assessment.unresolvedFields.length,7);
+    assert.equal(assessment.legacyContactIntakeParityApproved,false);
+    assert.equal(assessment.deploymentAuthorized,false);
+  }
+});
+test('F267: a concealed or repeated label cannot count as an accessible field',()=>{
+  for(const decoration of ['hidden','inert','aria-hidden=true','style="display:none"']){
+    const changed=html.replace('<label for="lead-email">',
+      '<label for="lead-email" '+decoration+'>');
+    const result=reviewLegacyBudgetPreviewParity(changed);
+    assert.deepEqual(result.unresolvedFields,['email'],decoration);
+  }
+  const duplicate=html.replace('</fieldset>',
+    '<label for="lead-email" hidden>Duplicado</label></fieldset>');
+  assert.deepEqual(reviewLegacyBudgetPreviewParity(duplicate).unresolvedFields,['email']);
+});
