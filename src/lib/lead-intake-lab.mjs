@@ -16,11 +16,16 @@ const phonePattern=/^\+[1-9][0-9]{7,14}$/;
 const unsafeControl=/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/;
 
 function exactFields(data) {
-  if(!data || typeof data!=='object' || Array.isArray(data) ||
-     Object.keys(data).length!==keys.length ||
-     !keys.every(k=>Object.hasOwn(data,k))) {
+  // F284: never execute caller-controlled accessors while inspecting a
+  // synthetic draft; inherited values and non-enumerable PII are not fields.
+  if(!data||typeof data!=='object'||Array.isArray(data)||
+     Object.getPrototypeOf(data)!==Object.prototype)
     throw new Error('lead: unsupported or missing public fields');
-  }
+  const own=Reflect.ownKeys(data);
+  if(own.length!==keys.length||own.some(k=>typeof k!=='string'||
+     !keys.includes(k)||!Object.getOwnPropertyDescriptor(data,k)?.enumerable||
+     !Object.hasOwn(Object.getOwnPropertyDescriptor(data,k),'value')))
+    throw new Error('lead: unsupported or missing public fields');
 }
 
 export function validateSyntheticLeadDraft(input) {
