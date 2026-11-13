@@ -43,6 +43,11 @@ const initialGuide=guideForGoal(guideGoals[0].code);
             Comparar essas duas soluções lado a lado
           </a>
         </div>
+        <div class="service-guide-share">
+          <button id="copy-goal-link" class="cta cta-secondary" type="button" hidden
+            aria-describedby="service-guide-explanation">Copiar link desta orientação</button>
+          <p id="copy-goal-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        </div>
         <p class="service-guide-note">Todos os serviços continuam disponíveis abaixo. Os valores e as condições oficiais são confirmados na proposta.</p>
         <noscript>
           <div class="service-guide-fallback" aria-labelledby="service-guide-fallback-heading">
@@ -73,8 +78,17 @@ const initialGuide=guideForGoal(guideGoals[0].code);
     const explanation=document.querySelector<HTMLElement>('#service-guide-explanation');
     const links=document.querySelector<HTMLUListElement>('#service-guide-links');
     const compare=document.querySelector<HTMLAnchorElement>('#service-guide-compare');
+    const copyGoal=document.querySelector<HTMLButtonElement>('#copy-goal-link');
+    const copyGoalStatus=document.querySelector<HTMLElement>('#copy-goal-status');
     if(selector && explanation && links && compare){
+      // F299: a shareable URL contains ONLY one of five approved public goal
+      // codes, never current query data, visitor text or browser identity.
+      let clipboardRevision=0;
+      if(copyGoal&&copyGoalStatus&&navigator.clipboard?.writeText)
+        copyGoal.hidden=false;
       const renderGuide=()=>{
+        clipboardRevision++;
+        if(copyGoalStatus)copyGoalStatus.textContent='';
         const guide=guideForGoal(selector.value);
         explanation.textContent=guide.explanation;
         const suggestions=guide.services.map(item=>{
@@ -108,6 +122,25 @@ const initialGuide=guideForGoal(guideGoals[0].code);
         selector.value=code||guideGoals[0].code;
         renderGuide();
       };
+      copyGoal?.addEventListener('click',async()=>{
+        if(copyGoal.hidden||copyGoal.disabled||!copyGoalStatus)return;
+        const ticket=++clipboardRevision;
+        copyGoal.disabled=true;
+        copyGoalStatus.textContent='';
+        try{
+          if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
+          const link=window.location.origin+'/servicos/'+
+            encodeReviewedGoalFragment(selector.value);
+          await navigator.clipboard.writeText(link);
+          if(ticket===clipboardRevision)
+            copyGoalStatus.textContent='Link da orientação copiado. Compartilhe apenas se desejar.';
+        }catch{
+          if(ticket===clipboardRevision)
+            copyGoalStatus.textContent='Não foi possível copiar automaticamente. Você pode usar o link da página.';
+        }finally{
+          copyGoal.disabled=false;
+        }
+      });
       selector.addEventListener('change',()=>{
         // Replace the current entry with a fixed public goal token only.
         // Drop any inherited query data; no network request is made.
@@ -176,6 +209,11 @@ const initialGuide=guideForGoal(guideGoals[0].code);
     #service-guide-compare{display:inline-flex;margin-top:22px;min-height:48px;align-items:center;border-radius:9px;border:1px solid #d3b99d;padding:10px 15px;color:#884100;font-weight:800;text-underline-offset:3px}
     #service-guide-compare[hidden]{display:none!important}
     #service-guide-compare:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .service-guide-share{display:grid;gap:8px;margin-top:22px;justify-items:start}
+    .service-guide-share button{min-height:44px;cursor:pointer;font:inherit;font-weight:750}
+    .service-guide-share button[hidden]{display:none!important}
+    .service-guide-share button:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    #copy-goal-status{font-size:.91rem;color:#655f57}
     .service-guide-note{font-size:.91rem;color:#655f57;margin-top:16px}
     .service-guide-fallback{background:#fff;border:1px solid #e5d7c6;border-radius:14px;padding:22px;margin-top:26px}
     .service-guide-fallback>ul{display:grid;gap:20px;list-style:none;padding:0}
