@@ -58,6 +58,8 @@ const pathname='/comparar-solucoes/';
   <section class="section shell selected-comparison" id="selected-comparison" aria-labelledby="selected-comparison-title" hidden>
     <h2 id="selected-comparison-title">Sua comparação de soluções</h2>
     <p>Revise os critérios das opções selecionadas. Esta comparação é informativa, não constitui proposta ou recomendação personalizada.</p>
+    <button type="button" id="clear-comparison" class="compare-clear" hidden
+      aria-controls="selected-comparison-list">Limpar seleção</button>
     <ol class="compare-grid selected-comparison-list" id="selected-comparison-list"></ol>
     <p id="comparison-channel-disclosure" class="compare-contact-note" hidden>Os canais abaixo são externos ao site. A mensagem inclui somente os nomes públicos das duas soluções. Confira e confirme o envio no aplicativo escolhido; selecionar opções não envia uma solicitação.</p>
     <div class="compare-links">
@@ -90,6 +92,7 @@ const pathname='/comparar-solucoes/';
     const selectedSection=document.querySelector<HTMLElement>('#selected-comparison');
     const selectedList=document.querySelector<HTMLOListElement>('#selected-comparison-list');
     const status=document.querySelector<HTMLElement>('#compare-chooser-status');
+    const clear=document.querySelector<HTMLButtonElement>('#clear-comparison');
     const share=document.querySelector<HTMLButtonElement>('#copy-comparison-link');
     const print=document.querySelector<HTMLButtonElement>('#print-comparison');
     const shareStatus=document.querySelector<HTMLElement>('#copy-comparison-status');
@@ -97,13 +100,14 @@ const pathname='/comparar-solucoes/';
     const pairEmail=document.querySelector<HTMLAnchorElement>('#contact-comparison-email');
     const pairDisclosure=document.querySelector<HTMLElement>('#comparison-channel-disclosure');
     const catalog=new Map(comparisonOptions.map(item=>[item.slug,item]));
-    if(selectedSection&&selectedList&&status&&share&&print&&shareStatus&&pairWhatsApp&&pairEmail&&pairDisclosure&&buttons.length===catalog.size){
+    if(selectedSection&&selectedList&&status&&clear&&share&&print&&shareStatus&&pairWhatsApp&&pairEmail&&pairDisclosure&&buttons.length===catalog.size){
       const selected=new Set<string>();
       let revision=0;
       let copyPending=false;
       const render=()=>{
         revision++;
         shareStatus.textContent='';
+        clear.hidden=selected.size===0;
         share.hidden=selected.size!==2||!navigator.clipboard?.writeText;
         print.hidden=selected.size!==2||typeof window.print!=='function';
         share.disabled=copyPending;
@@ -182,6 +186,14 @@ const pathname='/comparar-solucoes/';
           render();
         });
       }
+      // F288: clear both selections and the shared fragment in one action.
+      // Keep keyboard visitors at the first category selector.
+      clear.addEventListener('click',()=>{
+        selected.clear();
+        window.history.replaceState(null,'',window.location.pathname);
+        render();
+        buttons[0]?.focus();
+      });
       // F203: explicit visitor print, with no persisted or submitted data.
       print.addEventListener('click',()=>{if(selected.size===2)window.print();});
       share.addEventListener('click',async()=>{
@@ -238,6 +250,12 @@ const pathname='/comparar-solucoes/';
     #copy-comparison-link:disabled{opacity:.6;cursor:wait}
     #copy-comparison-status{color:#625a50;margin-top:14px}
     #copy-comparison-status:empty{display:none}
+    .compare-clear{font:inherit;font-weight:750;cursor:pointer;
+      min-height:44px;padding:10px 16px;border:1px solid #d3b99d;
+      border-radius:10px;color:#884100;background:#fffaf4}
+    .compare-clear:hover{background:#fff0db}
+    .compare-clear:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .compare-clear[hidden]{display:none!important}
     .compare-selector{font:inherit;font-weight:750;color:#793800;background:#fffaf4;border:1px solid #d3b99d;border-radius:10px;padding:10px 12px;min-height:44px;cursor:pointer;margin-top:20px;text-align:left}
     .compare-selector[aria-pressed="true"]{color:#14583d;background:#e6f5ec;border-color:#287c5b}
     .compare-selector[disabled]{opacity:.55;cursor:not-allowed}
@@ -267,7 +285,7 @@ const pathname='/comparar-solucoes/';
       .selected-comparison-list{grid-template-columns:repeat(2,minmax(0,1fr))}
       .selected-comparison-list .compare-card{break-inside:avoid;border-color:#767067}
       .selected-comparison-list .compare-links{display:none!important}
-      .compare-output-actions,.compare-contact-note,#copy-comparison-status,
+      .compare-clear,.compare-output-actions,.compare-contact-note,#copy-comparison-status,
       #contact-comparison-whatsapp,#contact-comparison-email{display:none!important}
     }
   </style>

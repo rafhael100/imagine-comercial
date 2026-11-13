@@ -548,6 +548,28 @@ try {
     await page.locator('[data-compare-select="landing-pages"]').click();
     assert.equal(await page.locator('#selected-comparison-list li').count(),0);
     assert.equal(await page.locator('#selected-comparison').isVisible(),false);
+    // F288: one action clears both local curated comparison choices, restores
+    // focus, hides external pair channels and strips the shareable fragment.
+    const clearComparison=page.locator('#clear-comparison');
+    assert.equal(await clearComparison.isVisible(),false,
+      'F288 clear stays hidden when no comparison is selected');
+    await page.goto(comparisonLink,{waitUntil:'load',timeout});
+    assert.equal(await page.locator('#selected-comparison-list li').count(),2);
+    assert.equal(await clearComparison.isVisible(),true,
+      'F288 clear is visible when two services are selected');
+    await clearComparison.click();
+    assert.equal(await page.locator('#selected-comparison-list li').count(),0,
+      'F288 removes both comparison cards');
+    assert.equal(await page.locator('#selected-comparison').isVisible(),false);
+    assert.equal(new URL(page.url()).hash,'','F288 drops reviewed pair token');
+    assert.equal(new URL(page.url()).search,'','F288 never stores query values');
+    assert.equal(await page.locator('#contact-comparison-whatsapp').isVisible(),false,
+      'F288 hides external comparison channel');
+    assert.equal(await clearComparison.isVisible(),false,
+      'F288 clear is hidden again after resetting');
+    assert.equal(await page.locator('[data-compare-select]').first().evaluate(
+      node=>node===document.activeElement),true,
+      'F288 restores keyboard focus to the first comparison control');
     await page.locator('.compare-card a[href="/contato/#landing-pages"]').click();
     await page.waitForURL(host+'/contato/#landing-pages');
     assert.equal(await page.locator('#service-choice').inputValue(),'landing-pages',
