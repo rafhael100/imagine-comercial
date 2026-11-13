@@ -10,6 +10,9 @@ const states = new Set(['candidate', 'hold', 'approved']);
 // F278: a source HOLD is a deliberate product/SEO block, not a flag that
 // another caller may elevate merely by supplying status:'approved'.
 const heldLegacyPaths=new Set(legacyUrls.filter(x=>x.status==='hold').map(x=>x.from));
+// F280: the final review-rule renderer may only emit individually inventoried
+// candidate sources. A valid arbitrary path is NOT a reviewed migration URL.
+const candidateLegacyPaths=new Set(legacyUrls.filter(x=>x.status==='candidate').map(x=>x.from));
 // Redirecionamentos legados não podem sequestrar rotas canônicas nem arquivos
 // essenciais de indexação, mesmo quando o manifesto marca uma linha como HOLD.
 const protectedPaths = new Set(['/robots.txt', '/sitemap.xml', '/404.html']);
@@ -67,6 +70,8 @@ export function validateRedirectPlan(entries, {publicPaths = sitePages.map(x=>x.
 export function toCloudflareRedirectRules(manifest) {
   if (!manifest || !issuedPlans.has(manifest))
     throw new Error('validated manifest required');
+  if(manifest.active.some(rule=>!candidateLegacyPaths.has(rule.from)))
+    throw new Error('redirects: unreviewed source cannot generate a 301 rule');
   // Isto é apenas uma representação para revisão: não escreve _redirects nem altera DNS.
   return manifest.active.map(({from,to,statusCode})=>from+' '+to+' '+statusCode).join('\n');
 }
