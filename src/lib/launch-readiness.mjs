@@ -19,22 +19,48 @@ export const RELEASE_GATES=Object.freeze([
 ]);
 const ID=/^[a-z][a-z0-9-]{2,63}$/;
 const EVIDENCE=/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/(?:issues|pull|actions\/runs)\/[0-9]+$/;
-function plain(x){
- return x!==null&&typeof x==='object'&&!Array.isArray(x)&&Object.getPrototypeOf(x)===Object.prototype;
+function plainOwnData(x){
+ if(x===null||typeof x!=='object'||Array.isArray(x)||
+    Object.getPrototypeOf(x)!==Object.prototype)return false;
+ return Reflect.ownKeys(x).every(key=>{
+   if(typeof key!=='string')return false;
+   const d=Object.getOwnPropertyDescriptor(x,key);
+   return d?.enumerable===true&&Object.hasOwn(d,'value');
+ });
 }
-export function evaluateLaunchReadiness({gates=[],requestedTarget='production'}={}){
+function exactRecord(x,fields){
+ return plainOwnData(x)&&Reflect.ownKeys(x).length===fields.length&&
+   fields.every(key=>Object.hasOwn(x,key))&&
+   Reflect.ownKeys(x).every(key=>fields.includes(key));
+}
+function safeArray(value,limit){
+ if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype||
+    value.length>limit)return false;
+ const names=Reflect.ownKeys(value);
+ if(names.length!==value.length+1)return false;
+ for(let i=0;i<value.length;i++){
+   const d=Object.getOwnPropertyDescriptor(value,String(i));
+   if(!d||d.enumerable!==true||!Object.hasOwn(d,'value'))return false;
+ }
+ return true;
+}
+export function evaluateLaunchReadiness(input={}){
+ // F294: fail closed before reading any untrusted "approval" getter.
+ if(!plainOwnData(input)||
+    Reflect.ownKeys(input).some(key=>!['gates','requestedTarget'].includes(key)))
+   throw new Error('readiness: invalid review input');
+ const {gates=[],requestedTarget='production'}=input;
  if(requestedTarget!=='production'&&requestedTarget!=='staging')
    throw new Error('readiness: invalid target');
- if(!Array.isArray(gates)||gates.length>RELEASE_GATES.length)
+ if(!safeArray(gates,RELEASE_GATES.length))
    throw new Error('readiness: invalid gate inventory');
  const records=new Map();
  for(const item of gates){
-   if(!plain(item)||Object.keys(item).length!==3||
-     !['id','status','evidenceUrls'].every(k=>Object.hasOwn(item,k))||
+   if(!exactRecord(item,['id','status','evidenceUrls'])||
      typeof item.id!=='string'||!ID.test(item.id)||
      !RELEASE_GATES.includes(item.id)||records.has(item.id)||
      !['pending','reviewed','blocked'].includes(item.status)||
-     !Array.isArray(item.evidenceUrls)||item.evidenceUrls.length>10||
+     !safeArray(item.evidenceUrls,10)||
      !item.evidenceUrls.every(u=>typeof u==='string'&&EVIDENCE.test(u))||
      new Set(item.evidenceUrls).size!==item.evidenceUrls.length||
      (item.status==='reviewed'&&item.evidenceUrls.length===0))
