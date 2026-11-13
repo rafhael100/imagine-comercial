@@ -65,9 +65,19 @@ function checkNetworks(root,service){
     Object.hasOwn(root.networks,'default'));
   const n=root.networks.default;
   requireThat(object(n)&&
-    exactKeys(n,new Set(['name']))&&
+    exactKeys(n,new Set(['name','ipam']))&&
     (n.name===undefined||
       (typeof n.name==='string'&&/^[a-zA-Z0-9_.-]{1,128}$/.test(n.name))));
+  // Compose V2 emits an empty/default IPAM section for its generated bridge
+  // network. Never accept custom subnets, drivers, options or external joins.
+  if(n.ipam!==undefined){
+    requireThat(exactKeys(n.ipam,new Set(['driver','config','options'])));
+    requireThat((n.ipam.driver===undefined||n.ipam.driver==='default')&&
+      (n.ipam.config===undefined||
+        Array.isArray(n.ipam.config)&&n.ipam.config.length===0)&&
+      (n.ipam.options===undefined||
+        object(n.ipam.options)&&Object.keys(n.ipam.options).length===0));
+  }
 }
 /**
  * expectedImage and expectedAuthPath come from the operator's already-
