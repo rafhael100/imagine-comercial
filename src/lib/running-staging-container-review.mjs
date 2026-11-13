@@ -83,7 +83,8 @@ function approvedLimits(hostConfig){
     hostConfig.Memory===268435456&&
     hostConfig.NanoCpus===500000000);
   const drop=array(hostConfig.CapDrop);
-  insist(drop.length===1&&drop[0].toUpperCase()==='ALL');
+  insist(drop.length===1&&typeof drop[0]==='string'&&
+    drop[0].toUpperCase()==='ALL');
   insist(hostConfig.CapAdd===null||array(hostConfig.CapAdd).length===0);
   insist(array(hostConfig.SecurityOpt).some(x=>
     x==='no-new-privileges:true'||x==='no-new-privileges'));
@@ -108,7 +109,8 @@ export function reviewRunningPrivateStagingContainer({
     validProject(project)&&
     labels['com.docker.compose.service']==='static-review'&&
     labels['com.docker.compose.oneoff']==='False'&&
-    labels['com.docker.compose.project.working_dir']===projectRoot&&
+    [projectRoot,resolve(projectRoot,'ops/staging')].includes(
+      labels['com.docker.compose.project.working_dir'])&&
     labels['com.docker.compose.project.config_files']===
       resolve(projectRoot,'ops/staging/compose.yaml'));
   insist(Array.isArray(config.Env)&&config.Env.includes('TZ=UTC')&&
