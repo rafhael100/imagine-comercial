@@ -5,8 +5,9 @@
  * No user traffic, network, accessibility claims about dynamic states.
  */
 import assert from 'node:assert/strict';
-const attr=(tag,name)=>new RegExp('\\b'+name+'\\s*=\\s*(["\\x27])(.*?)\\1','i')
-  .exec(tag)?.[2]??null;
+import {readStrictHtmlAttribute} from './html-attribute-reader.mjs';
+const attr=(tag,name)=>readStrictHtmlAttribute(tag,name);
+
 const normalize=text=>String(text).replace(/&nbsp;|&#160;/gi,' ')
   .replace(/&amp;/gi,'&').replace(/\s+/g,' ').trim();
 const descriptive=text=>{
