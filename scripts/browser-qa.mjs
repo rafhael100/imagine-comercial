@@ -180,6 +180,10 @@ try {
         assert.equal(await disclosure.evaluate(el=>el===document.activeElement),true,
           'F290 desktop focus returns to its summary');
         await disclosure.click();
+        await page.locator('main h1').first().click();
+        assert.equal(await guidance.locator('a[href="/como-funciona/"]').isVisible(),false,
+          'F295 clicking outside dismisses the desktop guidance menu');
+        await disclosure.click();
         await disclosure.click();
         assert.equal(await guidance.locator('a[href="/como-funciona/"]').isVisible(),false,
           'F244 guidance closes without JS');
@@ -635,6 +639,12 @@ try {
       await page.keyboard.press('Enter');
       assert.equal(await page.locator('details.mobile-menu').getAttribute('open'),'',
         'F290 Enter reopens menu after Escape');
+      await page.locator('main h1').first().click();
+      assert.equal(await page.locator('details.mobile-menu').getAttribute('open'),null,
+        'F295 clicking outside dismisses native mobile navigation');
+      await summary.click();
+      assert.equal(await page.locator('details.mobile-menu').getAttribute('open'),'',
+        'F295 mobile menu may reopen after outside dismissal');
       await page.locator('nav[aria-label="Navegação móvel"] a[href="/comparar-solucoes/"]').click();
       await page.waitForURL(host+'/comparar-solucoes/');
       assert.equal(await page.locator('nav[aria-label="Navegação móvel"] a[aria-current="page"]').count(),1);
