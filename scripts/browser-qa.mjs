@@ -639,7 +639,9 @@ try {
       await page.keyboard.press('Enter');
       assert.equal(await page.locator('details.mobile-menu').getAttribute('open'),'',
         'F290 Enter reopens menu after Escape');
-      await page.locator('main h1').first().click();
+      // The open menu overlays the H1 by design. Click an actual exposed
+      // portion of the viewport left of the right-aligned menu.
+      await page.mouse.click(9,210);
       assert.equal(await page.locator('details.mobile-menu').getAttribute('open'),null,
         'F295 clicking outside dismisses native mobile navigation');
       await summary.click();
