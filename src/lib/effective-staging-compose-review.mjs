@@ -11,7 +11,10 @@ import {reviewPrivateStagingImage} from './private-staging-image-policy.mjs';
 
 const REQUIRED_SERVICE_KEYS=new Set([
   'image','restart','ports','user','read_only','cap_drop','security_opt',
-  'pids_limit','mem_limit','cpus','volumes','tmpfs','environment','networks'
+  'pids_limit','mem_limit','cpus','volumes','tmpfs','environment','networks',
+  // Docker Compose v2 canonical JSON adds null defaults even when omitted
+  // from reviewed YAML. Nonempty overrides remain forbidden.
+  'command','entrypoint'
 ]);
 const TARGETS=Object.freeze([
   '/usr/share/nginx/html',
@@ -92,6 +95,11 @@ export function reviewEffectivePrivateStagingCompose(
 
   const service=document.services['static-review'];
   requireThat(exactKeys(service,REQUIRED_SERVICE_KEYS));
+  for(const field of ['command','entrypoint']){
+    const value=service[field];
+    requireThat(value===undefined||value===null||
+      (Array.isArray(value)&&value.length===0));
+  }
   requireThat(service.user==='101:101'&&service.read_only===true&&
     service.restart==='no'&&
     Array.isArray(service.cap_drop)&&service.cap_drop.length===1&&
