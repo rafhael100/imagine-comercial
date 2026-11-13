@@ -6,7 +6,7 @@
 const HOLD='F258: private staging diagnostic chain incomplete (HOLD)';
 const yes=v=>{if(!v)throw Error(HOLD);};
 export function evaluateReadOnlyPrivateStagingChain({
-  preflight,container,nginx,http
+  preflight,container,nginx,http,methods
 }={}){
   yes(preflight?.config?.status==='REVIEWED_SOURCE_CONFIG_MATCH_ONLY'&&
     preflight?.buildIntegrity?.exactTreeBytesVerified===true&&
@@ -34,14 +34,24 @@ export function evaluateReadOnlyPrivateStagingChain({
     http?.canCollectPublicLeads===false&&
     http?.deploymentAuthorized===false&&
     http?.deploymentPerformed===false);
+  yes(methods?.status==='PRIVATE_METHODS_REVIEWED_NO_RELEASE_AUTHORITY'&&
+    methods?.anonymousHeadChallengesPassed===6&&
+    methods?.authenticatedHeadChecksPassed===6&&
+    methods?.forbiddenMethodChecksPassed===12&&
+    methods?.totalChecks===24&&
+    methods?.onlyLoopbackTargetUsed===true&&
+    methods?.canCollectPublicLeads===false&&
+    methods?.productionAuthorized===false&&
+    methods?.deploymentPerformed===false);
   return Object.freeze({
     schema:'imagine.comercial.private-staging-diagnostic-chain.v1',
     status:'PRIVATE_DIAGNOSTIC_CHAIN_PASSED_NOT_RELEASE_APPROVAL',
-    validatedGates:4,
+    validatedGates:5,
     localSourceAndBuildPreflightPassed:true,
     runningContainerInspectPassed:true,
     loadedNginxConfigPassed:true,
     completePrivateHttpByteParityPassed:true,
+    privateHttpMethodBoundaryPassed:true,
     externalTlsAndFirewallIndependentlyVerified:false,
     imageOriginAndLiveDigestIndependentlyVerified:false,
     portalCrmDurableDeliveryVerified:false,
