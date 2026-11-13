@@ -44,7 +44,7 @@ test('F153 rejects duplicate section anchors and unsupported inputs without leak
   assert.throws(()=>editorialHeadingId('  texto com espaços  '),/F153/);
 });
 
-test('F153 article template links to real section IDs without scripts or external redirects',()=>{
+test('F153 article template keeps approved section links without visitor capture or outbound requests',()=>{
   const template=readFileSync(
     new URL('../src/pages/conteudos/[slug].astro',import.meta.url),'utf8');
   assert.match(template,/createEditorialOutline\(article\)/);
@@ -52,5 +52,8 @@ test('F153 article template links to real section IDs without scripts or externa
   assert.match(template,/href=\{'#'\+section\.id\}/);
   assert.match(template,/id=\{section\.id\}/);
   assert.match(template,/outline\.map/);
-  assert.doesNotMatch(template,/<form\b|<input\b|window\.location|fetch\s*\(/i);
+  // F304 deliberately allows local-only clipboard enhancement of the
+  // already-approved section anchors, never a form or network transport.
+  assert.match(template,/window\.location\.origin\+window\.location\.pathname\+'#'\+id/);
+  assert.doesNotMatch(template,/<form\b|<input\b|<textarea\b|fetch\s*\(|sendBeacon\s*\(|XMLHttpRequest|localStorage|sessionStorage|document\.cookie/i);
 });
