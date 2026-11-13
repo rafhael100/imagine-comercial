@@ -28,6 +28,12 @@ Esta verificação **não** autoriza publicar o site nem substituir os demais te
 
 A cadeia F258 passa a ter **seis etapas**, incluindo a revisão de caminhos reservados com corpo de 404 comprovadamente igual ao `dist/404.html` obtido de um pacote com SHA-256 independente. O operador poderá executar `IMAGINE_PRIVATE_STAGING_REVIEW=1 node scripts/check-private-staging-reserved-routes.mjs --port=4321` apenas depois de revisar o build, a senha e o ambiente de rede privado. Este comando prova no máximo a observação HTTP do momento, e continua **sem autorização de produção**. Consulte `docs/F293-PRIVATE-STAGING-RESERVED-ROUTES.md`.
 
+## F302 — proteção adicional contra dotfiles no Nginx privado
+
+O Nginx revisado nega qualquer segmento iniciado por ponto, inclusive `/.env.local`, `/.gitignore`, `/.github/` e arquivos ocultos em subdiretórios. A regra anterior bloqueava especificamente `/.env`, mas não cobria todas as variantes com sufixo. Os nomes reservados `/_redirects` e `/_headers` continuam bloqueados. A política de origem exata F253 foi atualizada deliberadamente junto com a alteração, para impedir regressões silenciosas.
+
+Esta defesa **não dispensa** a validação dos bytes de `dist`, a revisão HTTP da F293, as demais cinco verificações e o aceite de segurança independente. Não implica que a configuração esteja carregada em uma VPS real. **Nenhum container é iniciado automaticamente**.
+
 ## Procedimento futuro para operador autorizado
 
 1. **Não executar no servidor de produção nem reutilizar dados pessoais.** Preparar um workspace privado/contêiner isolado. Validar o código e o pacote com `npm ci --no-audit --no-fund`, `npm run build` e `node scripts/verify-dist.mjs` antes de copiar artefatos.
