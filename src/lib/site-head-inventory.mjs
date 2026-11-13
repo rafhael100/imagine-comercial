@@ -3,10 +3,12 @@
  * all indexable, built site pages, not only their canonical/sitemap alignment.
  */
 import assert from 'node:assert/strict';
+import {readStrictHtmlAttribute} from './html-attribute-reader.mjs';
 
 const headOf=html=>/<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(html)?.[1]??null;
 const tags=(html,name)=>[...html.matchAll(new RegExp('<'+name+'\\b[^>]*>','gi'))].map(x=>x[0]);
-const attribute=(tag,key)=>new RegExp('\\b'+key+'\\s*=\\s*(["\\x27])(.*?)\\1','i').exec(tag)?.[2]??null;
+const attribute=(tag,key)=>readStrictHtmlAttribute(tag,key);
+
 const normalize=x=>x.replaceAll('&amp;','&').replaceAll('&nbsp;',' ')
   .replace(/\s+/g,' ').trim().normalize('NFKC').toLocaleLowerCase('pt-BR');
 
