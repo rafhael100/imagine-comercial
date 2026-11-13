@@ -13,7 +13,7 @@ import {services} from '../data/services.mjs';
 import {verifySignedCatalog} from './verify-signed-catalog.mjs';
 import {enforceReleasePin,payloadSha256} from './release-pin.mjs';
 import {enforceSignedPublicationTime} from './signed-publication-time.mjs';
-import {mergeApprovedServiceMetadata} from './build-catalog.mjs';
+import {mergeApprovedServiceMetadata} from './merge-approved-service-metadata.mjs';
 
 const MAX_RELEASES=32;
 const knownSlugs=new Set(services.map(item=>item.slug));
