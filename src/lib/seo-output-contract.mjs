@@ -3,12 +3,10 @@
  * Somente leitura do build estático. Não acessa Google ou ambientes produtivos.
  */
 import assert from 'node:assert/strict';
+import {readStrictHtmlAttribute} from './html-attribute-reader.mjs';
 
 const tags = (html, tag) => html.match(new RegExp('<' + tag + '\\b[^>]*>', 'gi')) ?? [];
-const attr = (tag, name) => {
-  const result = tag.match(new RegExp('\\b' + name + '\\s*=\\s*(["\\x27])(.*?)\\1', 'i'));
-  return result?.[2] ?? null;
-};
+const attr = (tag,name) => readStrictHtmlAttribute(tag,name);
 
 export function verifyIndexablePage(html, expectedCanonical) {
   assert.equal(typeof html, 'string');
