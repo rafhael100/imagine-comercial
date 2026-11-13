@@ -13,6 +13,8 @@ import {buildStagingHostRouteChecklist} from '../src/lib/staging-host-route-matr
 import {sitePages} from '../src/data/services.mjs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {reviewLegacyCutoverCoverage} from '../src/lib/legacy-cutover-coverage.mjs';
+import {reportUnverifiedPrivateStaging}
+  from '../src/lib/private-staging-prerequisite-report.mjs';
 
 function requestedTarget(argv){
   if(argv.length===0) return 'production';
@@ -34,6 +36,7 @@ export function renderReadinessReport(argv=[]){
     legacyContactIntake,
     legacyCutover:reviewLegacyCutoverCoverage(),
     portalCrmIntegration:reviewPortalCrmOperationalBoundary(),
+    privateStagingLeaseweb:reportUnverifiedPrivateStaging(),
     legacyPublicServiceScope:reviewLegacyPublicOfferings(),
     canonicalHostMigration:{
       target:getCanonicalHostPolicy().canonicalOrigin,
