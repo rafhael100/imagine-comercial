@@ -3,35 +3,57 @@
  * Avoid mistaking data-href / aria-href / quoted attribute contents for
  * navigable links. This is a bounded static audit, not a DOM parser.
  */
-const TAG_START=/<a(?=[\s>])/gi;
 const ATTRIBUTE=/([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>]+)))?/y;
+const HTML_TAG=/^<\/?([a-z][a-z0-9:-]*)(?=[\s/>])/i;
+const RAW_TEXT=new Set(['script','style','textarea','title','xmp','iframe','noembed','noframes']);
 
+/**
+ * F286: scan actual HTML tag boundaries, respecting quoted attributes and
+ * comment/raw-text/template contexts. This remains a bounded compiled-HTML
+ * audit, not a replacement for a browser's parser or a sanitizer.
+ */
 export function anchorOpeningTags(html){
   if(typeof html!=='string')throw Error('F268: compiled HTML required');
-  // F285: raw-text/RCDATA containers are not public navigation. HTML
-  // source examples inside textarea/title/iframe must not satisfy link
-  // reachability; preserve noscript because its links work without JS.
-  const source=html.replace(/<!--[\s\S]*?(?:-->|$)/g,'')
-    .replace(/<(script|style|template|textarea|title|xmp|iframe|noembed|noframes)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'');
   const tags=[];
-  TAG_START.lastIndex=0;
-  let match;
-  while((match=TAG_START.exec(source))!==null){
-    const begin=match.index;
-    let quote=null, end=-1;
-    for(let i=begin+2;i<source.length;i++){
-      const ch=source[i];
+  let at=0,templateDepth=0;
+  while((at=html.indexOf('<',at))!==-1){
+    if(html.startsWith('<!--',at)){
+      const end=html.indexOf('-->',at+4);
+      at=end<0?html.length:end+3;
+      continue;
+    }
+    const opening=HTML_TAG.exec(html.slice(at));
+    if(!opening){at++;continue;}
+    const name=opening[1].toLowerCase();
+    const closing=html[at+1]==='/';
+    let quote=null,end=-1;
+    for(let i=at+opening[0].length;i<html.length;i++){
+      const ch=html[i];
       if(quote){
         if(ch===quote)quote=null;
         continue;
       }
       if(ch==='"'||ch==="'"){quote=ch;continue;}
-      if(ch==='<')throw Error('F268: malformed anchor opening tag');
+      if(ch==='<')throw Error('F268: malformed opening tag');
       if(ch==='>'){end=i;break;}
     }
-    if(end<0)throw Error('F268: unterminated anchor opening tag');
-    tags.push(source.slice(begin,end+1));
-    TAG_START.lastIndex=end+1;
+    if(end<0)throw Error('F268: unterminated opening tag');
+    if(name==='template'){
+      // A template's fragment is inert even with nested templates.
+      if(closing)templateDepth=Math.max(0,templateDepth-1);
+      else templateDepth++;
+    }else if(!closing&&RAW_TEXT.has(name)){
+      // The browser treats these contents as raw text/RCDATA, not links.
+      // A missing closing tag consumes the remainder, never inventing URLs.
+      const close=new RegExp('<\\/'+name+'\\s*>','gi');
+      close.lastIndex=end+1;
+      const match=close.exec(html);
+      at=match?close.lastIndex:html.length;
+      continue;
+    }else if(!closing&&name==='a'&&templateDepth===0){
+      tags.push(html.slice(at,end+1));
+    }
+    at=end+1;
   }
   return tags;
 }
