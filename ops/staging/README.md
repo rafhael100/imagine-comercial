@@ -34,6 +34,10 @@ O Nginx revisado nega qualquer segmento iniciado por ponto, inclusive `/.env.loc
 
 Esta defesa **não dispensa** a validação dos bytes de `dist`, a revisão HTTP da F293, as demais cinco verificações e o aceite de segurança independente. Não implica que a configuração esteja carregada em uma VPS real. **Nenhum container é iniciado automaticamente**.
 
+## F303 — ampliar a verificação HTTP de arquivos privados
+
+O último gate do diagnóstico privado agora revisa **12 caminhos sensíveis por GET anônimo e autenticado (24 requisições)**, incluindo variantes `/.env.production`, `/.gitignore`, `/.htpasswd` e diretórios ocultos aninhados. É uma prova adicional de comportamento real do Nginx depois da F302, **não uma alteração de contagem dos seis gates**. Requer imagem, pacote e hash independentes, credenciais privadas e acesso a staging realmente autorizado. Veja `docs/F293-PRIVATE-STAGING-RESERVED-ROUTES.md`.
+
 ## Procedimento futuro para operador autorizado
 
 1. **Não executar no servidor de produção nem reutilizar dados pessoais.** Preparar um workspace privado/contêiner isolado. Validar o código e o pacote com `npm ci --no-audit --no-fund`, `npm run build` e `node scripts/verify-dist.mjs` antes de copiar artefatos.
