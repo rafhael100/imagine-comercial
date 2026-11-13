@@ -52,6 +52,12 @@ test('F20 mantém inventário legado permitido sem ativação silenciosa', () =>
   const explicitlyApproved = validateRedirectPlan([
     approved('/pagina-de-contato-antiga.html')
   ]);
-  assert.equal(toCloudflareRedirectRules(explicitlyApproved),
-    '/pagina-de-contato-antiga.html /contato/ 301');
+  // F280: syntactically valid is not equivalent to a reviewed 301 source.
+  assert.throws(()=>toCloudflareRedirectRules(explicitlyApproved),
+    /unreviewed source cannot generate a 301 rule/);
+  const inventoriedCandidate=validateRedirectPlan([
+    approved('/fale-conosco.html')
+  ]);
+  assert.equal(toCloudflareRedirectRules(inventoriedCandidate),
+    '/fale-conosco.html /contato/ 301');
 });
