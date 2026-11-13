@@ -7,8 +7,6 @@
 import assert from 'node:assert/strict';
 import {anchorOpeningTags,requiredAnchorHref} from './html-anchor-reader.mjs';
 
-const TAG=/<a\b[^>]*>/gi;
-const HREF=/\bhref\s*=\s*(["'])(.*?)\1/i;
 const ROOT_ROUTE=/^\/(?:[a-z0-9-]+\/)*$/;
 const SAFE_FRAGMENT=/^[A-Za-z0-9_:-]+$/;
 const EXTERNAL=/^(?:https:\/\/[^\/\s?#]+(?:[^\s]*)?|mailto:[^\s]+|tel:[+0-9-]+)$/i;
