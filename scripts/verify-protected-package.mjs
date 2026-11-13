@@ -11,6 +11,8 @@
 import {verifyProtectedArtifact} from '../src/lib/protected-artifact-verification.mjs';
 import {readApprovedFile} from '../src/lib/read-approved-file.mjs';
 import {readProtectedDist} from '../src/lib/read-protected-dist.mjs';
+import {getPinnedHistoryInputs}
+  from '../src/lib/pinned-signed-catalog-history.mjs';
 
 function localFile(path,max,label) {
   if(typeof path!=='string' || path.includes('\0'))
@@ -36,7 +38,8 @@ const verified=verifyProtectedArtifact({
   pins:{
     expectedReleaseId:env.IMAGINE_CATALOG_EXPECTED_RELEASE_ID,
     expectedPayloadSha256:env.IMAGINE_CATALOG_EXPECTED_PAYLOAD_SHA256
-  }
+  },
+  ...(getPinnedHistoryInputs(env)||{})
 });
 console.log('Protected package verified OFFLINE (NOT authorized for deploy):',
   JSON.stringify(verified));
