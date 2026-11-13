@@ -46,7 +46,7 @@ test('F189 eight canonical question anchors and four topic links, no personal st
 test('F191 valid FAQ anchors reveal native details without saving visitor state',()=>{
  assert.match(file,/const approved=new Set/);
  assert.match(file,/\.faq-entry\[id\]/);
- assert.match(file,/const anchor=window\.location\.hash\.slice\(1\)/);
+ assert.match(file,/const reveal=\(\)=>openApprovedAnswer\(window\.location\.hash\.slice\(1\)\)/);
  assert.match(file,/if\(!approved\.has\(anchor\)\)return/);
  assert.match(file,/answer\.open=true/);
  assert.match(file,/window\.addEventListener\('hashchange',reveal\)/);

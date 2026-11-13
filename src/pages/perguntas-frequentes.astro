@@ -121,18 +121,24 @@ const pathname='/perguntas-frequentes/';
       collapse.addEventListener('click',()=>toggleVisible(false));
       // Static anchor links always remain usable, even after a filter.
       for(const link of document.querySelectorAll<HTMLAnchorElement>('.faq-index a[href^="#"]'))
-        link.addEventListener('click',()=>applyFilter('all'));
+        link.addEventListener('click',()=>{
+          applyFilter('all');
+          // F261: a link to the current hash does not trigger hashchange.
+          // Reopen that answer explicitly even after filters collapsed it.
+          const id=link.getAttribute('href')?.slice(1)||'';
+          openApprovedAnswer(id);
+        });
       applyFilter('all');
     }
-    const reveal=()=>{
-      const anchor=window.location.hash.slice(1);
+    function openApprovedAnswer(anchor:string){
       if(!approved.has(anchor))return;
       const entry=document.getElementById(anchor);
       if(entry?.closest<HTMLElement>('[data-faq-section]')?.hidden)
         applyFilter('all'); // valid deep links must never stay hidden
       const answer=entry?.querySelector<HTMLDetailsElement>('details.faq-item');
       if(answer)answer.open=true;
-    };
+    }
+    const reveal=()=>openApprovedAnswer(window.location.hash.slice(1));
     window.addEventListener('hashchange',reveal);
     reveal();
   </script>
