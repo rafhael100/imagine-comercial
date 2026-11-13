@@ -129,3 +129,30 @@ test('F264: removed, miswired or duplicate labels never count as accessible mapp
   const removed=html.replace('<label for="lead-phone">Telefone (regra final a definir)</label>','');
   assert.deepEqual(reviewLegacyBudgetPreviewParity(removed).unresolvedFields,['telephone']);
 });
+
+
+test('F265: commented or inert markup cannot forge a missing quote field',()=>{
+  const removed=html.replace('id="lead-email"','id="lead-email-unavailable"');
+  const fake='<label for="lead-email">Rótulo falso</label><input id="lead-email">';
+  const variants=[
+    '<!-- '+fake+' -->',
+    '<template>'+fake+'</template>',
+    '<noscript>'+fake+'</noscript>',
+    '<script>const fake = `'+fake+'`;</script>',
+    '<style>body::after {content: "'+fake+'";}</style>'
+  ];
+  for(const extra of variants){
+    const constructed=removed.replace('</body>',extra+'</body>');
+    const result=reviewLegacyBudgetPreviewParity(constructed);
+    assert.deepEqual(result.unresolvedFields,['email']);
+    assert.equal(result.visibleFields,6);
+    assert.equal(result.deploymentAuthorized,false);
+  }
+});
+test('F265: comment-only labels do not authenticate otherwise visible controls',()=>{
+  const omitted=html.replace('<label for="lead-phone">Telefone (regra final a definir)</label>','');
+  const fake='<!-- <label for="lead-phone">Telefone</label> -->';
+  const result=reviewLegacyBudgetPreviewParity(omitted.replace('</fieldset>',fake+'</fieldset>'));
+  assert.deepEqual(result.unresolvedFields,['telephone']);
+  assert.equal(result.legacyContactIntakeParityApproved,false);
+});

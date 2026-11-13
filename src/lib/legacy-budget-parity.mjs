@@ -28,9 +28,14 @@ const allowedControlId=/^lead-[a-z][a-z0-9-]*$/;
 function actualPreviewIds(previewHtml){
   if(typeof previewHtml!=='string'||previewHtml.length<1||previewHtml.length>500_000)
     throw new Error('F83: invalid private preview');
+  // F265: comments and inert/raw-text containers are never live controls.
+  // This is deliberately a conservative fixed-fixture review, not an HTML parser.
+  const activeMarkup=previewHtml
+    .replace(/<!--[\s\S]*?-->/g,'')
+    .replace(/<(script|style|template|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'');
   const counts=new Map();
   const tagPattern=/<(?:input|select|textarea)\b[^>]*>/gi;
-  for(const match of previewHtml.matchAll(tagPattern)){
+  for(const match of activeMarkup.matchAll(tagPattern)){
     const tag=match[0];
     const id=tag.match(/\bid="([^"]+)"/i)?.[1];
     if(!id||!allowedControlId.test(id))continue;
@@ -46,7 +51,7 @@ function actualPreviewIds(previewHtml){
   // A visible control without one matching label is not a usable form field.
   // This remains an offline fixture heuristic, never a substitute for browser QA.
   const labelCounts=new Map();
-  for(const match of previewHtml.matchAll(/<label\b[^>]*>/gi)){
+  for(const match of activeMarkup.matchAll(/<label\b[^>]*>/gi)){
     const id=match[0].match(/\bfor="([^"]+)"/i)?.[1];
     if(id&&allowedControlId.test(id))labelCounts.set(id,(labelCounts.get(id)||0)+1);
   }
