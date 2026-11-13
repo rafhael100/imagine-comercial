@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const layout=readFileSync(new URL('../src/layouts/BaseLayout.astro',import.meta.url),'utf8');
 const home=readFileSync(new URL('../src/pages/index.astro',import.meta.url),'utf8');
+const contact=readFileSync(new URL('../src/pages/contato.astro',import.meta.url),'utf8');
 const contrastOnWhite = hex => {
   const channels=[1,3,5].map(start=>parseInt(hex.slice(start,start+2),16)/255)
     .map(channel=>channel<=0.04045?channel/12.92:((channel+0.055)/1.055)**2.4);
@@ -22,6 +23,10 @@ test('F260 shared copy uses neutral Imagine ink, not previous blue palette',()=>
   for(const obsolete of ['#152944','#4b5c74','#526178','#d5deea'])
     assert.equal(layout.includes(obsolete),false,'old blue text/border '+obsolete);
   assert.equal(home.includes('#4f617c'),false,'old blue hero support');
+  for(const obsolete of ['#3c516c','#263d56','#182438','#536680'])
+    assert.equal(contact.includes(obsolete),false,'old blue contact color '+obsolete);
+  for(const selected of ['#56534e','#514c43','#171b19','#625c54'])
+    assert.ok(contact.includes(selected),'approved neutral contact color '+selected);
 });
 
 test('F260 accessible neutral copy meets WCAG AA for text on white',()=>{
