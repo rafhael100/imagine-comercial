@@ -5,6 +5,8 @@
  * No network requests, user data, URL logging or dynamic allowlist.
  */
 import assert from 'node:assert/strict';
+import {readStrictHtmlAttribute} from './html-attribute-reader.mjs';
+import {anchorOpeningTags,requiredAnchorHref} from './html-anchor-reader.mjs';
 import {
   contactChannels,contactWhatsAppUrl,contactEmailUrl
 } from '../data/contact-channels.mjs';
@@ -15,8 +17,8 @@ import {
 import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from '../data/briefing-curado.mjs';
 import {resolvePortalLoginLink} from './portal-login-link.mjs';
 
-const attr=(tag,key)=>new RegExp('\\b'+key+'\\s*=\\s*(["\\x27])(.*?)\\1','i')
-  .exec(tag)?.[2]??null;
+const attr=(tag,key)=>readStrictHtmlAttribute(tag,key);
+
 const blank=tag=>attr(tag,'target')==='_blank';
 const relSafe=tag=>{
   const rel=(attr(tag,'rel')??'').toLowerCase().split(/\s+/);
@@ -60,8 +62,8 @@ export function isApprovedPublicExternalHref(href){
 export function auditApprovedOutboundLinks(html){
   assert.equal(typeof html,'string','F149: compiled HTML required');
   let checked=0;
-  for(const tag of html.match(/<a\b[^>]*>/gi)??[]){
-    const href=attr(tag,'href');
+  for(const tag of anchorOpeningTags(html)){
+    const href=requiredAnchorHref(tag);
     if(href===null||href.startsWith('/')||href.startsWith('#'))continue;
     assert.ok(isApprovedPublicExternalHref(href),
       'F149: external destination is not an approved public channel');
