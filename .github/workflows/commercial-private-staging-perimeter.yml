@@ -1,0 +1,44 @@
+name: Commercial private VPS perimeter - anonymous HTTPS only
+
+on:
+  push:
+    branches:
+      - review/comercial-private-purchase-flow-2026-11-13
+    paths:
+      - 'ops/review/purchase/check_staging_unauthenticated.py'
+      - '.github/workflows/commercial-private-staging-perimeter.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-perimeter:
+    name: HTTPS real / unauthorized GET only / no credentials
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Validate expected negative decisions without network
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from importlib.util import spec_from_file_location,module_from_spec
+          from pathlib import Path
+          spec=spec_from_file_location("private_check",Path("ops/review/purchase/check_staging_unauthenticated.py"))
+          assert spec and spec.loader
+          m=module_from_spec(spec);spec.loader.exec_module(m)
+          accepted={'WWW-Authenticate':'Basic realm="Imagine private review"','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow'}
+          m.assert_denied(401,accepted)
+          for code,headers in ((200,accepted),(302,accepted),(401,{**accepted,'Cache-Control':'public'}),(401,{**accepted,'X-Robots-Tag':'index'}),(401,{**accepted,'WWW-Authenticate':'Bearer'})):
+              try: m.assert_denied(code,headers)
+              except ValueError: pass
+              else: raise AssertionError('Unsafe HTTP perimeter response was accepted')
+          print('PASS: 5 negative perimeter cases without network.')
+          PY
+      - name: Query exact approved VPS staging URLs anonymously, no secrets
+        run: |
+          set -euo pipefail
+          python3 ops/review/purchase/check_staging_unauthenticated.py
