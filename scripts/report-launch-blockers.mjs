@@ -12,6 +12,7 @@ import {getCanonicalHostPolicy} from '../src/lib/canonical-host-policy.mjs';
 import {buildStagingHostRouteChecklist} from '../src/lib/staging-host-route-matrix.mjs';
 import {sitePages} from '../src/data/services.mjs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
+import {reviewLegacyCutoverCoverage} from '../src/lib/legacy-cutover-coverage.mjs';
 
 function requestedTarget(argv){
   if(argv.length===0) return 'production';
@@ -31,6 +32,7 @@ export function renderReadinessReport(argv=[]){
     count:report.unresolved.length,
     checkedAgainst:'F42_STATIC_GATES_NOT_RUNTIME_VERIFICATION',
     legacyContactIntake,
+    legacyCutover:reviewLegacyCutoverCoverage(),
     portalCrmIntegration:reviewPortalCrmOperationalBoundary(),
     legacyPublicServiceScope:reviewLegacyPublicOfferings(),
     canonicalHostMigration:{
