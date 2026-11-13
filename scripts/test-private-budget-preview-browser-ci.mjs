@@ -34,6 +34,15 @@ try{
     page.on('pageerror',err=>errors.push(err.message));
     await page.setContent(html,{waitUntil:'load'});
     assert.equal(await page.locator('h1').count(),1);
+    assert.equal(await page.locator('img.brand-mark').count(),1,
+      'F266 real Imagine logo in private preview');
+    assert.equal(await page.locator('img.brand-mark').evaluate(img=>
+      img.complete&&img.naturalWidth===200&&img.naturalHeight===55),true,
+      'F266 original Imagine image must decode without network');
+    const primaryInk=await page.locator('h1').evaluate(node=>getComputedStyle(node).color);
+    assert.equal(primaryInk,'rgb(23, 27, 25)',
+      'F266 private quote copy uses approved Imagine graphite');
+
     assert.equal(await page.locator('dialog[open]').count(),1);
     assert.equal(await page.locator('form#private-budget-preview').count(),1);
     for(const [id,labelFragment] of controls){
