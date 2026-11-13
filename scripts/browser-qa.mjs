@@ -118,6 +118,13 @@ try {
       assert.ok(touchTargets.length>=5,'F259 enough navigation targets are visible');
       for(const link of touchTargets)
         assert.ok(link.height>=43.5,'F259 minimum 44px touch target: '+link.href);
+      // F262: six card titles are H3 children of the catalog's H2 heading.
+      if(route==='/servicos/'){
+        assert.equal(await page.locator('#service-catalog .card > h3').count(),services.length,
+          'F262 service cards use nested H3 titles');
+        assert.equal(await page.locator('#service-catalog .card > h2').count(),0,
+          'F262 service cards do not compete with section H2');
+      }
       const brandImage=page.locator('header a.brand img');
       assert.equal(await brandImage.count(),1,'F240 real Imagine logo visible on every route');
       assert.equal(await brandImage.getAttribute('src'),'/logo-imagine.png');
