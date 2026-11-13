@@ -4,6 +4,7 @@
  * authorship, prices, local addresses or publication dates.
  */
 import assert from 'node:assert/strict';
+import {readStrictHtmlAttribute} from './html-attribute-reader.mjs';
 
 const ORG='https://imaginecomunicacao.com.br/#organization';
 const ROOT='https://imaginecomunicacao.com.br/';
@@ -12,7 +13,8 @@ export function verifyJsonLdPage(html,canonical){
   assert.equal(typeof html,'string');
   assert.match(canonical,/^https:\/\/imaginecomunicacao\.com\.br\//);
   const entries=[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
-    .filter(match=>/\btype\s*=\s*["']application\/ld\+json["']/i.test(match[1]))
+    // F274: data-type and aria-type are NOT script type to Google.
+    .filter(match=>readStrictHtmlAttribute('<script'+match[1]+'>','type')==='application/ld+json')
     .map(match=>JSON.parse(match[2]));
   const find=type=>entries.filter(item=>item&&typeof item==='object'&&
     !Array.isArray(item)&&item['@type']===type);
