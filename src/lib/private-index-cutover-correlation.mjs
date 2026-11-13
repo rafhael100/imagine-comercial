@@ -11,7 +11,18 @@ import {reviewLegacyCutoverCoverage} from './legacy-cutover-coverage.mjs';
 
 const known=new Map(legacyUrls.map(x=>[x.from,x.status]));
 
-export function crossReviewIndexedCutover({inspections,decisions}={}){
+export function crossReviewIndexedCutover(payload={}){
+  // Reject unknown/hidden approval flags and accessors before property reads.
+  if(payload===null||typeof payload!=='object'||Array.isArray(payload)||
+     Object.getPrototypeOf(payload)!==Object.prototype)
+    throw Error('F283: invalid private source bundle');
+  const keys=Reflect.ownKeys(payload);
+  if(keys.length!==2||keys.some(k=>typeof k!=='string'||
+       !['inspections','decisions'].includes(k)||
+       Object.getOwnPropertyDescriptor(payload,k)?.enumerable!==true||
+       !Object.hasOwn(Object.getOwnPropertyDescriptor(payload,k),'value')))
+    throw Error('F283: invalid private source bundle');
+  const {inspections,decisions}=payload;
   // First validate both entire data sets using the independent contracts.
   // Do not touch individual properties on unvalidated inputs.
   const observed=reviewIndexedLegacyHoldExposure({inspections});
