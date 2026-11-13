@@ -41,3 +41,9 @@ jobs:
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/purchase-browser/bin/python" ops/review/purchase/test_home_to_purchase_http.py
+      - name: Protected preview 401 and four authenticated synthetic browser journeys
+        env:
+          IMAGINE_PRIVATE_PURCHASE_PREPARED_ROOT: ${{ runner.temp }}/comercial-purchase-review
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/purchase-browser/bin/python" ops/review/purchase/test_protected_staging_browser.py --ci-local
