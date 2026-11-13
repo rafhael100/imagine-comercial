@@ -8,6 +8,12 @@ Os arquivos estão em `ops/staging/`:
 - `compose.yaml`: exige imagem Nginx unprivileged **aprovada e fixada por digest** via `IMAGINE_STAGING_NGINX_IMAGE`, sem imagem padrão. Porta 4321 vinculada **apenas a 127.0.0.1**, sistema de arquivos read-only, processo UID 101, todas as capabilities removidas, `no-new-privileges`, limites de memória/PIDs e volumes de build somente-leitura.
 - `nginx.conf`: **exige HTTP Basic** de usuário fixo `reviewer` e senha bcrypt em arquivo externo, além de entregar assets estáticos sem autoindexação, usa 404 customizada, impede métodos que não sejam GET/HEAD, restringe arquivos de configuração e aplica os quatro cabeçalhos defensivos F28, além de **`X-Robots-Tag: noindex, nofollow, noarchive`** e `Cache-Control: no-store` a todas as respostas, inclusive erros. O HTML do build conserva canonical de produção para a futura migração, mas a prévia é **proibida de ser indexada**; esses cabeçalhos não substituem isolamento de rede.
 
+## Gate F253 — configuração imutável de staging em fonte
+
+Antes de obter segredos, imagens ou subir contêineres, execute `node scripts/check-reviewed-staging-config.mjs`. A F253 compara **todas as diretivas** de `compose.yaml` e `nginx.conf` com expectativas versionadas e rejeita quaisquer serviços, portas, volumes ou regras Nginx adicionais não revisados. A verificação também é obrigatória na CI e nos dois comandos de revisão F164/F167. Consulte `docs/F253-STAGING-CONFIG-LOCK.md`.
+
+Isso não verifica o `docker compose config` já interpolado, a imagem executada, TLS, firewall, SSH ou a configuração Nginx em execução; estes continuam verificação **independente e manual**. Se o gate estiver em HOLD, não executar Docker, publicar DNS ou prosseguir para homologação.
+
 ## Procedimento futuro para operador autorizado
 
 1. **Não executar no servidor de produção nem reutilizar dados pessoais.** Preparar um workspace privado/contêiner isolado. Validar o código e o pacote com `npm ci --no-audit --no-fund`, `npm run build` e `node scripts/verify-dist.mjs` antes de copiar artefatos.
