@@ -54,9 +54,10 @@ test('F254 checks canonical resolved Compose model but NEVER authorizes runtime'
     assert.equal(JSON.stringify(r).includes(secret),false);
   const bytes=mutate((_d,s)=>{s.mem_limit=268435456;s.cpus='0.5';});
   assert.equal(review(bytes,opts()).deploymentAuthorized,false);
-  const normalized=mutate((_d,service)=>{
+  const normalized=mutate((document,service)=>{
     service.command=null;
     service.entrypoint=null;
+    document.networks.default.ipam={driver:'default',config:[]};
   });
   assert.equal(review(normalized,opts()).deploymentAuthorized,false,
     'F255 actual Docker Compose normalizes omitted commands to null');
@@ -96,6 +97,10 @@ test('F254 rejects public ports, extra services, host network and elevated conta
     (_d,s)=>{s.environment.AWS_ACCESS_KEY_ID='SECRET';},
     (_d,s)=>{s.entrypoint=['/bin/sh','-c','printenv'];},
     (d)=>{d.networks.default.external=true;},
+    (d)=>{d.networks.default.ipam={driver:'bridge',config:[]};},
+    (d)=>{d.networks.default.ipam={driver:'default',
+      config:[{subnet:'0.0.0.0/0'}]};},
+    (d)=>{d.networks.default.ipam={driver:'default',options:{proxy:'unsafe'}};},
     (d)=>{d.secrets={secret:'value'};}
   ];
   for(const attack of attacks){
