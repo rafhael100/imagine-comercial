@@ -13,6 +13,7 @@ const image='nginxinc/nginx-unprivileged@sha256:'+('ab'.repeat(32));
 const authPath='/tmp/imagine-f255-synthetic-review-htpasswd';
 const forbidden=['IMAGINE_STAGING_REVIEW_PASSWORD','IMAGINE_STAGING_NGINX_IMAGE',
   'IMAGINE_STAGING_HTPASSWD_PATH','IMAGINE_EXPECTED_STAGING_TREE_SHA256'];
+let safeDiagnostic={stage:'preflight'};
 try{
   if(process.env.GITHUB_ACTIONS!=='true'||process.argv.length!==2||
      forbidden.some(k=>process.env[k]!==undefined))
@@ -24,9 +25,34 @@ try{
     env:{...process.env,IMAGINE_STAGING_NGINX_IMAGE:image,
       IMAGINE_STAGING_HTPASSWD_PATH:authPath}
   });
+  safeDiagnostic={stage:'docker-compose-config',exitOk:!run.error&&run.status===0,
+    stdoutPresent:!!run.stdout,stdoutInBounds:(run.stdout?.length??0)<=65536};
   if(run.error||run.status!==0||!run.stdout||run.stdout.length>65536)
     throw Error('F255: Docker Compose parser did not produce bounded JSON');
   const document=JSON.parse(run.stdout);
+  const service=document?.services?.['static-review']??{};
+  const volumes=Array.isArray(service.volumes)?service.volumes:[];
+  const ports=Array.isArray(service.ports)?service.ports:[];
+  safeDiagnostic={stage:'effective-review',
+    topLevelFieldCount:Object.keys(document??{}).length,
+    serviceFieldCount:Object.keys(service).length,
+    portsCount:ports.length,portHasLoopback:ports[0]?.host_ip==='127.0.0.1',
+    serviceReadonly:service.read_only===true,
+    volumeCount:volumes.length,
+    mountReadonlyFlags:volumes.map(v=>v.read_only===true),
+    volumeBindingFlags:volumes.map(v=>v.type==='bind'),
+    mountTargetsMatch:volumes.map(v=>[
+      '/usr/share/nginx/html','/etc/nginx/conf.d/default.conf',
+      '/etc/nginx/auth/.htpasswd'].includes(v.target)),
+    hasUser:service.user==='101:101',
+    capDropAll:service.cap_drop?.length===1&&service.cap_drop[0]==='ALL',
+    hasNoNewPrivileges:service.security_opt?.includes('no-new-privileges:true')===true,
+    imageMatches:service.image===image,hostNetworkPresent:service.network_mode!==undefined,
+    memLimitType:typeof service.mem_limit,
+    tmpfsType:typeof service.tmpfs,
+    tmpfsCount:Array.isArray(service.tmpfs)?service.tmpfs.length:-1,
+    hasDefaultNetwork:document?.networks?.default!==undefined
+  };
   const review=reviewEffectivePrivateStagingCompose(document,{
     projectRoot:resolve('.'),expectedImage:image,expectedAuthPath:authPath
   });
@@ -49,5 +75,9 @@ try{
 }catch{
   // Never echo raw resolved JSON: it may include host paths.
   console.error('F255: Docker Compose parser/effective model contract failed (NO-GO)');
+  // Only fixed boolean/number/type diagnostics: NO raw keys, values, digests,
+  // paths, image refs, env, volumes or resolved JSON in a public runner log.
+  if(process.env.GITHUB_ACTIONS==='true')
+    console.error('F255_SAFE_SHAPE '+JSON.stringify(safeDiagnostic));
   process.exitCode=1;
 }
