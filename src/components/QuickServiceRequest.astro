@@ -1,0 +1,54 @@
+---
+import { buildServices as services } from '../lib/build-catalog.mjs';
+import { composeCuratedContactLinks } from '../data/contact-objectives.mjs';
+import { contactWhatsAppUrl } from '../data/contact-channels.mjs';
+const copy: Record<string,string> = {
+  'criacao-de-sites':'Um site completo para apresentar sua empresa e seus serviços.',
+  'landing-pages':'Uma página focada na sua oferta, campanha ou lançamento.',
+  'onepage':'Sua empresa e seus contatos em uma única página.',
+  'sites-por-assinatura':'Conheça o modelo de site com implantação e assinatura.',
+  'gestao-google-ads':'Converse sobre campanhas para quem procura sua solução.',
+  'gestao-meta-ads':'Converse sobre campanhas no Instagram e no Facebook.'
+};
+---
+<section class="quick-hire section shell" aria-labelledby="quick-hire-title">
+  <div class="quick-hire-heading">
+    <div><p class="eyebrow">Seu próximo passo</p><h2 id="quick-hire-title">Escolha o serviço. Vamos começar.</h2></div>
+    <p>Já sabe o que precisa? Fale direto com a Imagine, com o serviço escolhido.</p>
+  </div>
+  <div class="quick-hire-grid">
+    {services.map(service=>(
+      <article class="quick-hire-card" data-quick-hire={service.slug}>
+        <p class="eyebrow">{service.eyebrow}</p>
+        <h3>{service.label}</h3>
+        <p class="quick-hire-description">{copy[service.slug]}</p>
+        <p class="quick-hire-price">Valores e condições na proposta</p>
+        <a class="cta quick-hire-action" data-quick-hire-action
+          href={contactWhatsAppUrl(composeCuratedContactLinks(service.slug).message)}
+          target="_blank" rel="noopener noreferrer"
+          aria-label={'Quero contratar '+service.label+' — conversar no WhatsApp'}
+          aria-describedby="quick-hire-notice">Quero contratar <span aria-hidden="true">↗</span></a>
+        <a class="quick-hire-details" href={'/servicos/'+service.slug+'/'}>Ver o que está incluído</a>
+      </article>
+    ))}
+  </div>
+  <p id="quick-hire-notice" class="quick-hire-notice">O botão abre o WhatsApp com o serviço escolhido. Você confere a mensagem e decide enviá-la. A contratação acontece após confirmar a proposta e as condições; nenhum pagamento é feito aqui.</p>
+</section>
+<style>
+  .quick-hire{padding-block:clamp(42px,6vw,76px)}
+  .quick-hire-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px}
+  .quick-hire-heading h2{margin:8px 0 0;max-width:650px}
+  .quick-hire-heading>p{max-width:310px;margin:0;color:#56534e}
+  .quick-hire-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  .quick-hire-card{display:flex;flex-direction:column;min-width:0;border:1px solid #dedbd5;border-radius:16px;padding:26px;background:#fff;box-shadow:0 5px 18px #171b1904}
+  .quick-hire-card .eyebrow{font-size:.68rem;letter-spacing:.09em;min-height:2.5em}
+  .quick-hire-card h3{font-size:1.5rem;line-height:1.2;margin:9px 0 12px}
+  .quick-hire-description{color:#56534e;margin:0 0 22px}
+  .quick-hire-price{font-size:.8rem;color:#655b50;margin:auto 0 14px;padding-top:8px}
+  .quick-hire-action{display:flex;justify-content:space-between;gap:12px;width:100%;min-height:48px;border-radius:8px}
+  .quick-hire-details{display:flex;min-height:44px;align-items:center;justify-content:center;font-size:.86rem;margin-top:6px;text-underline-offset:4px;color:#884100}
+  .quick-hire-notice{max-width:940px;color:#655b50;font-size:.83rem;line-height:1.65;margin:20px 0 0}
+  .quick-hire a:focus-visible{outline:3px solid #884100;outline-offset:4px}
+  @media(max-width:950px){.quick-hire-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.quick-hire-heading{display:block}.quick-hire-heading>p{margin-top:16px;max-width:600px}}
+  @media(max-width:550px){.quick-hire-grid{grid-template-columns:1fr}.quick-hire-card{padding:23px}.quick-hire-card .eyebrow{min-height:0}.quick-hire-card h3{font-size:1.4rem}}
+</style>
