@@ -56,6 +56,17 @@ jobs:
         run: node scripts/test-build-catalog.mjs
       - name: Provar build cumulativo Astro com releases parciais Ed25519 e verificador independente (F306)
         run: node scripts/test-cumulative-build-history-ci.mjs
+      - name: Obter emissor PHP do Portal em commit imutavel para paridade cumulativa (F307)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-portal
+          ref: fc67d01747f53bc2f49a54769611a0397ebde5a1
+          path: .qa/portal-signer
+          persist-credentials: false
+      - name: Verificar interoperabilidade PHP Sodium do Portal e compilar site cumulativo (F307)
+        run: |
+          php -r 'if (!extension_loaded("sodium") || !extension_loaded("mbstring")) { fwrite(STDERR,"F307 PHP extensions unavailable\n"); exit(2); }'
+          node scripts/test-portal-php-cumulative-build-ci.mjs
       - name: Conferir HTML padrão após restaurar a compilação
         run: node scripts/verify-dist.mjs
       - name: Verificar orcamento de arquivos estaticos
