@@ -7,6 +7,8 @@
  * No requests, redirects, visitor data, browser APIs or DOM mutation.
  */
 import assert from 'node:assert/strict';
+import {readStrictHtmlAttribute} from './html-attribute-reader.mjs';
+import {anchorOpeningTags,requiredAnchorHref} from './html-anchor-reader.mjs';
 import {services} from '../data/services.mjs';
 import {comparisonOptions} from '../data/service-comparison.mjs';
 import {encodeReviewedComparisonFragment} from '../data/reviewed-comparison-fragment.mjs';
@@ -18,8 +20,8 @@ const reviewedGoalHashes=new Set(guideGoals.map(goal=>
 if(reviewedGoalHashes.size!==5)throw Error('F196: invalid public goal fragments');
 const ROUTE=/^\/(?:[a-z0-9-]+\/)*$/;
 const FRAGMENT=/^[A-Za-z0-9_:-]+$/;
-const attr=(tag,name)=>new RegExp('\\b'+name+'\\s*=\\s*(["\\x27])(.*?)\\1','i')
-  .exec(tag)?.[2]??null;
+const attr=(tag,name)=>readStrictHtmlAttribute(tag,name);
+
 const serviceSlugs=new Set(services.map(s=>s.slug));
 // Only the fifteen canonical pairs from the reviewed comparison catalog.
 const reviewedComparisonHashes=new Set();
@@ -49,8 +51,8 @@ export function auditCrossPageFragmentTargets(pages){
   }
   let checked=0,semanticTargets=0,approvedContactIntents=0,approvedOtherCuratedIntents=0;
   for(const entry of pages){
-    for(const tag of entry.html.match(/<a\b[^>]*>/gi)??[]){
-      const href=attr(tag,'href');
+    for(const tag of anchorOpeningTags(entry.html)){
+      const href=requiredAnchorHref(tag);
       if(typeof href!=='string'||!href.startsWith('/')||
         href.startsWith('//')||!href.includes('#'))continue;
       const parts=href.split('#');
