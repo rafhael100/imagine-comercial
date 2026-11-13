@@ -18,6 +18,12 @@ Isso não verifica o `docker compose config` já interpolado, a imagem executada
 
 Depois de um operador autorizado preparar e iniciar manualmente o staging privado, a sequência de pré-checks, inspeção do contêiner, Nginx carregado e HTTP pode ser executada por **`IMAGINE_PRIVATE_STAGING_REVIEW=1 node scripts/review-private-staging-chain.mjs`**. O comando não faz deploy nem altera serviços, consome segredos somente do ambiente local efêmero, falha em HOLD ao primeiro erro e imprime apenas um resumo sem dados sensíveis. Consulte `docs/F258-ONE-COMMAND-PRIVATE-STAGING.md`. Resultado positivo **não** equivale a aprovação de publicação.
 
+## F292 — HEAD privado e métodos que não podem modificar nada
+
+A cadeia de diagnóstico F258 agora contém **cinco etapas**: pré-requisitos/bytes, Docker em execução, Nginx carregado, GET/bytes e **verificação HTTP de métodos**. O comando standalone `IMAGINE_PRIVATE_STAGING_REVIEW=1 node scripts/check-private-staging-methods.mjs --port=4321` exige o staging já iniciado, senha de review somente em variável privada e consulta o loopback. Exige HEAD anônimo 401, HEAD autenticado 200/404 e POST/PUT/DELETE/OPTIONS autenticados 403/405. Nenhuma requisição contém corpo ou dados de cliente. Consulte `docs/F292-STAGING-HTTP-METHOD-BOUNDARY.md`.
+
+Esta verificação **não** autoriza publicar o site nem substituir os demais testes de release.
+
 ## Procedimento futuro para operador autorizado
 
 1. **Não executar no servidor de produção nem reutilizar dados pessoais.** Preparar um workspace privado/contêiner isolado. Validar o código e o pacote com `npm ci --no-audit --no-fund`, `npm run build` e `node scripts/verify-dist.mjs` antes de copiar artefatos.

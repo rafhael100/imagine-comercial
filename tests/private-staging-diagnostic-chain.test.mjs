@@ -25,6 +25,17 @@ function healthy(){
       expectedStaticConfigLoaded:true,unapprovedAdditionalConfigFileAbsent:true,
       duplicateServerBlockAbsent:true,deployAuthorized:false,deployedByThisCheck:false
     },
+    methods:{
+      status:'PRIVATE_METHODS_REVIEWED_NO_RELEASE_AUTHORITY',
+      anonymousHeadChallengesPassed:6,
+      authenticatedHeadChecksPassed:6,
+      forbiddenMethodChecksPassed:12,
+      totalChecks:24,
+      onlyLoopbackTargetUsed:true,
+      canCollectPublicLeads:false,
+      productionAuthorized:false,
+      deploymentPerformed:false
+    },
     http:{
       status:'PRIVATE_CANDIDATE_REVIEWED_STILL_NO_RELEASE_AUTHORITY',
       checks:{
@@ -38,13 +49,13 @@ function healthy(){
     }
   };
 }
-test('F258 all four READ-ONLY results never become deployment approval',()=>{
+test('F258 all five READ-ONLY results never become deployment approval',()=>{
   const report=evaluate(healthy());
-  assert.equal(report.validatedGates,4);
+  assert.equal(report.validatedGates,5);
   assert.equal(report.status,'PRIVATE_DIAGNOSTIC_CHAIN_PASSED_NOT_RELEASE_APPROVAL');
   for(const k of ['localSourceAndBuildPreflightPassed',
     'runningContainerInspectPassed','loadedNginxConfigPassed',
-    'completePrivateHttpByteParityPassed'])assert.equal(report[k],true,k);
+    'completePrivateHttpByteParityPassed','privateHttpMethodBoundaryPassed'])assert.equal(report[k],true,k);
   for(const k of ['externalTlsAndFirewallIndependentlyVerified',
     'imageOriginAndLiveDigestIndependentlyVerified',
     'portalCrmDurableDeliveryVerified',
@@ -76,6 +87,16 @@ test('F258 missing, mismatched or misleading gate results fail closed',()=>{
     r=>r.http.checks.unauthenticatedHomepageDenied=false,
     r=>r.http.canCollectPublicLeads=true,
     r=>r.http.deploymentAuthorized=true,
+    r=>r.methods.status='UNREVIEWED',
+    r=>r.methods.anonymousHeadChallengesPassed=5,
+    r=>r.methods.authenticatedHeadChecksPassed=5,
+    r=>r.methods.forbiddenMethodChecksPassed=11,
+    r=>r.methods.totalChecks=23,
+    r=>r.methods.onlyLoopbackTargetUsed=false,
+    r=>r.methods.canCollectPublicLeads=true,
+    r=>r.methods.productionAuthorized=true,
+    r=>r.methods.deploymentPerformed=true,
+    r=>{delete r.methods;},
     r=>{delete r.http.checks;}
   ];
   for(const tamper of sources){
@@ -85,14 +106,15 @@ test('F258 missing, mismatched or misleading gate results fail closed',()=>{
   }
   assert.throws(()=>evaluate(),/F258/);
 });
-test('F258 actual CLI invokes four non-deploying scripts sequentially',()=>{
+test('F258 actual CLI invokes five non-deploying scripts sequentially',()=>{
   const entry=new URL('../scripts/review-private-staging-chain.mjs',import.meta.url);
   const source=readFileSync(entry,'utf8');
   for(const path of [
     'scripts/check-private-staging-prerequisites.mjs',
     'scripts/inspect-running-private-staging.mjs',
     'scripts/check-running-private-nginx.mjs',
-    'scripts/review-private-staging-operator.mjs'
+    'scripts/review-private-staging-operator.mjs',
+    'scripts/check-private-staging-methods.mjs'
   ])assert.ok(source.includes(path));
   assert.match(source,/stages=Object\.freeze\(\[/);
   assert.match(source,/evaluateReadOnlyPrivateStagingChain\(/);
