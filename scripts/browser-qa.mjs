@@ -172,6 +172,14 @@ try {
           'F244 desktop guidance entry');
         assert.equal(await guidance.locator('a[href="/perguntas-frequentes/"]').isVisible(),true,
           'F244 desktop FAQ entry');
+        // F290 Escape closes the native menu without following any link.
+        await disclosure.focus();
+        await page.keyboard.press('Escape');
+        assert.equal(await guidance.locator('a[href="/perguntas-frequentes/"]').isVisible(),false,
+          'F290 desktop guidance closes on Escape');
+        assert.equal(await disclosure.evaluate(el=>el===document.activeElement),true,
+          'F290 desktop focus returns to its summary');
+        await disclosure.click();
         await disclosure.click();
         assert.equal(await guidance.locator('a[href="/como-funciona/"]').isVisible(),false,
           'F244 guidance closes without JS');
@@ -611,6 +619,14 @@ try {
       await page.keyboard.press('Enter');
       assert.equal(await page.locator('details.mobile-menu').getAttribute('open'),'',
         'F150 Enter opens native mobile menu');
+      await page.keyboard.press('Escape');
+      assert.equal(await page.locator('details.mobile-menu').getAttribute('open'),null,
+        'F290 Escape closes native mobile navigation');
+      assert.equal(await summary.evaluate(el=>el===document.activeElement),true,
+        'F290 mobile focus returns to menu summary');
+      await page.keyboard.press('Enter');
+      assert.equal(await page.locator('details.mobile-menu').getAttribute('open'),'',
+        'F290 Enter reopens menu after Escape');
       await page.locator('nav[aria-label="Navegação móvel"] a[href="/comparar-solucoes/"]').click();
       await page.waitForURL(host+'/comparar-solucoes/');
       assert.equal(await page.locator('nav[aria-label="Navegação móvel"] a[aria-current="page"]').count(),1);

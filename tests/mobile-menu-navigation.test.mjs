@@ -27,7 +27,9 @@ test('F150: mobile menu is keyboard accessible and not script-dependent',()=>{
   assert.match(layout,/@media \(max-width: 1020px\)/);
   assert.match(layout,/\.header > nav\[aria-label="Navegação principal"\]\s*\{\s*display: none;/);
   assert.match(layout,/\.mobile-menu\s*\{\s*display: block;/);
-  assert.doesNotMatch(layout,/<script[^>]*>[\s\S]*?mobile-menu[\s\S]*?<\/script>/);
+  // F290 adds optional Escape support, but native details/summary remains
+  // usable without script. The browser's no-JS test is the authority here.
+  assert.doesNotMatch(layout,/summary\.addEventListener\('click'|\.mobile-menu\.hidden\s*=/);
   assert.match(browserQa,/F150 Enter opens native mobile menu/);
   assert.match(browserQa,/F150 no-JS disclosure opens without scripts/);
 });

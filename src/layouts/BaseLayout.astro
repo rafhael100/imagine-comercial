@@ -269,5 +269,20 @@ const service = serviceName ? {
         <span>Atendimento e propostas sujeitos às condições comerciais vigentes.</span>
       </div>
     </footer>
+    <script>
+      // F290: Escape closes only an expanded native navigation disclosure,
+      // returning keyboard focus to its summary. Without JS, the native
+      // Enter/click behavior remains available; no network or storage.
+      for(const item of document.querySelectorAll<HTMLDetailsElement>(
+        'header details.mobile-menu, header details.nav-help')){
+        item.addEventListener('keydown',event=>{
+          if(event.key!=='Escape'||!item.open)return;
+          item.open=false;
+          item.querySelector<HTMLElement>('summary')?.focus();
+          event.preventDefault();
+          event.stopPropagation();
+        });
+      }
+    </script>
   </body>
 </html>
