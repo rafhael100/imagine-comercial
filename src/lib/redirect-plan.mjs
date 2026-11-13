@@ -3,9 +3,13 @@
  * Nenhuma URL ou regra é ativada automaticamente em produção.
  */
 import { sitePages } from '../data/services.mjs';
+import {legacyUrls} from '../data/legacy-urls.mjs';
 
 const validPath = /^\/(?:(?:[a-zA-Z0-9._~-]+)\/)*[a-zA-Z0-9._~-]*$/;
 const states = new Set(['candidate', 'hold', 'approved']);
+// F278: a source HOLD is a deliberate product/SEO block, not a flag that
+// another caller may elevate merely by supplying status:'approved'.
+const heldLegacyPaths=new Set(legacyUrls.filter(x=>x.status==='hold').map(x=>x.from));
 // Redirecionamentos legados não podem sequestrar rotas canônicas nem arquivos
 // essenciais de indexação, mesmo quando o manifesto marca uma linha como HOLD.
 const protectedPaths = new Set(['/robots.txt', '/sitemap.xml', '/404.html']);
@@ -31,6 +35,8 @@ export function validateRedirectPlan(entries, {publicPaths = sitePages.map(x=>x.
     if (froms.has(entry.from)) throw new Error(label + ': duplicate source');
     froms.add(entry.from);
     if (!states.has(entry.status)) throw new Error(label + ': invalid state');
+    if (heldLegacyPaths.has(entry.from) && entry.status!=='hold')
+      throw new Error(label + ': inventoried HOLD route cannot become a redirect');
     if (typeof entry.reason !== 'string' || entry.reason.trim().length < 15) throw new Error(label + ': reason required');
     if (entry.status === 'hold') {
       if (entry.to !== null) throw new Error(label + ': hold must have null destination');
