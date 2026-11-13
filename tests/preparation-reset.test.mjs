@@ -13,7 +13,7 @@ test('F296 one action clears six in-memory preparation flags',()=>{
   assert.match(page,/task\.dataset\.prepared='false'/);
   assert.match(page,/label\.textContent='Marcar como preparado'/);
   assert.match(page,/tasks\[0\]\?\.querySelector<HTMLButtonElement>\('\.briefing-toggle'\)\?\.focus\(\)/);
-  assert.match(page,/#reset-preparation\[hidden\]\{display:none\}/);
+  assert.match(page,/#reset-preparation\[hidden\],#print-briefing\[hidden\]/);
 });
 
 test('F296 browser checks reset, focus, re-selection and no-JS fallback',()=>{
