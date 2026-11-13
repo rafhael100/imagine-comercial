@@ -118,3 +118,14 @@ test('F264: inert fields and unquoted hidden inputs do not count as visible cont
     assert.deepEqual(result.unresolvedFields,['role'],decoration);
   }
 });
+
+
+test('F264: removed, miswired or duplicate labels never count as accessible mapping',()=>{
+  const wrong=html.replace('for="lead-email"','for="nonexistent-email"');
+  assert.deepEqual(reviewLegacyBudgetPreviewParity(wrong).unresolvedFields,['email']);
+  const duplicate=html.replace('</fieldset>',
+    '<label for="lead-email">Etiqueta repetida</label></fieldset>');
+  assert.deepEqual(reviewLegacyBudgetPreviewParity(duplicate).unresolvedFields,['email']);
+  const removed=html.replace('<label for="lead-phone">Telefone (regra final a definir)</label>','');
+  assert.deepEqual(reviewLegacyBudgetPreviewParity(removed).unresolvedFields,['telephone']);
+});
