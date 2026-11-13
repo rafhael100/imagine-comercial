@@ -19,9 +19,21 @@ function exactData(value){
   });
 }
 
+function denseDataArray(value,max){
+  if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype||
+     value.length>max)return false;
+  const keys=Reflect.ownKeys(value);
+  if(keys.length!==value.length+1)return false;
+  for(let i=0;i<value.length;i++){
+    const descriptor=Object.getOwnPropertyDescriptor(value,String(i));
+    if(!descriptor||descriptor.enumerable!==true||
+       !Object.hasOwn(descriptor,'value'))return false;
+  }
+  return true;
+}
+
 export function reviewLegacyCutoverCoverage(decisions=[]){
-  if(!Array.isArray(decisions)||decisions.length>inventory.size||
-     Object.getPrototypeOf(decisions)!==Array.prototype)
+  if(!denseDataArray(decisions,inventory.size))
     throw Error('F277: invalid legacy cutover decisions');
   const assigned=new Map();
   for(const decision of decisions){
