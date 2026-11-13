@@ -5,6 +5,8 @@
  * Never runs in CI or publishes, logs, deploys or handles actual leads.
  */
 import {reviewStagingOperatorCandidate} from '../src/lib/private-staging-operator-review.mjs';
+import {readApprovedFile} from '../src/lib/read-approved-file.mjs';
+import {reviewPrivateStagingConfiguration} from '../src/lib/private-staging-config-lock.mjs';
 
 try{
   if(process.env.GITHUB_ACTIONS==='true'||
@@ -12,6 +14,12 @@ try{
      process.argv.length!==3||
      !/^--port=[1-9][0-9]{3,4}$/.test(process.argv[2]))
     throw Error('F167: private operator acknowledgment required');
+  // Repeat the reviewed source configuration lock in the all-in-one
+  // operator check. A user bypassing preflight must not bypass this gate.
+  reviewPrivateStagingConfiguration({
+    compose:readApprovedFile('ops/staging/compose.yaml',16384,'private staging compose'),
+    nginx:readApprovedFile('ops/staging/nginx.conf',16384,'private staging nginx')
+  });
   const port=Number(process.argv[2].slice('--port='.length));
   const password=process.env.IMAGINE_STAGING_REVIEW_PASSWORD;
   if(typeof password!=='string'||password.length<24||password.length>128||
