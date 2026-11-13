@@ -313,6 +313,23 @@ try {
     await page.waitForURL(host+'/conteudos/landing-page-ou-site/'+firstSection);
     assert.equal(await page.locator('.guide-section'+firstSection).count(),1,
       'F153 browser navigates to exact target ID');
+    // F304: every editorial section is independently shareable and offers
+    // a native back-to-summary link without adding a form or tracking.
+    assert.equal(await page.locator('[data-guide-return]').count(),editorial.sections.length,
+      'F304 each article section has a static return-to-outline link');
+    assert.equal(await page.locator('[data-guide-section-copy]').count(),editorial.sections.length,
+      'F304 only reviewed editorial headings have copy actions');
+    await page.locator('.guide-section'+firstSection+' [data-guide-section-copy]').click();
+    assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),
+      host+'/conteudos/landing-page-ou-site/'+firstSection,
+      'F304 copied article section URL contains only reviewed heading ID');
+    assert.match(await page.locator('.guide-section'+firstSection+' [data-guide-share-status]').textContent(),
+      /Link desta seção copiado/);
+    await page.locator('.guide-section'+firstSection+' [data-guide-return]').click();
+    await page.waitForURL(host+'/conteudos/landing-page-ou-site/#guia-sumario');
+    assert.equal(await page.locator('#guia-sumario').evaluate(
+      element=>document.activeElement===element),true,
+      'F304 back-to-outline moves keyboard focus to the summary heading');
     assert.equal(await page.locator('form,input,textarea').count(),0,
       'F153 section navigation does not collect visitor data');
     // F154: related editorial links are real, contextual and navigate locally.
@@ -918,6 +935,11 @@ try {
         assert.equal(await fallback.locator('nav[aria-label="Sumário deste guia"] a').count(),
           articles.find(x=>x.slug==='landing-page-ou-site').sections.length,
           'F153 native outline remains usable without JavaScript');
+        assert.equal(await fallback.locator('[data-guide-section-copy]:visible').count(),0,
+          'F304 article copy buttons hidden without JavaScript');
+        assert.equal(await fallback.locator('[data-guide-return]').count(),
+          articles.find(x=>x.slug==='landing-page-ou-site').sections.length,
+          'F304 native return-to-outline links remain with JavaScript disabled');
         assert.equal(await fallback.locator('.related-reading a').count(),2,
           'F154 related guides remain visible without JavaScript');
         await fallback.goto(host+'/perguntas-frequentes/',{waitUntil:'load',timeout});
