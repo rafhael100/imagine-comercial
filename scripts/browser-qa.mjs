@@ -1107,6 +1107,34 @@ try {
     await page.waitForURL(host+'/contato/');
     assert.equal(await page.locator('#service-choice').inputValue(),'');
     assert.equal(await page.locator('#service-help[role="status"][aria-live="polite"]').count(),1);
+    // F287: reset the entire local-only briefing in one interaction and make
+    // fresh selections without leaving state in the URL or an external channel.
+    const resetBriefing=page.locator('#reset-briefing');
+    assert.equal(await resetBriefing.isVisible(),false,
+      'F287 reset stays hidden when there is no selection');
+    await page.locator('#service-choice').selectOption('landing-pages');
+    await page.locator('#objective-choice').selectOption('campanhas');
+    await page.locator('#stage-choice').selectOption('iniciando');
+    await page.locator('#priority-choice').selectOption('contatos');
+    assert.equal(await resetBriefing.isVisible(),true,
+      'F287 reset becomes available with curated choices');
+    await resetBriefing.click();
+    for(const id of ['service-choice','objective-choice','stage-choice','priority-choice'])
+      assert.equal(await page.locator('#'+id).inputValue(),'',
+        'F287 clears '+id);
+    assert.equal(new URL(page.url()).pathname,'/contato/');
+    assert.equal(new URL(page.url()).hash,'','F287 clears local fragment');
+    assert.equal(new URL(page.url()).search,'','F287 never retains a query');
+    assert.equal(await page.locator('#contact-whatsapp').getAttribute('href'),
+      contactWhatsAppUrl(),'F287 restores the original WhatsApp message');
+    assert.equal(await page.locator('#contact-email').getAttribute('href'),
+      contactEmailUrl(),'F287 restores the original email subject');
+    assert.equal(await page.locator('#message-preview').textContent(),
+      'Prévia da mensagem: Olá, gostaria de conhecer os serviços da Imagine.',
+      'F287 resets preview to the public default');
+    assert.equal(await resetBriefing.isVisible(),false,'F287 reset hides again');
+    assert.equal(await page.locator('#service-choice').evaluate(
+      input=>document.activeElement===input),true,'F287 returns keyboard focus to first selector');
     // Controle de indexabilidade: caminhos inválidos devem retornar 404 real, não 200.
     const notFoundResponse=await page.goto(host+'/pagina-inexistente-de-teste-f11/',{waitUntil:'load',timeout});
     assert.equal(notFoundResponse?.status(),404,viewport.label+': missing route must return HTTP 404');
