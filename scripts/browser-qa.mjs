@@ -603,6 +603,14 @@ try {
       'F63 first keyboard focus must be skip-to-content link');
     assert.equal(await page.locator('a.skip-link:focus-visible').count(),1,
       'F63 skip link must be visible when keyboard focused');
+    // F291: activating the skip link transfers DOM focus to the real <main>,
+    // not merely scrolls the page while leaving keyboard focus in the header.
+    await page.keyboard.press('Enter');
+    assert.equal(new URL(page.url()).hash,'#conteudo',
+      'F291 skip link navigates to the approved main landmark');
+    assert.equal(await page.locator('main#conteudo').evaluate(
+      el=>document.activeElement===el),true,
+      'F291 skip link moves keyboard focus to the main landmark');
     if(viewport.label==='mobile'){
       // F150: disclosure can be opened by keyboard and its links navigate.
       await page.goto(host+'/',{waitUntil:'load',timeout});
