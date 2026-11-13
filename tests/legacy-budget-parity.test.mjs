@@ -91,3 +91,30 @@ test('F156: F43 CLI reports complete visual mapping but still blocks operational
   assert.equal(report.legacyContactIntake.deploymentAuthorized,false);
   assert.equal(report.legacyContactIntake.legacyContactIntakeParityApproved,false);
 });
+
+
+test('F264: duplicate field IDs never satisfy visual parity, including hidden decoys',()=>{
+  for(const field of ['lead-name','lead-role','lead-email','lead-phone','lead-mobile','lead-details','lead-challenge']){
+    const key=LEGACY_BUDGET_FIELDS.find(item=>item.previewId===field).key;
+    for(const duplicate of [
+      '<input id="'+field+'" type="text">',
+      '<input id="'+field+'" type="hidden">',
+      '<input id="'+field+'" hidden>',
+      '<textarea id="'+field+'" disabled></textarea>'
+    ]){
+      const crafted=html.replace('</fieldset>',duplicate+'</fieldset>');
+      const result=reviewLegacyBudgetPreviewParity(crafted);
+      assert.deepEqual(result.unresolvedFields,[key],field);
+      assert.equal(result.visibleFields,6);
+      assert.equal(result.legacyContactIntakeParityApproved,false);
+      assert.equal(result.deploymentAuthorized,false);
+    }
+  }
+});
+test('F264: inert fields and unquoted hidden inputs do not count as visible controls',()=>{
+  for(const decoration of ['inert','type=hidden','aria-hidden=true']){
+    const crafted=html.replace('id="lead-role"','id="lead-role" '+decoration);
+    const result=reviewLegacyBudgetPreviewParity(crafted);
+    assert.deepEqual(result.unresolvedFields,['role'],decoration);
+  }
+});
