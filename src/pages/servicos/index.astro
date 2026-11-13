@@ -206,7 +206,7 @@ const initialGuide=guideForGoal(guideGoals[0].code);
       {services.map(s => (
         <article class="card" data-service-group={categoryForService(s.slug)}>
           <p class="eyebrow">{s.eyebrow}</p>
-          <h2>{s.label}</h2>
+          <h3>{s.label}</h3>
           <p>{s.intro}</p>
           <div class="service-card-actions">
             <a href={'/servicos/' + s.slug + '/'} aria-label={'Conhecer ' + s.label}>Conhecer serviço</a>
