@@ -14,6 +14,10 @@ Antes de obter segredos, imagens ou subir contêineres, execute `node scripts/ch
 
 Isso não verifica o `docker compose config` já interpolado, a imagem executada, TLS, firewall, SSH ou a configuração Nginx em execução; estes continuam verificação **independente e manual**. Se o gate estiver em HOLD, não executar Docker, publicar DNS ou prosseguir para homologação.
 
+## F258 — Diagnóstico completo por um único comando
+
+Depois de um operador autorizado preparar e iniciar manualmente o staging privado, a sequência de pré-checks, inspeção do contêiner, Nginx carregado e HTTP pode ser executada por **`IMAGINE_PRIVATE_STAGING_REVIEW=1 node scripts/review-private-staging-chain.mjs`**. O comando não faz deploy nem altera serviços, consome segredos somente do ambiente local efêmero, falha em HOLD ao primeiro erro e imprime apenas um resumo sem dados sensíveis. Consulte `docs/F258-ONE-COMMAND-PRIVATE-STAGING.md`. Resultado positivo **não** equivale a aprovação de publicação.
+
 ## Procedimento futuro para operador autorizado
 
 1. **Não executar no servidor de produção nem reutilizar dados pessoais.** Preparar um workspace privado/contêiner isolado. Validar o código e o pacote com `npm ci --no-audit --no-fund`, `npm run build` e `node scripts/verify-dist.mjs` antes de copiar artefatos.
