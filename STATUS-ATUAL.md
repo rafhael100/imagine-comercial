@@ -1,5 +1,17 @@
 # STATUS-ATUAL — Imagine Comercial
 
+## Continuidade técnica e gates atuais — 13/11/2026
+
+**Integração de desenvolvimento:** `integration/comercial-rc31-functional-seo-2026-11-11`. O [PR #155](https://github.com/rafhael100/imagine-comercial/pull/155) continua DRAFT/NO-GO. A `main`, a VPS real, o DNS e os redirecionamentos de produção não foram alterados.
+
+**Proteções de navegação/SEO e acessibilidade integradas em DEV:** F268–F275, [PRs #330–#337](https://github.com/rafhael100/imagine-comercial/pull/337). Protegem a leitura real de href, canonical/robots/description, âncoras, isolamento de links externos, nomes acessíveis, JSON-LD e ignoram links fantasmas em HTML inerte. O conjunto integrado passou nos oito workflows de GitHub Actions.
+
+**Gates de migração preservados:** [F276 #338](https://github.com/rafhael100/imagine-comercial/pull/338) e [F277 #339](https://github.com/rafhael100/imagine-comercial/pull/339) (provas privadas agregadas de indexação e plano 27/27), [F278 #340](https://github.com/rafhael100/imagine-comercial/pull/340) (22 HOLD não viram 301), [F279 #341](https://github.com/rafhael100/imagine-comercial/pull/341) (somente manifesto efetivamente validado gera texto de revisão), [F280 #342](https://github.com/rafhael100/imagine-comercial/pull/342) (apenas cinco origens candidatas) e [F281 #343](https://github.com/rafhael100/imagine-comercial/pull/343) (destino exatamente igual ao catálogo). Integração F281 verificada em 8/8 workflows. [F282 #344](https://github.com/rafhael100/imagine-comercial/pull/344) valida objetos de entrada contra getters/símbolos e foi integrada em DEV após CI individual. [F283 #345](https://github.com/rafhael100/imagine-comercial/pull/345) adiciona confronto privado entre páginas indexadas e decisão de retenção; seu CI deve ser confirmado separadamente antes de integrar.
+
+**Gates externos ainda obrigatórios:** staging privado Leaseweb em operação e revisão HTTP/TLS/segredos, integração real Portal→CRM com autenticação de tenant/consentimento/ACK/outbox, CMS publicador com assinatura e anti-rollback, GSC/crawl/retornos HTTP/backlinks e equivalência editorial/jurídica por URL, AppSec/DBA/LGPD e aprovação de release com rollback. **Zero autorização de 301, perda de conteúdo legado, migração para apex sem www ou deploy** até esses gates. Nenhum dado privado de Search Console foi incluído no GitHub.
+
+---
+
 ## Continuidade e bloqueios de release — 12/11/2026
 
 **Integração DEV:** `integration/comercial-rc31-functional-seo-2026-11-11`. `main` permanece sem alteração. [PR #155](https://github.com/rafhael100/imagine-comercial/pull/155) segue DRAFT/NO-GO. CI não equivale a autorização de produção.
