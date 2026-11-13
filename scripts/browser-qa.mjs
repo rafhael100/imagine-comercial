@@ -751,6 +751,21 @@ try {
         viewport.label+' F59 contact links remain scoped to selected service'
       );
     }
+    // F299: share only the fixed public goal fragment; no visitor values,
+    // search params, tracking identifiers or automatic external transport.
+    await page.locator('#service-guide-goal').selectOption('oferta');
+    const shareGoal=page.locator('#copy-goal-link');
+    assert.equal(await shareGoal.isVisible(),true,
+      'F299 reviewed goal share action available in supported browsers');
+    await shareGoal.click();
+    assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),
+      host+'/servicos/'+encodeReviewedGoalFragment('oferta'),
+      'F299 clipboard contains only approved shareable goal URL');
+    assert.match(await page.locator('#copy-goal-status').textContent(),
+      /Link da orientação copiado/);
+    await page.locator('#service-guide-goal').selectOption('anuncios');
+    assert.equal(await page.locator('#copy-goal-status').textContent(),'',
+      'F299 goal change clears copied-link confirmation');
     // F199: selecting ads provides a direct, already reviewed comparison
     // between Google Ads and Meta Ads, without any visitor input or POST.
     await page.locator('#service-guide-goal').selectOption('anuncios');
@@ -794,6 +809,8 @@ try {
         assert.equal(noJsResponse?.status(),200,'F250 no-JS service directory HTTP');
         assert.equal(await noJsPage.locator('#service-catalog-filters').isVisible(),false,
           'F250 filter controls are invisible without JS');
+        assert.equal(await noJsPage.locator('#copy-goal-link').isVisible(),false,
+          'F299 clipboard enhancement remains hidden without JS');
         assert.equal(await noJsPage.locator('#service-catalog .card:visible').count(),6,
           'F250 all services remain visible without JS');
       }finally{await noJsCatalog.close();}
