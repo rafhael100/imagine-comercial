@@ -61,7 +61,33 @@ try{
     memLimitType:typeof service.mem_limit,
     tmpfsType:typeof service.tmpfs,
     tmpfsCount:Array.isArray(service.tmpfs)?service.tmpfs.length:-1,
-    hasDefaultNetwork:document?.networks?.default!==undefined
+    hasDefaultNetwork:document?.networks?.default!==undefined,
+    commandEmpty:service.command===null||service.command===undefined||
+      Array.isArray(service.command)&&service.command.length===0,
+    entrypointEmpty:service.entrypoint===null||service.entrypoint===undefined||
+      Array.isArray(service.entrypoint)&&service.entrypoint.length===0,
+    restartNo:service.restart==='no',
+    pids64:service.pids_limit===64,
+    memLimitExpected:service.mem_limit==='256m'||service.mem_limit===268435456,
+    cpusHalf:service.cpus===0.5||service.cpus==='0.5',
+    environmentOnlyTZ:service.environment?.TZ==='UTC'&&
+      Object.keys(service.environment??{}).length===1,
+    tmpfsMatch:JSON.stringify(service.tmpfs)===JSON.stringify([
+      '/tmp:rw,noexec,nosuid,size=32m',
+      '/var/run:rw,noexec,nosuid,size=4m']),
+    serviceNetworkIsDefault:JSON.stringify(service.networks)==='{"default":null}'||
+      JSON.stringify(service.networks)==='["default"]',
+    rootNetworkSingleDefault:Object.keys(document.networks??{}).length===1,
+    rootDefaultNetworkOnlyName:Object.keys(document.networks?.default??{})
+      .every(k=>k==='name'),
+    firstMountCorrect:volumes.some(v=>v.target==='/usr/share/nginx/html'&&
+      v.source===resolve('dist')),
+    secondMountCorrect:volumes.some(v=>v.target==='/etc/nginx/conf.d/default.conf'&&
+      v.source===resolve('ops/staging/nginx.conf')),
+    thirdMountCorrect:volumes.some(v=>v.target==='/etc/nginx/auth/.htpasswd'&&
+      v.source===authPath),
+    volumeBindMetadataOnlyCreateHostPath:volumes.every(v=>
+      !v.bind||Object.keys(v.bind).every(k=>k==='create_host_path'))
   };
   const review=reviewEffectivePrivateStagingCompose(document,{
     projectRoot:resolve('.'),expectedImage:image,expectedAuthPath:authPath
