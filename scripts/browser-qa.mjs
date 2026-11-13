@@ -417,6 +417,24 @@ try {
     await checklist.nth(2).click();
     await checklist.nth(4).click();
     assert.match(await page.locator('#briefing-progress').textContent(),/2 de 6 perguntas preparadas/);
+    // F296: clear the checklist in one click and return keyboard focus.
+    const resetPrep=page.locator('#reset-preparation');
+    assert.equal(await resetPrep.isVisible(),true,
+      'F296 reset visible only after marking an item');
+    await resetPrep.click();
+    assert.match(await page.locator('#briefing-progress').textContent(),
+      /0 de 6 perguntas preparadas/,'F296 progress resets immediately');
+    assert.equal(await page.locator('.briefing-toggle[aria-pressed="true"]').count(),0,
+      'F296 all preparation flags cleared');
+    assert.equal(await page.locator('[data-briefing-task][data-prepared="true"]').count(),0,
+      'F296 all task data attributes cleared');
+    assert.equal(await resetPrep.isVisible(),false,'F296 reset hidden again');
+    assert.equal(await firstToggle.evaluate(el=>el===document.activeElement),true,
+      'F296 returns focus to first checklist control');
+    await checklist.nth(2).click();
+    await checklist.nth(4).click();
+    assert.match(await page.locator('#briefing-progress').textContent(),
+      /2 de 6 perguntas preparadas/,'F296 checklist remains reusable');
     await page.evaluate(()=>{window.__testPrintCount=0;window.print=()=>{window.__testPrintCount++};});
     assert.equal(await page.locator('#print-briefing').isVisible(),true);
     await page.locator('#print-briefing').click();
@@ -867,6 +885,8 @@ try {
           'F170 no-JS checklist remains readable and inert');
         assert.equal(await fallback.locator('#print-briefing').isVisible(),false,
           'F170 print enhancement stays hidden without JavaScript');
+        assert.equal(await fallback.locator('#reset-preparation').isVisible(),false,
+          'F296 reset enhancement stays hidden without JavaScript');
         assert.equal(await fallback.locator('#copy-preparation-questions').isVisible(),false,
           'F192 clipboard enhancement remains hidden without JavaScript');
         await fallback.goto(host+'/contato/',{waitUntil:'load',timeout});

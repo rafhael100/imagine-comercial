@@ -55,6 +55,8 @@ const pathname='/como-funciona/';
         ))}
       </ul>
       <div class="briefing-actions">
+        <button id="reset-preparation" type="button" class="cta cta-secondary"
+          hidden aria-controls="briefing-list briefing-progress">Limpar marcações</button>
         <button id="print-briefing" type="button" class="cta cta-secondary" hidden>Imprimir roteiro para a reunião</button>
         <button id="copy-preparation-questions" type="button" class="cta cta-secondary" hidden>Copiar as seis perguntas</button>
       </div>
@@ -79,11 +81,13 @@ const pathname='/como-funciona/';
     const tasks=[...document.querySelectorAll<HTMLElement>('[data-briefing-task]')];
     const progress=document.querySelector<HTMLElement>('#briefing-progress');
     const print=document.querySelector<HTMLButtonElement>('#print-briefing');
+    const reset=document.querySelector<HTMLButtonElement>('#reset-preparation');
     const copy=document.querySelector<HTMLButtonElement>('#copy-preparation-questions');
     const copyStatus=document.querySelector<HTMLElement>('#copy-preparation-status');
-    if(progress&&print&&copy&&copyStatus&&tasks.length===6){
+    if(progress&&print&&copy&&copyStatus&&reset&&tasks.length===6){
       const showProgress=()=>{
         const done=tasks.filter(task=>task.dataset.prepared==='true').length;
+        reset.hidden=done===0;
         progress.textContent=done+' de '+tasks.length+
           (done===1?' pergunta preparada.':' perguntas preparadas.')+
           ' Esta seleção é temporária e não é enviada.';
@@ -100,6 +104,20 @@ const pathname='/como-funciona/';
           label.textContent=active?'Desmarcar preparo':'Marcar como preparado';
           showProgress();
         });
+      });
+      // F296: one action resets only in-memory toggles, never answers.
+      // Native buttons stay usable without any network or persisted state.
+      reset.addEventListener('click',()=>{
+        for(const task of tasks){
+          const button=task.querySelector<HTMLButtonElement>('.briefing-toggle');
+          const label=button?.querySelector<HTMLElement>('span');
+          if(!button||!label)continue;
+          button.setAttribute('aria-pressed','false');
+          task.dataset.prepared='false';
+          label.textContent='Marcar como preparado';
+        }
+        showProgress();
+        tasks[0]?.querySelector<HTMLButtonElement>('.briefing-toggle')?.focus();
       });
       print.hidden=false;
       print.addEventListener('click',()=>window.print());
@@ -141,7 +159,7 @@ const pathname='/como-funciona/';
     .briefing-actions{display:flex;gap:12px;flex-wrap:wrap}
     .briefing-actions button{font:inherit;cursor:pointer}
     .briefing-actions button:disabled{opacity:.6;cursor:wait}
-    .briefing-toggle[hidden],#print-briefing[hidden],#copy-preparation-questions[hidden]{display:none}
+    .briefing-toggle[hidden],#reset-preparation[hidden],#print-briefing[hidden],#copy-preparation-questions[hidden]{display:none}
     .briefing-toggle:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
     .briefing-note{font-size:.94rem;color:#5c574e}
     @media print{.briefing-toggle,.briefing-actions,#copy-preparation-status{display:none!important}.briefing-task{break-inside:avoid}}
