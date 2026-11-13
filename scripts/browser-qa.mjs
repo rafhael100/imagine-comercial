@@ -346,6 +346,20 @@ try {
       'F248 valid FAQ deep link reveals hidden section');
     assert.equal(await page.locator('#faq-filter-status').textContent(),
       'Exibindo todas as 8 perguntas.');
+    // F261: repeat a link for the *same* fragment after hiding/collapsing it.
+    // No hashchange fires in this case; the index click must reopen the answer.
+    await page.locator('[data-faq-topic="midia"]').click();
+    await page.locator('#duvida-precos details').evaluate((node:HTMLDetailsElement)=>{node.open=false;});
+    assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),null);
+    const repeatedFaqUrl=page.url();
+    await page.locator('.faq-index a[href="#duvida-precos"]').click();
+    assert.equal(page.url(),repeatedFaqUrl,'F261 repeated FAQ anchor keeps same URL');
+    assert.equal(await page.locator('#duvida-precos details').getAttribute('open'),'',
+      'F261 same-hash FAQ link reopens the collapsed answer');
+    assert.equal(await page.locator('#respostas [data-faq-section]:visible').count(),4,
+      'F261 repeated FAQ link also restores hidden topics');
+    assert.equal(await page.locator('[data-faq-topic="all"]').getAttribute('aria-pressed'),'true',
+      'F261 index navigation resets filter button state');
     if(viewport.label==='mobile'){
       const noJsFaq=await browser.newContext({
         viewport:{width:375,height:812},javaScriptEnabled:false
