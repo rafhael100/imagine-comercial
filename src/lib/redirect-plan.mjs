@@ -13,6 +13,10 @@ const heldLegacyPaths=new Set(legacyUrls.filter(x=>x.status==='hold').map(x=>x.f
 // F280: the final review-rule renderer may only emit individually inventoried
 // candidate sources. A valid arbitrary path is NOT a reviewed migration URL.
 const candidateLegacyPaths=new Set(legacyUrls.filter(x=>x.status==='candidate').map(x=>x.from));
+// F281: even an inventoried source is not authority to point at another
+// currently published service. The original editorial mapping is exact.
+const candidateDestinations=new Map(legacyUrls.filter(x=>x.status==='candidate')
+  .map(x=>[x.from,x.to]));
 // Redirecionamentos legados não podem sequestrar rotas canônicas nem arquivos
 // essenciais de indexação, mesmo quando o manifesto marca uma linha como HOLD.
 const protectedPaths = new Set(['/robots.txt', '/sitemap.xml', '/404.html']);
@@ -72,6 +76,8 @@ export function toCloudflareRedirectRules(manifest) {
     throw new Error('validated manifest required');
   if(manifest.active.some(rule=>!candidateLegacyPaths.has(rule.from)))
     throw new Error('redirects: unreviewed source cannot generate a 301 rule');
+  if(manifest.active.some(rule=>candidateDestinations.get(rule.from)!==rule.to))
+    throw new Error('redirects: reviewed candidate target mismatch');
   // Isto é apenas uma representação para revisão: não escreve _redirects nem altera DNS.
   return manifest.active.map(({from,to,statusCode})=>from+' '+to+' '+statusCode).join('\n');
 }
