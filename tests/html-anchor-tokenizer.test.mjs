@@ -4,7 +4,8 @@ import {anchorOpeningTags} from '../src/lib/html-anchor-reader.mjs';
 import {auditCuratedInternalLinks} from '../src/lib/internal-link-contract.mjs';
 import {auditPublicLinkGraph} from '../src/lib/public-link-graph.mjs';
 
-const good='<a href="/contato/" title="Contato > Imagine">Contato</a>';
+const good='<a href="/contato/" title="Contato > Imagine">';
+const linked=good+'Contato</a>';
 
 test('F286 fake anchors inside another tag attribute do not create public links',()=>{
   for(const fake of [
@@ -39,7 +40,7 @@ test('F286 nested inert templates do not invent navigation',()=>{
 
 test('F286 quoted greater-than sign and fallback noscript remain supported',()=>{
   assert.deepEqual(anchorOpeningTags(
-    '<main data-summary="A > B">'+good+'</main>'
+    '<main data-summary="A > B">'+linked+'</main>'
   ),[good]);
   assert.equal(anchorOpeningTags(
     '<noscript><a href="/servicos/">Serviços sem JS</a></noscript>'
