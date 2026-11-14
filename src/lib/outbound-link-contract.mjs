@@ -17,6 +17,7 @@ import {
 import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from '../data/briefing-curado.mjs';
 import {resolvePortalLoginLink} from './portal-login-link.mjs';
 import {CALCULATOR_CONTACT_OPTIONS} from '../data/calculator-contact-messages.mjs';
+import {localizedSalesMessages} from '../data/localized-sales-messages.mjs';
 
 const attr=(tag,key)=>readStrictHtmlAttribute(tag,key);
 
@@ -48,6 +49,10 @@ for(const service of ['',...services.map(x=>x.slug)]){
 // F315: exact 21 reviewed calculator channels/locale links only.
 for(const choices of Object.values(CALCULATOR_CONTACT_OPTIONS))
   for(const item of choices)whatsappLinks.add(contactWhatsAppUrl(item.message));
+
+// F323: only the 14 fully fixed, catalogued international service prompts.
+for(const offers of Object.values(localizedSalesMessages))
+  for(const message of Object.values(offers))whatsappLinks.add(contactWhatsAppUrl(message));
 
 export function isApprovedPublicExternalHref(href){
   if(typeof href!=='string'||href.length>1024||
