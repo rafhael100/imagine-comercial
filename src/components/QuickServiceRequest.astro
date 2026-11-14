@@ -7,7 +7,7 @@ import {REVIEWED_OFFERS,reviewedPrivatePortalUrl} from '../../ops/review/purchas
 const privatePortalBuild=process.env.GITHUB_ACTIONS==='true' && process.env.IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW==='1';
 const portalPreviewHref=(slug:string):string=>privatePortalBuild && Object.hasOwn(REVIEWED_OFFERS,slug)
   ? reviewedPrivatePortalUrl(slug) : '';
-const offerCopy:Record<string,{tag:string,outcome:string,forWhom:string,includes:string[],price:string,media?:string,availability?:string}>={
+const offerCopy:Record<string,{tag:string,outcome:string,forWhom:string,includes:string[],price:string,setup?:string,installment?:string,monthly?:string,media?:string,availability?:string}>={
  'criacao-de-sites':{
   tag:'Presença completa',outcome:'Uma vitrine profissional para sua empresa na internet.',
   forWhom:'Para negócios que precisam apresentar vários serviços, diferenciais e formas de contato.',
@@ -18,13 +18,15 @@ const offerCopy:Record<string,{tag:string,outcome:string,forWhom:string,includes
   tag:'Foco em conversão',outcome:'Uma página feita para apresentar uma oferta e orientar a próxima ação.',
   forWhom:'Para campanhas, lançamentos e produtos que precisam de uma mensagem objetiva.',
   includes:['Uma oferta em destaque','Conteúdo e chamadas para ação','Layout responsivo e mensuração planejada'],
-  price:'Plano de referência: implantação R$ 1.290 em 3 parcelas de R$ 430 (contratação, D+30 e D+60); mensalidade R$ 79,90 com primeiro vencimento D+90 da contratação, mesmo sem publicação. Confirme as condições antes do aceite.'
+  price:'1ª parcela na contratação; demais em D+30 e D+60. Mensalidade começa D+90 da contratação, independentemente da publicação. Valores sujeitos à confirmação no Portal.',
+  setup:'R$ 1.290',installment:'3× de R$ 430',monthly:'R$ 79,90/mês'
  },
  'onepage':{
   tag:'Comece com o essencial',outcome:'Tudo o que seu cliente precisa saber em uma única página.',
   forWhom:'Para quem busca começar com apresentação clara e contatos acessíveis.',
   includes:['Seções essenciais do negócio','Serviços e canais de contato','Leitura simples em qualquer tela'],
-  price:'Plano de referência: implantação R$ 990 em 3 parcelas de R$ 330 (contratação, D+30 e D+60); mensalidade R$ 79,90 com primeiro vencimento D+90 da contratação, mesmo sem publicação. Confirme as condições antes do aceite.'
+  price:'1ª parcela na contratação; demais em D+30 e D+60. Mensalidade começa D+90 da contratação, independentemente da publicação. Valores sujeitos à confirmação no Portal.',
+  setup:'R$ 990',installment:'3× de R$ 330',monthly:'R$ 79,90/mês'
  },
  'sites-por-assinatura':{
   tag:'Modelo de assinatura',outcome:'Um site com implantação e acompanhamento em um modelo recorrente.',
@@ -102,6 +104,10 @@ const bySlug=Object.fromEntries(services.map(service=>[service.slug,service]));
         <p class="offer-list-title">O que esta solução contempla</p>
         <ul class="offer-includes">{detail.includes.map(item=><li>{item}</li>)}</ul>
         <div class="offer-finance">
+         {detail.setup && detail.monthly && <div class="offer-priced">
+           <div><small>Implantação</small><strong>{detail.setup}</strong><span>{detail.installment}</span></div>
+           <div><small>Mensalidade</small><strong>{detail.monthly}</strong><span>Primeiro vencimento D+90</span></div>
+         </div>}
          <p class="offer-price">{detail.price}</p>
          {detail.media && <p class="offer-media">{detail.media}</p>}
          {detail.availability && <p class="offer-availability">{detail.availability}</p>}
@@ -166,7 +172,12 @@ const bySlug=Object.fromEntries(services.map(service=>[service.slug,service]));
  .offer-includes li{position:relative;padding-left:24px;font-size:.92rem;color:#45423e;line-height:1.5}
  .offer-includes li::before{content:'✓';position:absolute;left:0;top:0;color:#915000;font-weight:850}
  .offer-finance{margin-top:auto;padding:15px 0;border-top:1px solid #f0e8df}
- .offer-price{font-size:.88rem;font-weight:790;line-height:1.55;margin:0;color:#3b3026}
+ .offer-priced{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 13px}
+ .offer-priced>div{display:grid;gap:4px;background:#fff7eb;border:1px solid #f1e3d2;border-radius:12px;padding:13px}
+ .offer-priced small{font-size:.74rem;color:#655241;font-weight:750}
+ .offer-priced strong{font-size:1.4rem;color:#874100;line-height:1.2;letter-spacing:-.03em}
+ .offer-priced span{color:#594e43;font-size:.8rem;line-height:1.4}
+ .offer-price{font-size:.84rem;font-weight:650;line-height:1.55;margin:0;color:#554a40}
  .offer-media{font-size:.83rem;color:#6b5a48;line-height:1.55;margin:8px 0 0}
  .offer-availability{font-size:.8rem;color:#744c16;line-height:1.55;margin:8px 0 0}
  .quick-hire-links{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
