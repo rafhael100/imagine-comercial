@@ -31,16 +31,25 @@ function plainExact(obj,keys) {
   if(Reflect.ownKeys(obj).some(k=>typeof k!=='string'||!keys.includes(k)))
     throw new Error('Unexpected calculator intent fields');
 }
+function denseValueArray(value) {
+  if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype||
+     value.length<1||value.length>3||
+     Reflect.ownKeys(value).length!==value.length+1)
+    return false;
+  for(let i=0;i<value.length;i++){
+    const descriptor=Object.getOwnPropertyDescriptor(value,String(i));
+    if(!descriptor||descriptor.enumerable!==true||
+       !Object.hasOwn(descriptor,'value'))return false;
+  }
+  return true;
+}
 function assertPayload(payload) {
   plainExact(payload,FIELDS);
   if(payload.schema!==SCHEMA||payload.source!==SOURCE||payload.currency!=='BRL'||
      !UUID_V4.test(payload.submission_id)||!UUID_V4.test(payload.nonce)||
      payload.submission_id===payload.nonce||
      payload.notice_version!=='lab-notice-v1'||
-     !Array.isArray(payload.channel_ids)||
-     Object.getPrototypeOf(payload.channel_ids)!==Array.prototype||
-     payload.channel_ids.length<1||payload.channel_ids.length>3||
-     Reflect.ownKeys(payload.channel_ids).length!==payload.channel_ids.length+1||
+     !denseValueArray(payload.channel_ids)||
      payload.channel_ids.some(id=>!CHANNELS.includes(id))||
      payload.channel_ids.join(',')!==[...new Set(payload.channel_ids)].sort().join(',')||
      !Number.isSafeInteger(payload.media_total_cents)||
