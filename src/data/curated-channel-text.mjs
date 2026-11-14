@@ -9,6 +9,7 @@ import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from './b
 import {comparisonOptions} from './service-comparison.mjs';
 import {composeReviewedComparisonContact} from './comparison-contact.mjs';
 import {CALCULATOR_CONTACT_OPTIONS} from './calculator-contact-messages.mjs';
+import {localizedSalesMessages} from './localized-sales-messages.mjs';
 
 const messages=new Set();
 const subjects=new Set();
@@ -41,6 +42,10 @@ if(comparisonPairs!==21)throw Error('F188: invalid pair contact catalog');
 // no user-supplied spending amounts, identifiers, free text or PII.
 for(const options of Object.values(CALCULATOR_CONTACT_OPTIONS))
   for(const item of options)messages.add(item.message);
+
+// F323: English/Spanish fixed offer-specific contact links; no visitor input.
+for(const localeMessages of Object.values(localizedSalesMessages))
+  for(const message of Object.values(localeMessages))messages.add(message);
 
 
 if(combinations!==640||messages.size<35||subjects.size<7)
