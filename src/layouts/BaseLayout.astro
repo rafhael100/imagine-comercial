@@ -193,7 +193,7 @@ const service = serviceName ? {
       .locale-switcher { display:flex; flex-shrink:0; align-items:center; justify-content:flex-end; gap:4px; }
       .locale-switcher .locale-option { display:inline-flex; flex-direction:column; align-items:center; justify-content:center; min-width:44px; min-height:46px; gap:0; border:1px solid transparent; border-radius:9px; line-height:1.1; text-decoration:none; color:#4b4439; }
       .locale-switcher .locale-option:hover, .locale-switcher .locale-option:focus-visible { background:#fff7ec; border-color:#d6a16a; }
-      .locale-switcher .locale-option[aria-current="page"] { background:#fff0db; border-color:#d77700; }
+      .locale-switcher .locale-option[aria-current="page"], .locale-switcher .locale-option[data-selected-language="true"] { background:#fff0db; border-color:#d77700; }
       .locale-switcher .locale-flag { font-size:24px; line-height:1.25; }
       .locale-switcher .locale-code { font-size:.62rem; font-weight:800; letter-spacing:.04em; }
       @media (max-width:1020px) {
@@ -242,7 +242,8 @@ const service = serviceName ? {
       <nav class="locale-switcher" aria-label="Escolher idioma do site">
         {languageFlags.map(option=>(
           <a class="locale-option" href={languageTargets[option.id]}
-            lang={option.id} hreflang={option.id} aria-current={option.id==='pt-BR'?'page':undefined}
+            lang={option.id} hreflang={option.id} aria-current={option.id==='pt-BR'&&languageTargets['pt-BR']===pathname?'page':undefined}
+            data-selected-language={option.id==='pt-BR'?'true':undefined}
             aria-label={option.name} title={option.name}>
             <span class="locale-flag" aria-hidden="true">{option.flag}</span>
             <span class="locale-code" aria-hidden="true">{option.code}</span>
