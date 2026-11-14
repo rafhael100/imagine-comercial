@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {reviewLegacyHttpContinuity} from '../src/lib/legacy-http-continuity-review.mjs';
+import {renderReadinessReport} from '../scripts/report-launch-blockers.mjs';
 
 function makeSnapshot(scope, statusByPath={}){
  return {
@@ -97,4 +98,19 @@ test('F-LEGACY-HTTP rejects inherited data, sparse arrays and getters without ex
  const sparse=structuredClone(after);
  delete sparse.rows[0];
  assert.throws(()=>reviewLegacyHttpContinuity(before,sparse),/F-LEGACY-HTTP:/);
+});
+
+test('F-LEGACY-HTTP production blocker report always exposes missing live provenance and lead-intake continuity',()=>{
+ const report=JSON.parse(renderReadinessReport(['--target=production']));
+ const check=report.legacyHttpContinuity;
+ assert.equal(report.approval,'NOT_AUTHORIZED');
+ assert.equal(check.totalKnownRoutes,27);
+ assert.equal(check.heldMustBePreserved,22);
+ assert.equal(check.redirectCandidatesRequireEditorialReview,5);
+ assert.equal(check.originalPublicHttpSnapshotIndependentlyReviewed,false);
+ assert.equal(check.candidatePrivateHttpSnapshotIndependentlyReviewed,false);
+ assert.equal(check.samePageHtmlByteParityVerified,false);
+ assert.equal(check.historicalFormsAndLeadsDeliveryVerified,false);
+ assert.equal(check.readyToReplaceLegacySite,false);
+ assert.equal(check.deploymentPerformed,false);
 });
