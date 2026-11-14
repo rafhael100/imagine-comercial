@@ -57,7 +57,7 @@ test('all seven offers and primary pages contain authored English and Spanish, n
    assert.ok(copy.contact.noSend.length>30);
    assert.ok(copy.headings.note.length>60);
  }
- assert.match(translations.en.faq[1][1],/paid directly to Google or Meta/);
+ assert.match(translations.en.faq[1][1],/paid directly to each approved advertising platform/);
  assert.match(translations.es.faq[1][1],/directamente a Google o Meta/);
 });
 
