@@ -3,7 +3,7 @@
 ## Objetivo
 
 Verificar a política F314 **contra requisições HTTP reais, mas totalmente
-locais e descartáveis**. Uma verificação estática de 59 rotas novas e 27
+locais e descartáveis**. Uma verificação estática de 62 rotas novas e 27
 rotas históricas não comprova que métodos POST, arquivos CSS/JS e
 respostas da home permaneceriam corretos quando atendidos por um roteador.
 
@@ -22,7 +22,7 @@ executa dois servidores HTTP temporários, **ambos vinculados a
 ## Invariantes testadas
 
 1. A home antiga `/` continua no legado fictício;
-2. Outras **59 rotas Astro** respondem com os bytes exatos do build;
+2. Outras **62 rotas Astro** respondem com os bytes exatos do build;
 3. As **27 URLs históricas**, incluindo 22 HOLD e 5 candidatas a
    redirecionamento, permanecem no legado de laboratório, sem 301;
 4. O antigo `robots.txt`, `sitemap.xml`, `/fale-conosco.html`
