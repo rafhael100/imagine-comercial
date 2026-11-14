@@ -84,7 +84,8 @@ for (const [slug, offer] of Object.entries(cases)) {
     '<article\\b[^>]*data-quick-hire="' + slug + '"[^>]*>[\\s\\S]*?</article>'
   );
   const card = after.match(rx)?.[0];
-  assert.ok(card && card.includes('href="' + portal + offer + '"'), "Handoff link missing");
+  assert.ok(card && card.includes('href="' + reviewedPrivatePortalUrl(slug) + '"'), "Handoff link missing");
+  assert.ok(checkPrivatePortalUrl(reviewedPrivatePortalUrl(slug),slug), "Policy mismatch");
   assert.equal((card.match(/data-quick-hire-action/g) ?? []).length, 1);
 }
 assert.equal(readFileSync(resolve(input, "index.html"), "utf8"), source);
