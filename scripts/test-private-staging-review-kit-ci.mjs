@@ -9,6 +9,22 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 
 const kit='artifacts/private-staging-review-kit';
+const metadata=JSON.parse(readFileSync(join(kit,'REVIEW-ONLY-kit-metadata.json'),'utf8'));
+const sha=value=>typeof value==='string'&&/^[a-f0-9]{40}$/.test(value);
+assert.equal(metadata.deployPerformed,false);
+assert.equal(metadata.noCredentialsIncluded,true);
+if(process.env.GITHUB_EVENT_PATH){
+  const event=JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+  if(event?.pull_request?.head?.sha){
+    assert.equal(metadata.sourceCommit,event.pull_request.head.sha,
+      'F318: source must be real PR head, not its transient test merge');
+    assert.equal(metadata.sourceCommitFromPrHead,true);
+    assert.equal(metadata.ciEvaluationCommit,process.env.GITHUB_SHA);
+  }
+}
+assert.ok(metadata.sourceCommit===null||sha(metadata.sourceCommit));
+assert.ok(metadata.ciEvaluationCommit===null||sha(metadata.ciEvaluationCommit));
+
 function check(cwd){
   const output=spawnSync(process.execPath,['verify-kit.mjs'],{
     cwd,encoding:'utf8',timeout:10000,
