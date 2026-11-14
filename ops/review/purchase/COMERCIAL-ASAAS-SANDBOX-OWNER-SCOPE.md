@@ -2,7 +2,7 @@
 
 ## O que foi ligado
 
-Esta PR sucede a Comercial #381. O checkout Astro em homologação CI gera links exatos para Onepage, Landing Page, Google Ads e Meta Ads, sem autenticação pública, valores de mídia ou cobrança. O navegador abre somente o destino loopback em CI e valida a mesma aplicação Laravel que a candidata Portal #761 (**SHA fixa** `4204063be10d10ef7c0756dc40a2c0421d2a413d`).
+Esta PR sucede a Comercial #381. O checkout Astro em homologação CI gera links exatos para Onepage, Landing Page, Google Ads e Meta Ads, sem autenticação pública, valores de mídia ou cobrança. O navegador abre somente o destino loopback em CI e valida a mesma aplicação Laravel que a candidata Portal #761 (**SHA fixa** `3f7750daf4892050ae350b43d3f1e48f75023864`).
 
 O Portal mantém HMAC por cliente e `FORCE ROW LEVEL SECURITY`, catálogo financeiro v4, orçamento versionado, componentes Asaas offline e verificação de aprovação/estorno. No banco **descartável**, a Landing Page originada do cartão Astro gera um pedido e uma intenção de cobrança Sandbox com valor exato **R$ 430,00**, calculado exclusivamente do snapshot revisado pelo servidor. O navegador tenta substituir `amount_cents` e recebe HTTP 422. Também verifica que nenhum usuário consegue aprovar manualmente o pagamento após optar pelo Sandbox, nem enviar briefing antes da confirmação.
 
