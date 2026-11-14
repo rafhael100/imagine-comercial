@@ -39,7 +39,7 @@ const metaCopy=section==='' ? copy.hero.intro : intro+' '+
     'Conoce los servicios digitales de Imagine y solicita una propuesta a medida.');
 // Keep each description unique, readable, and within the existing SEO guard.
 const description=metaCopy.length>200
-  ?metaCopy.slice(0,198).replace(/\\s+\\S*$/,'').trim()+'.'
+  ?metaCopy.slice(0,198).replace(/\s+\S*$/,'').trim()+'.'
   :metaCopy;
 const crumbs=section===''?[]:(isService?
   [{label:copy.nav.services,path:paths.services},{label:service.label,path:intlPath(locale,section)}]:
