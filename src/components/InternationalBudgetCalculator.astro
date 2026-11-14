@@ -14,6 +14,9 @@ const t=en?{
   cpl:'Your historical cost per lead (BRL)',
   cap:'Monthly media limit (BRL), optional',
   calc:'Calculate my budget',
+  copy:'Copy my study',print:'Print or save this study as PDF',
+  copied:'Study copied. You decide where to share it.',
+  copyError:'Automatic copying was unavailable; review the figures above.',
   method:'No signup or tracking. Calculations stay in your browser.',
   min:'Minimum to contract selected channels',
   recommended:'Suggested monthly media investment',
@@ -40,6 +43,9 @@ const t=en?{
   cpl:'Tu costo histórico por lead (BRL)',
   cap:'Límite mensual para publicidad (BRL), opcional',
   calc:'Calcular mi presupuesto',
+  copy:'Copiar mi estudio',print:'Imprimir o guardar el estudio como PDF',
+  copied:'Estudio copiado. Tú decides dónde compartirlo.',
+  copyError:'No fue posible copiar automáticamente; consulta los importes arriba.',
   method:'Sin registro ni seguimiento. El cálculo se realiza en tu navegador.',
   min:'Inversión mínima para contratar los canales',
   recommended:'Inversión mensual recomendada',
@@ -104,6 +110,11 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
       <ul id="intl-calc-channels"></ul>
       <p id="intl-calc-limit" hidden role="status">{t.low}</p>
       <p>{t.disclaimer}</p>
+      <div class="intl-calc-actions">
+        <button type="button" class="cta cta-secondary" id="intl-calc-copy" hidden>{t.copy}</button>
+        <button type="button" class="cta cta-secondary" id="intl-calc-print" hidden>{t.print}</button>
+      </div>
+      <p id="intl-calc-copy-status" role="status" aria-live="polite"></p>
       <a class="cta" href={locale==='en'?'/en/contact/':'/es/contact/'}>{t.contact}</a>
       <p class="calc-hint">{t.noLead}</p>
     </section>
@@ -116,6 +127,25 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
     const locale=root.dataset.locale==='en'?'en-US':'es-ES';
     const money=(cents:number)=>new Intl.NumberFormat(locale,{style:'currency',currency:'BRL'}).format(cents/100);
     const get=<T extends HTMLElement>(selector:string)=>root.querySelector<T>(selector);
+    const copy=get<HTMLButtonElement>('#intl-calc-copy');
+    const print=get<HTMLButtonElement>('#intl-calc-print');
+    const status=get<HTMLElement>('#intl-calc-copy-status');
+    const canCopy=typeof navigator.clipboard?.writeText==='function';
+    let summary='';
+    if(copy&&canCopy){copy.addEventListener('click',async()=>{
+      if(!summary)return;
+      try{
+        await navigator.clipboard.writeText(summary);
+        if(status)status.textContent=locale==='en-US'?
+          'Study copied. You decide where to share it.':
+          'Estudio copiado. Tú decides dónde compartirlo.';
+      }catch{
+        if(status)status.textContent=locale==='en-US'?
+          'Automatic copying was unavailable; review the figures above.':
+          'No fue posible copiar automáticamente; consulta los importes arriba.';
+      }
+    });}
+    print?.addEventListener('click',()=>{if(summary)window.print();});
     get<HTMLButtonElement>('#intl-calc-run')?.addEventListener('click',()=>{
       const error=get<HTMLElement>('#intl-calc-error');
       const results=get<HTMLElement>('#intl-calc-results');
@@ -151,8 +181,23 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
           list.appendChild(li);
         }}
         const below=get<HTMLElement>('#intl-calc-limit');if(below)below.hidden=!p.exceedsMonthlyLimit;
+        summary=[locale==='en-US'?'Imagine advertising study — non-contractual':
+          'Estudio publicitario Imagine — no contractual',
+          ...p.channels.map(item=>item.label+': '+money(item.suggestedCents)),
+          (locale==='en-US'?'Suggested media: ':'Publicidad sugerida: ')+money(p.suggestedMediaCents),
+          (locale==='en-US'?'20% management reference (minimum pending): ':'Gestión orientativa del 20% (mínimo pendiente): ')+money(p.illustrativeManagementCents),
+          (locale==='en-US'?'One-time activation: ':'Activación única: ')+money(p.oneTimeActivationCents),
+          (locale==='en-US'?'Illustrative first-cycle subtotal (not final price): ':'Subtotal inicial orientativo (no es precio final): ')+money(p.illustrativeFirstCycleSubtotalCents)
+        ].join('\n');
+        if(status)status.textContent='';
+        if(copy)copy.hidden=!canCopy;
+        if(print)print.hidden=false;
         if(results){results.hidden=false;results.scrollIntoView({behavior:'smooth',block:'start'});}
       }catch{
+        summary='';
+        if(copy)copy.hidden=true;
+        if(print)print.hidden=true;
+        if(status)status.textContent='';
         if(results)results.hidden=true;
         if(error){error.hidden=false;error.textContent=locale==='en-US'?
           'Check the channels and numbers. Enter leads and historical CPL together or leave both empty.':
@@ -179,6 +224,15 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
   .intl-calc-result-grid>div{padding:20px;border-radius:11px;background:white;border:1px solid #dedbd5}
   .intl-calc-result-grid dt{font-size:.88rem;color:#5f5a52}
   .intl-calc-result-grid dd{font-size:1.4rem;font-weight:800;margin:8px 0 0;color:#794000}
+  .intl-calc-actions{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}
   button{cursor:pointer}
+  @media print{
+    :global(header),:global(footer),.hero,.intl-calc-card,.intl-calc-actions,.calc-hint{display:none!important}
+    #intl-budget-calculator{max-width:none}
+    #intl-calc-results{background:white!important;padding:0!important;margin:0!important}
+    #intl-calc-results[hidden]{display:none!important}
+    .intl-calc-result-grid>div{break-inside:avoid}
+    @page{size:A4;margin:15mm}
+  }
   a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a75b00;outline-offset:3px}
 </style>
