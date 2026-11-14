@@ -51,6 +51,23 @@ export function renderReadinessReport(argv=[]){
       readyToReplaceLegacySite:false,
       deploymentPerformed:false
     },
+    progressiveLegacyOverlay:{
+      schema:'imagine.comercial.progressive-legacy-overlay-review.v1',
+      strategy:'LEGACY_FIRST_PRIVATE_NOINDEX_ONLY',
+      originalHomepageRetained:true,
+      listedNewPageCandidates:sitePages.length-1,
+      knownHistoricalRoutesRetained:legacyUrls.length,
+      unlistedPathsMustRemainOnOriginal:true,
+      originalContactFormsRemainActiveVerified:false,
+      originalBackendSeparatedAndTlsVerified:false,
+      oldAndNewSeoHreflangCompatible:false,
+      privateOverlayNoindexVerifiedOnRealEdge:false,
+      candidateCloudflareRouteDeployed:false,
+      canServePublicSearchTraffic:false,
+      canReplaceProductionLegacy:false,
+      releaseAuthorized:false,
+      networkOrDeployPerformed:false
+    },
     internationalLegacyCutover:reviewInternationalLegacyCutover(),
     portalCrmIntegration:reviewPortalCrmOperationalBoundary(),
     privateStagingLeaseweb:reportUnverifiedPrivateStaging(),
