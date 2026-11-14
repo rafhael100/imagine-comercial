@@ -6,6 +6,7 @@ on:
       - 'src/lib/media-budget-calculator.mjs'
       - 'src/lib/synthetic-calculator-interest-interop-lab.mjs'
       - 'src/pages/calculadora-de-anuncios.astro'
+      - 'src/components/InternationalBudgetCalculator.astro'
       - 'src/pages/index.astro'
       - 'tests/media-budget-calculator.test.mjs'
       - 'tests/synthetic-calculator-interest-interop.test.mjs'
