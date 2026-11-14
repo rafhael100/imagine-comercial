@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/InternationalLayout.astro';
 import {translations,intlPath,INTERNATIONAL_SECTIONS} from '../data/i18n.mjs';
 import {contactChannels} from '../data/contact-channels.mjs';
+import {internationalArticles,INTERNATIONAL_ARTICLE_SLUGS} from '../data/i18n-articles.mjs';
 interface Props { locale:'en'|'es'; section:string; }
 const {locale,section}=Astro.props;
 if(!INTERNATIONAL_SECTIONS.includes(section))throw new Error('Unapproved localized route');
@@ -10,9 +11,15 @@ const paths={
  home:intlPath(locale),services:intlPath(locale,'services'),
  contact:intlPath(locale,'contact'),how:intlPath(locale,'how-it-works'),
  faq:intlPath(locale,'faq'),about:intlPath(locale,'about'),
- compare:intlPath(locale,'compare')
+ compare:intlPath(locale,'compare'),articles:intlPath(locale,'articles')
 };
 const isService=section.startsWith('services/');
+const isArticle=section.startsWith('articles/');
+const articleSlug=isArticle?section.slice('articles/'.length):null;
+const article=articleSlug?internationalArticles[locale][articleSlug]:null;
+if(isArticle&&!article)throw new Error('Unapproved international article');
+const articleList=INTERNATIONAL_ARTICLE_SLUGS.map(slug=>({slug,...internationalArticles[locale][slug]}));
+const articlesLabel=locale==='en'?'Guides & insights':'Guías y contenidos';
 const serviceSlug=isService?section.slice('services/'.length):null;
 const service=serviceSlug?copy.services[serviceSlug]:null;
 if(isService&&!service)throw new Error('Unapproved international service');
@@ -20,20 +27,23 @@ const serviceList=Object.entries(copy.services).map(([slug,value])=>({slug,...va
 const pageLabel={
  '':copy.nav.home,services:copy.nav.services,compare:copy.nav.compare,
  'how-it-works':copy.nav.how,faq:copy.nav.faq,about:copy.nav.about,
- contact:copy.nav.contact
+ contact:copy.nav.contact,articles:articlesLabel
 };
-const currentLabel=service?.label??pageLabel[section];
+const currentLabel=service?.label??article?.heading??pageLabel[section];
 const langSuffix=locale==='en'?'English':'Español';
 const title=section===''?
   (locale==='en'?'Professional websites & digital marketing | Imagine':'Sitios web y marketing digital | Imagine'):
   `${currentLabel} | Imagine Comunicação Digital · ${langSuffix}`;
-const intro=service?.intro??
+const intro=article?.intro??(section==='articles'?
+  (locale==='en'?'Explore practical guides on websites, advertising and search visibility for businesses.':
+    'Explora guías prácticas sobre sitios web, publicidad y posicionamiento para empresas.'):
+  service?.intro??
   (section==='about'?copy.about.intro:
     section==='contact'?copy.contact.intro:
     section==='compare'?copy.compare.intro:
     section==='how-it-works'?copy.headings.processIntro:
     section==='faq'?copy.headings.note:
-    copy.headings.servicesIntro);
+    copy.headings.servicesIntro));
 const metaCopy=section==='' ? copy.hero.intro : intro+' '+
   (locale==='en'?'Learn about Imagine digital services and request a tailored proposal.':
     'Conoce los servicios digitales de Imagine y solicita una propuesta a medida.');
@@ -43,10 +53,11 @@ const description=metaCopy.length>200
   :metaCopy;
 const crumbs=section===''?[]:(isService?
   [{label:copy.nav.services,path:paths.services},{label:service.label,path:intlPath(locale,section)}]:
+  isArticle?[{label:articlesLabel,path:paths.articles},{label:article.heading,path:intlPath(locale,section)}]:
   [{label:currentLabel,path:intlPath(locale,section)}]);
 const serviceLink=slug=>intlPath(locale,'services/'+slug);
 ---
-<BaseLayout title={title} description={description} pathname={intlPath(locale,section)} locale={locale} breadcrumb={crumbs}>
+<BaseLayout title={title} description={description} pathname={intlPath(locale,section)} locale={locale} breadcrumb={crumbs} articleTitle={article?.heading}>
   {section==='' && (
     <>
       <section class="hero" aria-labelledby="international-main-title">
@@ -156,6 +167,62 @@ const serviceLink=slug=>intlPath(locale,'services/'+slug);
       <section class="section shell"><div class="cards intl-card-grid">{copy.about.values.map(([label,detail])=>(<article class="card"><h2 class="intl-card-title">{label}</h2><p>{detail}</p></article>))}</div></section>
     </>
   )}
+  {section==='articles' && (
+    <>
+      <section class="hero"><div class="shell">
+        <p class="eyebrow">{articlesLabel}</p>
+        <h1>{locale==='en'?'Guides to make better digital decisions':'Guías para tomar mejores decisiones digitales'}</h1>
+        <p class="lead">{intro}</p>
+      </div></section>
+      <section class="section shell">
+        <h2>{locale==='en'?'Explore our guides':'Explora nuestras guías'}</h2>
+        <div class="cards intl-card-grid">
+          {articleList.map(item=>(
+            <article class="card"><p class="eyebrow">{item.eyebrow}</p>
+              <h3>{item.heading}</h3><p>{item.intro}</p>
+              <a href={intlPath(locale,'articles/'+item.slug)}
+                aria-label={locale==='en'?'Read guide: '+item.heading:'Leer guía: '+item.heading}>
+                {locale==='en'?'Read the guide':'Leer la guía'}
+              </a>
+            </article>
+          ))}
+        </div>
+        <div class="cta-row"><a class="cta cta-secondary" href={paths.services}>{copy.actions.all}</a></div>
+      </section>
+    </>
+  )}
+  {isArticle && article && (
+    <>
+      <section class="hero"><div class="shell">
+        <p class="eyebrow">{article.eyebrow}</p>
+        <h1>{article.heading}</h1>
+        <p class="lead">{article.intro}</p>
+      </div></section>
+      <article class="section shell">
+        <nav class="intl-article-toc" aria-label={locale==='en'?'Guide sections':'Secciones de la guía'}>
+          <h2>{locale==='en'?'In this guide':'En esta guía'}</h2>
+          <ol>{article.sections.map(([heading],i)=>(
+            <li><a href={'#section-'+(i+1)}>{heading}</a></li>
+          ))}</ol>
+        </nav>
+        {article.sections.map(([heading,first,second],i)=>(
+          <section class="intl-article-section" id={'section-'+(i+1)}>
+            <h2>{heading}</h2>
+            <p>{first}</p><p>{second}</p>
+          </section>
+        ))}
+        <aside class="intl-article-next">
+          <h2>{locale==='en'?'Keep exploring':'Sigue explorando'}</h2>
+          <p>{copy.headings.note}</p>
+          <div class="cta-row">
+            <a class="cta cta-secondary" href={paths.articles}>{articlesLabel}</a>
+            <a class="cta cta-secondary" href={paths.services}>{copy.actions.all}</a>
+            <a class="cta" href={paths.contact}>{copy.actions.contact}</a>
+          </div>
+        </aside>
+      </article>
+    </>
+  )}
   {section==='contact' && (
     <>
       <section class="hero"><div class="shell"><p class="eyebrow">{copy.nav.contact}</p><h1>{copy.headings.contact}</h1><p class="lead">{copy.contact.intro}</p></div></section>
@@ -178,5 +245,12 @@ const serviceLink=slug=>intlPath(locale,'services/'+slug);
     .section-dark .intl-quiet{color:#e0dfdc}
     .card h2,.card h3{overflow-wrap:anywhere}
     .card a{display:inline-flex;min-height:44px;align-items:center}
+    .intl-article-toc{padding:24px 28px;border:1px solid #e8e2da;border-radius:16px;background:#f7f7f8;margin-bottom:38px;max-width:900px}
+    .intl-article-toc h2{font-size:1.4rem}
+    .intl-article-toc ol{display:grid;gap:8px;padding-left:22px}
+    .intl-article-toc a{color:#884100;min-height:44px;display:inline-flex;align-items:center}
+    .intl-article-section{max-width:860px;scroll-margin-top:24px;margin-top:36px}
+    .intl-article-section p{max-width:810px}
+    .intl-article-next{margin-top:44px;padding:22px;background:#f7f7f8;border-radius:16px}
   </style>
 </BaseLayout>
