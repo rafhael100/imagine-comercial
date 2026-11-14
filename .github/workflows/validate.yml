@@ -118,6 +118,8 @@ jobs:
         run: node scripts/prepare-trilingual-static-handoff-ci.mjs
       - name: Simular transicao privada progressiva sem retirar formularios e rotas legadas (F314)
         run: node scripts/prepare-progressive-legacy-overlay-ci.mjs
+      - name: Exercitar origem antiga ficticia + Astro real em HTTP local, sem proxy de producao (F317)
+        run: node scripts/test-progressive-legacy-overlay-http-ci.mjs
       - name: Armazenar somente manifesto REVIEW-ONLY de integridade
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
