@@ -1,0 +1,68 @@
+name: Imagine Comercial P0 - customer Portal CTA handoff (CI-only)
+on:
+  pull_request:
+    paths:
+      - 'ops/review/purchase/prepare-customer-portal.mjs'
+      - '.github/workflows/comercial-customer-portal-handoff.yml'
+permissions:
+  contents: read
+jobs:
+  private-cta-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact review branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Build approved Comercial Astro without deploying
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/verify-dist.mjs
+      - name: Produce isolated copy with Portal registration handoff
+        env:
+          IMAGINE_PORTAL_CUSTOMER_PREVIEW: '1'
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          node ops/review/purchase/prepare-customer-portal.mjs dist "$RUNNER_TEMP/comercial-customer-portal-review"
+          node scripts/verify-dist.mjs
+      - name: Verify only the four approved CTAs in generated copy
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          const root=process.env.RUNNER_TEMP+'/comercial-customer-portal-review/';
+          const html=readFileSync(root+'index.html','utf8');
+          const manifest=JSON.parse(readFileSync(root+'private-portal-handoff.json','utf8'));
+          assert.equal(manifest.buttons,4);
+          assert.equal(manifest.publicReleaseAuthorized,false);
+          assert.equal(manifest.paymentEnabled,false);
+          assert.equal(manifest.unservedCopyOnly,true);
+          const cases={
+            onepage:'onepage','landing-pages':'landing-pages',
+            'gestao-google-ads':'performance','gestao-meta-ads':'performance'
+          };
+          for(const [slug,offer] of Object.entries(cases)){
+            const card=html.match(new RegExp('<article\\b[^>]*data-quick-hire="'+slug+'"[^>]*>[\\s\\S]*?</article>'))?.[0];
+            assert.ok(card,'Missing offer '+slug);
+            const expected='href="https://portal-dev.imaginecomunica.com.br/_preview/portal/shop?product='+offer+'"';
+            assert.ok(card.includes(expected),'Missing pinned private Portal link '+slug);
+            assert.equal((card.match(/data-quick-hire-action/g)||[]).length,1);
+          }
+          assert.match(html,/Sem cadastro público, pagamento ou contrato real/);
+          console.log('PASS 4 signed-off CTAs → isolated customer Portal preview URLs; no public release');
+          NODE
+      - name: Explicit NO-GO summary
+        run: |
+          echo "CI generated a local static candidate only; not delivered to any web server." >> "$GITHUB_STEP_SUMMARY"
+          echo "Portal identity, Basic Auth, TLS, customer authorization and private routing are NOT validated by this link-only test." >> "$GITHUB_STEP_SUMMARY"
+          echo "Do not deploy until #695 and its AppSec/DBA/IAM gates are accepted." >> "$GITHUB_STEP_SUMMARY"
