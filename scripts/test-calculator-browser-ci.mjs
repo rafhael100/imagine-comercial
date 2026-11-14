@@ -22,11 +22,11 @@ try {
     {path:'/en/budget-calculator/',lang:'en-US',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
-      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:false},
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:true},
     {path:'/es/budget-calculator/',lang:'es-ES',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
-      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:false}
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:true}
   ];
   for(const route of routes){
     const ctx=await browser.newContext({
@@ -50,7 +50,8 @@ try {
     assert.equal(await page.locator(route.checkbox+'[value=meta_ads]').isChecked(),true);
     assert.equal(await page.locator(route.checkbox+'[value=google_ads]').isChecked(),false);
     if(route.print){
-      assert.equal(await page.locator('#calc-print').isHidden(),true);
+      const printSelector=route.path==='/calculadora-de-anuncios/'?'#calc-print':'#intl-calc-print';
+      assert.equal(await page.locator(printSelector).isHidden(),true);
       await page.evaluate(()=>{window.print=()=>{window.__calculatorPrintCalled=true}});
     }
     await page.locator(route.start).click();
@@ -61,8 +62,9 @@ try {
     assert.equal((await page.locator(route.fee).textContent())?.trim(),money(200));
     assert.equal((await page.locator(route.total).textContent())?.trim(),money(1200));
     if(route.print){
-      assert.equal(await page.locator('#calc-print').isVisible(),true);
-      await page.locator('#calc-print').click();
+      const printSelector=route.path==='/calculadora-de-anuncios/'?'#calc-print':'#intl-calc-print';
+      assert.equal(await page.locator(printSelector).isVisible(),true);
+      await page.locator(printSelector).click();
       assert.equal(await page.evaluate(()=>Boolean(window.__calculatorPrintCalled)),true,
         'print must only run after explicit user interaction');
     }
@@ -83,7 +85,7 @@ try {
     assert.deepEqual(blocked,[],route.path+' cannot call external or POST endpoints');
     await ctx.close();
   }
-  console.log('PASS: PT/EN/ES live Chromium calculator math, print, no PII, no POST/external traffic');
+  console.log('PASS: PT/EN/ES live Chromium calculator math and print/PDF for all three languages, no PII, POST or external traffic');
 } finally {
   if(browser)await browser.close();
   if(server.listening)await new Promise(resolve=>server.close(resolve));
