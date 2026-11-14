@@ -98,7 +98,7 @@ jobs:
         working-directory: portal/apps/portal/ops/private-purchase
         run: |
           set -euo pipefail
-          count=$(docker compose exec -T database psql -U postgres -d portal_purchase_rehearsal -Atc 'SELECT count(*) FROM customer_orders.orders')
+          count=$(docker compose exec -T database psql -U postgres -d portal_purchase_rehearsal -Atc 'SELECT count(*) FROM purchase_rehearsal.customer_orders')
           test "$count" = "4"
           echo 'PASS four fictional owned orders in disposable database. NO-GO production.' >> "$GITHUB_STEP_SUMMARY"
       - name: Shut down only isolated CI services and erase disposable database
