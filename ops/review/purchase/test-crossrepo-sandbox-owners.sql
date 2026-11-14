@@ -55,12 +55,13 @@ BEGIN
 END $denied$;
 
 SELECT set_config('imagine.preview_principal', :'owner_a_owner', false),
-       set_config('imagine.preview_mac', :'owner_a_mac', false) \gset signed_a_
+       set_config('imagine.preview_mac', :'owner_a_mac', false),
+       set_config('imagine.preview_expected', :'owner_a_expected', false) \gset signed_a_
 DO $owned$
 DECLARE n bigint;
 BEGIN
  SELECT count(*) INTO n FROM purchase_rehearsal.sandbox_payment_intents;
- IF n<>:owner_a_expected THEN RAISE EXCEPTION 'Signed owner A sees wrong number of payment intents'; END IF;
+ IF n<>current_setting('imagine.preview_expected')::bigint THEN RAISE EXCEPTION 'Signed owner A sees wrong number of payment intents'; END IF;
 END $owned$;
 
 -- The same MAC with the wrong owner or forged admin identity must reveal nothing.
@@ -80,12 +81,13 @@ BEGIN
 END $forged_admin$;
 
 SELECT set_config('imagine.preview_principal', :'owner_b_owner', false),
-       set_config('imagine.preview_mac', :'owner_b_mac', false) \gset signed_b_
+       set_config('imagine.preview_mac', :'owner_b_mac', false),
+       set_config('imagine.preview_expected', :'owner_b_expected', false) \gset signed_b_
 DO $owned_b$
 DECLARE n bigint;
 BEGIN
  SELECT count(*) INTO n FROM purchase_rehearsal.sandbox_payment_intents;
- IF n<>:owner_b_expected THEN RAISE EXCEPTION 'Signed owner B sees wrong number of payment intents'; END IF;
+ IF n<>current_setting('imagine.preview_expected')::bigint THEN RAISE EXCEPTION 'Signed owner B sees wrong number of payment intents'; END IF;
  -- Never let a customer update server-owned financial amounts, provider status,
  -- payment holder or worker-only data. Column-level GRANT must fail closed.
  BEGIN
