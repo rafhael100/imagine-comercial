@@ -75,7 +75,8 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
         <h2>Investimento mínimo é diferente do recomendado.</h2>
         <p>O <strong>mínimo</strong> é a faixa de entrada comercial de cada canal. O <strong>recomendado</strong> é o valor inicial sugerido pela Imagine para planejar uma campanha.</p>
         <p>Se você conhece o custo por lead de campanhas anteriores, poderá inserir esse dado e criar um cenário mais direcionado.</p>
-        <p>Os honorários de gestão são 20% da mídia efetivamente investida, com estimativa antecipada e ajuste mensal. A mídia é paga diretamente às plataformas.</p>
+        <p>A ativação inicial custa R$ 490 por canal escolhido, uma única vez. A gestão mensal tem referência de 20% da mídia efetivamente investida, apurada após o mês. Um mínimo mensal de gestão poderá ser aplicado, mas seu valor ainda não foi homologado; não confunda esse mínimo com a taxa de ativação.</p>
+        <p>A mídia é paga diretamente às plataformas e não é cobrada pela Imagine.</p>
         <p class="calc-helper">No ChatGPT Ads, R$ 40/dia é um mínimo de campanha com orçamento diário em BRL; R$ 1.200 equivale a 30 dias e é o piso comercial escolhido pela Imagine, não uma mensalidade obrigatória da OpenAI.</p>
       </aside>
     </div>
@@ -88,13 +89,15 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
       <div class="results-grid">
         <article class="result-card"><span>Mínimo para contratar os canais selecionados</span><strong id="calc-minimum">—</strong></article>
         <article class="result-card"><span>Investimento mensal recomendado em mídia</span><strong id="calc-suggested">—</strong></article>
-        <article class="result-card"><span>Honorários Imagine estimados (20%)</span><strong id="calc-management">—</strong></article>
-        <article class="result-card"><span>Total informativo (mídia + gestão)</span><strong id="calc-total">—</strong></article>
+        <article class="result-card"><span>Gestão de referência (20% da mídia; mínimo mensal ainda não definido)</span><strong id="calc-management">—</strong></article>
+        <article class="result-card"><span>Subtotal mensal ilustrativo (mídia + 20%; sem mínimo de gestão)</span><strong id="calc-total">—</strong></article>
+        <article class="result-card"><span>Ativação inicial única — R$ 490 por canal</span><strong id="calc-activation">—</strong></article>
+        <article class="result-card"><span>Subtotal ilustrativo do primeiro ciclo (inclui ativação; sem mínimo de gestão)</span><strong id="calc-first-cycle">—</strong></article>
       </div>
       <h3>Distribuição por canal</h3>
       <ul class="calc-list" id="calc-breakdown"></ul>
       <p id="calc-limit-alert" class="calc-limit" role="status" hidden></p>
-      <p class="calc-helper">A estimativa de honorários usa a verba sugerida. A cobrança real considera a mídia efetivamente investida, com conciliação mensal. São pagamentos separados: mídia para cada plataforma e gestão para a Imagine. Nenhuma campanha, contratação ou cobrança foi iniciada.</p>
+      <p class="calc-helper">O subtotal do primeiro ciclo é apenas uma simulação: soma investimento sugerido em mídia, gestão de referência de 20% e ativação inicial única. <strong>Não é cotação final:</strong> não inclui eventual mínimo mensal de gestão, cujo valor ainda depende de definição. A gestão é apurada sobre o gasto real verificado após o mês; a mídia é paga diretamente às plataformas. Nenhuma campanha, contratação ou cobrança foi iniciada.</p>
       <div class="cta-row">
         <a class="cta" href={contactWhatsApp} target="_blank" rel="noopener noreferrer" id="calc-contact-whatsapp">Quero um planejamento personalizado</a>
         <a class="cta cta-secondary" href={contactEmail}>Entrar em contato por e-mail</a>
@@ -122,6 +125,8 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
     const suggested=document.querySelector<HTMLElement>('#calc-suggested');
     const management=document.querySelector<HTMLElement>('#calc-management');
     const total=document.querySelector<HTMLElement>('#calc-total');
+    const activation=document.querySelector<HTMLElement>('#calc-activation');
+    const firstCycle=document.querySelector<HTMLElement>('#calc-first-cycle');
     const breakdown=document.querySelector<HTMLElement>('#calc-breakdown');
     const limitAlert=document.querySelector<HTMLElement>('#calc-limit-alert');
     const copy=document.querySelector<HTMLButtonElement>('#calc-copy');
@@ -159,6 +164,8 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
         if(suggested)suggested.textContent=formatBRL(output.suggestedMediaCents);
         if(management)management.textContent=formatBRL(output.illustrativeManagementCents);
         if(total)total.textContent=formatBRL(output.illustrativeTotalCents);
+        if(activation)activation.textContent=formatBRL(output.oneTimeActivationCents);
+        if(firstCycle)firstCycle.textContent=formatBRL(output.illustrativeFirstCycleSubtotalCents);
         if(breakdown){
           breakdown.replaceChildren();
           for(const row of output.channels){
@@ -176,8 +183,10 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
         lastSummary=['Simulação de orçamento Imagine — informação não contratual',
           ...output.channels.map(row=>row.label+': '+formatBRL(row.suggestedCents)),
           'Mídia estimada: '+formatBRL(output.suggestedMediaCents),
-          'Gestão estimada (20%): '+formatBRL(output.illustrativeManagementCents),
-          'Mídia paga diretamente aos provedores; resultados não garantidos.'].join('\n');
+          'Gestão referência (20%; mínimo mensal não definido): '+formatBRL(output.illustrativeManagementCents),
+          'Ativação inicial única: '+formatBRL(output.oneTimeActivationCents),
+          'Subtotal ilustrativo do primeiro ciclo (sem mínimo mensal): '+formatBRL(output.illustrativeFirstCycleSubtotalCents),
+          'Mídia paga diretamente aos provedores; não é cotação final nem garantia de resultados.'].join('\n');
         if(copyStatus)copyStatus.textContent='';
         if(printButton)printButton.hidden=false;
         if(result){result.hidden=false;result.scrollIntoView({behavior:'smooth',block:'start'});}

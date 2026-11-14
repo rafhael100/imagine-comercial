@@ -18,14 +18,17 @@ try {
     {path:'/calculadora-de-anuncios/',lang:'pt-BR',
       start:'#calculate-run',result:'#media-result',min:'#calc-minimum',
       suggested:'#calc-suggested',fee:'#calc-management',total:'#calc-total',
+      activation:'#calc-activation',firstCycle:'#calc-first-cycle',
       checkbox:'input[name="channel"]',error:'#calculator-error',print:true},
     {path:'/en/budget-calculator/',lang:'en-US',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
+      activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
       checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:false},
     {path:'/es/budget-calculator/',lang:'es-ES',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
+      activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
       checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:false}
   ];
   for(const route of routes){
@@ -60,6 +63,8 @@ try {
     assert.equal((await page.locator(route.suggested).textContent())?.trim(),money(1000));
     assert.equal((await page.locator(route.fee).textContent())?.trim(),money(200));
     assert.equal((await page.locator(route.total).textContent())?.trim(),money(1200));
+    assert.equal((await page.locator(route.activation).textContent())?.trim(),money(490));
+    assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(1690));
     if(route.print){
       assert.equal(await page.locator('#calc-print').isVisible(),true);
       await page.locator('#calc-print').click();
@@ -73,10 +78,14 @@ try {
     assert.equal((await page.locator(route.suggested).textContent())?.trim(),money(4300));
     assert.equal((await page.locator(route.fee).textContent())?.trim(),money(860));
     assert.equal((await page.locator(route.total).textContent())?.trim(),money(5160));
+    assert.equal((await page.locator(route.activation).textContent())?.trim(),money(1470));
+    assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(6630));
 
     // A budget estimate is not an email subscription and never creates a lead.
     const faq=await page.locator('body').textContent();
-    assert.ok(/CRM|CRM/.test(faq),'No auto-CRM promise');
+    assert.ok(/CRM/.test(faq),'No auto-CRM promise');
+    assert.ok(/mínimo mensal|monthly minimum|mínimo mensual/i.test(faq),
+      'Must disclose unresolved recurring management minimum');
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+3),
       'No horizontal overflow in 375px viewport');
     assert.deepEqual(errors,[],route.path+' must not throw JS errors');
