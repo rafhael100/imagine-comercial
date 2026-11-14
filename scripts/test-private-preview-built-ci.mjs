@@ -21,7 +21,8 @@ try {
     assert.match(page.headers.get('content-type')||'',/text\/html/i);
     assert.equal(page.headers.get('x-robots-tag'),'noindex, nofollow, noarchive');
     assert.equal(page.headers.get('cache-control'),'private, no-store, max-age=0');
-    assert.match(await page.text(),/<html lang="pt-BR"/);
+    const lang=path.startsWith('/en/')?'en':path.startsWith('/es/')?'es':'pt-BR';
+    assert.match(await page.text(),new RegExp('<html lang="'+lang+'"'));
   }
   const assets=await readdir('dist/_astro');
   const browserAssets=assets.filter(name=>/\.(?:js|css)$/.test(name));
