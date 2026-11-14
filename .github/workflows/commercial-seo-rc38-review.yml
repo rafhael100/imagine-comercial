@@ -65,8 +65,8 @@ jobs:
           old="$(mktemp)"
           fresh="$(mktemp)"
           trap 'rm -f "$old" "$fresh"' EXIT
-          node .qa/seo-rc36/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head > "$old"
-          node .qa/seo-rc38/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head > "$fresh"
+          node .qa/seo-rc36/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --strict-public-head > "$old"
+          node .qa/seo-rc38/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --strict-public-head > "$fresh"
           node --input-type=module - "$old" "$fresh" <<'NODE'
           import {readFileSync} from 'node:fs';
           import assert from 'node:assert/strict';
@@ -75,6 +75,23 @@ jobs:
           const fresh=JSON.parse(readFileSync(newFile,'utf8'));
           for(const key of ['summary','routes','errors','warnings'])
             assert.deepEqual(fresh[key],old[key],key+' audit changed');
+          // These SHA-pinned F92/F96/F98 auditors predate multilingual pages.
+          // Keep strict-public-head and exact old-vs-new parity. Reject
+          // all errors and every warning EXCEPT the 42 known EN/ES
+          // 'missing_ptbr_lang' warnings; the independent F103 auditor
+          // tests exact real language, canonical and reciprocal hreflang
+          // across ALL 63 pages in validate.yml with --fail-on-warnings.
+          for(const report of [old,fresh]){
+            assert.equal(report.summary.pages,63,'exact reviewed 63-page scope');
+            assert.equal(report.summary.errors,0,'legacy audit cannot hide errors');
+            assert.equal(report.summary.warnings,42,
+              'no extra historical SEO warnings allowed');
+            assert.equal(report.warnings.length,42);
+            assert.ok(report.warnings.every(item=>
+              item.type==='missing_ptbr_lang' &&
+              /^(?:en|es)\//.test(item.file)),
+              'only EN/ES language warnings from pre-i18n engines are permitted');
+          }
           console.log('SEO RC38: static Comercial HTML audit unchanged');
           NODE
       - name: Verify RC38 original-evidence redaction and Portal handoff
