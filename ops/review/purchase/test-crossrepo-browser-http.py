@@ -84,7 +84,7 @@ with sync_playwright() as p:
     try:
         from_commercial(page, "onepage")
         assert page.url.rstrip("/") == PORTAL
-        signup(page)
+        owner_a = signup(page)
         assert page.url.endswith("/shop?product=onepage"), page.url
         onepage = accept_and_create(page, "R$ 990,00")
         assert "R$ 330,00" in page.locator("body").inner_text()
@@ -114,8 +114,29 @@ with sync_playwright() as p:
             assert order not in (onepage, landing)
         page.goto(PORTAL + "/client/services")
         assert page.locator('tr[data-customer-order]').count() == 4
+        # A second individual synthetic customer in the SAME test company cannot
+        # enumerate, view or mutate the first customer's orders at HTTP layer.
+        page.goto(PORTAL)
+        page.get_by_role("button", name="Sair", exact=True).click()
+        from_commercial(page, "gestao-google-ads")
+        assert page.url.rstrip("/") == PORTAL
+        owner_b = signup(page)
+        assert owner_b != owner_a
+        assert page.url.endswith("/shop?product=performance&channel=google_ads")
+        page.goto(PORTAL + "/client/services")
+        assert page.locator('tr[data-customer-order]').count() == 0
+        assert page.request.get(onepage).status == 404
+        assert page.request.get(landing).status == 404
+        assert page.request.post(onepage + "/payment", form={"_token":page.locator("input[name=_token]").first.input_value(), "revision":"0", "outcome":"approved", "sample_ack":"1"}).status == 404
+        page.goto(PORTAL)
+        page.get_by_role("button", name="Sair", exact=True).click()
+        page.locator('[name="username"]').fill(owner_a)
+        page.locator('[name="password"]').fill(PASSWORD)
+        page.get_by_role("button", name="Entrar", exact=True).click()
+        page.goto(PORTAL + "/client/services")
+        assert page.locator('tr[data-customer-order]').count() == 4
         assert not blocked, "Unexpected external network requests: " + str(blocked)
-        print("PASS real loopback HTTP/Chromium: Comercial 4 CTAs -> individual Portal account -> 4 PostgreSQL18 orders, approved server quotes, one fictional briefing; NO PSP/DEPLOY")
+        print("PASS cross-repo HTTP/Chromium four CTAs: signed-owner Portal PostgreSQL18 orders, two isolated customers, forged access 404, v4 quotes and one fictional briefing; NO PSP/DEPLOY")
     finally:
         context.close()
         browser.close()
