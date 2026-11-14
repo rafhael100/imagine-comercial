@@ -62,7 +62,7 @@ try {
     const quickPage=await quickContext.newPage();
     await quickPage.goto(host+'/',{waitUntil:'networkidle'});
     const cards=quickPage.locator('[data-quick-hire]');
-    assert.equal(await cards.count(),services.length,'Quick hiring covers all six published services');
+    assert.equal(await cards.count(),services.length,'Quick hiring covers all seven published services');
     for(const service of services){
       const card=quickPage.locator('[data-quick-hire="'+service.slug+'"]');
       const link=card.locator('[data-quick-hire-action]');
@@ -208,7 +208,7 @@ try {
       assert.ok(touchTargets.length>=5,'F259 enough navigation targets are visible');
       for(const link of touchTargets)
         assert.ok(link.height>=43.5,'F259 minimum 44px touch target: '+link.href);
-      // F262: six card titles are H3 children of the catalog's H2 heading.
+      // F262: seven card titles are H3 children of the catalog's H2 heading.
       if(route==='/servicos/'){
         assert.equal(await page.locator('#service-catalog .card > h3').count(),services.length,
           'F262 service cards use nested H3 titles');
@@ -611,17 +611,17 @@ try {
     await page.goto(host+'/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('a[href="/como-funciona/"]').count()>=1,true,
       'F64 home links to project process');
-    // F60: all six reviewed service comparisons are available even with
+    // F60: all seven reviewed service comparisons are available even with
     // JS disabled and never send information to an unapproved backend.
     await page.goto(host+'/comparar-solucoes/',{waitUntil:'load',timeout});
-    assert.equal(await page.locator('.compare-card').count(),6,'F60 all six comparison cards');
-    assert.equal(await page.locator('.compare-card dl').count(),6);
-    assert.equal(await page.locator('.compare-card dt').count(),18,'F60 three decision criteria each');
-    assert.equal(await page.locator('.compare-card a[href^="/servicos/"]').count(),6);
-    assert.equal(await page.locator('.compare-card a[href^="/contato/#"]').count(),6);
+    assert.equal(await page.locator('.compare-card').count(),services.length,'F60 all seven comparison cards');
+    assert.equal(await page.locator('.compare-card dl').count(),services.length);
+    assert.equal(await page.locator('.compare-card dt').count(),services.length*3,'F60 three decision criteria each');
+    assert.equal(await page.locator('.compare-card a[href^="/servicos/"]').count(),services.length);
+    assert.equal(await page.locator('.compare-card a[href^="/contato/#"]').count(),services.length);
     assert.equal(await page.locator('a[href="#comparacoes"]').count(),1);
     // F174: local shortlist of two reviewed services, no network/storage.
-    assert.equal(await page.locator('[data-compare-select]').count(),6);
+    assert.equal(await page.locator('[data-compare-select]').count(),services.length);
     assert.equal(await page.locator('#selected-comparison').isVisible(),false);
     await page.locator('[data-compare-select="onepage"]').click();
     assert.equal(await page.locator('#selected-comparison-list li').count(),1);
@@ -934,7 +934,7 @@ try {
           'F250 filter controls are invisible without JS');
         assert.equal(await noJsPage.locator('#copy-goal-link').isVisible(),false,
           'F299 clipboard enhancement remains hidden without JS');
-        assert.equal(await noJsPage.locator('#service-catalog .card:visible').count(),6,
+        assert.equal(await noJsPage.locator('#service-catalog .card:visible').count(),services.length,
           'F250 all services remain visible without JS');
       }finally{await noJsCatalog.close();}
     }
@@ -983,8 +983,8 @@ try {
           'F199 no-JS conditional comparison stays hidden, all services remain listed');
         assert.equal(await fallback.locator('noscript .service-guide-fallback [data-fallback-goal]').count(),5,
           'F206 all five public goals are legible without JavaScript');
-        assert.equal(await fallback.locator('noscript .service-guide-fallback a[href^="/servicos/"]').count(),6,
-          'F206 six distinct reviewed service links remain actionable without JavaScript');
+        assert.equal(await fallback.locator('noscript .service-guide-fallback a[href^="/servicos/"]').count(),services.length,
+          'F206 seven distinct reviewed service links remain actionable without JavaScript');
         assert.equal(await fallback.locator('noscript [data-fallback-goal="anuncios"] a[href="/servicos/gestao-google-ads/"]').count(),1);
         assert.equal(await fallback.locator('noscript [data-fallback-goal="anuncios"] a[href="/servicos/gestao-meta-ads/"]').count(),1);
         assert.equal(await fallback.locator('.cards article.card').count(),
@@ -993,7 +993,7 @@ try {
         assert.equal(await fallback.locator('#service-guide-results a[href="/servicos/onepage/"]').count(),1,
           'F58 has a useful static initial recommendation');
         await fallback.goto(host+'/comparar-solucoes/',{waitUntil:'load',timeout});
-        assert.equal(await fallback.locator('#comparacoes .compare-card').count(),6,
+        assert.equal(await fallback.locator('#comparacoes .compare-card').count(),services.length,
           'F174 all seven comparison cards stay visible without JavaScript');
         assert.equal(await fallback.locator('[data-compare-select]:visible').count(),0,
           'F174 shortlist buttons are hidden without JavaScript');
@@ -1103,7 +1103,7 @@ try {
         }
       }finally{await noJs.close();}
     }
-    // F75: validate all six service-specific contact channels in a real browser.
+    // F75: validate all seven service-specific contact channels in a real browser.
     // Reading href attributes never opens external applications or transmits a lead.
     for(const service of services){
       await page.goto(host+'/servicos/'+service.slug+'/',{waitUntil:'load',timeout});
