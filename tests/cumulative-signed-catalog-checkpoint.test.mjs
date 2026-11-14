@@ -51,7 +51,7 @@ const input=(releases=[start(),firstEdit(),secondEdit()])=>({
 test('F305 a later partial CMS update does not erase an earlier signed edit',()=>{
   const result=reconstruct(input());
   assert.equal(result.status,'COMPLETE_SIGNED_CHECKPOINT_AND_PARTIALS_REVIEW_ONLY');
-  assert.equal(result.serviceCount,6);
+  assert.equal(result.serviceCount,7);
   assert.equal(result.releasesChecked,3);
   assert.equal(result.signedEditorialChanges,2);
   assert.equal(result.partialAmendmentsReviewed,2);
