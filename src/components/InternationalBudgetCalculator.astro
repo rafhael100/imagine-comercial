@@ -17,12 +17,14 @@ const t=en?{
   method:'No signup or tracking. Calculations stay in your browser.',
   min:'Minimum to contract selected channels',
   recommended:'Suggested monthly media investment',
-  fee:'Estimated Imagine management fee (20%)',
-  total:'Illustrative total (media + management)',
+  fee:'Management estimate (20%; monthly minimum not finalized)',
+  total:'Illustrative monthly subtotal (before any minimum)',
+  activation:'One-time setup: BRL 490 per selected channel',
+  firstCycle:'Illustrative first-cycle subtotal (before any monthly minimum)',
   basis:'Breakdown by channel',
   low:'Your monthly limit is below the suggestion. We will never raise your budget automatically.',
   contact:'Discuss my plan with Imagine',
-  disclaimer:'Media goes directly to each platform. Imagine management is charged separately based on verified actual spend, with monthly reconciliation. No results are guaranteed and no order is placed.',
+  disclaimer:'Setup is BRL 490 once per selected channel, separate from monthly management. The 20% is a reference based on suggested media; the management minimum has not been finalized, so these subtotals are not final prices. Actual management is reconciled after each month against verified spend. Media goes directly to each platform. No results or orders are guaranteed.',
   noLead:'Email delivery and automated CRM follow-up are not active yet. You can contact Imagine through the available channels.',
   leads:'Generate leads',sales:'Increase sales',awareness:'Build awareness',
   floor:'Minimum',suggest:'Suggested',
@@ -41,12 +43,14 @@ const t=en?{
   method:'Sin registro ni seguimiento. El cálculo se realiza en tu navegador.',
   min:'Inversión mínima para contratar los canales',
   recommended:'Inversión mensual recomendada',
-  fee:'Honorarios Imagine estimados (20%)',
-  total:'Total orientativo (publicidad + gestión)',
+  fee:'Gestión estimada (20%; mínimo mensual por definir)',
+  total:'Subtotal mensual orientativo (sin mínimo de gestión)',
+  activation:'Activación única: R$ 490 por canal seleccionado',
+  firstCycle:'Subtotal inicial orientativo (sin mínimo mensual)',
   basis:'Distribución por canal',
   low:'Tu límite mensual está por debajo de la sugerencia. No incrementaremos automáticamente tu presupuesto.',
   contact:'Hablar de mi plan con Imagine',
-  disclaimer:'La publicidad se paga directamente a cada plataforma. La gestión Imagine se cobra aparte sobre la inversión real verificada, con conciliación mensual. No se garantizan resultados ni se inicia ninguna contratación.',
+  disclaimer:'La activación de R$ 490 por canal se paga una sola vez, por separado de la gestión mensual. El 20% es una referencia y el mínimo mensual de gestión todavía no está definido: los subtotales no son un precio final. La gestión se concilia tras cada mes según la inversión real verificada. La publicidad se paga directamente a cada plataforma. No se contrata ni garantiza ningún resultado.',
   noLead:'El envío por e-mail y la nutrición automática en el CRM todavía no están disponibles. Puedes contactar con Imagine por sus canales públicos.',
   leads:'Conseguir leads',sales:'Aumentar ventas',awareness:'Dar a conocer mi marca',
   floor:'Mínimo',suggest:'Sugerido',
@@ -93,6 +97,8 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
         <div><dt>{t.recommended}</dt><dd id="intl-calc-suggested">—</dd></div>
         <div><dt>{t.fee}</dt><dd id="intl-calc-fee">—</dd></div>
         <div><dt>{t.total}</dt><dd id="intl-calc-total">—</dd></div>
+        <div><dt>{t.activation}</dt><dd id="intl-calc-activation">—</dd></div>
+        <div><dt>{t.firstCycle}</dt><dd id="intl-calc-first-cycle">—</dd></div>
       </dl>
       <h3>{t.basis}</h3>
       <ul id="intl-calc-channels"></ul>
@@ -130,6 +136,8 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
           '#intl-calc-suggested':money(p.suggestedMediaCents),
           '#intl-calc-fee':money(p.illustrativeManagementCents),
           '#intl-calc-total':money(p.illustrativeTotalCents),
+          '#intl-calc-activation':money(p.oneTimeActivationCents),
+          '#intl-calc-first-cycle':money(p.illustrativeFirstCycleSubtotalCents),
           '#intl-calc-method':p.historicalCplSuppliedByVisitor?
             (locale==='en-US'?'Scenario based on your own historical CPL — not a forecast.':'Escenario basado en tu CPL histórico, no una previsión.') :
             (locale==='en-US'?'Imagine initial planning references — not a lead forecast.':'Referencias iniciales de Imagine, no una previsión de leads.')
