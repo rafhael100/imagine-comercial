@@ -11,6 +11,7 @@ import {
   readdirSync, realpathSync, writeFileSync
 } from "node:fs";
 import { resolve, sep } from "node:path";
+import { REVIEWED_OFFERS, reviewedPrivatePortalUrl, checkPrivatePortalUrl } from "./private-portal-handoff-policy.mjs";
 
 assert.equal(process.env.GITHUB_ACTIONS, "true", "Only isolated GitHub CI allowed");
 assert.equal(process.env.IMAGINE_PORTAL_CUSTOMER_PREVIEW, "1", "Explicit opt-in required");
@@ -40,13 +41,7 @@ function validateTree(p) {
 validateTree(input);
 
 const source = readFileSync(resolve(input, "index.html"), "utf8");
-const cases = Object.freeze({
-  onepage: "onepage",
-  "landing-pages": "landing-pages",
-  "gestao-google-ads": "performance",
-  "gestao-meta-ads": "performance"
-});
-const portal = "https://portal-dev.imaginecomunica.com.br/_preview/portal/shop?product=";
+const cases = REVIEWED_OFFERS;
 let modified = source;
 for (const [slug, offer] of Object.entries(cases)) {
   let cards = 0;
@@ -59,7 +54,7 @@ for (const [slug, offer] of Object.entries(cases)) {
     return card.replace(/<a\b([^>]*data-quick-hire-action[^>]*)>/g, (_, attrs) => {
       ++actions;
       assert.ok(/\bhref="[^"]*"/.test(attrs), "Approved CTA href required");
-      attrs = attrs.replace(/\bhref="[^"]*"/, 'href="' + portal + offer + '"');
+      attrs = attrs.replace(/\bhref="[^"]*"/, 'href="' + reviewedPrivatePortalUrl(slug) + '"');
       attrs = attrs.replace(/\s+target="[^"]*"/g, "");
       attrs = attrs.replace(/\s+rel="[^"]*"/g, "");
       attrs += ' rel="noreferrer nofollow"';
@@ -89,7 +84,8 @@ for (const [slug, offer] of Object.entries(cases)) {
     '<article\\b[^>]*data-quick-hire="' + slug + '"[^>]*>[\\s\\S]*?</article>'
   );
   const card = after.match(rx)?.[0];
-  assert.ok(card && card.includes('href="' + portal + offer + '"'), "Handoff link missing");
+  assert.ok(card && card.includes('href="' + reviewedPrivatePortalUrl(slug) + '"'), "Handoff link missing");
+  assert.ok(checkPrivatePortalUrl(reviewedPrivatePortalUrl(slug),slug), "Policy mismatch");
   assert.equal((card.match(/data-quick-hire-action/g) ?? []).length, 1);
 }
 assert.equal(readFileSync(resolve(input, "index.html"), "utf8"), source);
