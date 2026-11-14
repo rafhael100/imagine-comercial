@@ -25,7 +25,7 @@ await writeFile(folder+'/migration-review.json',JSON.stringify(review,null,2)+'\
 const international=reviewInternationalLegacyCutover();
 if(international.redirectsGenerated!==0||international.readyForCutover||international.originalsReviewed!==12)
   throw Error('International migration must remain blocked');
-await writeFile(folder+'/international-legacy-HOLD.json',JSON.stringify(international,null,2)+'\\n');
+await writeFile(folder+'/international-legacy-HOLD.json',JSON.stringify(international,null,2)+'\n');
 console.log('Offline migration preview passed:',JSON.stringify({
   candidates:review.candidateCount,held:review.heldCount,
   state:'SIMULATION_ONLY_NO_REDIRECTS_DEPLOYED'
