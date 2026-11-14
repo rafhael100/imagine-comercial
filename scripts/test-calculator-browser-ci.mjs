@@ -19,17 +19,17 @@ try {
       start:'#calculate-run',result:'#media-result',min:'#calc-minimum',
       suggested:'#calc-suggested',fee:'#calc-management',total:'#calc-total',
       activation:'#calc-activation',firstCycle:'#calc-first-cycle',
-      checkbox:'input[name="channel"]',error:'#calculator-error',print:true},
+      checkbox:'input[name="channel"]',error:'#calculator-error',print:'#calc-print',copy:null},
     {path:'/en/budget-calculator/',lang:'en-US',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
       activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
-      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:false},
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy'},
     {path:'/es/budget-calculator/',lang:'es-ES',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
       activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
-      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:false}
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy'}
   ];
   for(const route of routes){
     const ctx=await browser.newContext({
@@ -37,6 +37,12 @@ try {
       httpCredentials:{username:'reviewer',password}
     });
     const page=await ctx.newPage();
+    await page.addInitScript(()=>{
+      window.__testClipboardText=[];
+      Object.defineProperty(navigator,'clipboard',{
+        configurable:true,value:{writeText:async text=>{window.__testClipboardText.push(text);}}
+      });
+    });
     const blocked=[];
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
@@ -53,7 +59,7 @@ try {
     assert.equal(await page.locator(route.checkbox+'[value=meta_ads]').isChecked(),true);
     assert.equal(await page.locator(route.checkbox+'[value=google_ads]').isChecked(),false);
     if(route.print){
-      assert.equal(await page.locator('#calc-print').isHidden(),true);
+      assert.equal(await page.locator(route.print).isHidden(),true);
       await page.evaluate(()=>{window.print=()=>{window.__calculatorPrintCalled=true}});
     }
     await page.locator(route.start).click();
@@ -66,8 +72,8 @@ try {
     assert.equal((await page.locator(route.activation).textContent())?.trim(),money(490));
     assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(1690));
     if(route.print){
-      assert.equal(await page.locator('#calc-print').isVisible(),true);
-      await page.locator('#calc-print').click();
+      assert.equal(await page.locator(route.print).isVisible(),true);
+      await page.locator(route.print).click();
       assert.equal(await page.evaluate(()=>Boolean(window.__calculatorPrintCalled)),true,
         'print must only run after explicit user interaction');
     }
@@ -80,6 +86,15 @@ try {
     assert.equal((await page.locator(route.total).textContent())?.trim(),money(5160));
     assert.equal((await page.locator(route.activation).textContent())?.trim(),money(1470));
     assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(6630));
+    if(route.copy){
+      assert.equal(await page.locator(route.copy).isVisible(),true);
+      await page.locator(route.copy).click();
+      const text=await page.evaluate(()=>window.__testClipboardText.at(-1));
+      assert.ok(text.includes(money(1470)),'International local study must include setup');
+      assert.ok(text.includes(money(6630)),'International local study must include first cycle');
+      assert.ok(/minimum pending|mínimo pendiente/.test(text),
+        'Copied study must never pose as a final quote');
+    }
 
     // A budget estimate is not an email subscription and never creates a lead.
     const faq=await page.locator('body').textContent();
