@@ -6,13 +6,13 @@
 
 ## Escopo implementado
 
-Página pública /calculadora-de-anuncios/ em Astro, sem login:
+Páginas públicas /calculadora-de-anuncios/, /en/budget-calculator/ e /es/budget-calculator/ em Astro, sem login e com hreflang revisado:
 1. Selecionar de 1 a 3 canais (Meta, Google, ChatGPT). Meta reúne Instagram/Facebook.
 2. Informar objetivo comercial (leads, vendas, reconhecimento).
 3. Opcional: meta de leads mensal + CPL histórico **fornecido pela pessoa**, ambos juntos.
 4. Opcional: teto mensal disponível para mídia. Teto inferior gera alerta, nunca altera orçamento por conta própria.
 5. Exibir mínimo de contratação **por canal**, valor recomendado inicial, distribuição por canal, estimativa de honorários Imagine 20% e total informativo. Mídia vai diretamente a cada plataforma.
-6. Link de contato no WhatsApp/e-mail autorizado pela pessoa, e cópia opcional de resumo local.
+6. Link de contato no WhatsApp/e-mail autorizado pela pessoa, cópia de resumo local e opção de imprimir/salvar em PDF via diálogo nativo do navegador (somente clique humano).
 7. A calculadora não persiste informações, não usa cookies de rastreamento, não envia eventos à rede, não salva e-mail e não aciona anúncios, cobrança ou contrato.
 
 ## Decisões comerciais aprovadas
@@ -49,6 +49,8 @@ O site comercial Astro é estático e o formulário de contato original não env
 8. Registrar objetivo, canais, limites e estimativa no CRM como preferências declaradas e **não** como receita realizada. Nunca atribuir leads de terceiros a quem só utilizou a ferramenta.
 9. Sem crédito automático, campanha real, Asaas, disparo de e-mail ou WhatsApp a partir do frontend. Não armazenar dados pessoais em URL/cookies/analytics.
 10. Validar hospedagem e políticas de retenção, exercício de direitos e base legal com responsáveis LGPD antes de coletar dados pessoais.
+
+O script `scripts/test-calculator-browser-ci.mjs` testa as três versões no Chromium real via preview HTTP autenticado em loopback e verifica conta Meta, seleção dos três canais, honorários, ausência de PII, POST e tráfego externo. Os testes do site principal seguem independentes e são requisito adicional de publicação.
 
 ## Dependências e aceite
 
