@@ -146,7 +146,25 @@ with sync_playwright() as p:
         page.goto(PORTAL + "/shop?product=onepage")
         csrf_token = page.locator('input[name="_token"]').first.input_value()
         assert page.request.post(onepage + "/payment", form={"_token":csrf_token, "revision":"0", "outcome":"approved", "sample_ack":"1"}).status == 404
-        assert page.request.post(landing + "/sandbox", form={"_token":csrf_token, "revision":"1", "sandbox_ack":"1"}).status == 404
+        # Rate-limited Sandbox writes are reserved for legitimate scoped
+        # scenarios; foreign read access has already been rejected (404).
+        # A second customer creates a separate provider intent from the Google
+        # Ads CTA. This remains a synthetic SERVER-PRICED honorarium of R$140,
+        # with R$700 media payable independently to Google (not Imagine).
+        from_commercial(page, "gestao-google-ads")
+        assert page.url.endswith("/shop?product=performance&channel=google_ads")
+        page.locator('[name="google_media"]').fill("700")
+        second_order = accept_and_create(page, "20%")
+        assert "R$ 140,00" in page.locator("body").inner_text()
+        assert "R$ 700,00" in page.locator("body").inner_text()
+        assert second_order != landing
+        page.locator('[name="sandbox_ack"]').check()
+        page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").click()
+        assert page.url == second_order
+        assert page.locator('[name="outcome"]').count() == 0
+        assert page.locator('[name="business"]').count() == 0
+        page.goto(PORTAL + "/client/services")
+        assert page.locator('tr[data-customer-order]').count() == 1
         page.goto(PORTAL)
         page.get_by_role("button", name="Sair", exact=True).click()
         page.locator('[name="username"]').fill(owner_a)
@@ -155,7 +173,7 @@ with sync_playwright() as p:
         page.goto(PORTAL + "/client/services")
         assert page.locator('tr[data-customer-order]').count() == 4
         assert not blocked, "Unexpected external network requests: " + str(blocked)
-        print("PASS cross-repo HTTP/Chromium four CTAs: server-valued Landing Sandbox intent, no manual payment, signed-owner PG18, cross-customer denial, v4 quotes and fictitious briefing; NO PSP/DEPLOY")
+        print("PASS cross-repo HTTP/Chromium four CTAs: TWO server-valued Landing/Google Sandbox intents, no manual settlement, signed PG18 ownership, v4 quotes; NO PSP/DEPLOY")
     finally:
         context.close()
         browser.close()
