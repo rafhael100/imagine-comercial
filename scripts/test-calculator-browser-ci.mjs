@@ -28,6 +28,7 @@ try {
     {path:'/es/budget-calculator/',lang:'es-ES',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
+      activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
       checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:false}
   ];
   for(const route of routes){
