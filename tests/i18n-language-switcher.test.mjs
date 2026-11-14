@@ -41,10 +41,10 @@ test('language flags use exact counterparts for all published pages',()=>{
  assert.equal(languageAlternates('/conteudos/unsupported/'),null);
  assert.equal(languageAlternates('/en/unsupported/'),null);
 });
-test('all six offers and primary pages contain authored English and Spanish, no fake checkout',()=>{
+test('all seven offers and primary pages contain authored English and Spanish, no fake checkout',()=>{
  for(const lang of INTERNATIONAL_LANGUAGES){
    const copy=translations[lang];
-   assert.equal(Object.keys(copy.services).length,6);
+   assert.equal(Object.keys(copy.services).length,7);
    for(const [slug,s] of Object.entries(copy.services)){
      assert.ok(s.label.length>=7,slug);
      assert.ok(s.intro.length>=60,slug);
