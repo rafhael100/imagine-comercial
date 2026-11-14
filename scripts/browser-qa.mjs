@@ -70,11 +70,16 @@ try {
       assert.equal(await link.getAttribute('target'),'_blank');
       assert.equal(await link.getAttribute('rel'),'noopener noreferrer');
       assert.ok((await link.textContent()).includes(
-        service.slug==='gestao-chatgpt-ads'?'Conversar sobre disponibilidade':'Quero conhecer minha proposta'),
+        service.slug==='gestao-chatgpt-ads'?'Consultar disponibilidade':
+          service.slug==='onepage'?'Quero minha Onepage':
+          service.slug==='landing-pages'?'Quero minha Landing Page':
+          service.slug==='criacao-de-sites'?'Quero meu site':
+          service.slug==='gestao-google-ads'?'Quero anunciar':
+          service.slug==='gestao-meta-ads'?'Quero Meta Ads':'Consultar planos'),
         'Purchase decision must be explained before account creation');
       assert.ok(await link.isVisible());
     }
-    assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Seu negócio merece uma presença digital que desperte interesse.');
+    assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Seu negócio mais bonito.Mais oportunidades.');
     assert.ok((await quickPage.locator('#quick-hire-notice').textContent()).includes('nenhum pagamento'));
     assert.ok(await quickPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'Quick hiring has no horizontal overflow');
     await quickPage.screenshot({path:artifacts+'/quick-hire-'+width+'.png',fullPage:true});
