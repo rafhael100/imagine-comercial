@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: rafhael100/imagine-portal
-          ref: 17c9893a4304e050d31303a475f1d167560ed3c4
+          ref: 6f0c092dfe7febf69cf5a304950c019da9ddcd0f
           path: portal
           persist-credentials: false
       - name: Use Node 22
@@ -79,6 +79,8 @@ jobs:
         run: |
           set -euo pipefail
           docker compose exec -T application php tools/test_commerce.php
+          # New Asaas readiness probe tests inject transport (NO live PSP or token).
+          docker compose exec -T application php tools/test_asaas_sandbox_readonly_probe.php
           docker compose exec -T application php private-preview-route-gate.test.php
       - name: Chromium navigates actual Comercial HTML then 4 Portal test orders
         env:
