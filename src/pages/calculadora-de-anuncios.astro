@@ -22,7 +22,7 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
   </div></section>
   <section class="section shell" aria-labelledby="calc-heading">
     <div class="calc-grid">
-      <form id="media-calculator" class="calc-form" novalidate>
+      <div id="media-calculator" class="calc-form">
         <h2 id="calc-heading">Monte seu cenário</h2>
         <fieldset>
           <legend>1. Em quais canais pretende anunciar?</legend>
@@ -65,11 +65,11 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
             </div>
           </div>
         </fieldset>
-        <button type="submit" class="cta calc-button">Calcular meu investimento</button>
+        <button type="button" id="calculate-run" class="cta calc-button">Calcular meu investimento</button>
         <p class="calc-helper" id="local-privacy-note">O cálculo é feito no seu navegador. Não solicitamos nome, e-mail, telefone, cookies nem enviamos suas respostas a um servidor.</p>
         <p id="calculator-error" role="alert" aria-live="assertive" hidden></p>
         <noscript><p>Ative o JavaScript para calcular. Você ainda pode consultar os mínimos acima e <a href="/contato/">conversar com a Imagine</a>.</p></noscript>
-      </form>
+      </div>
       <aside class="calc-side" aria-label="Como funciona a sugestão">
         <p class="kicker">Planejamento sem adivinhação</p>
         <h2>Investimento mínimo é diferente do recomendado.</h2>
@@ -113,7 +113,7 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
   </section>
   <script>
     import {calculateMediaBudget,parseMoneyToCents,formatBRL} from '../lib/media-budget-calculator.mjs';
-    const form=document.querySelector<HTMLFormElement>('#media-calculator');
+    const form=document.querySelector<HTMLElement>('#media-calculator');
     const error=document.querySelector<HTMLElement>('#calculator-error');
     const result=document.querySelector<HTMLElement>('#media-result');
     const method=document.querySelector<HTMLElement>('#calc-method');
@@ -135,8 +135,7 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
         }catch{if(copyStatus)copyStatus.textContent='Não foi possível copiar automaticamente. Você pode consultar os valores acima.';}
       });
     }
-    form?.addEventListener('submit',event=>{
-      event.preventDefault();
+    form?.querySelector<HTMLButtonElement>('#calculate-run')?.addEventListener('click',()=>{
       if(error){error.hidden=true;error.textContent='';}
       try{
         const channels=Array.from(form.querySelectorAll<HTMLInputElement>('input[name="channel"]:checked')).map(x=>x.value);
