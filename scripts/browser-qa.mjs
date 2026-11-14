@@ -106,6 +106,12 @@ try {
         }
         assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
           'International page horizontal overflow '+route+' '+width);
+        if(section===''){
+          await p.screenshot({
+            path:artifacts+'/language-'+lang+'-'+width+'.png',
+            fullPage:true
+          });
+        }
         if(['','contact','services/landing-pages'].includes(section)){
           const accessibility=await new AxeBuilder({page:p})
             .withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
