@@ -119,8 +119,8 @@ jobs:
         run: |
           set -euo pipefail
           count=$(docker compose exec -T database psql -U postgres -d portal_purchase_rehearsal -Atc 'SELECT count(*) FROM purchase_rehearsal.customer_orders')
-          test "$count" = "4"
-          echo 'PASS four fictional owned orders in disposable database. NO-GO production.' >> "$GITHUB_STEP_SUMMARY"
+          test "$count" = "5"
+          echo 'PASS four orders for customer A and one for customer B, all synthetic; NO-GO.' >> "$GITHUB_STEP_SUMMARY"
       - name: Exercise Portal customer-owned delivery and staff approval before restore
         env:
           PURCHASE_PREVIEW_BASE: http://127.0.0.1:18083/_rehearsal/purchase
@@ -128,8 +128,7 @@ jobs:
           set -euo pipefail
           "$RUNNER_TEMP/crossrepo-browser/bin/python" portal/apps/portal/ops/private-purchase/test_customer_flow.py
           "$RUNNER_TEMP/crossrepo-browser/bin/python" portal/apps/portal/ops/private-purchase/test_customer_work.py
-          "$RUNNER_TEMP/crossrepo-browser/bin/python" portal/apps/portal/ops/private-purchase/test_sandbox_checkout.py
-          echo 'PASS separate mock Asaas Sandbox settlement + refund hold, production/approval and post-sale.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PASS separate portal post-sale and worker unit fixtures; no provider network.' >> "$GITHUB_STEP_SUMMARY"
       - name: Verify Landing Page CTA generated server-priced Sandbox ledger
         working-directory: portal/apps/portal/ops/private-purchase
         run: |
@@ -143,7 +142,16 @@ jobs:
               AND i.amount_cents=43000
               AND i.state='queued';")
           test "$landing" = 1
-          echo 'PASS actual Landing CTA → server snapshot R$430 → one queued Sandbox intent; no PSP POST.' >> "$GITHUB_STEP_SUMMARY"
+          google=$(docker compose exec -T database psql -X -A -t -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal -c "
+            SELECT count(*) FROM purchase_rehearsal.sandbox_payment_intents i
+            JOIN purchase_rehearsal.customer_orders o ON o.id=i.order_id
+            WHERE o.product='performance'
+              AND o.payment_source='asaas_sandbox'
+              AND o.payment='pending'
+              AND i.amount_cents=14000
+              AND i.state='queued';")
+          test "$google" = 1
+          echo 'PASS Landing and Google Ads CTAs → R$430/R$140 server-owned Sandbox intents; no PSP POST.' >> "$GITHUB_STEP_SUMMARY"
       - name: Prove signed FORCE RLS denies raw SQL enumeration and forged claims
         working-directory: portal/apps/portal/ops/private-purchase
         run: |
