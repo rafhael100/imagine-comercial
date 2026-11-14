@@ -8,14 +8,14 @@ import {serviceCatalogGroups,categoryForService}
 const page=readFileSync(new URL('../src/pages/servicos/index.astro',import.meta.url),'utf8');
 const browser=readFileSync(new URL('../scripts/browser-qa.mjs',import.meta.url),'utf8');
 
-test('F250 only six reviewed public services can be categorized',()=>{
+test('F250 only seven reviewed public services can be categorized',()=>{
   assert.deepEqual(serviceCatalogGroups.map(x=>x.code),[
     'all','sites','assinaturas','anuncios'
   ]);
-  assert.equal(services.length,6);
+  assert.equal(services.length,7);
   assert.equal(services.filter(x=>categoryForService(x.slug)==='sites').length,3);
   assert.equal(services.filter(x=>categoryForService(x.slug)==='assinaturas').length,1);
-  assert.equal(services.filter(x=>categoryForService(x.slug)==='anuncios').length,2);
+  assert.equal(services.filter(x=>categoryForService(x.slug)==='anuncios').length,3);
   for(const s of services){
     assert.ok(Object.isFrozen(serviceCatalogGroups[0]));
     assert.ok(serviceCatalogGroups.some(g=>g.code===categoryForService(s.slug)));
@@ -42,7 +42,7 @@ test('F250 local filter uses category allowlist and never captures visitor data'
   assert.match(page,/applyCategory\('all'\)/);
   assert.doesNotMatch(page,/<(?:form|input|textarea)\b|\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|document\.cookie/);
   for(const phrase of ['F250 sites category has exactly three services',
-    'F250 ads category has exactly two services',
+    'F250 ads category has exactly three services',
     'F250 subscription category has one reviewed service',
     'F250 all services remain visible without JS',
     'F250 filters never modify URL or browser history'])

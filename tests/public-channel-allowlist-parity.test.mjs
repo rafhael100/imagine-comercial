@@ -9,7 +9,7 @@ import {isApprovedPublicExternalHref} from '../src/lib/outbound-link-contract.mj
 
 const check=href=>reviewPublicLinks([{href}],{currentPath:'/contato/'});
 
-test('F159: all 560 approved briefing combinations pass identical browser and build audit',()=>{
+test('F159: all 640 approved briefing combinations pass identical browser and build audit',()=>{
  let checked=0;
  for(const service of ['',...services.map(x=>x.slug)])
  for(const objective of ['',...contactObjectives.map(x=>x.code)])
@@ -26,7 +26,7 @@ test('F159: all 560 approved briefing combinations pass identical browser and bu
    }
    checked++;
  }
- assert.equal(checked,560);
+ assert.equal(checked,640);
 });
 
 test('F159: no broad Olá/Imagine or Contato prefix exceptions survive browser audit',()=>{

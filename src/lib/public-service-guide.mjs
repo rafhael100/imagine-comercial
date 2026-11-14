@@ -35,8 +35,8 @@ const guide=[
   {
     code:'anuncios',
     goal:'Planejar campanhas de anúncios',
-    explanation:'Google Ads e Meta Ads trabalham com contextos diferentes. A escolha depende do público, da oferta e dos objetivos; investimento em mídia e gestão são itens distintos.',
-    slugs:['gestao-google-ads','gestao-meta-ads']
+    explanation:'Google, Meta e ChatGPT Ads têm contextos distintos. ChatGPT Ads depende de homologação; orçamento e gestão são separados, e a escolha exige objetivos e métricas.',
+    slugs:['gestao-google-ads','gestao-meta-ads','gestao-chatgpt-ads']
   }
 ];
 const knownCodes=new Set();

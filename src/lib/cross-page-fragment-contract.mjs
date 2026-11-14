@@ -30,7 +30,7 @@ for(let j=i+1;j<comparisonOptions.length;j++)
   reviewedComparisonHashes.add(encodeReviewedComparisonFragment([
     comparisonOptions[i].slug,comparisonOptions[j].slug
   ]).slice(1));
-if(reviewedComparisonHashes.size!==15)
+if(reviewedComparisonHashes.size!==21)
   throw Error('F195: invalid cross-page comparison catalog');
 
 export function auditCrossPageFragmentTargets(pages){

@@ -7,7 +7,7 @@ const catalog=readFileSync(new URL('../src/pages/servicos/index.astro',import.me
 const browser=readFileSync(new URL('../scripts/browser-qa.mjs',import.meta.url),'utf8');
 
 test('F262 service catalog section has one H2 and nested card H3 headings',()=>{
-  assert.equal(services.length,6);
+  assert.equal(services.length,7);
   assert.match(catalog,/<h2 id="service-catalog-title">Explore todas as soluções<\/h2>/);
   assert.match(catalog,/<article class="card" data-service-group=\{categoryForService\(s.slug\)\}>[\s\S]*?<h3>\{s.label\}<\/h3>/);
   assert.doesNotMatch(catalog,/<h2>\{s.label\}<\/h2>/);

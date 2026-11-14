@@ -8,7 +8,7 @@ import {encodeCuratedBriefingFragment as encode,
   decodeCuratedBriefingFragment as decode}
   from '../src/data/curated-briefing-fragment.mjs';
 
-test('F169 560 public briefing combinations round-trip without free text or PII',()=>{
+test('F169 640 public briefing combinations round-trip without free text or PII',()=>{
   let count=0,seen=new Set();
   for(const service of ['',...services.map(x=>x.slug)])
   for(const objective of ['',...contactObjectives.map(x=>x.code)])
@@ -23,8 +23,8 @@ test('F169 560 public briefing combinations round-trip without free text or PII'
     assert.ok(Object.isFrozen(decode(fragment)));
     seen.add(fragment);count++;
   }
-  assert.equal(count,560);
-  assert.equal(seen.size,560);
+  assert.equal(count,640);
+  assert.equal(seen.size,640);
   assert.equal(encode(),'#briefing:~:~:~:~');
 });
 test('F169 unsupported user text, alternate encoding and malformed hashes fail closed',()=>{

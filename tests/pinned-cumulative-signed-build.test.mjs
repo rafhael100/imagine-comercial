@@ -85,7 +85,7 @@ test('F306 a protected build reconstructs earlier signed edits across partial re
   tempBundle(({env})=>{
     for(const target of ['staging','production']){
       const compiled=loadBuildServices({...env,IMAGINE_RELEASE_TARGET:target});
-      assert.equal(compiled.length,6);
+      assert.equal(compiled.length,7);
       const landing=compiled.find(item=>item.slug==='landing-pages');
       const onepage=compiled.find(item=>item.slug==='onepage');
       assert.match(landing.title,/estratégicas aprovadas/);
@@ -105,7 +105,7 @@ test('F306 independently SHA-pinned history must match latest signed envelope',(
   const s=sample();
   const review=verifyPinnedSignedCatalogHistory(s);
   assert.equal(review.releasesChecked,3);
-  assert.equal(review.serviceCount,6);
+  assert.equal(review.serviceCount,7);
   assert.equal(review.canPublish,false);
   assert.equal(review.independentFullHistoryAttestationVerified,false);
   assert.equal(review.deploymentPerformed,false);

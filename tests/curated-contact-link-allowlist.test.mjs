@@ -12,7 +12,7 @@ import {auditApprovedOutboundLinks as audit}
 const anchor=href=>'<a href="'+href+'">Abrir canal</a>';
 const check=href=>audit('<main>'+anchor(href)+'</main>').externalLinksChecked;
 
-test('F155 all 35 curated service/objective intents remain valid outbound links',()=>{
+test('F155 all 40 curated service/objective intents remain valid outbound links',()=>{
   let count=0;
   for(const service of ['',...services.map(x=>x.slug)]){
     for(const objective of ['',...contactObjectives.map(x=>x.code)]){
@@ -22,7 +22,7 @@ test('F155 all 35 curated service/objective intents remain valid outbound links'
       count++;
     }
   }
-  assert.equal(count,35);
+  assert.equal(count,40);
 });
 
 test('F155 rejects attacker text that F36 generic URL constructors could encode',()=>{
