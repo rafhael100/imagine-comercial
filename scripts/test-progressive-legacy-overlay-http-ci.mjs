@@ -161,7 +161,7 @@ try{
   oldOrigin=await listen(legacy);
   current=await listen(overlay);
   const originals=new Set(legacyUrls.map(item=>item.from));
-  assert.equal(sitePages.length,60);
+  assert.equal(sitePages.length,63);
   for(const {path} of sitePages){
     const {response,content}=await probe(current,path,{
       headers:{Cookie:'lab=synthetic'}
@@ -206,7 +206,7 @@ try{
   const head=await probe(current,'/es/',{method:'HEAD'});
   assert.equal(head.content.length,0);
   assert.equal(head.response.headers.get('x-synthetic-origin'),'REVIEWED-STATIC-LOCAL');
-  assert.equal(edgeDecisions.newHtml,60,'F317: exactly 59 GET new pages and one HEAD');
+  assert.equal(edgeDecisions.newHtml,63,'F317: exactly 62 GET new pages and one HEAD');
   assert.equal(edgeDecisions.newAsset,plan.eligibleStaticAssets.length);
   assert.equal(edgeDecisions.writeRequestsOnLegacy,6);
   assert.equal(legacyRequests.length,39,'F317: all old paths, originals, and writes preserved');
@@ -216,7 +216,7 @@ try{
     status:'LOCAL_HTTP_SIMULATED_PASS_NOT_DEPLOYED',
     staticTreeSha256:manifest.treeSha256,
     publicAstroHtmlCount:sitePages.length,
-    newAstroHtmlGetChecks:59,
+    newAstroHtmlGetChecks:62,
     originalHomepagePreserved:true,
     all27KnownLegacyPathsPreserved:true,
     legacySeoFilesPreserved:true,
@@ -234,7 +234,7 @@ try{
   });
   writeFileSync('artifacts/release-review/REVIEW-ONLY-synthetic-overlay-http.json',
     JSON.stringify(record,null,2)+'\n',{flag:'wx'});
-  console.log('PASS F317: LOCAL HTTP only — 59 Astro routes, original home, 27 historic paths, '+
+  console.log('PASS F317: LOCAL HTTP only — 62 Astro routes, original home, 27 historic paths, '+
     plan.eligibleStaticAssets.length+' hashed assets and mutating requests; no deploy.');
 }finally{
   for(const server of [overlay,legacy]){
