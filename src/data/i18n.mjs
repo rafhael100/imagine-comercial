@@ -4,11 +4,13 @@
  * All URLs are static, canonical, allowlisted and safe without JavaScript.
  * Service slugs and product/checkout IDs intentionally remain unchanged.
  */
+import {INTERNATIONAL_ARTICLE_SLUGS} from './i18n-articles.mjs';
 export const INTERNATIONAL_LANGUAGES=Object.freeze(['en','es']);
 export const INTERNATIONAL_SECTIONS=Object.freeze([
   '','services','compare','how-it-works','faq','about','contact',
   'services/criacao-de-sites','services/landing-pages','services/onepage',
-  'services/sites-por-assinatura','services/gestao-google-ads','services/gestao-meta-ads'
+  'services/sites-por-assinatura','services/gestao-google-ads','services/gestao-meta-ads',
+  'articles',...INTERNATIONAL_ARTICLE_SLUGS.map(slug=>'articles/'+slug)
 ]);
 const PT_TO_INTERNATIONAL=Object.freeze({
   '/':'', '/servicos/':'services','/comparar-solucoes/':'compare',
@@ -19,7 +21,9 @@ const PT_TO_INTERNATIONAL=Object.freeze({
   '/servicos/onepage/':'services/onepage',
   '/servicos/sites-por-assinatura/':'services/sites-por-assinatura',
   '/servicos/gestao-google-ads/':'services/gestao-google-ads',
-  '/servicos/gestao-meta-ads/':'services/gestao-meta-ads'
+  '/servicos/gestao-meta-ads/':'services/gestao-meta-ads',
+  '/conteudos/':'articles',
+  ...Object.fromEntries(INTERNATIONAL_ARTICLE_SLUGS.map(slug=>['/conteudos/'+slug+'/','articles/'+slug]))
 });
 const INTERNATIONAL_TO_PT=Object.freeze(Object.fromEntries(
   Object.entries(PT_TO_INTERNATIONAL).map(([pt,section])=>[section,pt])
