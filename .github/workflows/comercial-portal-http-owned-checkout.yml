@@ -108,6 +108,14 @@ jobs:
           count=$(docker compose exec -T database psql -U postgres -d portal_purchase_rehearsal -Atc 'SELECT count(*) FROM purchase_rehearsal.customer_orders')
           test "$count" = "4"
           echo 'PASS four fictional owned orders in disposable database. NO-GO production.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Exercise Portal customer-owned delivery and staff approval before restore
+        env:
+          PURCHASE_PREVIEW_BASE: http://127.0.0.1:18083/_rehearsal/purchase
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/crossrepo-browser/bin/python" portal/apps/portal/ops/private-purchase/test_customer_flow.py
+          "$RUNNER_TEMP/crossrepo-browser/bin/python" portal/apps/portal/ops/private-purchase/test_customer_work.py
+          echo 'PASS post-sale delivery and customer adjustment/approval for a separate synthetic customer.' >> "$GITHUB_STEP_SUMMARY"
       - name: Prove signed FORCE RLS denies raw SQL enumeration and forged claims
         working-directory: portal/apps/portal/ops/private-purchase
         run: |
