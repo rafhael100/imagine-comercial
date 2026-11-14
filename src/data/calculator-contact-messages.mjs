@@ -32,7 +32,9 @@ export const CALCULATOR_CONTACT_OPTIONS=Object.freeze(Object.fromEntries(
 export function calculatorContactKey(channels){
  if(!Array.isArray(channels)||Object.getPrototypeOf(channels)!==Array.prototype||
     channels.length<1||channels.length>3||
-    Reflect.ownKeys(channels).length!==channels.length+1)
+    Reflect.ownKeys(channels).length!==channels.length+1||
+    Array.from({length:channels.length},(_,i)=>Object.getOwnPropertyDescriptor(channels,String(i)))
+      .some(d=>d?.enumerable!==true||!Object.hasOwn(d,'value')))
    throw Error('F315: invalid calculator channel selection');
  const selected=[...channels];
  if(selected.some(id=>typeof id!=='string'||!IDS.includes(id))||
