@@ -64,3 +64,28 @@ test('F76: guard runs after each Astro build validation, without enablement flag
   const workflow=readFileSync(new URL('../.github/workflows/validate.yml',import.meta.url),'utf8');
   assert.ok((workflow.match(/node scripts\/verify-dist\.mjs/g)||[]).length>=2);
 });
+
+
+test('F76: scoped calculator may render only reviewed anonymous numeric fields',()=>{
+  for(const path of ['calculadora-de-anuncios/index.html',
+                     'en/budget-calculator/index.html',
+                     'es/budget-calculator/index.html']){
+    const safe='<html><body><input type="checkbox" name="channel" value="meta_ads">'+
+      '<input type="number" id="lead-goal" min="1">'+
+      '<input type="text" id="historic-cpl" inputmode="decimal">'+
+      '<button type="button">Calculate</button></body></html>';
+    assert.equal(assertNoUnapprovedPublicIntake(path,safe),true);
+    for(const unsafe of [
+      '<input type="email" id="customer-email">',
+      '<input type="hidden" name="phone">',
+      '<input type="text" id="name">',
+      '<input type="checkbox" name="channel" value="unknown_ads">',
+      '<input type="text" id="historic-cpl" inputmode="decimal" oninput="steal()">',
+      '<form action="/contact"></form>',
+      '<textarea id="details"></textarea>',
+      'fetch("/collect")','localStorage.setItem("marketing","yes")'
+    ]) assert.throws(()=>assertNoUnapprovedPublicIntake(path,safe+unsafe),/F76: (blocked|calculator)/);
+  }
+  assert.throws(()=>assertNoUnapprovedPublicIntake('contato/index.html',
+    '<input type="number" id="lead-goal">'),/F76: blocked input element/);
+});
