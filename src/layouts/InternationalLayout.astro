@@ -22,7 +22,8 @@ const internationalHome=international?intlPath(locale):'/';
 const intlLinks=international?{
  services:intlPath(locale,'services'),compare:intlPath(locale,'compare'),
  how:intlPath(locale,'how-it-works'),faq:intlPath(locale,'faq'),
- about:intlPath(locale,'about'),contact:intlPath(locale,'contact')
+ about:intlPath(locale,'about'),contact:intlPath(locale,'contact'),
+ articles:intlPath(locale,'articles')
 }:null;
 const languageFlags=[
  {id:'pt-BR',flag:'🇧🇷',code:'PT',name:'Português'},
@@ -223,6 +224,7 @@ const service = serviceName ? {
         <nav aria-label="Primary navigation">
           <a href={intlLinks.services} aria-current={pathname===intlLinks.services?'page':undefined}>{localCopy.nav.services}</a>
           <a href={intlLinks.compare} aria-current={pathname===intlLinks.compare?'page':undefined}>{localCopy.nav.compare}</a>
+          <a href={intlLinks.articles} aria-current={pathname===intlLinks.articles?'page':undefined}>{locale==='en'?'Guides':'Guías'}</a>
           <a href={intlLinks.how} aria-current={pathname===intlLinks.how?'page':undefined}>{localCopy.nav.how}</a>
           <a href={intlLinks.faq} aria-current={pathname===intlLinks.faq?'page':undefined}>{localCopy.nav.faq}</a>
           <a href={intlLinks.about} aria-current={pathname===intlLinks.about?'page':undefined}>{localCopy.nav.about}</a>
@@ -253,6 +255,7 @@ const service = serviceName ? {
         <nav class="mobile-nav" aria-label="Mobile navigation">
           <a href={intlLinks.services} aria-current={pathname===intlLinks.services?'page':undefined}>{localCopy.nav.services}</a>
           <a href={intlLinks.compare} aria-current={pathname===intlLinks.compare?'page':undefined}>{localCopy.nav.compare}</a>
+          <a href={intlLinks.articles} aria-current={pathname===intlLinks.articles?'page':undefined}>{locale==='en'?'Guides':'Guías'}</a>
           <a href={intlLinks.how} aria-current={pathname===intlLinks.how?'page':undefined}>{localCopy.nav.how}</a>
           <a href={intlLinks.faq} aria-current={pathname===intlLinks.faq?'page':undefined}>{localCopy.nav.faq}</a>
           <a href={intlLinks.about} aria-current={pathname===intlLinks.about?'page':undefined}>{localCopy.nav.about}</a>
@@ -325,6 +328,7 @@ const service = serviceName ? {
             <a href={intlLinks.about}>{localCopy.nav.about}</a>
             <a href={intlLinks.how}>{localCopy.nav.how}</a>
             <a href={intlLinks.faq}>{localCopy.nav.faq}</a>
+            <a href={intlLinks.articles}>{locale==='en'?'Guides & insights':'Guías y contenidos'}</a>
             <a href={intlLinks.contact}>{localCopy.nav.contact}</a>
           </nav>
           <div class="footer-contact">
