@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CHANNELS,ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS,MONTHLY_MANAGEMENT_MINIMUM_STATUS,parseMoneyToCents,formatBRL,calculateMediaBudget} from '../src/lib/media-budget-calculator.mjs';
+import {CHANNELS,ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS,MONTHLY_MANAGEMENT_MINIMUM_STATUS,
+  MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS,illustrateFullMonthManagementCents,
+  parseMoneyToCents,formatBRL,calculateMediaBudget} from '../src/lib/media-budget-calculator.mjs';
 
 test('approved floor/reference per provider, never duplicate Meta placements',()=>{
   assert.deepEqual(Object.keys(CHANNELS).sort(),['chatgpt_ads','google_ads','meta_ads']);
@@ -70,7 +72,7 @@ test('invalid channel, forged copies and missing one part of goal fail closed',(
 
 test('one-time activation is R$490 per channel, NEVER a recurring management floor',()=>{
   assert.equal(ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS,49000);
-  assert.equal(MONTHLY_MANAGEMENT_MINIMUM_STATUS,'PENDING_FINAL_APPROVAL');
+  assert.equal(MONTHLY_MANAGEMENT_MINIMUM_STATUS,'APPROVED_FULL_MONTH_PER_CHANNEL');
   for(const [channels,expected] of [
     [['meta_ads'],{activation:49000,monthly:120000,first:169000}],
     [['google_ads','meta_ads'],{activation:98000,monthly:300000,first:398000}],
@@ -83,8 +85,10 @@ test('one-time activation is R$490 per channel, NEVER a recurring management flo
     assert.equal(estimate.illustrativeFirstCycleSubtotalCents,expected.first);
     assert.equal(estimate.activationIsOneTime,true);
     assert.equal(estimate.activationAndMonthlyManagementAreSeparate,true);
-    assert.equal(estimate.monthlyManagementMinimumStatus,'PENDING_FINAL_APPROVAL');
-    assert.equal(estimate.contractualMonthlyManagementMinimumCents,null);
+    assert.equal(estimate.monthlyManagementMinimumStatus,'APPROVED_FULL_MONTH_PER_CHANNEL');
+    assert.equal(estimate.contractualMonthlyManagementMinimumCents,17000*channels.length);
+    assert.equal(estimate.monthlyManagementMinimumPerChannelCents,17000);
+    assert.equal(estimate.monthlyManagementFeeIsSumOfIndependentChannelFees,true);
     assert.equal(estimate.managementBilledAfterVerifiedMonthlySpend,true);
     assert.equal(estimate.illustrativeFirstCycleIsFinalQuotation,false);
     assert.equal(estimate.publicCheckoutEnabled,false);
@@ -101,5 +105,23 @@ test('visitor historical CPL never changes the per-channel one-time setup',()=>{
   assert.equal(p.exceedsMonthlyLimit,true);
   assert.equal(p.illustrativeFirstCycleSubtotalCents,
     p.illustrativeTotalCents+98000);
-  assert.equal(p.monthlyManagementMinimumStatus,'PENDING_FINAL_APPROVAL');
+  assert.equal(p.monthlyManagementMinimumStatus,'APPROVED_FULL_MONTH_PER_CHANNEL');
+});
+
+test('approved R$170 full-month management minimum applies independently to each channel',()=>{
+  assert.equal(MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS,17000);
+  for(const [media,expected] of [[0,17000],[35000,17000],[70000,17000],[85000,17000],[100000,20000],[400000,80000]])
+    assert.equal(illustrateFullMonthManagementCents(media),expected);
+  for(const bad of [-1,NaN,1.5,'35000',300000001])
+    assert.throws(()=>illustrateFullMonthManagementCents(bad),RangeError);
+  const estimate=calculateMediaBudget({channels:['meta_ads','google_ads','chatgpt_ads']});
+  assert.deepEqual(estimate.channels.map(x=>[x.id,x.managementAtMinimumMediaCents]),[
+    ['chatgpt_ads',24000],['google_ads',20000],['meta_ads',17000]
+  ]);
+  assert.equal(estimate.illustrativeManagementAtMinimumMediaCents,61000);
+  assert.equal(estimate.contractualMonthlyManagementMinimumCents,51000);
+  assert.equal(estimate.illustrativeManagementCents,86000);
+  assert.equal(estimate.fullMonthOnlyNoProrationAssumed,true);
+  assert.equal(estimate.managementBilledAfterVerifiedMonthlySpend,true);
+  assert.equal(estimate.illustrativeFirstCycleIsFinalQuotation,false);
 });
