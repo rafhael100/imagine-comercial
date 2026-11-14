@@ -34,9 +34,13 @@ const intro=service?.intro??
     section==='how-it-works'?copy.headings.processIntro:
     section==='faq'?copy.headings.note:
     copy.headings.servicesIntro);
-const description=section===''?copy.hero.intro+' '+copy.headings.servicesIntro:
-  intro+' '+(locale==='en'?'Learn how Imagine plans and delivers professional digital services.':
-    'Conoce cómo Imagine planifica y desarrolla servicios digitales profesionales.');
+const metaCopy=section==='' ? copy.hero.intro : intro+' '+
+  (locale==='en'?'Learn about Imagine digital services and request a tailored proposal.':
+    'Conoce los servicios digitales de Imagine y solicita una propuesta a medida.');
+// Keep each description unique, readable, and within the existing SEO guard.
+const description=metaCopy.length>200
+  ?metaCopy.slice(0,198).replace(/\\s+\\S*$/,'').trim()+'.'
+  :metaCopy;
 const crumbs=section===''?[]:(isService?
   [{label:copy.nav.services,path:paths.services},{label:service.label,path:intlPath(locale,section)}]:
   [{label:currentLabel,path:intlPath(locale,section)}]);
