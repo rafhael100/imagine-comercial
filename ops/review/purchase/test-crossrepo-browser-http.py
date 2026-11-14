@@ -52,6 +52,19 @@ def accept_and_create(page, price):
     assert "/shop/orders/" in page.url, page.url
     return page.url
 
+def assert_approved_setup_schedule(page, expected_total, expected_installment):
+    # The Portal owns this HTML and catalog. These are regression assertions,
+    # not client-side pricing data or charges created by the Comercial website.
+    body = page.locator("body").inner_text()
+    assert expected_total in body
+    assert body.count(expected_installment) >= 3, "D0, D30 and D60 installments required"
+    assert "na contratação" in body
+    assert "após 30 dias" in body
+    assert "após 60 dias" in body
+    assert "R$ 79,90/mês" in body
+    assert "90 dias após a contratação" in body
+    assert "independentemente da publicação" in body
+
 def signup(page):
     page.goto(PORTAL + "/register")
     user = "demo-cross-" + uuid.uuid4().hex[:10]
@@ -87,7 +100,7 @@ with sync_playwright() as p:
         owner_a = signup(page)
         assert page.url.endswith("/shop?product=onepage"), page.url
         onepage = accept_and_create(page, "R$ 990,00")
-        assert "R$ 330,00" in page.locator("body").inner_text()
+        assert_approved_setup_schedule(page, "R$ 990,00", "R$ 330,00")
         # One complete *fake* settlement and briefing, never an Asaas payment.
         page.locator('[name="sample_ack"]').check()
         page.locator('[name="outcome"]').select_option("approved")
@@ -99,6 +112,22 @@ with sync_playwright() as p:
         from_commercial(page, "landing-pages")
         assert page.url.endswith("/shop?product=landing-pages"), page.url
         landing = accept_and_create(page, "R$ 1.290,00")
+        assert_approved_setup_schedule(page, "R$ 1.290,00", "R$ 430,00")
+        # This order originated from the actual Landing Page CTA.  Queue a
+        # server-valued SANDBOX intent, never a PSP call or browser-set amount.
+        assert page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").count() == 1
+        csrf_landing = page.locator('input[name="_token"]').first.input_value()
+        revision_landing = page.locator('input[name="revision"]').first.input_value()
+        bad_amount = page.request.post(
+            landing + "/sandbox",
+            form={"_token":csrf_landing,"revision":revision_landing,
+                  "sandbox_ack":"1","amount_cents":"1"})
+        assert bad_amount.status == 422, "Client must not submit financial amount"
+        page.locator('[name="sandbox_ack"]').check()
+        page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").click()
+        assert page.url == landing
+        assert page.locator('[name="outcome"]').count() == 0, "Cannot fake PSP settlement"
+        assert page.locator('[name="business"]').count() == 0, "Briefing requires verified receipt"
         assert "R$ 430,00" in page.locator("body").inner_text()
         for slug, channel in (("gestao-google-ads","google_ads"),("gestao-meta-ads","meta_ads")):
             from_commercial(page, slug)
@@ -130,6 +159,25 @@ with sync_playwright() as p:
         page.goto(PORTAL + "/shop?product=onepage")
         csrf_token = page.locator('input[name="_token"]').first.input_value()
         assert page.request.post(onepage + "/payment", form={"_token":csrf_token, "revision":"0", "outcome":"approved", "sample_ack":"1"}).status == 404
+        # Rate-limited Sandbox writes are reserved for legitimate scoped
+        # scenarios; foreign read access has already been rejected (404).
+        # A second customer creates a separate provider intent from the Google
+        # Ads CTA. This remains a synthetic SERVER-PRICED honorarium of R$140,
+        # with R$700 media payable independently to Google (not Imagine).
+        from_commercial(page, "gestao-google-ads")
+        assert page.url.endswith("/shop?product=performance&channel=google_ads")
+        page.locator('[name="google_media"]').fill("700")
+        second_order = accept_and_create(page, "20%")
+        assert "R$ 140,00" in page.locator("body").inner_text()
+        assert "R$ 700,00" in page.locator("body").inner_text()
+        assert second_order != landing
+        page.locator('[name="sandbox_ack"]').check()
+        page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").click()
+        assert page.url == second_order
+        assert page.locator('[name="outcome"]').count() == 0
+        assert page.locator('[name="business"]').count() == 0
+        page.goto(PORTAL + "/client/services")
+        assert page.locator('tr[data-customer-order]').count() == 1
         page.goto(PORTAL)
         page.get_by_role("button", name="Sair", exact=True).click()
         page.locator('[name="username"]').fill(owner_a)
@@ -138,7 +186,7 @@ with sync_playwright() as p:
         page.goto(PORTAL + "/client/services")
         assert page.locator('tr[data-customer-order]').count() == 4
         assert not blocked, "Unexpected external network requests: " + str(blocked)
-        print("PASS cross-repo HTTP/Chromium four CTAs: signed-owner Portal PostgreSQL18 orders, two isolated customers, forged access 404, v4 quotes and one fictional briefing; NO PSP/DEPLOY")
+        print("PASS cross-repo HTTP/Chromium four CTAs: TWO server-valued Landing/Google Sandbox intents, no manual settlement, signed PG18 ownership, v4 quotes; NO PSP/DEPLOY")
     finally:
         context.close()
         browser.close()

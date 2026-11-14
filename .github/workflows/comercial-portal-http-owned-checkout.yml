@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'ops/review/purchase/test-crossrepo-browser-http.py'
+      - 'ops/review/purchase/test-crossrepo-sandbox-owners.sql'
       - '.github/workflows/comercial-portal-http-owned-checkout.yml'
 permissions:
   contents: read
@@ -21,7 +22,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: rafhael100/imagine-portal
-          ref: 6f0c092dfe7febf69cf5a304950c019da9ddcd0f
+          ref: 3f7750daf4892050ae350b43d3f1e48f75023864
           path: portal
           persist-credentials: false
       - name: Use Node 22
@@ -60,6 +61,7 @@ jobs:
           docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-schema.sql
           docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-work-schema.sql
           docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-offer-schema.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < sandbox-payment-schema.sql
           docker compose -f compose.yaml -f compose.ci.yaml up -d application gateway
           python3 - <<'PY'
           import time,urllib.request
@@ -80,6 +82,7 @@ jobs:
           set -euo pipefail
           docker compose exec -T application php tools/test_commerce.php
           docker compose exec -T application php private-preview-route-gate.test.php
+          python3 test_asaas_sandbox_worker.py
       - name: Test latest Asaas Sandbox GET-only readiness offline on pinned Portal source
         working-directory: portal/apps/portal
         env:
@@ -116,8 +119,8 @@ jobs:
         run: |
           set -euo pipefail
           count=$(docker compose exec -T database psql -U postgres -d portal_purchase_rehearsal -Atc 'SELECT count(*) FROM purchase_rehearsal.customer_orders')
-          test "$count" = "4"
-          echo 'PASS four fictional owned orders in disposable database. NO-GO production.' >> "$GITHUB_STEP_SUMMARY"
+          test "$count" = "5"
+          echo 'PASS four orders for customer A and one for customer B, all synthetic; NO-GO.' >> "$GITHUB_STEP_SUMMARY"
       - name: Exercise Portal customer-owned delivery and staff approval before restore
         env:
           PURCHASE_PREVIEW_BASE: http://127.0.0.1:18083/_rehearsal/purchase
@@ -125,14 +128,39 @@ jobs:
           set -euo pipefail
           "$RUNNER_TEMP/crossrepo-browser/bin/python" portal/apps/portal/ops/private-purchase/test_customer_flow.py
           "$RUNNER_TEMP/crossrepo-browser/bin/python" portal/apps/portal/ops/private-purchase/test_customer_work.py
-          echo 'PASS post-sale delivery and customer adjustment/approval for a separate synthetic customer.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PASS separate portal post-sale and worker unit fixtures; no provider network.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify Landing Page CTA generated server-priced Sandbox ledger
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          landing=$(docker compose exec -T database psql -X -A -t -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal -c "
+            SELECT count(*) FROM purchase_rehearsal.sandbox_payment_intents i
+            JOIN purchase_rehearsal.customer_orders o ON o.id=i.order_id
+            WHERE o.product='landing-pages'
+              AND o.payment_source='asaas_sandbox'
+              AND o.payment='pending'
+              AND i.amount_cents=43000
+              AND i.state='queued';")
+          test "$landing" = 1
+          google=$(docker compose exec -T database psql -X -A -t -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal -c "
+            SELECT count(*) FROM purchase_rehearsal.sandbox_payment_intents i
+            JOIN purchase_rehearsal.customer_orders o ON o.id=i.order_id
+            WHERE o.product='performance'
+              AND o.payment_source='asaas_sandbox'
+              AND o.payment='pending'
+              AND i.amount_cents=14000
+              AND i.state='queued';")
+          test "$google" = 1
+          echo 'PASS Landing and Google Ads CTAs → R$430/R$140 server-owned Sandbox intents; no PSP POST.' >> "$GITHUB_STEP_SUMMARY"
       - name: Prove signed FORCE RLS denies raw SQL enumeration and forged claims
         working-directory: portal/apps/portal/ops/private-purchase
         run: |
           set -euo pipefail
           docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < test_customer_scope.sql
           docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < test_customer_work_scope.sql
-          echo 'PASS SQL HMAC tenant owner scope, denied forged claims and limited DB role.' >> "$GITHUB_STEP_SUMMARY"
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < test_sandbox_scope.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < ../../../../../comercial/ops/review/purchase/test-crossrepo-sandbox-owners.sql
+          echo 'PASS two legitimate, distinct owners isolated by signed HMAC, and forged SQL admin/payment edits denied.' >> "$GITHUB_STEP_SUMMARY"
       - name: Verify PostgreSQL18 backup/restore with signed RLS intact
         working-directory: portal/apps/portal/ops/private-purchase
         env:
