@@ -1,0 +1,176 @@
+---
+import {CHANNELS} from '../lib/media-budget-calculator.mjs';
+interface Props {locale:'en'|'es'}
+const {locale}=Astro.props;
+const en=locale==='en';
+const t=en?{
+  eyebrow:'Free planning tool · Imagine Performance AI',
+  heading:'How much should your business invest in advertising?',
+  intro:'Choose ad channels and explore a transparent monthly budget suggestion. No signup required.',
+  channels:'1. Choose your advertising channels',
+  goal:'2. What is your goal?',
+  history:'3. Optional: your own historical results',
+  goalLead:'Leads per month',
+  cpl:'Your historical cost per lead (BRL)',
+  cap:'Monthly media limit (BRL), optional',
+  calc:'Calculate my budget',
+  method:'No signup or tracking. Calculations stay in your browser.',
+  min:'Minimum to contract selected channels',
+  recommended:'Suggested monthly media investment',
+  fee:'Estimated Imagine management fee (20%)',
+  total:'Illustrative total (media + management)',
+  basis:'Breakdown by channel',
+  low:'Your monthly limit is below the suggestion. We will never raise your budget automatically.',
+  contact:'Discuss my plan with Imagine',
+  disclaimer:'Media goes directly to each platform. Imagine management is charged separately based on verified actual spend, with monthly reconciliation. No results are guaranteed and no order is placed.',
+  noLead:'Email delivery and automated CRM follow-up are not active yet. You can contact Imagine through the available channels.',
+  leads:'Generate leads',sales:'Increase sales',awareness:'Build awareness',
+  floor:'Minimum',suggest:'Suggested',
+  error:'Please check your channels and numbers. Enter leads and historical CPL together, or leave both blank.'
+}:{
+  eyebrow:'Herramienta gratuita · Imagine Performance AI',
+  heading:'¿Cuánto debería invertir tu empresa en publicidad?',
+  intro:'Elige canales y obtén una sugerencia mensual transparente. No es necesario registrarse.',
+  channels:'1. Elige tus canales publicitarios',
+  goal:'2. ¿Cuál es tu objetivo?',
+  history:'3. Opcional: resultados históricos propios',
+  goalLead:'Leads al mes',
+  cpl:'Tu costo histórico por lead (BRL)',
+  cap:'Límite mensual para publicidad (BRL), opcional',
+  calc:'Calcular mi presupuesto',
+  method:'Sin registro ni seguimiento. El cálculo se realiza en tu navegador.',
+  min:'Inversión mínima para contratar los canales',
+  recommended:'Inversión mensual recomendada',
+  fee:'Honorarios Imagine estimados (20%)',
+  total:'Total orientativo (publicidad + gestión)',
+  basis:'Distribución por canal',
+  low:'Tu límite mensual está por debajo de la sugerencia. No incrementaremos automáticamente tu presupuesto.',
+  contact:'Hablar de mi plan con Imagine',
+  disclaimer:'La publicidad se paga directamente a cada plataforma. La gestión Imagine se cobra aparte sobre la inversión real verificada, con conciliación mensual. No se garantizan resultados ni se inicia ninguna contratación.',
+  noLead:'El envío por e-mail y la nutrición automática en el CRM todavía no están disponibles. Puedes contactar con Imagine por sus canales públicos.',
+  leads:'Conseguir leads',sales:'Aumentar ventas',awareness:'Dar a conocer mi marca',
+  floor:'Mínimo',suggest:'Sugerido',
+  error:'Revisa los canales y los importes. Indica la meta de leads y su CPL histórico, o deja ambos en blanco.'
+};
+const money=n=>new Intl.NumberFormat(en?'en-US':'es-ES',{style:'currency',currency:'BRL'}).format(n/100);
+const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
+---
+<section class="hero"><div class="shell">
+  <p class="eyebrow">{t.eyebrow}</p>
+  <h1>{t.heading}</h1>
+  <p class="lead">{t.intro}</p>
+</div></section>
+<section class="section shell">
+  <div id="intl-budget-calculator" data-locale={locale}>
+    <div class="intl-calc-card">
+      <fieldset>
+        <legend>{t.channels}</legend>
+        {rows.map(({id,c})=>(
+          <label class="intl-calc-option">
+            <input type="checkbox" name="intl-channel" value={id} checked={id==='meta_ads'} />
+            <span><strong>{c.label}</strong> · {t.floor}: {money(c.floorCents)} · {t.suggest}: {money(c.recommendedCents)}</span>
+          </label>
+        ))}
+      </fieldset>
+      <div class="intl-calc-fields">
+        <div><label for="intl-objective">{t.goal}</label><select id="intl-objective"><option value="leads">{t.leads}</option><option value="sales">{t.sales}</option><option value="awareness">{t.awareness}</option></select></div>
+      </div>
+      <p><strong>{t.history}</strong></p>
+      <div class="intl-calc-fields">
+        <div><label for="intl-leads">{t.goalLead}</label><input type="number" min="1" max="100000" id="intl-leads" placeholder="30" autocomplete="off" /></div>
+        <div><label for="intl-cpl">{t.cpl}</label><input type="text" inputmode="decimal" maxlength="10" id="intl-cpl" placeholder="45.00" autocomplete="off" /></div>
+        <div><label for="intl-cap">{t.cap}</label><input type="text" inputmode="decimal" maxlength="10" id="intl-cap" placeholder="2500.00" autocomplete="off" /></div>
+      </div>
+      <button id="intl-calc-run" type="button" class="cta">{t.calc}</button>
+      <p class="calc-hint">{t.method}</p>
+      <p id="intl-calc-error" role="alert" hidden></p>
+    </div>
+    <section id="intl-calc-results" hidden aria-label={t.recommended}>
+      <h2>{t.recommended}</h2>
+      <p id="intl-calc-method"></p>
+      <dl class="intl-calc-result-grid">
+        <div><dt>{t.min}</dt><dd id="intl-calc-min">—</dd></div>
+        <div><dt>{t.recommended}</dt><dd id="intl-calc-suggested">—</dd></div>
+        <div><dt>{t.fee}</dt><dd id="intl-calc-fee">—</dd></div>
+        <div><dt>{t.total}</dt><dd id="intl-calc-total">—</dd></div>
+      </dl>
+      <h3>{t.basis}</h3>
+      <ul id="intl-calc-channels"></ul>
+      <p id="intl-calc-limit" hidden role="status">{t.low}</p>
+      <p>{t.disclaimer}</p>
+      <a class="cta" href={locale==='en'?'/en/contact/':'/es/contact/'}>{t.contact}</a>
+      <p class="calc-hint">{t.noLead}</p>
+    </section>
+  </div>
+</section>
+<script>
+  import {calculateMediaBudget,parseMoneyToCents} from '../lib/media-budget-calculator.mjs';
+  const root=document.querySelector<HTMLElement>('#intl-budget-calculator');
+  if(root){
+    const locale=root.dataset.locale==='en'?'en-US':'es-ES';
+    const money=(cents:number)=>new Intl.NumberFormat(locale,{style:'currency',currency:'BRL'}).format(cents/100);
+    const get=<T extends HTMLElement>(selector:string)=>root.querySelector<T>(selector);
+    get<HTMLButtonElement>('#intl-calc-run')?.addEventListener('click',()=>{
+      const error=get<HTMLElement>('#intl-calc-error');
+      const results=get<HTMLElement>('#intl-calc-results');
+      if(error){error.hidden=true;error.textContent='';}
+      try{
+        const channels=Array.from(root.querySelectorAll<HTMLInputElement>('input[name="intl-channel"]:checked')).map(x=>x.value);
+        const objective=get<HTMLSelectElement>('#intl-objective')?.value??'leads';
+        const leads=get<HTMLInputElement>('#intl-leads')?.value.trim()??'';
+        const cpl=get<HTMLInputElement>('#intl-cpl')?.value.trim()??'';
+        const limit=get<HTMLInputElement>('#intl-cap')?.value.trim()??'';
+        const p=calculateMediaBudget({
+          channels,objective,targetLeads:leads?Number(leads):0,
+          historicalCplCents:cpl?parseMoneyToCents(cpl):0,
+          monthlyLimitCents:limit?parseMoneyToCents(limit):0
+        });
+        const texts:Record<string,string>={
+          '#intl-calc-min':money(p.minimumMediaCents),
+          '#intl-calc-suggested':money(p.suggestedMediaCents),
+          '#intl-calc-fee':money(p.illustrativeManagementCents),
+          '#intl-calc-total':money(p.illustrativeTotalCents),
+          '#intl-calc-method':p.historicalCplSuppliedByVisitor?
+            (locale==='en-US'?'Scenario based on your own historical CPL — not a forecast.':'Escenario basado en tu CPL histórico, no una previsión.') :
+            (locale==='en-US'?'Imagine initial planning references — not a lead forecast.':'Referencias iniciales de Imagine, no una previsión de leads.')
+        };
+        for(const [selector,value] of Object.entries(texts)){
+          const el=get<HTMLElement>(selector);if(el)el.textContent=value;
+        }
+        const list=get<HTMLElement>('#intl-calc-channels');
+        if(list){list.replaceChildren();for(const item of p.channels){
+          const li=document.createElement('li');li.textContent=item.label+': '+money(item.suggestedCents);
+          list.appendChild(li);
+        }}
+        const below=get<HTMLElement>('#intl-calc-limit');if(below)below.hidden=!p.exceedsMonthlyLimit;
+        if(results){results.hidden=false;results.scrollIntoView({behavior:'smooth',block:'start'});}
+      }catch{
+        if(results)results.hidden=true;
+        if(error){error.hidden=false;error.textContent=locale==='en-US'?
+          'Check the channels and numbers. Enter leads and historical CPL together or leave both empty.':
+          'Revisa los canales y valores. Indica leads y CPL juntos o deja ambos vacíos.';}
+      }
+    });
+  }
+</script>
+<style>
+  #intl-budget-calculator{max-width:1060px;margin:auto}
+  .intl-calc-card{background:#fff;border:1px solid #e3d7c7;border-radius:16px;padding:clamp(18px,3vw,34px)}
+  fieldset{padding:0;border:0;min-width:0;margin:0 0 26px}
+  legend{font-size:1.15rem;font-weight:800;margin-bottom:14px}
+  .intl-calc-option{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:11px;border:1px solid #e2d5c4;margin-bottom:9px;min-height:52px}
+  .intl-calc-option:has(input:checked){background:#fff8eb;border-color:#a75b00}
+  .intl-calc-option input{width:18px;height:18px;accent-color:#a75b00;flex:none}
+  .intl-calc-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;margin-bottom:22px}
+  .intl-calc-fields label{display:block;font-weight:700;margin-bottom:8px}
+  .intl-calc-fields input,.intl-calc-fields select{width:100%;padding:12px;min-height:48px;border:1px solid #bbb0a3;border-radius:8px;font:inherit}
+  .calc-hint{color:#5f5a52;font-size:.88rem}
+  #intl-calc-error{background:#fff0ee;color:#8a2821;border-left:4px solid #bd3930;padding:12px}
+  #intl-calc-results{margin-top:30px;padding:26px;border-radius:16px;background:#f7f7f8}
+  .intl-calc-result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
+  .intl-calc-result-grid>div{padding:20px;border-radius:11px;background:white;border:1px solid #dedbd5}
+  .intl-calc-result-grid dt{font-size:.88rem;color:#5f5a52}
+  .intl-calc-result-grid dd{font-size:1.4rem;font-weight:800;margin:8px 0 0;color:#794000}
+  button{cursor:pointer}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a75b00;outline-offset:3px}
+</style>
