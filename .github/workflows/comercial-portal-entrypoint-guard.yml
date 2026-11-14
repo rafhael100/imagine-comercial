@@ -1,0 +1,52 @@
+name: Comercial P0 Portal do Cliente and four-CTA guarded preview
+on:
+  pull_request:
+    paths:
+      - 'src/layouts/BaseLayout.astro'
+      - 'src/lib/portal-login-link.mjs'
+      - 'src/components/QuickServiceRequest.astro'
+      - 'ops/review/purchase/prepare-customer-portal.mjs'
+      - 'ops/review/purchase/test-portal-entrypoint.mjs'
+      - '.github/workflows/comercial-portal-entrypoint-guard.yml'
+permissions:
+  contents: read
+jobs:
+  official-nav-and-private-contract-cta:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PUBLIC_PORTAL_LOGIN_URL: 'https://portal.imaginecomunicacao.com.br/login'
+      IMAGINE_PORTAL_CUSTOMER_PREVIEW: '1'
+    steps:
+      - name: Read exact PR candidate without persisting GitHub credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Official Node 22 runtime
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Install pinned dependencies and build real Astro homepage
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/verify-dist.mjs
+      - name: Verify both desktop and mobile Portal entrypoints
+        run: |
+          set -euo pipefail
+          node ops/review/purchase/test-portal-entrypoint.mjs dist source
+      - name: Prepare four CTAs in a separate disposable non-published copy
+        run: |
+          set -euo pipefail
+          node ops/review/purchase/prepare-customer-portal.mjs dist "$RUNNER_TEMP/comercial-private"
+          node scripts/verify-dist.mjs
+          node ops/review/purchase/test-portal-entrypoint.mjs "$RUNNER_TEMP/comercial-private" private
+      - name: Evidence without data or publish authorization
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          PASS: the official Portal do Cliente link is discoverable in desktop and mobile navigation when explicitly configured at Astro build-time.
+          PASS: four Comercial CTA buttons in isolated copy retain the chosen offer for the private Portal customer preview.
+          NO-GO: the official login URL is a reviewed build configuration, NOT a live availability claim. No authentication, payment, deployment, production DNS, customer data or public website changes were made.
+          EOF

@@ -47,3 +47,33 @@ jobs:
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/purchase-browser/bin/python" ops/review/purchase/test_protected_staging_browser.py --ci-local
+  official-portal-entrypoint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PUBLIC_PORTAL_LOGIN_URL: 'https://portal.imaginecomunicacao.com.br/login'
+      IMAGINE_PORTAL_CUSTOMER_PREVIEW: '1'
+    steps:
+      - name: Checkout exact candidate without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Install Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Build official HTTPS Portal nav without publication
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/verify-dist.mjs
+          node ops/review/purchase/test-portal-entrypoint.mjs dist source
+      - name: Verify four private CTAs and untouched build
+        run: |
+          set -euo pipefail
+          node ops/review/purchase/prepare-customer-portal.mjs dist "$RUNNER_TEMP/comercial-private"
+          node ops/review/purchase/test-portal-entrypoint.mjs "$RUNNER_TEMP/comercial-private" private
+          node scripts/verify-dist.mjs
+          echo 'PASS official Portal do Cliente nav and four isolated CTAs; NO DEPLOY or real account.' >> "$GITHUB_STEP_SUMMARY"
