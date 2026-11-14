@@ -17,19 +17,19 @@ try {
   const routes=[
     {path:'/calculadora-de-anuncios/',lang:'pt-BR',
       start:'#calculate-run',result:'#media-result',min:'#calc-minimum',
-      suggested:'#calc-suggested',fee:'#calc-management',total:'#calc-total',
+      suggested:'#calc-suggested',fee:'#calc-management',floorFee:'#calc-management-at-minimum',total:'#calc-total',
       activation:'#calc-activation',firstCycle:'#calc-first-cycle',
       checkbox:'input[name="channel"]',error:'#calculator-error',print:'#calc-print',copy:null,
       whatsapp:'#calc-contact-whatsapp'},
     {path:'/en/budget-calculator/',lang:'en-US',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
-      suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
+      suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',floorFee:'#intl-calc-fee-at-minimum',total:'#intl-calc-total',
       activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
       checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy',
       whatsapp:'#intl-calc-whatsapp'},
     {path:'/es/budget-calculator/',lang:'es-ES',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
-      suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
+      suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',floorFee:'#intl-calc-fee-at-minimum',total:'#intl-calc-total',
       activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
       checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy',
       whatsapp:'#intl-calc-whatsapp'}
@@ -71,6 +71,8 @@ try {
     assert.equal((await page.locator(route.min).textContent())?.trim(),money(700));
     assert.equal((await page.locator(route.suggested).textContent())?.trim(),money(1000));
     assert.equal((await page.locator(route.fee).textContent())?.trim(),money(200));
+    assert.equal((await page.locator(route.floorFee).textContent())?.trim(),money(170),
+      route.path+' minimum media must trigger R$170 Meta management');
     assert.equal((await page.locator(route.total).textContent())?.trim(),money(1200));
     assert.equal((await page.locator(route.activation).textContent())?.trim(),money(490));
     assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(1690));
@@ -93,6 +95,8 @@ try {
     assert.equal((await page.locator(route.min).textContent())?.trim(),money(2900));
     assert.equal((await page.locator(route.suggested).textContent())?.trim(),money(4300));
     assert.equal((await page.locator(route.fee).textContent())?.trim(),money(860));
+    assert.equal((await page.locator(route.floorFee).textContent())?.trim(),money(610),
+      route.path+' fees at each channel floor must sum independently');
     assert.equal((await page.locator(route.total).textContent())?.trim(),money(5160));
     assert.equal((await page.locator(route.activation).textContent())?.trim(),money(1470));
     assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(6630));
@@ -109,8 +113,10 @@ try {
       const text=await page.evaluate(()=>window.__testClipboardText.at(-1));
       assert.ok(text.includes(money(1470)),'International local study must include setup');
       assert.ok(text.includes(money(6630)),'International local study must include first cycle');
-      assert.ok(/minimum pending|mínimo pendiente/.test(text),
-        'Copied study must never pose as a final quote');
+      assert.ok(/BRL 170 minimum per channel|mínimo R\$ 170 por canal/.test(text),
+        'Copied study must disclose approved per-channel minimum');
+      assert.ok(/not an invoice|no es una factura/.test(text),
+        'Copied study must distinguish economic total from invoice');
     }
 
     // An invalid recalculation must clear any previous printable/copyable result.
@@ -134,8 +140,8 @@ try {
     // A budget estimate is not an email subscription and never creates a lead.
     const faq=await page.locator('body').textContent();
     assert.ok(/CRM/.test(faq),'No auto-CRM promise');
-    assert.ok(/mínimo mensal|monthly minimum|mínimo mensual/i.test(faq),
-      'Must disclose unresolved recurring management minimum');
+    assert.ok(/mínimo mensal|monthly minimum|mínimo de R\$ 170/i.test(faq),
+      'Must disclose approved recurring management minimum');
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+3),
       'No horizontal overflow in 375px viewport');
     assert.deepEqual(errors,[],route.path+' must not throw JS errors');
