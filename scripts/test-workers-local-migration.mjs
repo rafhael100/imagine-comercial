@@ -8,8 +8,10 @@ import {tmpdir} from 'node:os';
 import {resolve,join} from 'node:path';
 import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {verifyServedLanguageParity} from '../src/lib/i18n-served-http-contract.mjs';
+import {reviewLegacyHttpContinuity} from '../src/lib/legacy-http-continuity-review.mjs';
 import {sitePages,toAbsoluteUrl} from '../src/data/services.mjs';
 import {verifyIndexablePage,verifySitemapUrls,verifyRobotsSitemap} from '../src/lib/seo-output-contract.mjs';
 import {createSecurityHeadersPreview,localHeaderProfile} from '../src/lib/security-headers-preview.mjs';
@@ -77,10 +79,12 @@ try{
   const held=legacyUrls.filter(x=>x.status==='hold');
   assert.equal(candidates.length,5);
   assert.equal(held.length,22);
+  const candidateObservations=new Map();
   for(const {from:old,to:target} of candidates){
     const response=await probe(old);
     assert.equal(response.status,301,old+' must use real Worker 301');
     assert.equal(new URL(response.headers.get('location'),base).pathname,target,old+' target');
+    candidateObservations.set(old,{path:old,status:301,mime:null,bodySha256:null,bytes:0,redirectTo:target});
   }
   // F23: todo conteúdo indexável precisa funcionar no runtime de destino,
   // não apenas na simulação do Astro. Exigir metadados idênticos aos do build.
@@ -109,6 +113,8 @@ try{
   ]){
     const response=await probe(blocked);
     assert.equal(response.status,404,blocked+' must not become a soft-404/redirect');
+    if(held.some(x=>x.from===blocked))
+      candidateObservations.set(blocked,{path:blocked,status:404,mime:null,bodySha256:null,bytes:0,redirectTo:null});
     const html=await response.text();
     assert.ok(/página não encontrada|página que você procura/i.test(html),
       blocked+' should render custom 404 page');
@@ -117,7 +123,29 @@ try{
     assert.doesNotMatch(html,/<link rel="canonical"/,
       blocked+' should not assert a canonical URL');
   }
-  console.log('Cloudflare workerd LOCAL passed: '+candidates.length+' x 301, '+sitePages.length+' x 200 with three country flags/four hreflang links each, 2 SEO assets, '+(held.length+1)+' x 404; 4 reviewed headers on every public HTML; zero deployments.');
+  // F310: successful isolated Workerd static QA is NOT proof that a
+  // production cutover can replace a legacy site. Compare actual Workerd
+  // statuses with a clearly SYNTHETIC old-site snapshot. Any original 200
+  // on a HOLD path would be lost (404) in a direct static replacement.
+  const schema='imagine.comercial.legacy-http-snapshot.v1';
+  const before={schema,scope:'BEFORE_ORIGINAL',rows:legacyUrls.map(({from:path})=>({
+    path,status:200,mime:'text/html',
+    bodySha256:createHash('sha256').update('SYNTHETIC_LEGACY:'+path).digest('hex'),
+    bytes:1024,redirectTo:null
+  }))};
+  const after={schema,scope:'AFTER_CANDIDATE',rows:legacyUrls.map(({from})=>{
+    const observation=candidateObservations.get(from);
+    assert.ok(observation,'F310: all old routes must have a Workerd observation');
+    return observation;
+  })};
+  const continuity=reviewLegacyHttpContinuity(before,after);
+  assert.equal(continuity.heldMissingOrChanged,22);
+  assert.equal(continuity.candidateRedirectsStillUnauthorized,5);
+  assert.equal(continuity.allHeldBytePreserved,false);
+  assert.equal(continuity.newSiteCanReplaceOriginal,false);
+  assert.equal(continuity.redirectsAuthorized,0);
+  console.log('F310 LOCAL SYNTHETIC continuity: 22/22 legacy HOLD pages would be missing; 5/5 candidate 301 redirects unapproved. Production replacement remains NO-GO.');
+    console.log('Cloudflare workerd LOCAL passed: '+candidates.length+' x 301, '+sitePages.length+' x 200 with three country flags/four hreflang links each, 2 SEO assets, '+(held.length+1)+' x 404; 4 reviewed headers on every public HTML; zero deployments.');
 } finally{
   if(runner?.pid){
     try{process.kill(-runner.pid,'SIGTERM')}catch{}
