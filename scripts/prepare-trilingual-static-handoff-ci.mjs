@@ -55,6 +55,13 @@ assert.equal(englishLegacy.redirectsGenerated,0);
 assert.equal(englishLegacy.redirectsAuthorized,0);
 assert.equal(englishLegacy.readyForCutover,false);
 assert.equal(englishLegacy.legalAndEditorialApproval,false);
+const liveLegacy=readiness.legacyHttpContinuity;
+assert.equal(liveLegacy.totalKnownRoutes,27);
+assert.equal(liveLegacy.heldMustBePreserved,22);
+assert.equal(liveLegacy.originalPublicHttpSnapshotIndependentlyReviewed,false);
+assert.equal(liveLegacy.candidatePrivateHttpSnapshotIndependentlyReviewed,false);
+assert.equal(liveLegacy.historicalFormsAndLeadsDeliveryVerified,false);
+assert.equal(liveLegacy.readyToReplaceLegacySite,false);
 
 const record={
  schema:'imagine.comercial.trilingual-static-review-handoff.v1',
@@ -74,6 +81,9 @@ const record={
  legacyEnglishUrlsProtected:englishLegacy.originalsReviewed,
  englishLegacyPossibleMappingsOnly:englishLegacy.editorialEquivalentsProposed,
  englishLegacyHeldWithoutEquivalent:englishLegacy.originalsWithoutEquivalent,
+ legacyHttpOriginalObserved:false,
+ legacyHttpCandidateObserved:false,
+ historicalFormsAndLeadsDeliveryVerified:false,
  redirectsAuthorized:0,
  publishOrRedirectPerformed:false,
  independentHashAttestationVerified:false,

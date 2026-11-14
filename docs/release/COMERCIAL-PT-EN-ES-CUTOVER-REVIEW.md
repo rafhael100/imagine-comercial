@@ -20,6 +20,12 @@ Não há credenciais, chaves privadas, dados pessoais ou comandos de deploy nest
 4. Utilizar somente um ambiente de homologação isolado, com HTTPS e autenticação, `noindex` e proteção contra exposição acidental. Rodar as ferramentas de inspeção privada previstas no repositório com credenciais do operador fora do GitHub/ChatGPT.
 5. Executar HTTP 200 nas 57 rotas, 404 nas não existentes; comparar HTML, metas, cabeçalhos de segurança, responsividade e acessibilidade com o mesmo manifesto. Confirmar bandeiras e links nos dois tamanhos de tela.
 6. Revisar **12 URLs legadas `/en-us/`**. Cinco têm possíveis equivalentes editoriais; sete não têm e exigem preservação. **Todas as 12 permanecem HOLD.** O arquivo `artifacts/migration-preview/international-legacy-HOLD.json` é apenas diagnóstico; **não instalar regras 301**.
+   Conferir também a **F310** em `docs/release/F310-LEGACY-HTTP-CONTINUITY-BEFORE-AFTER.md`:
+   dois snapshots privados (original antes da troca e candidato localhost) com as
+   27 rotas históricas e hashes de HTML. A prévia Astro responde 404 nas rotas
+   HOLD e **não pode substituir diretamente** o legado sem uma solução de
+   continuidade verificada. Manter também o atendimento dos formulários
+   históricos de contato/orçamento; sem prova de entrega de leads, NO-GO.
 7. Cruzar GSC real, backlinks e logs HTTP com essa cobertura, incluindo páginas de termos, portfólio e serviços descontinuados. Nenhum conteúdo jurídico deve desaparecer ou ser trocado por homepage sem revisão legal.
 8. Validar o procedimento de reversão: manter o deploy anterior íntegro, comparar a versão ativa e documentar a restauração sem perda de URLs antigas. Um exercício local de CI não prova reversão na VPS.
 9. Exigir responsáveis por release, segurança/AppSec, SEO, LGPD/contratos e infraestrutura com evidências verificáveis. A decisão tem de ser explícita **e posterior** às verificações, não inferida de testes verdes.
