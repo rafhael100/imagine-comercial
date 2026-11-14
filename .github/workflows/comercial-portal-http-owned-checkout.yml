@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: rafhael100/imagine-portal
-          ref: 7a91f3acb16ed7b454030ab9d7fa47bf1bb2b422
+          ref: 3f15b76db061084b464315f881a68429e8df4cb2
           path: portal
           persist-credentials: false
       - name: Use Node 22
