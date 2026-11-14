@@ -1,0 +1,36 @@
+name: Comercial Performance budget calculator (offline)
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/media-budget-calculator.mjs'
+      - 'src/pages/calculadora-de-anuncios.astro'
+      - 'src/pages/index.astro'
+      - 'tests/media-budget-calculator.test.mjs'
+      - '.github/workflows/comercial-media-calculator-p0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-build-and-math:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Calculate budgets and validate guardrails
+        run: node --test tests/media-budget-calculator.test.mjs
+      - name: Build public Astro page
+        run: npm run build
+      - name: Verify built calculator route
+        run: |
+          test -f dist/calculadora-de-anuncios/index.html
+          grep -q 'Calcular meu investimento' dist/calculadora-de-anuncios/index.html
+          grep -q 'não estão disponíveis' dist/calculadora-de-anuncios/index.html
