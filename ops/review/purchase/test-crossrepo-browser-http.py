@@ -100,6 +100,22 @@ with sync_playwright() as p:
         assert page.url.endswith("/shop?product=landing-pages"), page.url
         landing = accept_and_create(page, "R$ 1.290,00")
         assert "R$ 430,00" in page.locator("body").inner_text()
+        # This order originated from the actual Landing Page CTA.  Queue a
+        # server-valued SANDBOX intent, never a PSP call or browser-set amount.
+        assert page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").count() == 1
+        csrf_landing = page.locator('input[name="_token"]').first.input_value()
+        revision_landing = page.locator('input[name="revision"]').first.input_value()
+        bad_amount = page.request.post(
+            landing + "/sandbox",
+            form={"_token":csrf_landing,"revision":revision_landing,
+                  "sandbox_ack":"1","amount_cents":"1"})
+        assert bad_amount.status == 422, "Client must not submit financial amount"
+        page.locator('[name="sandbox_ack"]').check()
+        page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").click()
+        assert page.url == landing
+        assert page.locator('[name="outcome"]').count() == 0, "Cannot fake PSP settlement"
+        assert page.locator('[name="business"]').count() == 0, "Briefing requires verified receipt"
+        assert "R$ 430,00" in page.locator("body").inner_text()
         for slug, channel in (("gestao-google-ads","google_ads"),("gestao-meta-ads","meta_ads")):
             from_commercial(page, slug)
             assert page.url.endswith(EXPECTED[slug]), page.url
@@ -130,6 +146,7 @@ with sync_playwright() as p:
         page.goto(PORTAL + "/shop?product=onepage")
         csrf_token = page.locator('input[name="_token"]').first.input_value()
         assert page.request.post(onepage + "/payment", form={"_token":csrf_token, "revision":"0", "outcome":"approved", "sample_ack":"1"}).status == 404
+        assert page.request.post(landing + "/sandbox", form={"_token":csrf_token, "revision":"1", "sandbox_ack":"1"}).status == 404
         page.goto(PORTAL)
         page.get_by_role("button", name="Sair", exact=True).click()
         page.locator('[name="username"]').fill(owner_a)
@@ -138,7 +155,7 @@ with sync_playwright() as p:
         page.goto(PORTAL + "/client/services")
         assert page.locator('tr[data-customer-order]').count() == 4
         assert not blocked, "Unexpected external network requests: " + str(blocked)
-        print("PASS cross-repo HTTP/Chromium four CTAs: signed-owner Portal PostgreSQL18 orders, two isolated customers, forged access 404, v4 quotes and one fictional briefing; NO PSP/DEPLOY")
+        print("PASS cross-repo HTTP/Chromium four CTAs: server-valued Landing Sandbox intent, no manual payment, signed-owner PG18, cross-customer denial, v4 quotes and fictitious briefing; NO PSP/DEPLOY")
     finally:
         context.close()
         browser.close()
