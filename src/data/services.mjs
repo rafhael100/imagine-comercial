@@ -126,6 +126,7 @@ export const sitePages = Object.freeze([
   { path: '/', label: 'Início' },
   { path: '/servicos/', label: 'Soluções' },
   { path: '/comparar-solucoes/', label: 'Comparar soluções' },
+  { path: '/calculadora-de-anuncios/', label: 'Calculadora de investimento em anúncios' },
   { path: '/como-funciona/', label: 'Como funciona' },
   { path: '/perguntas-frequentes/', label: 'Perguntas frequentes' },
   { path: '/contato/', label: 'Contato' },
