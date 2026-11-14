@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CHANNELS,parseMoneyToCents,formatBRL,calculateMediaBudget} from '../src/lib/media-budget-calculator.mjs';
+import {CHANNELS,ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS,MONTHLY_MANAGEMENT_MINIMUM_STATUS,parseMoneyToCents,formatBRL,calculateMediaBudget} from '../src/lib/media-budget-calculator.mjs';
 
 test('approved floor/reference per provider, never duplicate Meta placements',()=>{
   assert.deepEqual(Object.keys(CHANNELS).sort(),['chatgpt_ads','google_ads','meta_ads']);
@@ -66,4 +66,40 @@ test('invalid channel, forged copies and missing one part of goal fail closed',(
   assert.throws(()=>calculateMediaBudget({channels:['meta_ads'],objective:'unapproved'}),RangeError);
   assert.throws(()=>calculateMediaBudget({channels:['meta_ads'],monthlyLimitCents:-1}),RangeError);
   assert.throws(()=>calculateMediaBudget({channels:['meta_ads'],targetLeads:100000,historicalCplCents:100000000}),RangeError);
+});
+
+test('one-time activation is R$490 per channel, NEVER a recurring management floor',()=>{
+  assert.equal(ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS,49000);
+  assert.equal(MONTHLY_MANAGEMENT_MINIMUM_STATUS,'PENDING_FINAL_APPROVAL');
+  for(const [channels,expected] of [
+    [['meta_ads'],{activation:49000,monthly:120000,first:169000}],
+    [['google_ads','meta_ads'],{activation:98000,monthly:300000,first:398000}],
+    [['chatgpt_ads','google_ads','meta_ads'],{activation:147000,monthly:516000,first:663000}]
+  ]){
+    const estimate=calculateMediaBudget({channels});
+    assert.equal(estimate.oneTimeActivationPerChannelCents,49000);
+    assert.equal(estimate.oneTimeActivationCents,expected.activation);
+    assert.equal(estimate.illustrativeTotalCents,expected.monthly);
+    assert.equal(estimate.illustrativeFirstCycleSubtotalCents,expected.first);
+    assert.equal(estimate.activationIsOneTime,true);
+    assert.equal(estimate.activationAndMonthlyManagementAreSeparate,true);
+    assert.equal(estimate.monthlyManagementMinimumStatus,'PENDING_FINAL_APPROVAL');
+    assert.equal(estimate.contractualMonthlyManagementMinimumCents,null);
+    assert.equal(estimate.managementBilledAfterVerifiedMonthlySpend,true);
+    assert.equal(estimate.illustrativeFirstCycleIsFinalQuotation,false);
+    assert.equal(estimate.publicCheckoutEnabled,false);
+    assert.equal(estimate.leadSentToCrm,false);
+  }
+});
+test('visitor historical CPL never changes the per-channel one-time setup',()=>{
+  const p=calculateMediaBudget({
+    channels:['meta_ads','google_ads'],
+    objective:'leads',targetLeads:60,historicalCplCents:10000,
+    monthlyLimitCents:100000
+  });
+  assert.equal(p.oneTimeActivationCents,98000);
+  assert.equal(p.exceedsMonthlyLimit,true);
+  assert.equal(p.illustrativeFirstCycleSubtotalCents,
+    p.illustrativeTotalCents+98000);
+  assert.equal(p.monthlyManagementMinimumStatus,'PENDING_FINAL_APPROVAL');
 });
