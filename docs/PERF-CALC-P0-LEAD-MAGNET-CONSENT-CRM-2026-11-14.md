@@ -52,6 +52,14 @@ O site comercial Astro é estático e o formulário de contato original não env
 
 O script `scripts/test-calculator-browser-ci.mjs` testa as três versões no Chromium real via preview HTTP autenticado em loopback e verifica conta Meta, seleção dos três canais, honorários, ausência de PII, POST e tráfego externo. Os testes do site principal seguem independentes e são requisito adicional de publicação.
 
+## Contrato técnico bidirecional em laboratório
+
+O Comercial implementou `src/lib/synthetic-calculator-interest-interop-lab.mjs`: envelope de **interesse sintético**, metadados sem PII, com HMAC-SHA256 de CI, nonce, competência temporal, canais e mídia em centavos; sem envio por HTTP, sem credencial real e sem inferir consentimento. O código recusa campos inesperados, valores adulterados, arrays com acessores e permissão de marketing indevida.
+
+O emissor `scripts/emit-calculator-interest-fixture-ci.mjs` gera um vetor público fixo de **teste**, com chave descartável. O CRM contém verificador PHP equivalente, e o workflow CRM consome o código Comercial fixado ao commit `f2454eb58b77702f2df69be658c43ecd49f3beb3`, verificando o vetor e registrando os metadados em PostgreSQL16 temporário com RLS e replay seguro. O vetor não contém e-mail, nome ou telefone.
+
+**Status:** integração cross-repo de laboratório. A calculadora pública continua sem nenhum formulário que envia dados pessoais; o usuário pode imprimir/salvar o estudo pelo diálogo do navegador. A prova em PostgreSQL é isolada, não é recibo operacional de lead.
+
 ## Dependências e aceite
 
 - Portal: contrato de origem e permissões da Imagine para Performance e CRM; catálogo versionado; site institucional não dispara contrato nem cobrança.
