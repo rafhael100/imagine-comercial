@@ -2,6 +2,7 @@
 import { toAbsoluteUrl } from '../data/services.mjs';
 import { resolvePortalLoginLink } from '../lib/portal-login-link.mjs';
 import { contactChannels } from '../data/contact-channels.mjs';
+import {languageAlternates,languageSwitchTargets} from '../data/i18n.mjs';
 interface Props {
   title: string;
   description: string;
@@ -12,6 +13,13 @@ interface Props {
   articleTitle?: string;
 }
 const { title, description, pathname, noindex = false, breadcrumb = [], serviceName, articleTitle } = Astro.props;
+const translatedVariants=languageAlternates(pathname);
+const languageTargets=languageSwitchTargets(pathname);
+const languageFlags=[
+ {id:'pt-BR',flag:'🇧🇷',code:'PT',name:'Português'},
+ {id:'en',flag:'🇺🇸',code:'EN',name:'English'},
+ {id:'es',flag:'🇪🇸',code:'ES',name:'Español'}
+] as const;
 const canonical = toAbsoluteUrl(pathname, Astro.site?.toString());
 const socialType = articleTitle ? 'article' : 'website';
 // O atalho é opcional e aparece somente se a URL passa pelo allowlist.
@@ -66,6 +74,9 @@ const service = serviceName ? {
     <meta name="description" content={description} />
     <meta name="robots" content={noindex ? 'noindex,nofollow' : 'index,follow'} />
     {!noindex && <link rel="canonical" href={canonical} />}
+    {!noindex && translatedVariants && Object.entries(translatedVariants).map(([lang,path])=>(
+      <link rel="alternate" hreflang={lang} href={toAbsoluteUrl(path)} />
+    ))}
     <meta property="og:type" content={socialType} />
     <meta property="og:locale" content="pt_BR" />
     <meta property="og:site_name" content="Imagine Comunicação Digital" />
@@ -179,7 +190,19 @@ const service = serviceName ? {
         .mobile-menu { display: block; position: relative; margin-left: auto; }
       }
       @media (max-width: 620px) { .cta-row a { width: 100%; } .section { padding-block: 42px; } }
-      @media (prefers-reduced-motion: reduce) { :root { scroll-behavior: auto; } }
+      .locale-switcher { display:flex; flex-shrink:0; align-items:center; justify-content:flex-end; gap:4px; }
+      .locale-switcher .locale-option { display:inline-flex; flex-direction:column; align-items:center; justify-content:center; min-width:44px; min-height:46px; gap:0; border:1px solid transparent; border-radius:9px; line-height:1.1; text-decoration:none; color:#4b4439; }
+      .locale-switcher .locale-option:hover, .locale-switcher .locale-option:focus-visible { background:#fff7ec; border-color:#d6a16a; }
+      .locale-switcher .locale-option[aria-current="page"], .locale-switcher .locale-option[data-selected-language="true"] { background:#fff0db; border-color:#d77700; }
+      .locale-switcher .locale-flag { font-size:24px; line-height:1.25; }
+      .locale-switcher .locale-code { font-size:.62rem; font-weight:800; letter-spacing:.04em; }
+      @media (max-width:1020px) {
+        .header { flex-wrap:wrap; }
+        .mobile-menu { order:2; margin-left:auto; }
+        .locale-switcher { width:100%; order:3; justify-content:center; padding-top:7px; border-top:1px solid #f0e9e1; }
+      }
+      @media (max-width:420px) { .header { gap:6px; } .brand { max-width:65%; } .brand img { width:min(155px,100%); } }
+            @media (prefers-reduced-motion: reduce) { :root { scroll-behavior: auto; } }
     </style>
   </head>
   <body>
@@ -216,6 +239,17 @@ const service = serviceName ? {
           {portalLoginUrl && <a class="nav-cta-mobile" href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}
         </nav>
       </details>
+      <nav class="locale-switcher" aria-label="Escolher idioma do site">
+        {languageFlags.map(option=>(
+          <a class="locale-option" href={languageTargets[option.id]}
+            lang={option.id} hreflang={option.id} aria-current={option.id==='pt-BR'&&languageTargets['pt-BR']===pathname?'page':undefined}
+            data-selected-language={option.id==='pt-BR'?'true':undefined}
+            aria-label={option.name} title={option.name}>
+            <span class="locale-flag" aria-hidden="true">{option.flag}</span>
+            <span class="locale-code" aria-hidden="true">{option.code}</span>
+          </a>
+        ))}
+      </nav>
     </header>
     <main id="conteudo" tabindex="-1">
       {breadcrumb.length>0 && (

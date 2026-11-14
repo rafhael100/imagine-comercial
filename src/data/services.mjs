@@ -1,4 +1,5 @@
 import { articles } from './articles.mjs';
+import { internationalPagePaths } from './i18n.mjs';
 /**
  * Conteúdo editorial inicial — sem preços, promessas de ranking ou dados de clientes.
  * Editável pelo futuro CMS do Portal depois do contrato de publicação homologado.
@@ -131,7 +132,8 @@ export const sitePages = Object.freeze([
   { path: '/sobre/', label: 'Sobre a Imagine' },
   { path: '/conteudos/', label: 'Conteúdos' },
   ...services.map(service => ({ path: '/servicos/' + service.slug + '/', label: service.label })),
-  ...articles.map(article => ({ path: '/conteudos/' + article.slug + '/', label: article.heading }))
+  ...articles.map(article => ({ path: '/conteudos/' + article.slug + '/', label: article.heading })),
+  ...internationalPagePaths.map(path=>({path,label:'Imagine international'}))
 ]);
 
 export function toAbsoluteUrl(path, site = 'https://imaginecomunicacao.com.br') {

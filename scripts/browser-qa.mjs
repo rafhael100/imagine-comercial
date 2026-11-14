@@ -80,6 +80,63 @@ try {
   }
 
 
+  // Accessible national flag navigation is an ordinary static link on every
+  // language. Check both breakpoints, native no-JS navigation, full page text
+  // and translated route parity. Historic PT-only content tests follow below.
+  for(const width of [375,1440]){
+    const ctx=await browser.newContext({viewport:{width,height:850},javaScriptEnabled:true});
+    const p=await ctx.newPage();
+    for(const lang of ['en','es']){
+      for(const section of ['','services','compare','how-it-works','faq','about','contact',
+        'services/landing-pages','services/gestao-google-ads']){
+        const route='/'+lang+'/'+(section?section+'/':'');
+        const response=await p.goto(host+route,{waitUntil:'load',timeout});
+        assert.equal(response?.status(),200,'International route '+route);
+        assert.equal(await p.locator('html').getAttribute('lang'),lang);
+        assert.equal(await p.locator('h1').count(),1);
+        assert.equal(await p.locator('link[rel="canonical"]').getAttribute('href'),
+          'https://imaginecomunicacao.com.br'+route);
+        assert.equal(await p.locator('nav.locale-switcher a').count(),3);
+        assert.equal(await p.locator('nav.locale-switcher a[aria-current="page"]').count(),1);
+        for(const code of ['pt-BR','en','es']){
+          const flag=p.locator('nav.locale-switcher a[lang="'+code+'"]');
+          assert.equal(await flag.count(),1,'Visible '+code+' choice');
+          assert.equal(await flag.isVisible(),true,'Flag visible '+code+' width '+width);
+          assert.ok((await flag.getAttribute('aria-label')).length>2);
+        }
+        assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
+          'International page horizontal overflow '+route+' '+width);
+        if(section===''){
+          await p.screenshot({
+            path:artifacts+'/language-'+lang+'-'+width+'.png',
+            fullPage:true
+          });
+        }
+        if(['','contact','services/landing-pages'].includes(section)){
+          const accessibility=await new AxeBuilder({page:p})
+            .withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
+          assert.deepEqual(accessibility.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[],
+            'International accessibility '+route+' '+width);
+        }
+      }
+    }
+    // Flags actually navigate and maintain the translated counterpart.
+    await p.goto(host+'/servicos/landing-pages/',{waitUntil:'load',timeout});
+    await p.locator('nav.locale-switcher a[lang="en"]').click();
+    assert.equal(new URL(p.url()).pathname,'/en/services/landing-pages/');
+    await p.locator('nav.locale-switcher a[lang="es"]').click();
+    assert.equal(new URL(p.url()).pathname,'/es/services/landing-pages/');
+    await p.locator('nav.locale-switcher a[lang="pt-BR"]').click();
+    assert.equal(new URL(p.url()).pathname,'/servicos/landing-pages/');
+    await ctx.close();
+  }
+  const noJsContext=await browser.newContext({viewport:{width:375,height:812},javaScriptEnabled:false});
+  const noJsPage=await noJsContext.newPage();
+  await noJsPage.goto(host+'/en/',{waitUntil:'load',timeout});
+  await noJsPage.locator('nav.locale-switcher a[lang="es"]').click();
+  assert.equal(new URL(noJsPage.url()).pathname,'/es/','Language links must work with JS disabled');
+  await noJsContext.close();
+
   for(const viewport of [{width:375,height:812,label:'mobile'},{width:1440,height:900,label:'desktop'}]){
     const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1});
     // F151: local-only clipboard QA; does not grant network/storage permissions.
@@ -95,7 +152,7 @@ try {
       }
     });
     const routes = viewport.label==='mobile'
-      ? sitePages.map(p=>p.path)
+      ? sitePages.filter(p=>!/^\/(?:en|es)\//.test(p.path)).map(p=>p.path)
       : ['/', '/servicos/', '/comparar-solucoes/','/como-funciona/','/perguntas-frequentes/', '/servicos/landing-pages/','/conteudos/','/contato/','/sobre/'];
     for(const route of routes) {
       console.log('Browser QA',viewport.label,route);
