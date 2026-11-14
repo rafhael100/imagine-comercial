@@ -7,7 +7,7 @@ import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
 import {buildServices as services} from '../lib/build-catalog.mjs';
 const title='Sites, Landing Pages e gestão de anúncios | Imagine';
 const description='Crie uma Onepage ou Landing Page, conheça sites profissionais e anuncie no Google e Meta. Compare preços, benefícios e escolha sua solução com a Imagine.';
-const featured=services.filter(s=>['criacao-de-sites','landing-pages','gestao-google-ads'].includes(s.slug));
+const featured = services.filter(s=>['criacao-de-sites','landing-pages','gestao-google-ads'].includes(s.slug));
 const additional=services.filter(s=>!featured.includes(s));
 ---
 <BaseLayout title={title} description={description} pathname="/">
