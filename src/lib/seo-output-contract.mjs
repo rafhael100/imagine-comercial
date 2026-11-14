@@ -23,7 +23,7 @@ export function verifyIndexablePage(html, expectedCanonical) {
   assert.equal(ogUrl.length, 1, expectedCanonical + ': expected one og:url');
   assert.equal(attr(ogUrl[0], 'content'), expectedCanonical, 'og:url differs from canonical');
 
-  const isArticle=/^https:\/\/imaginecomunicacao\.com\.br\/conteudos\/[a-z0-9-]+\/$/.test(expectedCanonical);
+  const isArticle=/^https:\/\/imaginecomunicacao\.com\.br\/(?:conteudos|(?:en|es)\/articles)\/[a-z0-9-]+\/$/.test(expectedCanonical);
   const ogType=tags(html,'meta').filter(tag=>attr(tag,'property')==='og:type');
   assert.equal(ogType.length,1,'expected one og:type');
   assert.equal(attr(ogType[0],'content'),isArticle?'article':'website',
