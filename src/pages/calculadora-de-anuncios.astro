@@ -1,0 +1,235 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {contactWhatsAppUrl, contactEmailUrl} from '../data/contact-channels.mjs';
+import {CHANNELS} from '../lib/media-budget-calculator.mjs';
+const pathname='/calculadora-de-anuncios/';
+const contactWhatsApp=contactWhatsAppUrl();
+const contactEmail=contactEmailUrl();
+const entries=Object.entries(CHANNELS);
+const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(cents/100);
+---
+<BaseLayout
+  title="Calculadora de investimento em anúncios | Imagine Comunicação Digital"
+  description="Simule quanto investir em Meta Ads, Google Ads e ChatGPT Ads. Conheça o mínimo, o valor recomendado por canal e a estimativa de gestão da Imagine."
+  pathname={pathname}
+  breadcrumb={[{label:'Calculadora de anúncios',path:pathname}]}
+>
+  <section class="hero calc-hero"><div class="shell">
+    <p class="eyebrow">Ferramenta gratuita · Imagine Performance AI</p>
+    <h1>Quanto investir em anúncios para sua empresa?</h1>
+    <p class="lead">Defina canais e metas e receba uma sugestão transparente de investimento. O resultado é imediato e não exige cadastro.</p>
+    <p class="calc-note">Os valores são referências de planejamento, não garantias de cliques, leads ou vendas. Nenhuma campanha será ativada por esta ferramenta.</p>
+  </div></section>
+  <section id="calc-entry" class="section shell" aria-labelledby="calc-heading">
+    <div class="calc-grid">
+      <div id="media-calculator" class="calc-form">
+        <h2 id="calc-heading">Monte seu cenário</h2>
+        <fieldset>
+          <legend>1. Em quais canais pretende anunciar?</legend>
+          <p class="calc-helper">Você pode escolher um ou mais canais. Facebook e Instagram fazem parte do mesmo canal Meta.</p>
+          <div class="channel-grid">
+            {entries.map(([id,c])=>(
+              <label class="channel-option">
+                <input type="checkbox" name="channel" value={id} checked={id==='meta_ads'} />
+                <span class="channel-name">{c.label}</span>
+                <span class="channel-hint">Mínimo {format(c.floorCents)} / mês</span>
+                <span class="channel-hint">Recomendado a partir de {format(c.recommendedCents)}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>2. Qual seu objetivo principal?</legend>
+          <label for="budget-objective">Objetivo</label>
+          <select id="budget-objective" name="objective">
+            <option value="leads">Receber contatos e pedidos de orçamento</option>
+            <option value="sales">Vender produtos ou serviços</option>
+            <option value="awareness">Apresentar minha marca a mais pessoas</option>
+          </select>
+        </fieldset>
+        <fieldset>
+          <legend>3. Já tem histórico de campanhas? (opcional)</legend>
+          <p class="calc-helper">Se você sabe quanto pagou por lead, podemos montar um cenário com a sua própria referência. Não usamos médias inventadas do mercado.</p>
+          <div class="calc-fields">
+            <div><label for="lead-goal">Meta de leads por mês</label>
+              <input id="lead-goal" type="number" inputmode="numeric" min="1" max="100000" placeholder="Ex.: 30" autocomplete="off" />
+            </div>
+            <div><label for="historic-cpl">Seu CPL histórico em R$</label>
+              <input id="historic-cpl" type="text" inputmode="decimal" maxlength="10" placeholder="Ex.: 45,00" autocomplete="off" />
+            </div>
+          </div>
+          <p class="calc-helper">Preencha os dois campos ou deixe ambos vazios. Para múltiplos canais, o CPL informado é uma hipótese geral e deverá ser validado separadamente.</p>
+          <div class="calc-fields">
+            <div><label for="monthly-limit">Teto mensal para mídia em R$ (opcional)</label>
+              <input id="monthly-limit" type="text" inputmode="decimal" maxlength="10" placeholder="Ex.: 2500,00" autocomplete="off" />
+            </div>
+          </div>
+        </fieldset>
+        <button type="button" id="calculate-run" class="cta calc-button">Calcular meu investimento</button>
+        <p class="calc-helper" id="local-privacy-note">O cálculo é feito no seu navegador. Não solicitamos nome, e-mail, telefone, cookies nem enviamos suas respostas a um servidor.</p>
+        <p id="calculator-error" role="alert" aria-live="assertive" hidden></p>
+        <noscript><p>Ative o JavaScript para calcular. Você ainda pode consultar os mínimos acima e <a href="/contato/">conversar com a Imagine</a>.</p></noscript>
+      </div>
+      <aside class="calc-side" aria-label="Como funciona a sugestão">
+        <p class="kicker">Planejamento sem adivinhação</p>
+        <h2>Investimento mínimo é diferente do recomendado.</h2>
+        <p>O <strong>mínimo</strong> é a faixa de entrada comercial de cada canal. O <strong>recomendado</strong> é o valor inicial sugerido pela Imagine para planejar uma campanha.</p>
+        <p>Se você conhece o custo por lead de campanhas anteriores, poderá inserir esse dado e criar um cenário mais direcionado.</p>
+        <p>Os honorários de gestão são 20% da mídia efetivamente investida, com estimativa antecipada e ajuste mensal. A mídia é paga diretamente às plataformas.</p>
+        <p class="calc-helper">No ChatGPT Ads, R$ 40/dia é um mínimo de campanha com orçamento diário em BRL; R$ 1.200 equivale a 30 dias e é o piso comercial escolhido pela Imagine, não uma mensalidade obrigatória da OpenAI.</p>
+      </aside>
+    </div>
+  </section>
+  <section class="section section-soft" id="media-result" aria-labelledby="result-heading" hidden>
+    <div class="shell">
+      <p class="kicker">Sua simulação</p>
+      <h2 id="result-heading">Investimento sugerido</h2>
+      <p id="calc-method"></p>
+      <div class="results-grid">
+        <article class="result-card"><span>Mínimo para contratar os canais selecionados</span><strong id="calc-minimum">—</strong></article>
+        <article class="result-card"><span>Investimento mensal recomendado em mídia</span><strong id="calc-suggested">—</strong></article>
+        <article class="result-card"><span>Honorários Imagine estimados (20%)</span><strong id="calc-management">—</strong></article>
+        <article class="result-card"><span>Total informativo (mídia + gestão)</span><strong id="calc-total">—</strong></article>
+      </div>
+      <h3>Distribuição por canal</h3>
+      <ul class="calc-list" id="calc-breakdown"></ul>
+      <p id="calc-limit-alert" class="calc-limit" role="status" hidden></p>
+      <p class="calc-helper">A estimativa de honorários usa a verba sugerida. A cobrança real considera a mídia efetivamente investida, com conciliação mensal. São pagamentos separados: mídia para cada plataforma e gestão para a Imagine. Nenhuma campanha, contratação ou cobrança foi iniciada.</p>
+      <div class="cta-row">
+        <a class="cta" href={contactWhatsApp} target="_blank" rel="noopener noreferrer" id="calc-contact-whatsapp">Quero um planejamento personalizado</a>
+        <a class="cta cta-secondary" href={contactEmail}>Entrar em contato por e-mail</a>
+        <button class="cta cta-secondary" type="button" id="calc-copy" hidden>Copiar meu resumo</button>
+        <button class="cta cta-secondary" type="button" id="calc-print" hidden>Imprimir ou salvar o estudo em PDF</button>
+      </div>
+      <p class="calc-helper">O WhatsApp e o e-mail são canais externos. Você decide enviar a mensagem. Se quiser, copie o resumo e cole na conversa para informar seus objetivos.</p>
+      <p id="calc-copy-status" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+  <section id="calc-nurture" class="section shell" aria-labelledby="next-step-title">
+    <p class="kicker">Quer acompanhar sua estratégia?</p>
+    <h2 id="next-step-title">Receba uma orientação antes de investir.</h2>
+    <p>Estamos preparando a opção de receber seu estudo por e-mail e acompanhar dicas de marketing, separando o pedido do relatório da autorização para comunicações futuras.</p>
+    <p><strong>Por enquanto, o envio e o cadastro automático no CRM ainda não estão disponíveis.</strong> Para conversar com a Imagine, use os canais de contato. Não guardamos suas respostas nesta calculadora.</p>
+    <a href="/contato/" class="text-link">Conheça os canais de atendimento</a>
+  </section>
+  <script>
+    import {calculateMediaBudget,parseMoneyToCents,formatBRL} from '../lib/media-budget-calculator.mjs';
+    const form=document.querySelector<HTMLElement>('#media-calculator');
+    const error=document.querySelector<HTMLElement>('#calculator-error');
+    const result=document.querySelector<HTMLElement>('#media-result');
+    const method=document.querySelector<HTMLElement>('#calc-method');
+    const minimum=document.querySelector<HTMLElement>('#calc-minimum');
+    const suggested=document.querySelector<HTMLElement>('#calc-suggested');
+    const management=document.querySelector<HTMLElement>('#calc-management');
+    const total=document.querySelector<HTMLElement>('#calc-total');
+    const breakdown=document.querySelector<HTMLElement>('#calc-breakdown');
+    const limitAlert=document.querySelector<HTMLElement>('#calc-limit-alert');
+    const copy=document.querySelector<HTMLButtonElement>('#calc-copy');
+    const copyStatus=document.querySelector<HTMLElement>('#calc-copy-status');
+    const printButton=document.querySelector<HTMLButtonElement>('#calc-print');
+    let lastSummary='';
+    if(copy && navigator.clipboard?.writeText)copy.hidden=false;
+    if(printButton && typeof window.print==='function'){
+      printButton.addEventListener('click',()=>window.print());
+    }
+    if(copy){
+      copy.addEventListener('click',async()=>{
+        if(!lastSummary)return;
+        try{await navigator.clipboard.writeText(lastSummary);
+          if(copyStatus)copyStatus.textContent='Resumo copiado. Você decide onde compartilhá-lo.';
+        }catch{if(copyStatus)copyStatus.textContent='Não foi possível copiar automaticamente. Você pode consultar os valores acima.';}
+      });
+    }
+    form?.querySelector<HTMLButtonElement>('#calculate-run')?.addEventListener('click',()=>{
+      if(error){error.hidden=true;error.textContent='';}
+      try{
+        const channels=Array.from(form.querySelectorAll<HTMLInputElement>('input[name="channel"]:checked')).map(x=>x.value);
+        const objective=form.querySelector<HTMLSelectElement>('#budget-objective')?.value??'leads';
+        const goalText=form.querySelector<HTMLInputElement>('#lead-goal')?.value.trim()??'';
+        const cplText=form.querySelector<HTMLInputElement>('#historic-cpl')?.value.trim()??'';
+        const limitText=form.querySelector<HTMLInputElement>('#monthly-limit')?.value.trim()??'';
+        const output=calculateMediaBudget({
+          channels,objective,
+          targetLeads:goalText?Number(goalText):0,
+          historicalCplCents:cplText?parseMoneyToCents(cplText):0,
+          monthlyLimitCents:limitText?parseMoneyToCents(limitText):0
+        });
+        if(method)method.textContent=output.methodology;
+        if(minimum)minimum.textContent=formatBRL(output.minimumMediaCents);
+        if(suggested)suggested.textContent=formatBRL(output.suggestedMediaCents);
+        if(management)management.textContent=formatBRL(output.illustrativeManagementCents);
+        if(total)total.textContent=formatBRL(output.illustrativeTotalCents);
+        if(breakdown){
+          breakdown.replaceChildren();
+          for(const row of output.channels){
+            const li=document.createElement('li');
+            li.textContent=row.label+': mínimo '+formatBRL(row.floorCents)+' · sugerido '+formatBRL(row.suggestedCents);
+            breakdown.appendChild(li);
+          }
+        }
+        if(limitAlert){
+          limitAlert.hidden=!output.exceedsMonthlyLimit;
+          limitAlert.textContent=output.exceedsMonthlyLimit
+            ?'Seu teto informado está abaixo do orçamento recomendado. Ajuste as metas ou solicite uma análise de viabilidade; não aumentaremos seu orçamento automaticamente.'
+            :'';
+        }
+        lastSummary=['Simulação de orçamento Imagine — informação não contratual',
+          ...output.channels.map(row=>row.label+': '+formatBRL(row.suggestedCents)),
+          'Mídia estimada: '+formatBRL(output.suggestedMediaCents),
+          'Gestão estimada (20%): '+formatBRL(output.illustrativeManagementCents),
+          'Mídia paga diretamente aos provedores; resultados não garantidos.'].join('\n');
+        if(copyStatus)copyStatus.textContent='';
+        if(printButton)printButton.hidden=false;
+        if(result){result.hidden=false;result.scrollIntoView({behavior:'smooth',block:'start'});}
+      }catch(e){
+        if(result)result.hidden=true;
+        if(printButton)printButton.hidden=true;
+        lastSummary='';
+        if(error){error.hidden=false;error.textContent=e instanceof Error?e.message:'Revise os campos e tente novamente.';}
+      }
+    });
+  </script>
+  <style>
+    .calc-hero{padding-block:clamp(48px,6vw,80px)}
+    .calc-hero h1{max-width:880px}
+    .calc-hero .lead{max-width:850px}
+    .calc-note,.calc-helper{color:#5a544c;font-size:.9rem;line-height:1.65}
+    .calc-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(240px,.85fr);gap:clamp(22px,4vw,56px);align-items:start}
+    .calc-form{padding:clamp(16px,3vw,38px);border:1px solid #e5ddcf;background:#fff;border-radius:18px;box-shadow:0 12px 28px rgba(30,25,18,.05)}
+    .calc-form fieldset{border:0;padding:0;margin:26px 0 0;min-width:0}
+    .calc-form legend{font-weight:800;font-size:1.15rem;margin-bottom:12px}
+    .calc-form label{display:block;font-weight:700;margin-bottom:6px}
+    .calc-form input:not([type=checkbox]),.calc-form select{width:100%;min-width:0;padding:12px;border:1px solid #bdb5aa;border-radius:9px;min-height:48px;background:#fff;color:#171b19;font:inherit}
+    .channel-grid{display:grid;gap:10px}
+    .channel-option{border:1px solid #d4c8ba;padding:12px 14px;border-radius:12px;display:grid!important;grid-template-columns:22px 1fr;column-gap:10px;row-gap:4px;align-items:center;cursor:pointer}
+    .channel-option:has(input:checked){border-color:#d17804;background:#fff8ed}
+    .channel-option input{width:18px;height:18px;grid-row:span 3;accent-color:#b56000}
+    .channel-name{font-weight:800}
+    .channel-hint{font-size:.84rem;color:#575047;grid-column:2}
+    .calc-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:14px 0}
+    .calc-button{margin-top:25px;width:100%;cursor:pointer}
+    #calculator-error{border-left:3px solid #b32727;padding:12px;color:#842323;background:#fff5f3}
+    .calc-side{border:1px solid #eee0d2;border-radius:17px;padding:26px;background:#fff8ef}
+    .calc-side h2{font-size:clamp(1.4rem,2.5vw,2rem)}
+    .results-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:24px 0}
+    .result-card{display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid #dfd7cc;padding:22px;border-radius:14px}
+    .result-card span{color:#5c554c;font-size:.9rem}
+    .result-card strong{font-size:clamp(1.25rem,2.4vw,2rem);color:#7b3c00}
+    .calc-list{padding-left:1.3rem;line-height:1.85}
+    .calc-limit{border-left:3px solid #8f4c00;padding:14px;background:#fff1dc}
+    .cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+    a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #aa5800;outline-offset:3px}
+    @media(max-width:850px){.calc-grid{grid-template-columns:1fr}}
+    @media(max-width:560px){.calc-fields,.results-grid{grid-template-columns:1fr}.calc-form{padding:18px}}
+    @media print{
+      :global(header),:global(footer),.calc-hero,#calc-entry,#calc-nurture{display:none!important}
+      #media-result{display:block!important;padding:0!important;background:#fff!important}
+      #media-result[hidden]{display:none!important}
+      #media-result .cta-row,#calc-copy-status{display:none!important}
+      .results-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .result-card{break-inside:avoid;box-shadow:none}
+      :global(body){color:#171b19}
+      @page{size:A4;margin:15mm}
+    }
+  </style>
+</BaseLayout>

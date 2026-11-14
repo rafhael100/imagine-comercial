@@ -7,7 +7,7 @@
 import {INTERNATIONAL_ARTICLE_SLUGS} from './i18n-articles.mjs';
 export const INTERNATIONAL_LANGUAGES=Object.freeze(['en','es']);
 export const INTERNATIONAL_SECTIONS=Object.freeze([
-  '','services','compare','how-it-works','faq','about','contact',
+  '','services','compare','how-it-works','faq','about','contact','budget-calculator',
   'services/criacao-de-sites','services/landing-pages','services/onepage',
   'services/sites-por-assinatura','services/gestao-google-ads','services/gestao-meta-ads',
   'articles',...INTERNATIONAL_ARTICLE_SLUGS.map(slug=>'articles/'+slug)
@@ -16,6 +16,7 @@ const PT_TO_INTERNATIONAL=Object.freeze({
   '/':'', '/servicos/':'services','/comparar-solucoes/':'compare',
   '/como-funciona/':'how-it-works','/perguntas-frequentes/':'faq',
   '/sobre/':'about','/contato/':'contact',
+  '/calculadora-de-anuncios/':'budget-calculator',
   '/servicos/criacao-de-sites/':'services/criacao-de-sites',
   '/servicos/landing-pages/':'services/landing-pages',
   '/servicos/onepage/':'services/onepage',
