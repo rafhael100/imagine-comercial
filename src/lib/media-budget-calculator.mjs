@@ -9,6 +9,10 @@ export const CHANNELS = Object.freeze({
   google_ads: Object.freeze({label:'Google Ads',floorCents:100000,recommendedCents:150000}),
   chatgpt_ads: Object.freeze({label:'ChatGPT Ads',floorCents:120000,recommendedCents:180000})
 });
+export const ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS=49000;
+// A monthly management minimum has been discussed but no amount is approved.
+// Never silently use the one-time activation price as a recurring floor.
+export const MONTHLY_MANAGEMENT_MINIMUM_STATUS='PENDING_FINAL_APPROVAL';
 const CHANNEL_IDS = Object.freeze(Object.keys(CHANNELS));
 const MAX_CENTS = 100000000;
 const MAX_LEADS = 100000;
@@ -61,6 +65,8 @@ export function calculateMediaBudget({channels,objective='leads',targetLeads=0,h
   });
   const suggestedMediaCents=lines.reduce((s,x)=>s+x.suggestedCents,0);
   const illustrativeManagementCents=Math.floor((suggestedMediaCents*20+50)/100);
+  const oneTimeActivationCents=sorted.length*ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS;
+  const illustrativeFirstCycleSubtotalCents=suggestedMediaCents+illustrativeManagementCents+oneTimeActivationCents;
   return Object.freeze({
     version:'PERF-CALC-P0-2026-11-14',
     currency:'BRL',
@@ -73,6 +79,15 @@ export function calculateMediaBudget({channels,objective='leads',targetLeads=0,h
     suggestedMediaCents,
     illustrativeManagementCents,
     illustrativeTotalCents:suggestedMediaCents+illustrativeManagementCents,
+    oneTimeActivationPerChannelCents:ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS,
+    oneTimeActivationCents,
+    illustrativeFirstCycleSubtotalCents,
+    activationIsOneTime:true,
+    activationAndMonthlyManagementAreSeparate:true,
+    monthlyManagementMinimumStatus:MONTHLY_MANAGEMENT_MINIMUM_STATUS,
+    contractualMonthlyManagementMinimumCents:null,
+    managementBilledAfterVerifiedMonthlySpend:true,
+    illustrativeFirstCycleIsFinalQuotation:false,
     monthlyLimitCents,
     exceedsMonthlyLimit:monthlyLimitCents>0&&suggestedMediaCents>monthlyLimitCents,
     mediaPaidDirectlyToPlatforms:true,
