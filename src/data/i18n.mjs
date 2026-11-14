@@ -24,6 +24,7 @@ const PT_TO_INTERNATIONAL=Object.freeze({
   '/servicos/sites-por-assinatura/':'services/sites-por-assinatura',
   '/servicos/gestao-google-ads/':'services/gestao-google-ads',
   '/servicos/gestao-meta-ads/':'services/gestao-meta-ads',
+  '/servicos/gestao-chatgpt-ads/':'services/gestao-chatgpt-ads',
   '/conteudos/':'articles',
   ...Object.fromEntries(INTERNATIONAL_ARTICLE_SLUGS.map(slug=>['/conteudos/'+slug+'/','articles/'+slug]))
 });
