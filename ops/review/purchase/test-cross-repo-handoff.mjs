@@ -16,8 +16,8 @@ for(const p of [helper,catalog]) assert.ok(existsSync(p),"Pinned Portal source m
 const php=String.raw`
 require $argv[1];
 require $argv[2];
-$h='App\\Homologation\\Commerce\\CustomerPreviewHandoff';
-$c=new App\\Homologation\\Commerce\\ApprovedOfferCatalog();
+$h='App\Homologation\Commerce\CustomerPreviewHandoff';
+$c=new App\Homologation\Commerce\ApprovedOfferCatalog();
 $cases=[
   'onepage'=>['onepage',null],
   'landing-pages'=>['landing-pages',null],
