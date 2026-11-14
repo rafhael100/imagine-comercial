@@ -142,9 +142,9 @@ arquivo, configurações de Nginx e Docker Compose **apenas para revisão**
 e um verificador offline. Nenhum segredo, certificado, arquivo htpasswd
 ou configuração de gateway está incluído.
 
-```bash
+\`\`\`bash
 node verify-kit.mjs
-```
+\`\`\`
 
 O comando acima compara todos os arquivos do site aos SHA-256 informados
 e as configurações Nginx/Compose aos hashes da própria revisão; não
@@ -153,14 +153,14 @@ autentica a origem independente desses hashes nem faz deploy.
 **Para um operador autorizado na VPS Leaseweb:**
 - Confirmar a integridade por um SHA obtido em canal independente.
 - Validar regras F253, F254, F256, F257, F258 e a sequência oficial
-  em `ops/staging/README.md` **no checkout completo e revisado do GitHub**.
+  em \`ops/staging/README.md\` **no checkout completo e revisado do GitHub**.
   Os arquivos isolados deste kit não substituem essas ferramentas.
 - Escolher imagem Nginx unprivileged **fixada por digest real** após
-  revisão de segurança, sem usar `latest`.
-- Criar arquivo bcrypt `.htpasswd` privado para o usuário `reviewer`
+  revisão de segurança, sem usar \`latest\`.
+- Criar arquivo bcrypt \`.htpasswd\` privado para o usuário \`reviewer\`
   fora do repositório; jamais enviá-lo ao ChatGPT, GitHub ou artifact.
 - Manter a porta **exclusivamente em 127.0.0.1:4321**; acesso remoto
-  apenas por túnel SSH autorizado, proteção adicional e `noindex`.
+  apenas por túnel SSH autorizado, proteção adicional e \`noindex\`.
 - Testar respostas 401 anônimas, HTML e ativos 200 autenticados,
   404 do legado na prévia isolada, métodos não permitidos, hashes e
   cadeia de seis diagnósticos de staging. Não encaminhar leads reais.
@@ -168,7 +168,7 @@ autentica a origem independente desses hashes nem faz deploy.
   operacionais, 27 URLs legadas, GSC, termos e política de privacidade,
   DNS/TLS e rollback antes da **aprovação separada de produção**.
 
-**Não executar `docker compose up` como consequência deste pacote.**
+**Não executar \`docker compose up\` como consequência deste pacote.**
 A decisão de iniciar o staging privado exige operador, autenticação,
 segredos e revisão de infraestrutura. Este kit não contém script de
 publicação, Worker de borda, DNS, 301 ou endpoint de cobrança.
