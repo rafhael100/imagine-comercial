@@ -19,7 +19,7 @@ test('F260 shared copy uses neutral Imagine ink, not previous blue palette',()=>
   assert.match(layout,/\.card p \{ color: #514c43; \}/);
   assert.match(layout,/details p \{ color: #514c43; \}/);
   assert.match(layout,/details \{ border-bottom: 1px solid #e3ded6;/);
-  assert.match(home,/\.hero-support\{font-size:\.87rem;color:#56534e;/);
+  assert.match(home,/\.hero-benefits span\{font-size:\.84rem;color:#4c5149;/);
   for(const obsolete of ['#152944','#4b5c74','#526178','#d5deea'])
     assert.equal(layout.includes(obsolete),false,'old blue text/border '+obsolete);
   assert.equal(home.includes('#4f617c'),false,'old blue hero support');
