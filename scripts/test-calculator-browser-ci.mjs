@@ -77,7 +77,10 @@ try {
     const initialContact=new URL(await page.locator(route.whatsapp).getAttribute('href'));
     assert.equal(initialContact.hostname,'wa.me');
     assert.ok(initialContact.searchParams.get('text')?.includes('Meta Ads'));
-    assert.ok(!initialContact.searchParams.get('text')?.includes('R
+    assert.equal(initialContact.searchParams.get('text')?.includes(String.fromCharCode(36)),false,
+      'WhatsApp message must exclude any currency symbol');
+    assert.equal(initialContact.searchParams.get('text')?.includes(money(1690)),false,
+      'WhatsApp message cannot include calculated amounts');
     if(route.print){
       assert.equal(await page.locator(route.print).isVisible(),true);
       await page.locator(route.print).click();
@@ -98,7 +101,8 @@ try {
     for(const provider of ['Meta Ads','Google Ads','ChatGPT Ads'])
       assert.ok(selectedMessage.includes(provider),'selected WhatsApp message only mentions reviewed providers');
     assert.ok(!selectedMessage.includes(money(6630)),'planned budget must remain local');
-    assert.ok(!selectedMessage.includes('R
+    assert.equal(selectedMessage.includes(String.fromCharCode(36)),false,
+      'WhatsApp message cannot include currency amounts');
     if(route.copy){
       assert.equal(await page.locator(route.copy).isVisible(),true);
       await page.locator(route.copy).click();
