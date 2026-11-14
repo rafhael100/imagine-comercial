@@ -1,0 +1,107 @@
+name: Comercial P0 - four CTA to real Portal HTTP and PostgreSQL (synthetic)
+on:
+  pull_request:
+    paths:
+      - 'ops/review/purchase/test-crossrepo-browser-http.py'
+      - '.github/workflows/comercial-portal-http-owned-checkout.yml'
+permissions:
+  contents: read
+jobs:
+  private-crossrepo-loopback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact Comercial PR candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: comercial
+          persist-credentials: false
+      - name: Checkout immutable reviewed Portal channel/checkout implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: rafhael100/imagine-portal
+          ref: ea26bbacc15a6d3b34dad56d85120de7fcc793b7
+          path: portal
+          persist-credentials: false
+      - name: Use Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Build reviewed native Astro private candidate, without verifying as public release
+        working-directory: comercial
+        env:
+          GITHUB_ACTIONS: 'true'
+          IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW: '1'
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node ops/review/purchase/test-native-astro-preview.mjs dist private
+      - name: Build existing isolated Portal runtime (no PSP credentials)
+        run: |
+          set -euo pipefail
+          cd portal
+          docker build -f infra/development/portal-auth/Dockerfile -t imagine-portal-private-auth:local .
+          cd apps/portal/ops/private-purchase
+          docker compose build application
+      - name: Start loopback-only Docker and PostgreSQL18
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          sudo --preserve-env=GITHUB_ACTIONS python3 prepare.py
+          docker compose -f compose.yaml -f compose.ci.yaml config --quiet
+          docker compose -f compose.yaml -f compose.ci.yaml up -d
+          python3 - <<'PY'
+          import time,urllib.request
+          for _ in range(90):
+              try:
+                  assert urllib.request.urlopen('http://127.0.0.1:18083/_rehearsal/purchase',timeout=2).status==200
+                  break
+              except Exception: time.sleep(1)
+          else: raise SystemExit('Isolated Portal not ready')
+          PY
+          test "$(docker inspect imagine-purchase-preview-database-1 --format '{{len .HostConfig.PortBindings}}')" = 0
+          test "$(docker inspect imagine-purchase-preview-application-1 --format '{{len .HostConfig.PortBindings}}')" = 0
+          test "$(docker network inspect imagine-purchase-preview_private --format '{{.Internal}}')" = true
+          test "$(docker inspect imagine-purchase-preview-gateway-1 --format '{{(index (index .HostConfig.PortBindings "8080/tcp") 0).HostIp}}')" = 127.0.0.1
+      - name: Install synthetic-only Portal customer and quote schemas
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          docker compose exec -T database psql -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-schema.sql
+          docker compose exec -T database psql -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-work-schema.sql
+          docker compose exec -T database psql -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-offer-schema.sql
+          docker compose exec -T application php tools/test_commerce.php
+      - name: Chromium navigates actual Comercial HTML then 4 Portal test orders
+        env:
+          GITHUB_ACTIONS: 'true'
+          IMAGINE_CROSSREPO_LOOPBACK: '1'
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/crossrepo-browser"
+          "$RUNNER_TEMP/crossrepo-browser/bin/pip" install playwright==1.56.0
+          python3 -m http.server 18084 --bind 127.0.0.1 --directory comercial/dist > "$RUNNER_TEMP/comercial-http.log" 2>&1 &
+          site_pid=$!
+          trap 'kill "$site_pid" || true' EXIT
+          python3 - <<'PY'
+          import time,urllib.request
+          for _ in range(30):
+              try:
+                  assert urllib.request.urlopen('http://127.0.0.1:18084/',timeout=2).status==200
+                  break
+              except Exception: time.sleep(1)
+          else: raise SystemExit('Astro loopback not ready')
+          PY
+          "$RUNNER_TEMP/crossrepo-browser/bin/python" comercial/ops/review/purchase/test-crossrepo-browser-http.py
+      - name: Audit synthetic DB order count (no private payload output)
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          count=$(docker compose exec -T database psql -U postgres -d portal_purchase_rehearsal -Atc 'SELECT count(*) FROM purchase_rehearsal.customer_orders')
+          test "$count" = "4"
+          echo 'PASS four fictional owned orders in disposable database. NO-GO production.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Shut down only isolated CI services and erase disposable database
+        if: always()
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: docker compose -f compose.yaml -f compose.ci.yaml down --volumes || true
