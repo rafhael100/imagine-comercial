@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import {readFileSync,statSync} from "node:fs";
 import {resolve} from "node:path";
-import {resolvePortalLoginLink} from "../../src/lib/portal-login-link.mjs";
+import {resolvePortalLoginLink} from "../../../src/lib/portal-login-link.mjs";
 
 assert.equal(process.env.GITHUB_ACTIONS,"true","CI only");
 assert.equal(process.argv.length,4,"Usage: test-portal-entrypoint.mjs <static-dir> <source|private>");
