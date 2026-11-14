@@ -31,9 +31,9 @@ const pageLabel={
 };
 const currentLabel=service?.label??article?.heading??pageLabel[section];
 const langSuffix=locale==='en'?'English':'Español';
-const title=section===''?
+const title=article?.title??(section===''?
   (locale==='en'?'Professional websites & digital marketing | Imagine':'Sitios web y marketing digital | Imagine'):
-  `${currentLabel} | Imagine Comunicação Digital · ${langSuffix}`;
+  `${currentLabel} | Imagine Comunicação Digital · ${langSuffix}`);
 const intro=article?.intro??(section==='articles'?
   (locale==='en'?'Explore practical guides on websites, advertising and search visibility for businesses.':
     'Explora guías prácticas sobre sitios web, publicidad y posicionamiento para empresas.'):
