@@ -7,9 +7,9 @@ const showcase=readFileSync(new URL('../src/components/QuickServiceRequest.astro
 const international=readFileSync(new URL('../src/components/InternationalPage.astro',import.meta.url),'utf8');
 
 test('F321 leads with benefit and internal product choice, without requiring signup',()=>{
- assert.match(home,/Seu negócio merece uma presença digital que desperte interesse/);
- assert.match(home,/href="#solucoes">Escolher minha solução/);
- assert.match(home,/Explore sem cadastro/);
+ assert.match(home,/Seu negócio mais bonito/);
+ assert.match(home,/href="#solucoes">Quero um site/);
+ assert.match(home,/Sem cadastro para explorar/);
  assert.ok(home.indexOf('href="#solucoes"')<home.indexOf('href="/contato/"'));
  assert.doesNotMatch(home,/<(?:form|input|textarea)\b|\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 });
@@ -36,7 +36,7 @@ test('F321 clearly separates media, one-time setup, postpaid management, and Cha
  assert.match(showcase,/mínimo R\$ 170\/mês/);
  assert.match(showcase,/mídia é paga diretamente/);
  assert.match(showcase,/Canal não habilitado para checkout/);
- assert.match(showcase,/Os dados necessários ao fechamento|Dados e pagamento somente depois/);
+ assert.match(showcase,/O cadastro fica para o final/);
  assert.match(showcase,/Nenhum cadastro, contrato ou pagamento real/);
  assert.doesNotMatch(showcase,/<form\b|<input\b|<textarea\b|\bfetch\s*\(|localStorage|sessionStorage|document\.cookie/);
 });
