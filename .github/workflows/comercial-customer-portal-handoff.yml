@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'ops/review/purchase/prepare-customer-portal.mjs'
+      - 'ops/review/purchase/private-portal-handoff-policy.mjs'
+      - 'tests/private-portal-handoff-policy.test.mjs'
       - '.github/workflows/comercial-customer-portal-handoff.yml'
 permissions:
   contents: read
@@ -26,6 +28,8 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
           node scripts/verify-dist.mjs
+      - name: Check exact private Portal channel policy
+        run: node --test tests/private-portal-handoff-policy.test.mjs
       - name: Produce isolated copy with Portal registration handoff
         env:
           IMAGINE_PORTAL_CUSTOMER_PREVIEW: '1'
@@ -54,7 +58,8 @@ jobs:
           for(const [slug,offer] of Object.entries(cases)){
             const card=html.match(new RegExp('<article\\b[^>]*data-quick-hire="'+slug+'"[^>]*>[\\s\\S]*?</article>'))?.[0];
             assert.ok(card,'Missing offer '+slug);
-            const expected='href="https://portal-dev.imaginecomunica.com.br/_preview/portal/shop?product='+offer+'"';
+            const channel={ 'gestao-google-ads':'google_ads','gestao-meta-ads':'meta_ads' }[slug];
+            const expected='href="https://portal-dev.imaginecomunica.com.br/_preview/portal/shop?product='+offer+(channel?'&channel='+channel:'')+'"';
             assert.ok(card.includes(expected),'Missing pinned private Portal link '+slug);
             assert.equal((card.match(/data-quick-hire-action/g)||[]).length,1);
           }
