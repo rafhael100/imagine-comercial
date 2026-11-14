@@ -16,7 +16,7 @@ regras conservadoras:
 | Tipo de solicitação | Direção prevista |
 |---|---|
 | `GET/HEAD /` (home pública histórica) | **Legado**, preserva formulário que hoje aparece na home |
-| `GET/HEAD` nas outras 59 páginas Astro explícitas | **Novo site estático**, somente em origem isolada revisada |
+| `GET/HEAD` nas outras 62 páginas Astro explícitas | **Novo site estático**, somente em origem isolada revisada |
 | `GET/HEAD` para os 27 caminhos legados conhecidos | **Legado**, incluindo 22 HOLD e 5 candidatas a 301 não autorizadas |
 | `GET/HEAD /robots.txt` e `/sitemap.xml` | **Legado**, não substituir índice antigo às cegas |
 | `GET/HEAD` para `/_astro/...` presentes no manifesto SHA-256 e `/logo-imagine.png` | **Novo estático**, somente arquivos revisados |
@@ -33,7 +33,7 @@ decisões simbólicas `REVIEWED_NEW_ASTRO_HTML`,
 `REVIEWED_NEW_ASTRO_ASSET` ou `LEGACY_ORIGIN_RETAIN`. Nenhum endereço
 real de origem é inserido em código, PR, log ou artifact. O script de CI
 `scripts/prepare-progressive-legacy-overlay-ci.mjs` verifica o manifest
-SHA-256 e os recursos usados pelos 60 HTML e registra um relatório
+SHA-256 e os recursos usados pelos 63 HTML e registra um relatório
 `REVIEW-ONLY-progressive-legacy-overlay.json`.
 
 ## Limitações de SEO
