@@ -96,6 +96,19 @@ try {
         'Copied study must never pose as a final quote');
     }
 
+    // An invalid recalculation must clear any previous printable/copyable result.
+    // This is checked only on new EN/ES controls, never invoking a browser
+    // print dialog or remote clipboard provider.
+    if(route.copy){
+      for(const channel of ['meta_ads','google_ads','chatgpt_ads'])
+        await page.locator(route.checkbox+'[value='+channel+']').uncheck();
+      await page.locator(route.start).click();
+      assert.equal(await page.locator(route.result).isHidden(),true);
+      assert.equal(await page.locator(route.print).isHidden(),true);
+      assert.equal(await page.locator(route.copy).isHidden(),true);
+      assert.equal(await page.locator(route.error).isVisible(),true);
+    }
+
     // A budget estimate is not an email subscription and never creates a lead.
     const faq=await page.locator('body').textContent();
     assert.ok(/CRM/.test(faq),'No auto-CRM promise');
