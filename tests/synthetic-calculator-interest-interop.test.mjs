@@ -67,3 +67,15 @@ test('replays, invalid keys, malicious schemas and noncanonical channel order ar
   const exotic=Object.defineProperty({...payload},'secret',{get(){throw Error('not touched')},enumerable:false});
   assert.throws(()=>createSyntheticCalculatorIntent(exotic,key));
 });
+
+test('synthetic producer never executes getter injected into channel array',()=>{
+  const channels=[...payload.channel_ids];
+  let getterCalled=false;
+  Object.defineProperty(channels,'0',{enumerable:true,configurable:true,
+    get(){getterCalled=true;throw Error('malicious accessor executed')}});
+  assert.throws(()=>createSyntheticCalculatorIntent({...payload,channel_ids:channels},key),
+    /Invalid calculator intent/);
+  assert.equal(getterCalled,false,'untrusted array getter must not run');
+  const hole=[...payload.channel_ids];delete hole[0];
+  assert.throws(()=>createSyntheticCalculatorIntent({...payload,channel_ids:hole},key));
+});
