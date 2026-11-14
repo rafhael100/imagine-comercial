@@ -84,7 +84,7 @@ try {
   // language. Check both breakpoints, native no-JS navigation, full page text
   // and translated route parity. Historic PT-only content tests follow below.
   for(const width of [375,1440]){
-    const ctx=await browser.newContext({viewport:{width,height:850},javaScriptEnabled:false});
+    const ctx=await browser.newContext({viewport:{width,height:850},javaScriptEnabled:true});
     const p=await ctx.newPage();
     for(const lang of ['en','es']){
       for(const section of ['','services','compare','how-it-works','faq','about','contact',
@@ -124,6 +124,12 @@ try {
     assert.equal(new URL(p.url()).pathname,'/servicos/landing-pages/');
     await ctx.close();
   }
+  const noJsContext=await browser.newContext({viewport:{width:375,height:812},javaScriptEnabled:false});
+  const noJsPage=await noJsContext.newPage();
+  await noJsPage.goto(host+'/en/',{waitUntil:'load',timeout});
+  await noJsPage.locator('nav.locale-switcher a[lang="es"]').click();
+  assert.equal(new URL(noJsPage.url()).pathname,'/es/','Language links must work with JS disabled');
+  await noJsContext.close();
 
   for(const viewport of [{width:375,height:812,label:'mobile'},{width:1440,height:900,label:'desktop'}]){
     const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1});
