@@ -889,12 +889,16 @@ try {
     await page.locator('#service-guide-goal').selectOption('anuncios');
     assert.equal(await page.locator('#copy-goal-status').textContent(),'',
       'F299 goal change clears copied-link confirmation');
-    // F199: selecting ads provides a direct, already reviewed comparison
-    // between Google Ads and Meta Ads, without any visitor input or POST.
+    // F199: three recommendations must NOT be mislabelled as a two-service
+    // shortcut. The visitor can still explicitly compare any chosen pair.
     await page.locator('#service-guide-goal').selectOption('anuncios');
-    const comparison=guideForGoal('anuncios').comparisonHref;
-    await page.locator('#service-guide-compare').click();
-    await page.waitForURL(host+comparison);
+    assert.equal(guideForGoal('anuncios').comparisonHref,null,
+      'F199 three advertising options cannot imply a preselected pair');
+    assert.equal(await page.locator('#service-guide-compare').isVisible(),false);
+    assert.equal(await page.locator('#service-guide-links a[data-service-guide-detail]').count(),3);
+    await page.goto(host+'/comparar-solucoes/',{waitUntil:'load',timeout});
+    await page.locator('[data-compare-select="gestao-google-ads"]').click();
+    await page.locator('[data-compare-select="gestao-chatgpt-ads"]').click();
     assert.equal(await page.locator('#selected-comparison-list li').count(),2);
     assert.equal(await page.locator('#contact-comparison-whatsapp').isVisible(),true);
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
