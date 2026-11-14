@@ -23,7 +23,9 @@ const metaPages=[];
 for (const [index, path] of paths.entries()) {
   assert.ok(existsSync(join('dist', path)), 'Build missing HTML: ' + path);
   const html = read(path);
-  assert.match(html, /<html lang="pt-BR"/, path);
+  const lang=sitePages[index].path.startsWith('/en/')?'en':
+    sitePages[index].path.startsWith('/es/')?'es':'pt-BR';
+  assert.match(html,new RegExp('<html lang="'+lang+'"'),path);
   assert.match(html, /<h1[ >]/, path);
   assert.match(html, /rel="canonical"/, path);
   assert.match(html, /name="description"/, path);
