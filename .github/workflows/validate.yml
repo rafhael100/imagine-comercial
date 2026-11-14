@@ -114,6 +114,8 @@ jobs:
         run: node scripts/prepare-release-review.mjs
       - name: Validar hash de cada byte do site e rejeitar alteracao (F165, CI-local)
         run: node scripts/test-staging-build-integrity-ci.mjs
+      - name: Verificar pacote PT EN ES e registrar bloqueios operacionais de release
+        run: node scripts/prepare-trilingual-static-handoff-ci.mjs
       - name: Armazenar somente manifesto REVIEW-ONLY de integridade
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
@@ -121,6 +123,14 @@ jobs:
           path: artifacts/release-review/
           retention-days: 7
           if-no-files-found: error
+      - name: Entregar somente HTML/assets publicos compilados para revisao humana privada
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: imagine-comercial-trilingual-static-PREVIEW-ONLY
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
       - name: Salvar capturas do ambiente de testes
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
