@@ -8,7 +8,7 @@ test('homepage leads with real contact CTA, offers service navigation and visual
   const s=read('src/pages/index.astro');
   assert.ok(s.indexOf('href="/contato/"')<s.indexOf('href="/servicos/"'));
   assert.ok(s.includes('<HeroVisual />'));
-  assert.ok(s.includes('additional.map'));
+  assert.ok(s.includes('<QuickServiceRequest />'));
   assert.equal(services.length,7);
 });
 
