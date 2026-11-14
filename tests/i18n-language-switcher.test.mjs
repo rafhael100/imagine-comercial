@@ -85,6 +85,6 @@ test('five professional guides have complete, uniquely authored EN/ES editorial 
     assert.equal(titles.size,5);
     assert.equal(descriptions.size,5);
   }
-  assert.match(internationalArticles.en['criacao-de-sites-fortaleza-guia'].sections[0][1],/Fortaleza/);
-  assert.match(internationalArticles.es['criacao-de-sites-fortaleza-guia'].sections[0][1],/Fortaleza/);
+  assert.match(internationalArticles.en['criacao-de-sites-fortaleza-guia'].heading,/Fortaleza/);
+  assert.match(internationalArticles.es['criacao-de-sites-fortaleza-guia'].heading,/Fortaleza/);
 });
