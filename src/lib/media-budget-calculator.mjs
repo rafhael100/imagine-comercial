@@ -10,9 +10,11 @@ export const CHANNELS = Object.freeze({
   chatgpt_ads: Object.freeze({label:'ChatGPT Ads',floorCents:120000,recommendedCents:180000})
 });
 export const ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS=49000;
-// A monthly management minimum has been discussed but no amount is approved.
-// Never silently use the one-time activation price as a recurring floor.
-export const MONTHLY_MANAGEMENT_MINIMUM_STATUS='PENDING_FINAL_APPROVAL';
+// Approved 14/11/2026: each contracted channel is assessed independently
+// after a complete calendar month. No proration is assumed for partial months.
+export const MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS=17000;
+export const MONTHLY_MANAGEMENT_RATE_PERCENT=20;
+export const MONTHLY_MANAGEMENT_MINIMUM_STATUS='APPROVED_FULL_MONTH_PER_CHANNEL';
 const CHANNEL_IDS = Object.freeze(Object.keys(CHANNELS));
 const MAX_CENTS = 100000000;
 const MAX_LEADS = 100000;
@@ -32,6 +34,12 @@ export function parseMoneyToCents(value) {
 export function formatBRL(cents) {
   whole(cents,0,300000000,'total');
   return (cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+// Educational full-calendar-month reference only; never a payable invoice.
+export function illustrateFullMonthManagementCents(spendCents) {
+  whole(spendCents,0,300000000,'mídia por canal');
+  return Math.max(MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS,
+    Math.floor((spendCents*MONTHLY_MANAGEMENT_RATE_PERCENT+50)/100));
 }
 export function calculateMediaBudget({channels,objective='leads',targetLeads=0,historicalCplCents=0,monthlyLimitCents=0}) {
   if(!Array.isArray(channels)||channels.length<1||channels.length>3||
@@ -60,11 +68,15 @@ export function calculateMediaBudget({channels,objective='leads',targetLeads=0,h
     const mediaCents=Math.max(c.recommendedCents,calculated);
     return Object.freeze({
       id,label:c.label,floorCents:c.floorCents,recommendedBaseCents:c.recommendedCents,
-      suggestedCents:mediaCents
+      suggestedCents:mediaCents,
+      managementAtSuggestedCents:illustrateFullMonthManagementCents(mediaCents),
+      managementAtMinimumMediaCents:illustrateFullMonthManagementCents(c.floorCents)
     });
   });
   const suggestedMediaCents=lines.reduce((s,x)=>s+x.suggestedCents,0);
-  const illustrativeManagementCents=Math.floor((suggestedMediaCents*20+50)/100);
+  const illustrativeManagementCents=lines.reduce((s,x)=>s+x.managementAtSuggestedCents,0);
+  const illustrativeManagementAtMinimumMediaCents=lines.reduce(
+    (s,x)=>s+x.managementAtMinimumMediaCents,0);
   const oneTimeActivationCents=sorted.length*ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS;
   const illustrativeFirstCycleSubtotalCents=suggestedMediaCents+illustrativeManagementCents+oneTimeActivationCents;
   return Object.freeze({
@@ -78,6 +90,7 @@ export function calculateMediaBudget({channels,objective='leads',targetLeads=0,h
     historicalCplSuppliedByVisitor:historicalCplCents>0,
     suggestedMediaCents,
     illustrativeManagementCents,
+    illustrativeManagementAtMinimumMediaCents,
     illustrativeTotalCents:suggestedMediaCents+illustrativeManagementCents,
     oneTimeActivationPerChannelCents:ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS,
     oneTimeActivationCents,
@@ -85,7 +98,10 @@ export function calculateMediaBudget({channels,objective='leads',targetLeads=0,h
     activationIsOneTime:true,
     activationAndMonthlyManagementAreSeparate:true,
     monthlyManagementMinimumStatus:MONTHLY_MANAGEMENT_MINIMUM_STATUS,
-    contractualMonthlyManagementMinimumCents:null,
+    monthlyManagementMinimumPerChannelCents:MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS,
+    contractualMonthlyManagementMinimumCents:sorted.length*MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS,
+    monthlyManagementFeeIsSumOfIndependentChannelFees:true,
+    fullMonthOnlyNoProrationAssumed:true,
     managementBilledAfterVerifiedMonthlySpend:true,
     illustrativeFirstCycleIsFinalQuotation:false,
     monthlyLimitCents,

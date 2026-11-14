@@ -79,7 +79,7 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
         <h2>Investimento mínimo é diferente do recomendado.</h2>
         <p>O <strong>mínimo</strong> é a faixa de entrada comercial de cada canal. O <strong>recomendado</strong> é o valor inicial sugerido pela Imagine para planejar uma campanha.</p>
         <p>Se você conhece o custo por lead de campanhas anteriores, poderá inserir esse dado e criar um cenário mais direcionado.</p>
-        <p>A ativação inicial custa R$ 490 por canal escolhido, uma única vez. A gestão mensal tem referência de 20% da mídia efetivamente investida, apurada após o mês. Um mínimo mensal de gestão poderá ser aplicado, mas seu valor ainda não foi homologado; não confunda esse mínimo com a taxa de ativação.</p>
+        <p>A ativação inicial é de R$ 490 por canal, cobrada uma única vez. A gestão mensal é de 20% da mídia efetivamente investida, com mínimo de R$ 170 por canal contratado, apurada ao final do mês e cobrada depois. Facebook e Instagram contam como um único canal Meta. O tratamento de períodos parciais e pausas depende de definição específica.</p>
         <p>A mídia é paga diretamente às plataformas e não é cobrada pela Imagine.</p>
         <p class="calc-helper">No ChatGPT Ads, R$ 40/dia é um mínimo de campanha com orçamento diário em BRL; R$ 1.200 equivale a 30 dias e é o piso comercial escolhido pela Imagine, não uma mensalidade obrigatória da OpenAI.</p>
       </aside>
@@ -93,15 +93,16 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
       <div class="results-grid">
         <article class="result-card"><span>Mínimo para contratar os canais selecionados</span><strong id="calc-minimum">—</strong></article>
         <article class="result-card"><span>Investimento mensal recomendado em mídia</span><strong id="calc-suggested">—</strong></article>
-        <article class="result-card"><span>Gestão de referência (20% da mídia; mínimo mensal ainda não definido)</span><strong id="calc-management">—</strong></article>
-        <article class="result-card"><span>Subtotal mensal ilustrativo (mídia + 20%; sem mínimo de gestão)</span><strong id="calc-total">—</strong></article>
+        <article class="result-card"><span>Gestão mensal estimada (20% da mídia sugerida; mínimo R$ 170 por canal)</span><strong id="calc-management">—</strong></article>
+        <article class="result-card"><span>Total econômico mensal ilustrativo (mídia + gestão; não é cobrança única)</span><strong id="calc-total">—</strong></article>
+        <article class="result-card"><span>Gestão estimada se investir somente o mínimo de mídia</span><strong id="calc-management-at-minimum">—</strong></article>
         <article class="result-card"><span>Ativação inicial única — R$ 490 por canal</span><strong id="calc-activation">—</strong></article>
-        <article class="result-card"><span>Subtotal ilustrativo do primeiro ciclo (inclui ativação; sem mínimo de gestão)</span><strong id="calc-first-cycle">—</strong></article>
+        <article class="result-card"><span>Total econômico ilustrativo do primeiro ciclo (inclui ativação única)</span><strong id="calc-first-cycle">—</strong></article>
       </div>
       <h3>Distribuição por canal</h3>
       <ul class="calc-list" id="calc-breakdown"></ul>
       <p id="calc-limit-alert" class="calc-limit" role="status" hidden></p>
-      <p class="calc-helper">O subtotal do primeiro ciclo é apenas uma simulação: soma investimento sugerido em mídia, gestão de referência de 20% e ativação inicial única. <strong>Não é cotação final:</strong> não inclui eventual mínimo mensal de gestão, cujo valor ainda depende de definição. A gestão é apurada sobre o gasto real verificado após o mês; a mídia é paga diretamente às plataformas. Nenhuma campanha, contratação ou cobrança foi iniciada.</p>
+      <p class="calc-helper">A simulação considera mídia sugerida, gestão de 20% com mínimo mensal de R$ 170 <strong>em cada canal</strong> e ativação única de R$ 490 por canal. <strong>Não é uma fatura nem um valor a pagar agora:</strong> a mídia é paga diretamente às plataformas, a ativação é única e a gestão é cobrada depois do fechamento, com base no gasto real verificado. O valor ilustrativo não define cobrança para primeiro/último mês parcial ou período de pausa; isso requer política específica. Nenhuma campanha, contratação ou cobrança foi iniciada.</p>
       <div class="cta-row">
         <a class="cta" href={contactWhatsApp} target="_blank" rel="noopener noreferrer" id="calc-contact-whatsapp" aria-describedby="calc-share-notice">Conversar sobre meus canais no WhatsApp</a>
         <a class="cta cta-secondary" href={contactEmail}>Entrar em contato por e-mail</a>
@@ -134,6 +135,7 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
     const minimum=document.querySelector<HTMLElement>('#calc-minimum');
     const suggested=document.querySelector<HTMLElement>('#calc-suggested');
     const management=document.querySelector<HTMLElement>('#calc-management');
+    const managementAtMinimum=document.querySelector<HTMLElement>('#calc-management-at-minimum');
     const total=document.querySelector<HTMLElement>('#calc-total');
     const activation=document.querySelector<HTMLElement>('#calc-activation');
     const firstCycle=document.querySelector<HTMLElement>('#calc-first-cycle');
@@ -173,6 +175,7 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
         if(minimum)minimum.textContent=formatBRL(output.minimumMediaCents);
         if(suggested)suggested.textContent=formatBRL(output.suggestedMediaCents);
         if(management)management.textContent=formatBRL(output.illustrativeManagementCents);
+        if(managementAtMinimum)managementAtMinimum.textContent=formatBRL(output.illustrativeManagementAtMinimumMediaCents);
         if(total)total.textContent=formatBRL(output.illustrativeTotalCents);
         if(activation)activation.textContent=formatBRL(output.oneTimeActivationCents);
         if(firstCycle)firstCycle.textContent=formatBRL(output.illustrativeFirstCycleSubtotalCents);
@@ -180,7 +183,7 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
           breakdown.replaceChildren();
           for(const row of output.channels){
             const li=document.createElement('li');
-            li.textContent=row.label+': mínimo '+formatBRL(row.floorCents)+' · sugerido '+formatBRL(row.suggestedCents);
+            li.textContent=row.label+': mídia mínima '+formatBRL(row.floorCents)+' · mídia sugerida '+formatBRL(row.suggestedCents)+' · gestão estimada '+formatBRL(row.managementAtSuggestedCents)+' (piso de gestão '+formatBRL(output.monthlyManagementMinimumPerChannelCents)+')';
             breakdown.appendChild(li);
           }
         }
@@ -193,9 +196,10 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
         lastSummary=['Simulação de orçamento Imagine — informação não contratual',
           ...output.channels.map(row=>row.label+': '+formatBRL(row.suggestedCents)),
           'Mídia estimada: '+formatBRL(output.suggestedMediaCents),
-          'Gestão referência (20%; mínimo mensal não definido): '+formatBRL(output.illustrativeManagementCents),
+          'Gestão estimada (20% da mídia; mínimo R$ 170 por canal): '+formatBRL(output.illustrativeManagementCents),
+          'Gestão no investimento mínimo de mídia: '+formatBRL(output.illustrativeManagementAtMinimumMediaCents),
           'Ativação inicial única: '+formatBRL(output.oneTimeActivationCents),
-          'Subtotal ilustrativo do primeiro ciclo (sem mínimo mensal): '+formatBRL(output.illustrativeFirstCycleSubtotalCents),
+          'Total econômico ilustrativo do primeiro ciclo (não é fatura): '+formatBRL(output.illustrativeFirstCycleSubtotalCents),
           'Mídia paga diretamente aos provedores; não é cotação final nem garantia de resultados.'].join('\n');
         const contactKey=output.channels.map(x=>x.id).join('+');
         const curatedContact=contacts.find(x=>x.dataset.calcContactKey===contactKey);
