@@ -19,17 +19,20 @@ try {
       start:'#calculate-run',result:'#media-result',min:'#calc-minimum',
       suggested:'#calc-suggested',fee:'#calc-management',total:'#calc-total',
       activation:'#calc-activation',firstCycle:'#calc-first-cycle',
-      checkbox:'input[name="channel"]',error:'#calculator-error',print:'#calc-print',copy:null},
+      checkbox:'input[name="channel"]',error:'#calculator-error',print:'#calc-print',copy:null,
+      whatsapp:'#calc-contact-whatsapp'},
     {path:'/en/budget-calculator/',lang:'en-US',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
       activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
-      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy'},
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy',
+      whatsapp:'#intl-calc-whatsapp'},
     {path:'/es/budget-calculator/',lang:'es-ES',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
       activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
-      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy'}
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy',
+      whatsapp:'#intl-calc-whatsapp'}
   ];
   for(const route of routes){
     const ctx=await browser.newContext({
@@ -71,6 +74,173 @@ try {
     assert.equal((await page.locator(route.total).textContent())?.trim(),money(1200));
     assert.equal((await page.locator(route.activation).textContent())?.trim(),money(490));
     assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(1690));
+    const initialContact=new URL(await page.locator(route.whatsapp).getAttribute('href'));
+    assert.equal(initialContact.hostname,'wa.me');
+    assert.ok(initialContact.searchParams.get('text')?.includes('Meta Ads'));
+    assert.ok(!initialContact.searchParams.get('text')?.includes('R
+    if(route.print){
+      assert.equal(await page.locator(route.print).isVisible(),true);
+      await page.locator(route.print).click();
+      assert.equal(await page.evaluate(()=>Boolean(window.__calculatorPrintCalled)),true,
+        'print must only run after explicit user interaction');
+    }
+    await page.locator(route.checkbox+'[value=google_ads]').check();
+    await page.locator(route.checkbox+'[value=chatgpt_ads]').check();
+    await page.locator(route.start).click();
+    assert.equal((await page.locator(route.min).textContent())?.trim(),money(2900));
+    assert.equal((await page.locator(route.suggested).textContent())?.trim(),money(4300));
+    assert.equal((await page.locator(route.fee).textContent())?.trim(),money(860));
+    assert.equal((await page.locator(route.total).textContent())?.trim(),money(5160));
+    assert.equal((await page.locator(route.activation).textContent())?.trim(),money(1470));
+    assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(6630));
+    const selectedMessage=new URL(await page.locator(route.whatsapp).getAttribute('href'))
+      .searchParams.get('text')??'';
+    for(const provider of ['Meta Ads','Google Ads','ChatGPT Ads'])
+      assert.ok(selectedMessage.includes(provider),'selected WhatsApp message only mentions reviewed providers');
+    assert.ok(!selectedMessage.includes(money(6630)),'planned budget must remain local');
+    assert.ok(!selectedMessage.includes('R
+    if(route.copy){
+      assert.equal(await page.locator(route.copy).isVisible(),true);
+      await page.locator(route.copy).click();
+      const text=await page.evaluate(()=>window.__testClipboardText.at(-1));
+      assert.ok(text.includes(money(1470)),'International local study must include setup');
+      assert.ok(text.includes(money(6630)),'International local study must include first cycle');
+      assert.ok(/minimum pending|mínimo pendiente/.test(text),
+        'Copied study must never pose as a final quote');
+    }
+
+    // An invalid recalculation must clear any previous printable/copyable result.
+    // This is checked only on new EN/ES controls, never invoking a browser
+    // print dialog or remote clipboard provider.
+    if(route.copy){
+      for(const channel of ['meta_ads','google_ads','chatgpt_ads'])
+        await page.locator(route.checkbox+'[value='+channel+']').uncheck();
+      await page.locator(route.start).click();
+      assert.equal(await page.locator(route.result).isHidden(),true);
+      assert.equal(await page.locator(route.print).isHidden(),true);
+      assert.equal(await page.locator(route.copy).isHidden(),true);
+      assert.equal(await page.locator(route.error).isVisible(),true);
+      const resetMessage=new URL(await page.locator(route.whatsapp).getAttribute('href'))
+        .searchParams.get('text')??'';
+      assert.ok(resetMessage.includes('Meta Ads'));
+      assert.ok(!resetMessage.includes('Google Ads')&&!resetMessage.includes('ChatGPT Ads'));
+      assert.ok(!resetMessage.includes(money(6630)));
+    }
+
+    // A budget estimate is not an email subscription and never creates a lead.
+    const faq=await page.locator('body').textContent();
+    assert.ok(/CRM/.test(faq),'No auto-CRM promise');
+    assert.ok(/mínimo mensal|monthly minimum|mínimo mensual/i.test(faq),
+      'Must disclose unresolved recurring management minimum');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+3),
+      'No horizontal overflow in 375px viewport');
+    assert.deepEqual(errors,[],route.path+' must not throw JS errors');
+    assert.deepEqual(blocked,[],route.path+' cannot call external or POST endpoints');
+    await ctx.close();
+  }
+  console.log('PASS: PT/EN/ES live Chromium calculator math, print, no PII, no POST/external traffic');
+} finally {
+  if(browser)await browser.close();
+  if(server.listening)await new Promise(resolve=>server.close(resolve));
+}
+));
+    assert.ok(!initialContact.searchParams.get('text')?.includes(money(1690)));
+    if(route.print){
+      assert.equal(await page.locator(route.print).isVisible(),true);
+      await page.locator(route.print).click();
+      assert.equal(await page.evaluate(()=>Boolean(window.__calculatorPrintCalled)),true,
+        'print must only run after explicit user interaction');
+    }
+    await page.locator(route.checkbox+'[value=google_ads]').check();
+    await page.locator(route.checkbox+'[value=chatgpt_ads]').check();
+    await page.locator(route.start).click();
+    assert.equal((await page.locator(route.min).textContent())?.trim(),money(2900));
+    assert.equal((await page.locator(route.suggested).textContent())?.trim(),money(4300));
+    assert.equal((await page.locator(route.fee).textContent())?.trim(),money(860));
+    assert.equal((await page.locator(route.total).textContent())?.trim(),money(5160));
+    assert.equal((await page.locator(route.activation).textContent())?.trim(),money(1470));
+    assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(6630));
+    if(route.copy){
+      assert.equal(await page.locator(route.copy).isVisible(),true);
+      await page.locator(route.copy).click();
+      const text=await page.evaluate(()=>window.__testClipboardText.at(-1));
+      assert.ok(text.includes(money(1470)),'International local study must include setup');
+      assert.ok(text.includes(money(6630)),'International local study must include first cycle');
+      assert.ok(/minimum pending|mínimo pendiente/.test(text),
+        'Copied study must never pose as a final quote');
+    }
+
+    // An invalid recalculation must clear any previous printable/copyable result.
+    // This is checked only on new EN/ES controls, never invoking a browser
+    // print dialog or remote clipboard provider.
+    if(route.copy){
+      for(const channel of ['meta_ads','google_ads','chatgpt_ads'])
+        await page.locator(route.checkbox+'[value='+channel+']').uncheck();
+      await page.locator(route.start).click();
+      assert.equal(await page.locator(route.result).isHidden(),true);
+      assert.equal(await page.locator(route.print).isHidden(),true);
+      assert.equal(await page.locator(route.copy).isHidden(),true);
+      assert.equal(await page.locator(route.error).isVisible(),true);
+    }
+
+    // A budget estimate is not an email subscription and never creates a lead.
+    const faq=await page.locator('body').textContent();
+    assert.ok(/CRM/.test(faq),'No auto-CRM promise');
+    assert.ok(/mínimo mensal|monthly minimum|mínimo mensual/i.test(faq),
+      'Must disclose unresolved recurring management minimum');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+3),
+      'No horizontal overflow in 375px viewport');
+    assert.deepEqual(errors,[],route.path+' must not throw JS errors');
+    assert.deepEqual(blocked,[],route.path+' cannot call external or POST endpoints');
+    await ctx.close();
+  }
+  console.log('PASS: PT/EN/ES live Chromium calculator math, print, no PII, no POST/external traffic');
+} finally {
+  if(browser)await browser.close();
+  if(server.listening)await new Promise(resolve=>server.close(resolve));
+}
+),'WhatsApp message must not send spending figures');
+    if(route.copy){
+      assert.equal(await page.locator(route.copy).isVisible(),true);
+      await page.locator(route.copy).click();
+      const text=await page.evaluate(()=>window.__testClipboardText.at(-1));
+      assert.ok(text.includes(money(1470)),'International local study must include setup');
+      assert.ok(text.includes(money(6630)),'International local study must include first cycle');
+      assert.ok(/minimum pending|mínimo pendiente/.test(text),
+        'Copied study must never pose as a final quote');
+    }
+
+    // An invalid recalculation must clear any previous printable/copyable result.
+    // This is checked only on new EN/ES controls, never invoking a browser
+    // print dialog or remote clipboard provider.
+    if(route.copy){
+      for(const channel of ['meta_ads','google_ads','chatgpt_ads'])
+        await page.locator(route.checkbox+'[value='+channel+']').uncheck();
+      await page.locator(route.start).click();
+      assert.equal(await page.locator(route.result).isHidden(),true);
+      assert.equal(await page.locator(route.print).isHidden(),true);
+      assert.equal(await page.locator(route.copy).isHidden(),true);
+      assert.equal(await page.locator(route.error).isVisible(),true);
+    }
+
+    // A budget estimate is not an email subscription and never creates a lead.
+    const faq=await page.locator('body').textContent();
+    assert.ok(/CRM/.test(faq),'No auto-CRM promise');
+    assert.ok(/mínimo mensal|monthly minimum|mínimo mensual/i.test(faq),
+      'Must disclose unresolved recurring management minimum');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+3),
+      'No horizontal overflow in 375px viewport');
+    assert.deepEqual(errors,[],route.path+' must not throw JS errors');
+    assert.deepEqual(blocked,[],route.path+' cannot call external or POST endpoints');
+    await ctx.close();
+  }
+  console.log('PASS: PT/EN/ES live Chromium calculator math, print, no PII, no POST/external traffic');
+} finally {
+  if(browser)await browser.close();
+  if(server.listening)await new Promise(resolve=>server.close(resolve));
+}
+));
+    assert.ok(!initialContact.searchParams.get('text')?.includes(money(1690)));
     if(route.print){
       assert.equal(await page.locator(route.print).isVisible(),true);
       await page.locator(route.print).click();
