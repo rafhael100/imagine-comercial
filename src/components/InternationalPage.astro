@@ -59,6 +59,58 @@ const crumbs=section===''?[]:(isService?
   isArticle?[{label:articlesLabel,path:paths.articles},{label:article.heading,path:intlPath(locale,section)}]:
   [{label:currentLabel,path:intlPath(locale,section)}]);
 const serviceLink=slug=>intlPath(locale,'services/'+slug);
+
+const salesCopy=locale==='en'?{
+ title:'Build a digital presence that makes your business worth exploring.',
+ intro:'A professional website to build trust. A focused page for your offer. Advertising to reach potential customers. Choose your goal first, then explore the service that fits.',
+ choose:'Find my solution',talk:'Talk to Imagine',
+ hints:['Explore without signing up','Understand what is included','Review conditions before deciding'],
+ heading:'Choose a solution by the result you want to achieve.',
+ note:'We explain the ideal use, what each solution covers, and which costs are separate. No account required to explore.',
+ shortcuts:['I need a website or page','I want to advertise','Help me estimate media spend'],
+ groups:[
+  {id:'intl-sites',title:'Websites and pages',intro:'Choose how to introduce your business or present a specific offer.',slugs:['onepage','landing-pages','criacao-de-sites','sites-por-assinatura']},
+  {id:'intl-ads',title:'Advertising and growth',intro:'Reach relevant audiences and understand media versus management costs.',slugs:['gestao-google-ads','gestao-meta-ads','gestao-chatgpt-ads']}
+ ],
+ audience:'Best suited for',includes:'What is included',details:'Explore this service',
+ fees:{
+  'criacao-de-sites':'Website scope and setup conditions are confirmed in your proposal.',
+  'landing-pages':'Plan reference: BRL 1,290 setup in three BRL 430 installments (at purchase, day 30, day 60), plus BRL 79.90/month starting 90 days after contract acceptance, regardless of publication. Confirm final terms.',
+  onepage:'Plan reference: BRL 990 setup in three BRL 330 installments (at purchase, day 30, day 60), plus BRL 79.90/month starting 90 days after contract acceptance, regardless of publication. Confirm final terms.',
+  'sites-por-assinatura':'Setup, recurring fee and cancellation terms depend on the agreed plan.',
+  'gestao-google-ads':'One-time setup: BRL 490. Monthly management: 20% of verified media, minimum BRL 170 per channel. Media paid separately to Google.',
+  'gestao-meta-ads':'One-time setup: BRL 490. Monthly management: 20% of verified media, minimum BRL 170 for Meta (Instagram + Facebook). Media paid separately.',
+  'gestao-chatgpt-ads':'Planning only: channel not available for checkout. Eligibility and availability must be confirmed.'
+ },
+ nextTitle:'Choose first. Provide your details only when you are ready to close.',
+ nextIntro:'The intended buying journey: select a service, choose options, review scope and pricing, then provide the information needed to complete the purchase. Public checkout is not active on this preview.',
+ steps:['Choose the service','Select your options','Review scope and pricing','Finish with your details']
+}:{
+ title:'Tu negocio merece una presencia digital que despierte interés.',
+ intro:'Un sitio web para transmitir confianza. Una página para presentar tu oferta. Publicidad para llegar a posibles clientes. Primero elige tu objetivo y descubre qué solución encaja.',
+ choose:'Encontrar mi solución',talk:'Hablar con Imagine',
+ hints:['Explora sin registrarte','Conoce lo que incluye cada servicio','Revisa las condiciones antes de decidir'],
+ heading:'Elige la solución según lo que tu empresa necesita.',
+ note:'Explicamos para quién sirve, qué incluye y qué gastos van por separado. Sin registro para explorar.',
+ shortcuts:['Necesito un sitio o una página','Quiero anunciarme','Quiero calcular la inversión'],
+ groups:[
+  {id:'intl-sites',title:'Sitios web y páginas',intro:'Elige cómo presentar tu negocio o mostrar una oferta específica.',slugs:['onepage','landing-pages','criacao-de-sites','sites-por-assinatura']},
+  {id:'intl-ads',title:'Publicidad y crecimiento',intro:'Llega a públicos relevantes y distingue la inversión publicitaria de la gestión.',slugs:['gestao-google-ads','gestao-meta-ads','gestao-chatgpt-ads']}
+ ],
+ audience:'Ideal para',includes:'Qué contempla',details:'Conocer este servicio',
+ fees:{
+  'criacao-de-sites':'El alcance y las condiciones de implantación se confirman en la propuesta.',
+  'landing-pages':'Referencia de plan: implantación R$ 1.290 en tres cuotas de R$ 430 (contratación, día 30 y día 60), más R$ 79,90/mes desde el día 90 tras contratar, incluso sin publicar. Confirmar condiciones finales.',
+  onepage:'Referencia de plan: implantación R$ 990 en tres cuotas de R$ 330 (contratación, día 30 y día 60), más R$ 79,90/mes desde el día 90 tras contratar, incluso sin publicar. Confirmar condiciones finales.',
+  'sites-por-assinatura':'Implantación, mensualidad y cancelación según el plan acordado.',
+  'gestao-google-ads':'Activación única: R$ 490. Gestión mensual: 20% de la publicidad verificada, mínimo R$ 170 por canal. Publicidad pagada aparte a Google.',
+  'gestao-meta-ads':'Activación única: R$ 490. Gestión mensual: 20% de la publicidad verificada, mínimo R$ 170 para Meta (Instagram y Facebook). Publicidad aparte.',
+  'gestao-chatgpt-ads':'Solo planificación: canal no disponible para contratar. Su elegibilidad y disponibilidad requieren confirmación.'
+ },
+ nextTitle:'Primero elige. Los datos se solicitan al finalizar.',
+ nextIntro:'La experiencia prevista: seleccionar un servicio, elegir opciones, revisar alcance y precios y, por último, aportar los datos necesarios para contratar. El pago público aún no está activo en esta vista previa.',
+ steps:['Elegir el servicio','Seleccionar opciones','Revisar alcance y precios','Finalizar con tus datos']
+};
 ---
 <BaseLayout title={title} description={description} pathname={intlPath(locale,section)} locale={locale} breadcrumb={crumbs} articleTitle={article?.heading}>
   {section==='' && (
@@ -66,29 +118,46 @@ const serviceLink=slug=>intlPath(locale,'services/'+slug);
       <section class="hero" aria-labelledby="international-main-title">
         <div class="shell">
           <p class="eyebrow">{copy.hero.eyebrow}</p>
-          <h1 id="international-main-title">{copy.hero.title}</h1>
-          <p class="lead">{copy.hero.intro}</p>
+          <h1 id="international-main-title">{salesCopy.title}</h1>
+          <p class="lead">{salesCopy.intro}</p>
           <div class="cta-row">
-            <a class="cta" href={paths.contact}>{copy.hero.primary}</a>
-            <a class="cta cta-secondary" href={paths.services}>{copy.hero.secondary}</a>
+            <a class="cta" href="#intl-solutions">{salesCopy.choose} <span aria-hidden="true">↗</span></a>
+            <a class="cta cta-secondary" href={paths.contact}>{salesCopy.talk}</a>
           </div>
-          <p class="intl-quiet">{copy.hero.support}</p>
+          <ul class="intl-hero-benefits">{salesCopy.hints.map(hint=><li>{hint}</li>)}</ul>
         </div>
       </section>
-      <section class="section section-soft">
+      <section class="section section-soft" id="intl-solutions">
         <div class="shell">
           <p class="kicker">{copy.nav.services}</p>
-          <h2>{copy.headings.services}</h2>
-          <p>{copy.headings.servicesIntro}</p>
-          <div class="cards intl-card-grid">
-            {serviceList.map(item=>(
-              <article class="card">
-                <p class="eyebrow">{item.eyebrow}</p>
-                <h3>{item.label}</h3>
-                <p>{item.intro}</p>
-                <a href={serviceLink(item.slug)} aria-label={copy.actions.learn+': '+item.label}>{copy.actions.learn}</a>
-              </article>
-            ))}
+          <h2>{salesCopy.heading}</h2>
+          <p>{salesCopy.note}</p>
+          <nav class="intl-sales-shortcuts" aria-label={copy.nav.services}>
+            <a href="#intl-sites">{salesCopy.shortcuts[0]} <span aria-hidden="true">↗</span></a>
+            <a href="#intl-ads">{salesCopy.shortcuts[1]} <span aria-hidden="true">↗</span></a>
+            <a href={intlPath(locale,'budget-calculator')}>{salesCopy.shortcuts[2]} <span aria-hidden="true">↗</span></a>
+          </nav>
+          {salesCopy.groups.map(group=>(
+            <div class="intl-sales-group" id={group.id}>
+              <h3>{group.title}</h3>
+              <p>{group.intro}</p>
+              <div class="intl-sales-grid">
+                {serviceList.filter(item=>group.slugs.includes(item.slug)).map(item=>(
+                  <article class="intl-sales-card">
+                    <p class="intl-sales-tag">{item.eyebrow}</p>
+                    <h4>{item.label}</h4>
+                    <p class="intl-sales-intro">{item.intro}</p>
+                    <p class="intl-sales-price">{salesCopy.fees[item.slug]}</p>
+                    <a class="cta" href={serviceLink(item.slug)} aria-label={salesCopy.details+': '+item.label}>{salesCopy.details} <span aria-hidden="true">↗</span></a>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div class="intl-sales-flow" aria-labelledby="intl-sales-flow-title">
+            <h3 id="intl-sales-flow-title">{salesCopy.nextTitle}</h3>
+            <p>{salesCopy.nextIntro}</p>
+            <ol>{salesCopy.steps.map((step,i)=><li><span>{String(i+1).padStart(2,'0')}</span>{step}</li>)}</ol>
           </div>
           <div class="cta-row"><a class="text-link" href={paths.services}>{copy.actions.all}</a></div>
         </div>
@@ -243,6 +312,29 @@ const serviceLink=slug=>intlPath(locale,'services/'+slug);
   )}
   <style>
     .intl-quiet{margin-top:24px;color:#62594d;font-size:.92rem}
+    .intl-hero-benefits{display:flex;flex-wrap:wrap;gap:10px 22px;list-style:none;margin:22px 0 0;padding:0}
+    .intl-hero-benefits li{color:#514d46;font-weight:690;font-size:.88rem}
+    .intl-hero-benefits li:before{content:'✓ ';color:#985000;font-weight:800}
+    .intl-sales-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0 40px}
+    .intl-sales-shortcuts a{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:80px;background:white;color:#2b2925;border:1px solid #e4d5c2;border-radius:14px;padding:20px;text-decoration:none;font-weight:750}
+    .intl-sales-group{margin-top:42px;scroll-margin-top:90px}
+    .intl-sales-group h3{font-size:clamp(1.5rem,2.4vw,2.1rem);margin:0 0 8px}
+    .intl-sales-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:20px}
+    .intl-sales-card{display:flex;flex-direction:column;gap:12px;padding:clamp(20px,3vw,30px);border:1px solid #e3dcd2;border-radius:19px;background:#fff}
+    .intl-sales-tag{display:inline-block;align-self:flex-start;background:#fff0df;border-radius:99px;padding:7px 12px;color:#824000;font-size:.75rem;font-weight:850;margin:0}
+    .intl-sales-card h4{font-size:1.5rem;margin:0;line-height:1.2}
+    .intl-sales-intro{line-height:1.55;margin:0}
+    .intl-sales-price{border-top:1px solid #ebe6df;padding-top:16px;margin:auto 0 0;font-size:.9rem;color:#544d45;line-height:1.6}
+    .intl-sales-card .cta{align-self:flex-start}
+    .intl-sales-flow{margin:42px 0;padding:clamp(22px,4vw,40px);background:#171b19;color:#fff;border-radius:19px}
+    .intl-sales-flow h3{font-size:clamp(1.5rem,2.5vw,2.2rem);line-height:1.2}
+    .intl-sales-flow p{color:#e0e4e0}
+    .intl-sales-flow ol{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:0;margin:24px 0 0}
+    .intl-sales-flow li{display:grid;gap:12px;background:#282d29;padding:18px;border-radius:12px;font-weight:740}
+    .intl-sales-flow li span{color:#ffb55a}
+    @media(max-width:850px){.intl-sales-shortcuts{grid-template-columns:1fr}.intl-sales-flow ol{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:620px){.intl-sales-grid,.intl-sales-flow ol{grid-template-columns:1fr}}
+
     .intl-card-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))}
     .intl-stage-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,225px),1fr))}
     .intl-card-title{font-size:1.35rem;line-height:1.3;margin-bottom:12px}
