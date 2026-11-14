@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {sitePages} from '../src/data/services.mjs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
+import {renderReadinessReport} from '../scripts/report-launch-blockers.mjs';
 import {reviewProgressiveOverlayManifest as review,classifyProgressiveOverlayRequest as classify}
  from '../src/lib/progressive-legacy-overlay-plan.mjs';
 
@@ -128,4 +129,19 @@ test('F314 rejects getters, prototype injection and malformed request wrappers w
  ]){
   assert.throws(()=>classify(plan,invalid),/F314:/);
  }
+});
+
+test('F314 even when all route policies are internally valid the production launch report stays NO-GO',()=>{
+ const status=JSON.parse(renderReadinessReport(['--target=production']));
+ const overlay=status.progressiveLegacyOverlay;
+ assert.equal(status.approval,'NOT_AUTHORIZED');
+ assert.equal(overlay.listedNewPageCandidates,59);
+ assert.equal(overlay.knownHistoricalRoutesRetained,27);
+ assert.equal(overlay.originalHomepageRetained,true);
+ assert.equal(overlay.unlistedPathsMustRemainOnOriginal,true);
+ assert.equal(overlay.originalContactFormsRemainActiveVerified,false);
+ assert.equal(overlay.privateOverlayNoindexVerifiedOnRealEdge,false);
+ assert.equal(overlay.oldAndNewSeoHreflangCompatible,false);
+ assert.equal(overlay.candidateCloudflareRouteDeployed,false);
+ assert.equal(overlay.canReplaceProductionLegacy,false);
 });
