@@ -22,16 +22,17 @@ const t=en?{
   method:'No signup or tracking. Calculations stay in your browser.',
   min:'Minimum to contract selected channels',
   recommended:'Suggested monthly media investment',
-  fee:'Management estimate (20%; monthly minimum not finalized)',
-  total:'Illustrative monthly subtotal (before any minimum)',
+  fee:'Estimated management (20% of suggested media; BRL 170 monthly minimum per channel)',
+  floorFee:'Estimated management at minimum media investment',
+  total:'Illustrative monthly economic total (media + management)',
   activation:'One-time setup: BRL 490 per selected channel',
-  firstCycle:'Illustrative first-cycle subtotal (before any monthly minimum)',
+  firstCycle:'Illustrative first-cycle economic total (includes one-time setup)',
   basis:'Breakdown by channel',
   low:'Your monthly limit is below the suggestion. We will never raise your budget automatically.',
   contact:'Discuss my plan with Imagine',
   whatsapp:'Discuss my channels on WhatsApp',
   whatsappNote:'A fixed message lists only your selected channels, no numbers or personal information. Review and send it yourself in WhatsApp.',
-  disclaimer:'Setup is BRL 490 once per selected channel, separate from monthly management. The 20% is a reference based on suggested media; the management minimum has not been finalized, so these subtotals are not final prices. Actual management is reconciled after each month against verified spend. Media goes directly to each platform. No results or orders are guaranteed.',
+  disclaimer:'One-time setup is BRL 490 per selected channel. Monthly management is 20% of actual verified ad spend, subject to BRL 170 per contracted channel, assessed independently after a complete calendar month and billed afterwards. The media budget is paid directly to the platforms. Figures are estimates, not an invoice or an amount payable now. Partial initial/final months and pauses need a separate policy decision. No campaigns, contracts or results are guaranteed.',
   noLead:'Email delivery and automated CRM follow-up are not active yet. You can contact Imagine through the available channels.',
   leads:'Generate leads',sales:'Increase sales',awareness:'Build awareness',
   floor:'Minimum',suggest:'Suggested',
@@ -53,16 +54,17 @@ const t=en?{
   method:'Sin registro ni seguimiento. El cálculo se realiza en tu navegador.',
   min:'Inversión mínima para contratar los canales',
   recommended:'Inversión mensual recomendada',
-  fee:'Gestión estimada (20%; mínimo mensual por definir)',
-  total:'Subtotal mensual orientativo (sin mínimo de gestión)',
+  fee:'Gestión estimada (20% de la publicidad sugerida; mínimo de R$ 170 por canal al mes)',
+  floorFee:'Gestión estimada con inversión mínima en publicidad',
+  total:'Total económico mensual orientativo (publicidad + gestión)',
   activation:'Activación única: R$ 490 por canal seleccionado',
-  firstCycle:'Subtotal inicial orientativo (sin mínimo mensual)',
+  firstCycle:'Total económico inicial orientativo (incluye activación única)',
   basis:'Distribución por canal',
   low:'Tu límite mensual está por debajo de la sugerencia. No incrementaremos automáticamente tu presupuesto.',
   contact:'Hablar de mi plan con Imagine',
   whatsapp:'Hablar sobre mis canales por WhatsApp',
   whatsappNote:'Un mensaje aprobado incluye solo los canales seleccionados, sin importes ni datos personales. Revisa y confirma el envío en WhatsApp.',
-  disclaimer:'La activación de R$ 490 por canal se paga una sola vez, por separado de la gestión mensual. El 20% es una referencia y el mínimo mensual de gestión todavía no está definido: los subtotales no son un precio final. La gestión se concilia tras cada mes según la inversión real verificada. La publicidad se paga directamente a cada plataforma. No se contrata ni garantiza ningún resultado.',
+  disclaimer:'La activación única cuesta R$ 490 por canal seleccionado. La gestión mensual es el 20% de la inversión publicitaria real y verificada, con mínimo de R$ 170 por canal contratado, calculado de forma independiente al finalizar cada mes completo y cobrado después. La publicidad se paga directamente a las plataformas. Son estimaciones, no una factura ni un importe a pagar ahora. Los meses iniciales/finales parciales y las pausas requieren una decisión específica. No se inicia ninguna campaña ni se garantizan resultados.',
   noLead:'El envío por e-mail y la nutrición automática en el CRM todavía no están disponibles. Puedes contactar con Imagine por sus canales públicos.',
   leads:'Conseguir leads',sales:'Aumentar ventas',awareness:'Dar a conocer mi marca',
   floor:'Mínimo',suggest:'Sugerido',
@@ -113,6 +115,7 @@ if(!defaultWhatsApp)throw new Error('Missing reviewed default calculator contact
         <div><dt>{t.min}</dt><dd id="intl-calc-min">—</dd></div>
         <div><dt>{t.recommended}</dt><dd id="intl-calc-suggested">—</dd></div>
         <div><dt>{t.fee}</dt><dd id="intl-calc-fee">—</dd></div>
+        <div><dt>{t.floorFee}</dt><dd id="intl-calc-fee-at-minimum">—</dd></div>
         <div><dt>{t.total}</dt><dd id="intl-calc-total">—</dd></div>
         <div><dt>{t.activation}</dt><dd id="intl-calc-activation">—</dd></div>
         <div><dt>{t.firstCycle}</dt><dd id="intl-calc-first-cycle">—</dd></div>
@@ -184,6 +187,7 @@ if(!defaultWhatsApp)throw new Error('Missing reviewed default calculator contact
           '#intl-calc-min':money(p.minimumMediaCents),
           '#intl-calc-suggested':money(p.suggestedMediaCents),
           '#intl-calc-fee':money(p.illustrativeManagementCents),
+          '#intl-calc-fee-at-minimum':money(p.illustrativeManagementAtMinimumMediaCents),
           '#intl-calc-total':money(p.illustrativeTotalCents),
           '#intl-calc-activation':money(p.oneTimeActivationCents),
           '#intl-calc-first-cycle':money(p.illustrativeFirstCycleSubtotalCents),
@@ -196,7 +200,7 @@ if(!defaultWhatsApp)throw new Error('Missing reviewed default calculator contact
         }
         const list=get<HTMLElement>('#intl-calc-channels');
         if(list){list.replaceChildren();for(const item of p.channels){
-          const li=document.createElement('li');li.textContent=item.label+': '+money(item.suggestedCents);
+          const li=document.createElement('li');li.textContent=item.label+': '+(locale==='en-US'?'suggested media ':'publicidad sugerida ')+money(item.suggestedCents)+' · '+(locale==='en-US'?'estimated management ':'gestión estimada ')+money(item.managementAtSuggestedCents)+' · '+(locale==='en-US'?'management floor ':'mínimo de gestión ')+money(p.monthlyManagementMinimumPerChannelCents);
           list.appendChild(li);
         }}
         const below=get<HTMLElement>('#intl-calc-limit');if(below)below.hidden=!p.exceedsMonthlyLimit;
@@ -204,9 +208,10 @@ if(!defaultWhatsApp)throw new Error('Missing reviewed default calculator contact
           'Estudio publicitario Imagine — no contractual',
           ...p.channels.map(item=>item.label+': '+money(item.suggestedCents)),
           (locale==='en-US'?'Suggested media: ':'Publicidad sugerida: ')+money(p.suggestedMediaCents),
-          (locale==='en-US'?'20% management reference (minimum pending): ':'Gestión orientativa del 20% (mínimo pendiente): ')+money(p.illustrativeManagementCents),
+          (locale==='en-US'?'Estimated management (20%, BRL 170 minimum per channel): ':'Gestión estimada (20%, mínimo R$ 170 por canal): ')+money(p.illustrativeManagementCents),
+          (locale==='en-US'?'Management at minimum media: ':'Gestión con publicidad mínima: ')+money(p.illustrativeManagementAtMinimumMediaCents),
           (locale==='en-US'?'One-time activation: ':'Activación única: ')+money(p.oneTimeActivationCents),
-          (locale==='en-US'?'Illustrative first-cycle subtotal (not final price): ':'Subtotal inicial orientativo (no es precio final): ')+money(p.illustrativeFirstCycleSubtotalCents)
+          (locale==='en-US'?'Illustrative first-cycle economic total (not an invoice): ':'Total económico inicial orientativo (no es una factura): ')+money(p.illustrativeFirstCycleSubtotalCents)
         ].join('\n');
         const contactKey=p.channels.map(item=>item.id).join('+');
         const curated=contacts.find(item=>item.dataset.intlCalcContactKey===contactKey);
