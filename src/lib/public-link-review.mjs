@@ -21,7 +21,7 @@ const intents=new Set(services.map(x=>x.slug));
 const approvedFaqAnchors=new Set(commercialFaqSections.flatMap(section=>
   section.questions.map(item=>'duvida-'+item.id)
 ));
-// Exactly fifteen public unordered pairs are permitted, never arbitrary URL
+// Exactly twenty-one public unordered pairs are permitted, never arbitrary URL
 // fragments, visitor text, or a data-driven redirect to an unknown page.
 const approvedComparisonHashes=new Set();
 for(let i=0;i<comparisonOptions.length;i++)
@@ -29,7 +29,7 @@ for(let j=i+1;j<comparisonOptions.length;j++)
   approvedComparisonHashes.add(encodeReviewedComparisonFragment([
     comparisonOptions[i].slug,comparisonOptions[j].slug
   ]).slice(1));
-if(approvedComparisonHashes.size!==15)
+if(approvedComparisonHashes.size!==21)
   throw Error('F195: invalid comparison fragment catalog');
 const approvedGoalHashes=new Set(guideGoals.map(goal=>
   encodeReviewedGoalFragment(goal.code).slice(1)));
