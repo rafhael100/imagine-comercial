@@ -5,7 +5,7 @@ Não há credenciais, chaves privadas, dados pessoais ou comandos de deploy nest
 
 ## O que a entrega já prepara
 
-- **60 páginas públicas indexáveis** (20 PT, 20 EN, 20 ES, incluindo a calculadora de mídia paga em cada idioma), além de **404** personalizada, nas rotas estáticas explícitas do Astro. A página 404 **não** é contabilizada como página pública do sitemap.
+- **63 páginas públicas indexáveis** (21 PT, 21 EN, 21 ES, incluindo a calculadora e o serviço ChatGPT Ads em cada idioma), além de **404** personalizada, nas rotas estáticas explícitas do Astro. A página 404 **não** é contabilizada como página pública do sitemap.
 - As bandeiras Brasil, EUA e Espanha são links HTML sem JavaScript e mantêm a página equivalente, inclusive cinco guias completos por idioma.
 - `html lang`, canonical, `hreflang` recíproco, `x-default`, JSON-LD, OpenGraph, sitemap, acessibilidade e navegação por teclado/telemóvel são verificados pela CI.
 - O auditor SEO F102 está fixado à SHA exata `88af29b660f911c67e59b9d93f4730fa4cc9473d`; nenhuma dependência flutuante.
@@ -19,7 +19,7 @@ Não há credenciais, chaves privadas, dados pessoais ou comandos de deploy nest
 2. Selecionar **uma única SHA** da PR e recuperar seus artefatos no mesmo workflow. Conferir o manifesto de digest independentemente antes de instalar qualquer byte em ambiente privado.
 3. Preservar a versão do site antigo e os arquivos de configuração e DNS **antes** de preparar o staging. Não substituir a pasta pública, não emitir _redirects, não apontar o domínio e não habilitar checkout.
 4. Utilizar somente um ambiente de homologação isolado, com HTTPS e autenticação, `noindex` e proteção contra exposição acidental. Rodar as ferramentas de inspeção privada previstas no repositório com credenciais do operador fora do GitHub/ChatGPT.
-5. Executar HTTP 200 nas 60 rotas, 404 nas não existentes; comparar HTML, metas, cabeçalhos de segurança, responsividade e acessibilidade com o mesmo manifesto. Confirmar bandeiras e links nos dois tamanhos de tela.
+5. Executar HTTP 200 nas 63 rotas, 404 nas não existentes; comparar HTML, metas, cabeçalhos de segurança, responsividade e acessibilidade com o mesmo manifesto. Confirmar bandeiras e links nos dois tamanhos de tela.
 6. Revisar **12 URLs legadas `/en-us/`**. Cinco têm possíveis equivalentes editoriais; sete não têm e exigem preservação. **Todas as 12 permanecem HOLD.** O arquivo `artifacts/migration-preview/international-legacy-HOLD.json` é apenas diagnóstico; **não instalar regras 301**.
    Conferir também a **F310** em `docs/release/F310-LEGACY-HTTP-CONTINUITY-BEFORE-AFTER.md`:
    dois snapshots privados (original antes da troca e candidato localhost) com as
