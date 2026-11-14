@@ -22,7 +22,7 @@ def transform(source,offer):
   if 'data-performance-policy="'+POLICY+'"' in article:
    if BASE+'&amp;channel='+channel not in article:raise RuntimeError('Inconsistent existing copy')
    return article
-  if article.count('href="'+BASE+'"')!=1 or article.count('</h3>')!=1:
+  if article.count('href="'+BASE+'"')!=1 or (article.count('</h3>')!=1 or len(re.findall(r'<h3\b',article))!=1):
    raise RuntimeError('Private card changed; manual review required')
   article=article.replace('href="'+BASE+'"','href="'+BASE+'&amp;channel='+channel+'"')
   markup='<p data-performance-policy="'+POLICY+'"><strong>Gestão a partir de R$170/mês por canal.</strong><br>20% do investimento realizado, com mínimo de R$170. Cobrança após a apuração mensal.<br><strong>Ativação única: R$490 por canal.</strong> Verba de anúncios paga diretamente às plataformas.</p>'
