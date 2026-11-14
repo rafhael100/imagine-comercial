@@ -7,6 +7,7 @@ on:
       - 'src/pages/calculadora-de-anuncios.astro'
       - 'src/pages/index.astro'
       - 'tests/media-budget-calculator.test.mjs'
+      - 'scripts/test-calculator-browser-ci.mjs'
       - '.github/workflows/comercial-media-calculator-p0.yml'
   workflow_dispatch:
 
@@ -38,3 +39,7 @@ jobs:
           test -f dist/calculadora-de-anuncios/index.html
           grep -q 'Calcular meu investimento' dist/calculadora-de-anuncios/index.html
           grep -q 'não estão disponíveis' dist/calculadora-de-anuncios/index.html
+      - name: Install isolated Chromium
+        run: bash scripts/install-chromium-ci.sh
+      - name: Test localized budget calculator in real private browser
+        run: node scripts/test-calculator-browser-ci.mjs
