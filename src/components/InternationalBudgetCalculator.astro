@@ -22,6 +22,7 @@ const t=en?{
   basis:'Breakdown by channel',
   low:'Your monthly limit is below the suggestion. We will never raise your budget automatically.',
   contact:'Discuss my plan with Imagine',
+  print:'Print or save this plan as PDF',
   disclaimer:'Media goes directly to each platform. Imagine management is charged separately based on verified actual spend, with monthly reconciliation. No results are guaranteed and no order is placed.',
   noLead:'Email delivery and automated CRM follow-up are not active yet. You can contact Imagine through the available channels.',
   leads:'Generate leads',sales:'Increase sales',awareness:'Build awareness',
@@ -46,6 +47,7 @@ const t=en?{
   basis:'Distribución por canal',
   low:'Tu límite mensual está por debajo de la sugerencia. No incrementaremos automáticamente tu presupuesto.',
   contact:'Hablar de mi plan con Imagine',
+  print:'Imprimir o guardar este estudio en PDF',
   disclaimer:'La publicidad se paga directamente a cada plataforma. La gestión Imagine se cobra aparte sobre la inversión real verificada, con conciliación mensual. No se garantizan resultados ni se inicia ninguna contratación.',
   noLead:'El envío por e-mail y la nutrición automática en el CRM todavía no están disponibles. Puedes contactar con Imagine por sus canales públicos.',
   leads:'Conseguir leads',sales:'Aumentar ventas',awareness:'Dar a conocer mi marca',
@@ -55,12 +57,12 @@ const t=en?{
 const money=n=>new Intl.NumberFormat(en?'en-US':'es-ES',{style:'currency',currency:'BRL'}).format(n/100);
 const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
 ---
-<section class="hero"><div class="shell">
+<section id="intl-budget-hero" class="hero"><div class="shell">
   <p class="eyebrow">{t.eyebrow}</p>
   <h1>{t.heading}</h1>
   <p class="lead">{t.intro}</p>
 </div></section>
-<section class="section shell">
+<section id="intl-budget-entry" class="section shell">
   <div id="intl-budget-calculator" data-locale={locale}>
     <div class="intl-calc-card">
       <fieldset>
@@ -99,6 +101,7 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
       <p id="intl-calc-limit" hidden role="status">{t.low}</p>
       <p>{t.disclaimer}</p>
       <a class="cta" href={locale==='en'?'/en/contact/':'/es/contact/'}>{t.contact}</a>
+      <button class="cta" type="button" id="intl-calc-print" hidden>{t.print}</button>
       <p class="calc-hint">{t.noLead}</p>
     </section>
   </div>
@@ -110,6 +113,10 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
     const locale=root.dataset.locale==='en'?'en-US':'es-ES';
     const money=(cents:number)=>new Intl.NumberFormat(locale,{style:'currency',currency:'BRL'}).format(cents/100);
     const get=<T extends HTMLElement>(selector:string)=>root.querySelector<T>(selector);
+    const print=get<HTMLButtonElement>('#intl-calc-print');
+    if(print && typeof window.print==='function'){
+      print.addEventListener('click',()=>window.print());
+    }
     get<HTMLButtonElement>('#intl-calc-run')?.addEventListener('click',()=>{
       const error=get<HTMLElement>('#intl-calc-error');
       const results=get<HTMLElement>('#intl-calc-results');
@@ -143,9 +150,11 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
           list.appendChild(li);
         }}
         const below=get<HTMLElement>('#intl-calc-limit');if(below)below.hidden=!p.exceedsMonthlyLimit;
+        if(print)print.hidden=false;
         if(results){results.hidden=false;results.scrollIntoView({behavior:'smooth',block:'start'});}
       }catch{
         if(results)results.hidden=true;
+        if(print)print.hidden=true;
         if(error){error.hidden=false;error.textContent=locale==='en-US'?
           'Check the channels and numbers. Enter leads and historical CPL together or leave both empty.':
           'Revisa los canales y valores. Indica leads y CPL juntos o deja ambos vacíos.';}
@@ -172,5 +181,14 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
   .intl-calc-result-grid dt{font-size:.88rem;color:#5f5a52}
   .intl-calc-result-grid dd{font-size:1.4rem;font-weight:800;margin:8px 0 0;color:#794000}
   button{cursor:pointer}
+  @media print{
+    :global(header),:global(footer),#intl-budget-hero,.intl-calc-card{display:none!important}
+    #intl-calc-results{display:block!important;background:#fff!important}
+    #intl-calc-results[hidden]{display:none!important}
+    #intl-calc-print,#intl-calc-results .cta{display:none!important}
+    .intl-calc-result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .intl-calc-result-grid>div{break-inside:avoid}
+    @page{size:A4;margin:15mm}
+  }
   a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a75b00;outline-offset:3px}
 </style>
