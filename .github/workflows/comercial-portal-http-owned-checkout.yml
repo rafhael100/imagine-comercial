@@ -79,9 +79,17 @@ jobs:
         run: |
           set -euo pipefail
           docker compose exec -T application php tools/test_commerce.php
-          # New Asaas readiness probe tests inject transport (NO live PSP or token).
-          docker compose exec -T application php tools/test_asaas_sandbox_readonly_probe.php
           docker compose exec -T application php private-preview-route-gate.test.php
+      - name: Test latest Asaas Sandbox GET-only readiness offline on pinned Portal source
+        working-directory: portal/apps/portal
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          php -l app/Homologation/Commerce/AsaasSandboxReadinessProbe.php
+          php -l tools/test_asaas_sandbox_readonly_probe.php
+          # Injected transport only; no credentials or Asaas calls made.
+          php tools/test_asaas_sandbox_readonly_probe.php
       - name: Chromium navigates actual Comercial HTML then 4 Portal test orders
         env:
           GITHUB_ACTIONS: 'true'
