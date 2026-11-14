@@ -8,7 +8,7 @@ const page=readFileSync(new URL('../src/pages/comparar-solucoes.astro',import.me
 const browser=readFileSync(new URL('../scripts/browser-qa.mjs',import.meta.url),'utf8');
 
 test('F174 two-service shortlist is built only from approved comparison catalog',()=>{
-  assert.equal(comparisonOptions.length,6);
+  assert.equal(comparisonOptions.length,7);
   assert.deepEqual(new Set(comparisonOptions.map(x=>x.slug)),
     new Set(services.map(x=>x.slug)));
   assert.match(page,/import \{comparisonOptions\} from '\.\.\/data\/service-comparison\.mjs';/);
@@ -33,7 +33,7 @@ test('F174 shortlist is progressive enhancement without form/PII/remote transpor
 test('F174 browser tests click, max 2, removal, links and no-JS',()=>{
   for(const value of ['F174 selected exactly two real services',
     'F174 never accepts a third selected service',
-    'F174 all six comparison cards stay visible without JavaScript',
+    'F174 all seven comparison cards stay visible without JavaScript',
     'F174 shortlist buttons are hidden without JavaScript'])
     assert.ok(browser.includes(value),value);
 });
