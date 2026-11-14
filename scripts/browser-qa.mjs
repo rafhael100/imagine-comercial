@@ -88,7 +88,8 @@ try {
     const p=await ctx.newPage();
     for(const lang of ['en','es']){
       for(const section of ['','services','compare','how-it-works','faq','about','contact',
-        'services/landing-pages','services/gestao-google-ads']){
+        'services/landing-pages','services/gestao-google-ads',
+        'articles','articles/landing-page-ou-site','articles/criacao-de-sites-fortaleza-guia']){
         const route='/'+lang+'/'+(section?section+'/':'');
         const response=await p.goto(host+route,{waitUntil:'load',timeout});
         assert.equal(response?.status(),200,'International route '+route);
@@ -112,7 +113,7 @@ try {
             fullPage:true
           });
         }
-        if(['','contact','services/landing-pages'].includes(section)){
+        if(['','contact','services/landing-pages','articles','articles/landing-page-ou-site'].includes(section)){
           const accessibility=await new AxeBuilder({page:p})
             .withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
           assert.deepEqual(accessibility.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[],
@@ -128,6 +129,14 @@ try {
     assert.equal(new URL(p.url()).pathname,'/es/services/landing-pages/');
     await p.locator('nav.locale-switcher a[lang="pt-BR"]').click();
     assert.equal(new URL(p.url()).pathname,'/servicos/landing-pages/');
+    await p.goto(host+'/conteudos/landing-page-ou-site/',{waitUntil:'load',timeout});
+    await p.locator('nav.locale-switcher a[lang="en"]').click();
+    assert.equal(new URL(p.url()).pathname,'/en/articles/landing-page-ou-site/');
+    assert.ok((await p.locator('article .intl-article-section').count())>=5);
+    await p.locator('nav.locale-switcher a[lang="es"]').click();
+    assert.equal(new URL(p.url()).pathname,'/es/articles/landing-page-ou-site/');
+    await p.locator('nav.locale-switcher a[lang="pt-BR"]').click();
+    assert.equal(new URL(p.url()).pathname,'/conteudos/landing-page-ou-site/');
     await ctx.close();
   }
   const noJsContext=await browser.newContext({viewport:{width:375,height:812},javaScriptEnabled:false});

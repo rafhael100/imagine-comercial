@@ -13,6 +13,7 @@ import {buildStagingHostRouteChecklist} from '../src/lib/staging-host-route-matr
 import {sitePages} from '../src/data/services.mjs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {reviewLegacyCutoverCoverage} from '../src/lib/legacy-cutover-coverage.mjs';
+import {reviewInternationalLegacyCutover} from '../src/lib/international-legacy-cutover-review.mjs';
 import {reportUnverifiedPrivateStaging}
   from '../src/lib/private-staging-prerequisite-report.mjs';
 
@@ -35,6 +36,7 @@ export function renderReadinessReport(argv=[]){
     checkedAgainst:'F42_STATIC_GATES_NOT_RUNTIME_VERIFICATION',
     legacyContactIntake,
     legacyCutover:reviewLegacyCutoverCoverage(),
+    internationalLegacyCutover:reviewInternationalLegacyCutover(),
     portalCrmIntegration:reviewPortalCrmOperationalBoundary(),
     privateStagingLeaseweb:reportUnverifiedPrivateStaging(),
     legacyPublicServiceScope:reviewLegacyPublicOfferings(),

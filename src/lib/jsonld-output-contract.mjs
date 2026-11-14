@@ -31,7 +31,7 @@ export function verifyJsonLdPage(html,canonical){
     canonical.startsWith(ROOT+'es/')?'es':'pt-BR';
   assert.equal(webPage[0].inLanguage,expectedLanguage,'WebPage language mismatch');
 
-  const isArticle=/^https:\/\/imaginecomunicacao\.com\.br\/conteudos\/[a-z0-9-]+\/$/.test(canonical);
+  const isArticle=/^https:\/\/imaginecomunicacao\.com\.br\/(?:conteudos|(?:en|es)\/articles)\/[a-z0-9-]+\/$/.test(canonical);
   const isService=/^https:\/\/imaginecomunicacao\.com\.br\/servicos\/[a-z0-9-]+\/$/.test(canonical);
   const articles=find('Article');
   const services=find('Service');
