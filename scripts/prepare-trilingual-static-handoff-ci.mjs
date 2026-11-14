@@ -21,14 +21,14 @@ const readiness=JSON.parse(renderReadinessReport(['--target=production']));
 const staticPaths=sitePages.map(p=>p.path);
 const translated=staticPaths.filter(p=>/^\/(?:en|es)\//.test(p));
 const portuguese=staticPaths.filter(p=>!/^\/(?:en|es)\//.test(p));
-assert.equal(staticPaths.length,60,'Trilingual release must have 60 reviewed public HTML pages');
-assert.equal(portuguese.length,20,'Existing Portuguese pages plus the reviewed calculator must be retained');
-assert.equal(translated.length,40,'Twenty pages per international language required');
+assert.equal(staticPaths.length,63,'Trilingual release must have 60 reviewed public HTML pages');
+assert.equal(portuguese.length,21,'Existing Portuguese pages plus the reviewed calculator must be retained');
+assert.equal(translated.length,42,'Twenty pages per international language required');
 assert.equal(INTERNATIONAL_ARTICLE_SLUGS.length,5,'All five original guides must have parity');
-assert.equal(INTERNATIONAL_SECTIONS.length,20);
+assert.equal(INTERNATIONAL_SECTIONS.length,21);
 assert.deepEqual(INTERNATIONAL_LANGUAGES,['en','es']);
 assert.equal(manifest.mode,'REVIEW_ONLY_NOT_AUTHORIZED_FOR_DEPLOY');
-assert.equal(manifest.htmlPages,60);
+assert.equal(manifest.htmlPages,63);
 assert.equal(manifest.origin,'https://imaginecomunicacao.com.br/');
 assert.match(manifest.treeSha256,/^[0-9a-f]{64}$/);
 const integrity=reviewStagingBuildIntegrity({
@@ -98,8 +98,8 @@ const record={
  deploymentAuthorized:false,
  blockers:readiness.blockers
 };
-assert.equal(record.englishPages,20);
-assert.equal(record.spanishPages,20);
+assert.equal(record.englishPages,21);
+assert.equal(record.spanishPages,21);
 await writeFile('artifacts/release-review/REVIEW-ONLY-i18n-static-handoff.json',
  JSON.stringify(record,null,2)+'\n');
-console.log('PASS: 60 public Astro pages + custom 404, 20 each PT, EN and ES; complete hreflang triplets; SHA-256 matched. REVIEW ONLY.');
+console.log('PASS: 63 public Astro pages + custom 404, 21 each PT, EN and ES; complete hreflang triplets; SHA-256 matched. REVIEW ONLY.');
