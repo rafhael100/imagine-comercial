@@ -27,7 +27,7 @@ const raw=Object.freeze([
   ['Facebook/Instagram Ads','gestao-meta-ads']
 ]);
 const liveSlugs=new Set(services.map(s=>s.slug));
-if(services.length!==6||raw.length!==14||
+if(services.length!==7||raw.length!==14||
   new Set(raw.map(x=>x[0])).size!==raw.length||
   raw.some(([label,slug])=>typeof label!=='string'||label.length<5||
     (slug!==null&&!liveSlugs.has(slug)))||

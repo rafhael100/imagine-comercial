@@ -23,18 +23,17 @@ test('F58 guide produces only local reviewed service URLs, never prices or autho
     assert.equal(chosen.code,code);
     assert.ok(Object.isFrozen(chosen));
     assert.ok(Object.isFrozen(chosen.services));
-    assert.ok(chosen.services.length===1||chosen.services.length===2);
-    if(chosen.services.length===2){
+    assert.ok(chosen.services.length===1||chosen.services.length===3);
+    if(chosen.services.length===3){
       assert.equal(code,'anuncios');
-      assert.equal(chosen.comparisonHref,
-        '/comparar-solucoes/#comparar:gestao-google-ads:gestao-meta-ads');
+      assert.equal(chosen.comparisonHref,null);
     }else assert.equal(chosen.comparisonHref,null);
     assert.ok(!/garantid[oa]|\bR\$\b|autoriza|contratar agora/i.test(chosen.explanation));
     for(const item of chosen.services){
       assert.ok(slugs.has(item.slug));
       assert.equal(item.href,'/servicos/'+item.slug+'/');
       assert.equal(item.contactHref,'/contato/#'+item.slug);
-      assert.match(item.contactHref,/^\/contato\/#(criacao-de-sites|landing-pages|onepage|sites-por-assinatura|gestao-google-ads|gestao-meta-ads)$/);
+      assert.match(item.contactHref,/^\/contato\/#(criacao-de-sites|landing-pages|onepage|sites-por-assinatura|gestao-google-ads|gestao-meta-ads|gestao-chatgpt-ads)$/);
       assert.equal(item.label,services.find(s=>s.slug===item.slug).label);
       assert.ok(Object.isFrozen(item));
     }
@@ -65,7 +64,7 @@ test('F58 browser-only UI does not create a form, external transport or HTML inj
   assert.doesNotMatch(page,/<form\b|<input\b|fetch\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|innerHTML|document\.cookie/);
 });
 
-test('F206 no-JavaScript guide enumerates the same six approved services by five goals',()=>{
+test('F206 no-JavaScript guide enumerates the same seven approved services by five goals',()=>{
   const visited=new Set();
   let total=0;
   for(const goal of guideGoals){
@@ -77,6 +76,6 @@ test('F206 no-JavaScript guide enumerates the same six approved services by five
       visited.add(service.slug);
     }
   }
-  assert.equal(total,6);
-  assert.equal(visited.size,6);
+  assert.equal(total,7);
+  assert.equal(visited.size,7);
 });

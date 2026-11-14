@@ -34,6 +34,7 @@ const relevantComparisons=curatedServiceComparisons(s.slug);
       <div class="cta-row">
         <a class="cta" href={'/contato/#' + s.slug}>Solicitar uma proposta</a>
         <a class="cta cta-secondary" href="/comparar-solucoes/">Comparar soluções</a>
+        {s.slug.startsWith('gestao-') && <a class="cta cta-secondary" href="/calculadora-de-anuncios/">Calcular investimento recomendado</a>}
         <a class="text-link service-wa-link" data-service-whatsapp href={directWhatsAppHref} target="_blank" rel="noopener noreferrer" aria-describedby="service-whatsapp-notice">Conversar no WhatsApp</a>
         <a class="text-link service-wa-link" data-service-email href={directEmailHref} aria-describedby="service-whatsapp-notice">Enviar e-mail sobre esta solução</a>
       </div>

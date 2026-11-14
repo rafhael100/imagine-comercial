@@ -119,6 +119,25 @@ export const services = Object.freeze([
       ['É possível anunciar no Instagram e no Facebook?', 'As campanhas podem utilizar canais da Meta conforme o escopo contratado e as políticas e permissões da plataforma.'],
       ['Quem paga os anúncios?', 'O investimento em mídia deve ser pago e identificado conforme a proposta. A remuneração do serviço de gestão é apresentada separadamente.']
     ]
+  },
+  {
+    slug: 'gestao-chatgpt-ads',
+    label: 'Gestão ChatGPT Ads',
+    title: 'Gestão de anúncios patrocinados no ChatGPT | Imagine',
+    description: 'Planejamento de mídia no ChatGPT Ads com investimento mínimo e recomendado por canal, avaliação de público, métricas e acompanhamento pela Imagine.',
+    eyebrow: 'Novo canal em validação · Imagine Performance AI',
+    heading: 'Planeje anúncios patrocinados no ChatGPT com uma estratégia clara.',
+    intro: 'O ChatGPT Ads é uma alternativa emergente de mídia paga. A Imagine prepara a gestão desse canal com orçamento, aprovações e acompanhamento de desempenho, sujeito à disponibilidade e às regras da plataforma.',
+    approach: 'Cada operação depende de elegibilidade da conta do anunciante, confirmação da disponibilidade, aprovações de criativos e integração de métricas. Planejamos um piloto mensurável antes de recomendar expansão.',
+    details: [
+      ['Orçamento por canal', 'Distinguimos o mínimo comercial da Imagine, o investimento inicialmente recomendado e os honorários de gestão separados da mídia.'],
+      ['Aprovação e controle', 'Campanhas dependem de aprovação do anunciante, permissões da plataforma e validação da conta, sem ativação automática pela calculadora.'],
+      ['Medição e otimização', 'Analisamos resultados próprios de cada campanha, sem prometer que estudos de terceiros ou resultados de outros canais serão reproduzidos.']
+    ],
+    faqs: [
+      ['O ChatGPT Ads já está disponível para contratação imediata pela Imagine?', 'A inclusão comercial e a integração técnica estão em preparação. O início de campanhas depende da homologação operacional, elegibilidade e aceite das condições do serviço.'],
+      ['Pagar anúncios melhora as respostas orgânicas do ChatGPT?', 'Não. Anúncios patrocinados são identificados separadamente e não alteram a priorização das respostas. A presença orgânica é um trabalho distinto, associado à estratégia de conteúdo e SEO.']
+    ]
   }
 ]);
 

@@ -17,7 +17,7 @@ test('F82: preview is private by location, has no send path and cannot be indexe
   assert.match(fixture,/aviso de privacidade e a base legal do formulário real ainda precisam de aprovação/);
 });
 
-test('F82: exact six service options preserve the curated public service slugs',()=>{
+test('F82: exact seven service options preserve the curated public service slugs',()=>{
   const offered=[...fixture.matchAll(/<option value="([a-z0-9-]+)">/g)].map(x=>x[1]);
   assert.deepEqual([...offered].sort(),services.map(s=>s.slug).sort());
   assert.ok(!offered.includes('fake-service'));

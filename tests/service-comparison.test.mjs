@@ -9,7 +9,7 @@ test('F60 compares every real service exactly once with distinct curated criteri
   assert.equal(comparisonOptions.length,services.length);
   assert.deepEqual(new Set(comparisonOptions.map(x=>x.slug)),new Set(services.map(x=>x.slug)));
   assert.equal(compareOptionsForGroup('presenca').length,4);
-  assert.equal(compareOptionsForGroup('midia').length,2);
+  assert.equal(compareOptionsForGroup('midia').length,3);
   for(const item of comparisonOptions){
     assert.ok(Object.isFrozen(item));
     assert.equal(item.label,services.find(s=>s.slug===item.slug).label);
