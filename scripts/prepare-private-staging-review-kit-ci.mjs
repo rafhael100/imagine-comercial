@@ -53,11 +53,23 @@ const configHashes={
  composeSha256:createHash('sha256').update(conf).digest('hex'),
  nginxSha256:createHash('sha256').update(nginx).digest('hex')
 };
+function ciCommitPins(){
+ const sha=value=>typeof value==='string'&&/^[0-9a-f]{40}$/.test(value)?value:null;
+ const evaluation=sha(process.env.GITHUB_SHA);
+ let source=null;
+ if(typeof process.env.GITHUB_EVENT_PATH==='string'){
+   try{
+     const event=JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+     source=sha(event?.pull_request?.head?.sha);
+   }catch{/* no event input: do not invent the source SHA */}
+ }
+ return {sourceCommit:source??evaluation,ciEvaluationCommit:evaluation,
+   sourceCommitFromPrHead:source!==null};
+}
 const metadata={
  schema:'imagine.comercial.private-staging-review-kit.v1',
  status:'NO_DEPLOY_REVIEW_KIT_ONLY',
- sourceCommit:process.env.GITHUB_SHA&&/^[0-9a-f]{40}$/.test(process.env.GITHUB_SHA)?
-   process.env.GITHUB_SHA:null,
+ ...ciCommitPins(),
  staticTreeSha256:m.treeSha256,
  publicHtmlPages:m.htmlPages,
  staticFileCount:m.fileCount,
