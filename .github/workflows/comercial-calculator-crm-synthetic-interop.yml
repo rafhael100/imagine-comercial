@@ -1,0 +1,61 @@
+name: Commercial to CRM calculator synthetic interop (no PII)
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/synthetic-calculator-interest-interop-lab.mjs'
+      - 'src/lib/media-budget-calculator.mjs'
+      - 'src/data/calculator-contact-messages.mjs'
+      - 'scripts/emit-calculator-interest-fixture-ci.mjs'
+      - 'tests/synthetic-calculator-interest-interop.test.mjs'
+      - 'tests/calculator-contact-messages.test.mjs'
+      - 'tests/calculator-crm-interop-pin.test.mjs'
+      - '.github/workflows/comercial-calculator-crm-synthetic-interop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-php-synthetic-only:
+    name: Comercial Node to CRM PHP exact pinned contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Read current Commercial without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Checkout exact CRM reviewer commit without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-crm
+          ref: 69159795fa47d3362e20649b01d3a8d788875b9c
+          path: .qa/crm-calculator
+          persist-credentials: false
+      - name: Setup reviewed Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+      - name: Confirm PHP CLI only (no Laravel, email or database)
+        run: |
+          php -v
+          php -l .qa/crm-calculator/app/Core/Leads/SyntheticCalculatorInterestInteropInspector.php
+          php -l .qa/crm-calculator/scripts/ci/check-calculator-interest-crossrepo.php
+      - name: Verify fixed Node Commercial fixture with exact pinned PHP CRM inspector
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/emit-calculator-interest-fixture-ci.mjs |
+            php .qa/crm-calculator/scripts/ci/check-calculator-interest-crossrepo.php
+      - name: Prove no live PII, marketing consent or CRM write permission
+        run: node --test tests/synthetic-calculator-interest-interop.test.mjs tests/calculator-contact-messages.test.mjs tests/calculator-crm-interop-pin.test.mjs
+      - name: Record synthetic-only limitation
+        if: always()
+        run: |
+          {
+            echo '### Node Commercial → PHP CRM cross-repository fixture'
+            echo 'Exact immutable CRM SHA. Synthetic only.'
+            echo 'No personal data, tenant authority, real consent, CRM write, provider email or live endpoint.'
+            echo 'DRAFT / NO-MERGE / NO-DEPLOY / NO-MARKETING / NO-CHARGE'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,9 @@
+---
+import InternationalPage from '../../components/InternationalPage.astro';
+import {INTERNATIONAL_LANGUAGES} from '../../data/i18n.mjs';
+export function getStaticPaths(){
+  return INTERNATIONAL_LANGUAGES.map(locale=>({params:{lang:locale},props:{locale}}));
+}
+const {locale}=Astro.props;
+---
+<InternationalPage locale={locale} section="" />

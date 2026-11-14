@@ -1,0 +1,11 @@
+---
+import InternationalPage from '../../components/InternationalPage.astro';
+import {INTERNATIONAL_LANGUAGES,INTERNATIONAL_SECTIONS} from '../../data/i18n.mjs';
+export function getStaticPaths(){
+  return INTERNATIONAL_LANGUAGES.flatMap(locale=>INTERNATIONAL_SECTIONS.filter(Boolean).map(section=>({
+    params:{lang:locale,section},props:{locale,section}
+  })));
+}
+const {locale,section}=Astro.props;
+---
+<InternationalPage locale={locale} section={section} />

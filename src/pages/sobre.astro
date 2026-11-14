@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="Sobre a Imagine Comunicação Digital | Tecnologia e performance"
+  description="Conheça a Imagine Comunicação Digital, uma empresa que reúne desenvolvimento de soluções digitais e estratégias de comunicação para negócios."
+  pathname="/sobre/"
+  breadcrumb={[{label:'Sobre a Imagine',path:'/sobre/'}]}
+>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Quem somos</p>
+      <h1>Tecnologia e comunicação conectadas aos objetivos do negócio.</h1>
+      <p class="lead">A Imagine Comunicação Digital trabalha com desenvolvimento web e comunicação digital, unindo planejamento, criação e acompanhamento de soluções para empresas.</p>
+      <div class="cta-row"><a class="cta" href="/servicos/">Conhecer soluções</a><a class="cta cta-secondary" href="/contato/">Conversar com a Imagine</a></div>
+    </div>
+  </section>
+  <section class="section shell">
+    <span class="kicker">Nossa forma de trabalhar</span>
+    <h2>Planejar, desenvolver e acompanhar.</h2>
+    <p>Partimos do contexto e dos objetivos de cada empresa para escolher um formato de presença digital ou de divulgação adequado. A combinação de tecnologia e comunicação orienta a construção dos projetos.</p>
+    <div class="cards">
+      <article class="card"><h3>Entendimento</h3><p>Compreender os serviços, o público e as necessidades comerciais.</p></article>
+      <article class="card"><h3>Estrutura</h3><p>Organizar informações e soluções com experiência de uso em mente.</p></article>
+      <article class="card"><h3>Acompanhamento</h3><p>Manter clareza de etapas, revisões e próximos passos durante a prestação do serviço.</p></article>
+    </div>
+  </section>
+  <section class="section section-dark"><div class="shell"><h2>Vamos conversar sobre seu projeto?</h2><p>Conheça os serviços disponíveis e os canais de atendimento da Imagine.</p><a class="cta" href="/contato/">Entrar em contato</a></div></section>
+</BaseLayout>

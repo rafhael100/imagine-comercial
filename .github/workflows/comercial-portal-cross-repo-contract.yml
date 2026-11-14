@@ -1,0 +1,45 @@
+name: Comercial P0 - pinned Portal pricing and channel contract (offline)
+on:
+  pull_request:
+    paths:
+      - 'ops/review/purchase/private-portal-handoff-policy.mjs'
+      - 'ops/review/purchase/test-cross-repo-handoff.mjs'
+      - '.github/workflows/comercial-portal-cross-repo-contract.yml'
+permissions:
+  contents: read
+jobs:
+  pinned-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact Comercial candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: comercial
+          persist-credentials: false
+      - name: Checkout fixed reviewed Portal channel candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: rafhael100/imagine-portal
+          ref: 7a91f3acb16ed7b454030ab9d7fa47bf1bb2b422
+          path: portal
+          persist-credentials: false
+      - name: Set up Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Verify PHP 8.3+ exists on runner
+        run: |
+          set -euo pipefail
+          php -v
+          php -r 'if (PHP_VERSION_ID < 80300) exit(1);'
+      - name: Compare 4 exact URLs against pinned PHP Portal contract
+        run: |
+          set -euo pipefail
+          node --test comercial/tests/private-portal-handoff-policy.test.mjs
+          node comercial/ops/review/purchase/test-cross-repo-handoff.mjs portal
+      - name: Declare only offline compatibility, not PSP certification
+        run: |
+          echo 'PASS only if 4 private links match fixed Portal code and server financial policy.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'NO-GO: no network call to Portal, Asaas, DNS or VPS; no real login/charge/service.' >> "$GITHUB_STEP_SUMMARY"
