@@ -1,0 +1,149 @@
+/**
+ * Real Chromium, local authenticated preview only.
+ * Proves anonymous calculator UI for PT/EN/ES and no third-party traffic,
+ * PII collection, endpoint POST, ads activation or email submission.
+ */
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+import {createPrivateLoopbackPreview,listenPrivateLoopback}
+  from '../src/lib/private-loopback-preview.mjs';
+
+const password='PERF-CALC-only-local-synthetic-password-2026';
+const server=createPrivateLoopbackPreview({directory:'dist',password});
+let browser;
+try {
+  const origin=await listenPrivateLoopback(server,0);
+  browser=await chromium.launch({headless:true});
+  const routes=[
+    {path:'/calculadora-de-anuncios/',lang:'pt-BR',
+      start:'#calculate-run',result:'#media-result',min:'#calc-minimum',
+      suggested:'#calc-suggested',fee:'#calc-management',total:'#calc-total',
+      activation:'#calc-activation',firstCycle:'#calc-first-cycle',
+      checkbox:'input[name="channel"]',error:'#calculator-error',print:'#calc-print',copy:null,
+      whatsapp:'#calc-contact-whatsapp'},
+    {path:'/en/budget-calculator/',lang:'en-US',
+      start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
+      suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
+      activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy',
+      whatsapp:'#intl-calc-whatsapp'},
+    {path:'/es/budget-calculator/',lang:'es-ES',
+      start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
+      suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
+      activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy',
+      whatsapp:'#intl-calc-whatsapp'}
+  ];
+  for(const route of routes){
+    const ctx=await browser.newContext({
+      viewport:{width:375,height:812},
+      httpCredentials:{username:'reviewer',password}
+    });
+    const page=await ctx.newPage();
+    await page.addInitScript(()=>{
+      window.__testClipboardText=[];
+      Object.defineProperty(navigator,'clipboard',{
+        configurable:true,value:{writeText:async text=>{window.__testClipboardText.push(text);}}
+      });
+    });
+    const blocked=[];
+    const errors=[];
+    page.on('pageerror',e=>errors.push(e.message));
+    page.on('request',r=>{
+      const u=new URL(r.url());
+      if(u.origin!==origin||r.method()!=='GET')blocked.push(r.method()+' '+u.origin);
+    });
+    const response=await page.goto(origin+route.path,{waitUntil:'load'});
+    assert.equal(response?.status(),200,route.path);
+    assert.equal(await page.locator(route.result).isHidden(),true);
+    assert.equal(await page.locator('form,input[type=email],input[type=tel],input[type=password]').count(),0,
+      route.path+' must have zero public lead forms or PII inputs');
+    assert.equal(await page.locator(route.checkbox).count(),3,route.path+' has exactly three ad providers');
+    assert.equal(await page.locator(route.checkbox+'[value=meta_ads]').isChecked(),true);
+    assert.equal(await page.locator(route.checkbox+'[value=google_ads]').isChecked(),false);
+    if(route.print){
+      assert.equal(await page.locator(route.print).isHidden(),true);
+      await page.evaluate(()=>{window.print=()=>{window.__calculatorPrintCalled=true}});
+    }
+    await page.locator(route.start).click();
+    assert.equal(await page.locator(route.result).isVisible(),true,route.path+' default calculation');
+    const money=n=>new Intl.NumberFormat(route.lang,{style:'currency',currency:'BRL'}).format(n);
+    assert.equal((await page.locator(route.min).textContent())?.trim(),money(700));
+    assert.equal((await page.locator(route.suggested).textContent())?.trim(),money(1000));
+    assert.equal((await page.locator(route.fee).textContent())?.trim(),money(200));
+    assert.equal((await page.locator(route.total).textContent())?.trim(),money(1200));
+    assert.equal((await page.locator(route.activation).textContent())?.trim(),money(490));
+    assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(1690));
+    const initialContact=new URL(await page.locator(route.whatsapp).getAttribute('href'));
+    assert.equal(initialContact.hostname,'wa.me');
+    assert.ok(initialContact.searchParams.get('text')?.includes('Meta Ads'));
+    assert.equal(initialContact.searchParams.get('text')?.includes(String.fromCharCode(36)),false,
+      'WhatsApp message must exclude any currency symbol');
+    assert.equal(initialContact.searchParams.get('text')?.includes(money(1690)),false,
+      'WhatsApp message cannot include calculated amounts');
+    if(route.print){
+      assert.equal(await page.locator(route.print).isVisible(),true);
+      await page.locator(route.print).click();
+      assert.equal(await page.evaluate(()=>Boolean(window.__calculatorPrintCalled)),true,
+        'print must only run after explicit user interaction');
+    }
+    await page.locator(route.checkbox+'[value=google_ads]').check();
+    await page.locator(route.checkbox+'[value=chatgpt_ads]').check();
+    await page.locator(route.start).click();
+    assert.equal((await page.locator(route.min).textContent())?.trim(),money(2900));
+    assert.equal((await page.locator(route.suggested).textContent())?.trim(),money(4300));
+    assert.equal((await page.locator(route.fee).textContent())?.trim(),money(860));
+    assert.equal((await page.locator(route.total).textContent())?.trim(),money(5160));
+    assert.equal((await page.locator(route.activation).textContent())?.trim(),money(1470));
+    assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(6630));
+    const selectedMessage=new URL(await page.locator(route.whatsapp).getAttribute('href'))
+      .searchParams.get('text')??'';
+    for(const provider of ['Meta Ads','Google Ads','ChatGPT Ads'])
+      assert.ok(selectedMessage.includes(provider),'selected WhatsApp message only mentions reviewed providers');
+    assert.ok(!selectedMessage.includes(money(6630)),'planned budget must remain local');
+    assert.equal(selectedMessage.includes(String.fromCharCode(36)),false,
+      'WhatsApp message cannot include currency amounts');
+    if(route.copy){
+      assert.equal(await page.locator(route.copy).isVisible(),true);
+      await page.locator(route.copy).click();
+      const text=await page.evaluate(()=>window.__testClipboardText.at(-1));
+      assert.ok(text.includes(money(1470)),'International local study must include setup');
+      assert.ok(text.includes(money(6630)),'International local study must include first cycle');
+      assert.ok(/minimum pending|mínimo pendiente/.test(text),
+        'Copied study must never pose as a final quote');
+    }
+
+    // An invalid recalculation must clear any previous printable/copyable result.
+    // This is checked only on new EN/ES controls, never invoking a browser
+    // print dialog or remote clipboard provider.
+    if(route.copy){
+      for(const channel of ['meta_ads','google_ads','chatgpt_ads'])
+        await page.locator(route.checkbox+'[value='+channel+']').uncheck();
+      await page.locator(route.start).click();
+      assert.equal(await page.locator(route.result).isHidden(),true);
+      assert.equal(await page.locator(route.print).isHidden(),true);
+      assert.equal(await page.locator(route.copy).isHidden(),true);
+      assert.equal(await page.locator(route.error).isVisible(),true);
+      const resetMessage=new URL(await page.locator(route.whatsapp).getAttribute('href'))
+        .searchParams.get('text')??'';
+      assert.ok(resetMessage.includes('Meta Ads'));
+      assert.ok(!resetMessage.includes('Google Ads')&&!resetMessage.includes('ChatGPT Ads'));
+      assert.ok(!resetMessage.includes(money(6630)));
+    }
+
+    // A budget estimate is not an email subscription and never creates a lead.
+    const faq=await page.locator('body').textContent();
+    assert.ok(/CRM/.test(faq),'No auto-CRM promise');
+    assert.ok(/mínimo mensal|monthly minimum|mínimo mensual/i.test(faq),
+      'Must disclose unresolved recurring management minimum');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+3),
+      'No horizontal overflow in 375px viewport');
+    assert.deepEqual(errors,[],route.path+' must not throw JS errors');
+    assert.deepEqual(blocked,[],route.path+' cannot call external or POST endpoints');
+    await ctx.close();
+  }
+  console.log('PASS: PT/EN/ES live Chromium calculator math, print, no PII, no POST/external traffic');
+} finally {
+  if(browser)await browser.close();
+  if(server.listening)await new Promise(resolve=>server.close(resolve));
+}

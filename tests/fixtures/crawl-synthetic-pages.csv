@@ -1,0 +1,7 @@
+Address,Status Code,Indexability
+https://imaginecomunicacao.com.br/fale-conosco.html,200,Indexable
+https://www.imaginecomunicacao.com.br/o-que-fazemos/criacao-de-sites-institucional.html,301,Non-Indexable
+https://imaginecomunicacao.com.br/clientes.html,404,Non-Indexable
+https://imaginecomunicacao.com.br/en-us/termos-de-uso.html,200,Indexable
+https://imaginecomunicacao.com.br/legacy-exemplo-sintetico.html,404,Non-Indexable
+https://imaginecomunicacao.com.br/extra-sintetica-do-crawl.html,200,Indexable

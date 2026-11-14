@@ -1,0 +1,78 @@
+name: Comercial SEO RC38 F96 - offline CSV Portal parity
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/commercial-seo-rc38-f96-parity.yml'
+      - 'scripts/qa-seo-rc38-f96-csv-handoff.mjs'
+      - 'docs/comercial-seo-rc38-f96-parity.md'
+permissions:
+  contents: read
+concurrency:
+  group: comercial-seo-f96-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  f96-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Comercial QA source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Setup Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Checkout fixed SEO F92 baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: b60e75fbd3402410f4b5bf91b9d1ab4249e2271f
+          path: .qa/seo-rc38-f92
+          persist-credentials: false
+      - name: Checkout fixed SEO F96 candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: 329bbe34cb0fe67e599d02d6c28d0ce13ddeb475
+          path: .qa/seo-rc38-f96
+          persist-credentials: false
+      - name: Verify exact read-only checkouts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .qa/seo-rc38-f92 rev-parse HEAD)" = b60e75fbd3402410f4b5bf91b9d1ab4249e2271f
+          test "$(git -C .qa/seo-rc38-f96 rev-parse HEAD)" = 329bbe34cb0fe67e599d02d6c28d0ce13ddeb475
+          test -z "$(git -C .qa/seo-rc38-f92 status --porcelain --untracked-files=no)"
+          test -z "$(git -C .qa/seo-rc38-f96 status --porcelain --untracked-files=no)"
+      - name: Execute candidate's full offline Node suite
+        run: npm --prefix .qa/seo-rc38-f96 test
+      - name: Build and verify current Comercial Astro pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/verify-dist.mjs
+      - name: Require strict HTML audit parity on identical built output
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          a="$(mktemp)"; b="$(mktemp)"
+          trap 'rm -f "$a" "$b"' EXIT
+          node .qa/seo-rc38-f92/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --strict-public-head --fail-on-warnings > "$a"
+          node .qa/seo-rc38-f96/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --strict-public-head --fail-on-warnings > "$b"
+          node --input-type=module - "$a" "$b" <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const [oldFile,newFile]=process.argv.slice(2);
+          const old=JSON.parse(readFileSync(oldFile,'utf8'));
+          const fresh=JSON.parse(readFileSync(newFile,'utf8'));
+          for(const key of ['summary','routes','errors','warnings'])
+            assert.deepEqual(fresh[key],old[key],key+' changed between F92 and F96');
+          console.log('F210: identical strict HTML/SEO results on same Comercial dist');
+          NODE
+      - name: Prove F96 CSV to Portal original-evidence privacy and path confinement
+        run: node scripts/qa-seo-rc38-f96-csv-handoff.mjs

@@ -1,0 +1,49 @@
+name: Comercial native Astro Portal CTA rehearsal (strict CI only)
+on:
+  pull_request:
+    paths:
+      - 'src/components/QuickServiceRequest.astro'
+      - 'ops/review/purchase/private-portal-handoff-policy.mjs'
+      - 'ops/review/purchase/test-native-astro-preview.mjs'
+      - 'ops/review/purchase/compare-native-builds.mjs'
+      - '.github/workflows/comercial-native-astro-portal-cta.yml'
+permissions:
+  contents: read
+jobs:
+  native-astro-candidates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Fetch exact candidate, no persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Use Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Build normal public Astro source unchanged
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/verify-dist.mjs
+          node ops/review/purchase/test-native-astro-preview.mjs dist public
+          cp -a dist "$RUNNER_TEMP/comercial-public-dist"
+      - name: Compile gated private review from the same Astro source
+        env:
+          IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW: '1'
+        run: |
+          set -euo pipefail
+          npm run build
+          # The standard verifier correctly rejects non-public destinations.
+          # Keep it unchanged for the PUBLIC build above. Apply strict differential
+          # and preview-target validation here instead, without weakening release gates.
+          node ops/review/purchase/test-native-astro-preview.mjs dist private
+          node ops/review/purchase/compare-native-builds.mjs "$RUNNER_TEMP/comercial-public-dist" dist
+      - name: Explicit no-go summary
+        run: |
+          echo 'Two ephemeral CI builds generated. Original public mode keeps all six WhatsApp CTAs.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Private mode routes four reviewed products only to the Portal development preview; no external browser navigation.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'DRAFT / NO-GO: neither build was deployed, no PSP credentials or real charge.' >> "$GITHUB_STEP_SUMMARY"

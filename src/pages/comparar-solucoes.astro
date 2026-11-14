@@ -1,0 +1,292 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {comparisonGroups,compareOptionsForGroup} from '../data/service-comparison.mjs';
+const pathname='/comparar-solucoes/';
+---
+<BaseLayout
+  title="Comparar Onepage, sites, Landing Pages e anúncios | Imagine"
+  description="Compare quando considerar Onepage, site com várias páginas, Landing Page, sites por assinatura, Google Ads e Meta Ads antes de solicitar orientação."
+  pathname={pathname}
+  breadcrumb={[{label:'Soluções',path:'/servicos/'},{label:'Comparar soluções',path:pathname}]}
+>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Guia de escolha</p>
+      <h1>Compare os formatos antes de decidir.</h1>
+      <p class="lead">Uma presença institucional, uma página de campanha e uma estratégia de anúncios atendem a necessidades diferentes. Conheça o contexto de cada serviço e prepare sua conversa com a Imagine.</p>
+      <div class="cta-row">
+        <a class="cta" href="#comparacoes">Explorar as diferenças</a>
+        <a class="cta cta-secondary" href="/servicos/">Ver todos os serviços</a>
+      </div>
+      <p id="compare-chooser-status" class="compare-chooser-status" role="status" aria-live="polite" aria-atomic="true" hidden>Escolha até duas soluções para comparar lado a lado.</p>
+    </div>
+  </section>
+  <div id="comparacoes">
+    {comparisonGroups.map((group,index)=>(
+      <section class:list={['section',index%2===0?'section-soft':'']} aria-labelledby={'compare-'+group.code}>
+        <div class="shell">
+          <p class="kicker">Comparação de soluções</p>
+          <h2 id={'compare-'+group.code}>{group.heading}</h2>
+          <p class="lead">{group.introduction}</p>
+          <div class="compare-grid">
+            {compareOptionsForGroup(group.code).map(item=>(
+              <article class="compare-card">
+                <h3>{item.label}</h3>
+                <dl>
+                  <dt>Quando considerar</dt>
+                  <dd>{item.bestFor}</dd>
+                  <dt>Como costuma se organizar</dt>
+                  <dd>{item.structure}</dd>
+                  <dt>Pergunta para começar</dt>
+                  <dd>{item.question}</dd>
+                </dl>
+                <button type="button" class="compare-selector" data-compare-select={item.slug}
+                  aria-pressed="false" aria-controls="selected-comparison" hidden>
+                  Adicionar à comparação
+                </button>
+                <div class="compare-links">
+                  <a href={item.detailHref} aria-label={'Conhecer o serviço '+item.label}>Conhecer {item.label}</a>
+                  <a href={item.contactHref} aria-label={'Conversar sobre '+item.label}>Conversar sobre {item.label}</a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    ))}
+  </div>
+  <section class="section shell selected-comparison" id="selected-comparison" aria-labelledby="selected-comparison-title" hidden>
+    <h2 id="selected-comparison-title">Sua comparação de soluções</h2>
+    <p>Revise os critérios das opções selecionadas. Esta comparação é informativa, não constitui proposta ou recomendação personalizada.</p>
+    <button type="button" id="clear-comparison" class="compare-clear" hidden
+      aria-controls="selected-comparison-list">Limpar seleção</button>
+    <ol class="compare-grid selected-comparison-list" id="selected-comparison-list"></ol>
+    <p id="comparison-channel-disclosure" class="compare-contact-note" hidden>Os canais abaixo são externos ao site. A mensagem inclui somente os nomes públicos das duas soluções. Confira e confirme o envio no aplicativo escolhido; selecionar opções não envia uma solicitação.</p>
+    <div class="compare-links">
+      <a id="contact-comparison-whatsapp" href="/contato/" target="_blank" rel="noopener noreferrer" aria-describedby="comparison-channel-disclosure" hidden>Conversar sobre as duas opções no WhatsApp</a>
+      <a id="contact-comparison-email" href="/contato/" aria-describedby="comparison-channel-disclosure" hidden>Conversar sobre as duas opções por e-mail</a>
+    </div>
+    <div class="compare-output-actions">
+      <button type="button" id="copy-comparison-link" class="cta cta-secondary" hidden>Copiar link desta comparação</button>
+      <button type="button" id="print-comparison" class="cta cta-secondary" hidden>Imprimir apenas as duas opções</button>
+    </div>
+    <p id="copy-comparison-status" role="status" aria-live="polite" aria-atomic="true"></p>
+  </section>
+  <section class="section shell">
+    <h2>A comparação não substitui uma proposta.</h2>
+    <p class="lead">As necessidades podem combinar mais de um serviço. O escopo contratado, as etapas, a mensalidade, o investimento em anúncios e eventuais integrações só podem ser confirmados na proposta oficial e nos documentos aplicáveis.</p>
+    <div class="cta-row">
+      <a class="cta" href="/contato/">Conversar com a Imagine</a>
+      <a class="cta cta-secondary" href="/conteudos/landing-page-ou-site/">Ler o guia Landing Page ou site</a>
+    </div>
+  </section>
+  <script>
+    import {comparisonOptions} from '../data/service-comparison.mjs';
+    import {composeReviewedComparisonContact} from '../data/comparison-contact.mjs';
+    import {contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
+    import {encodeReviewedComparisonFragment,decodeReviewedComparisonFragment}
+      from '../data/reviewed-comparison-fragment.mjs';
+    // F174: deliberate, transient shortlist of at most two curated services.
+    // No visitor profile, free text, network, browser storage or URL changes.
+    const buttons=[...document.querySelectorAll<HTMLButtonElement>('[data-compare-select]')];
+    const selectedSection=document.querySelector<HTMLElement>('#selected-comparison');
+    const selectedList=document.querySelector<HTMLOListElement>('#selected-comparison-list');
+    const status=document.querySelector<HTMLElement>('#compare-chooser-status');
+    const clear=document.querySelector<HTMLButtonElement>('#clear-comparison');
+    const share=document.querySelector<HTMLButtonElement>('#copy-comparison-link');
+    const print=document.querySelector<HTMLButtonElement>('#print-comparison');
+    const shareStatus=document.querySelector<HTMLElement>('#copy-comparison-status');
+    const pairWhatsApp=document.querySelector<HTMLAnchorElement>('#contact-comparison-whatsapp');
+    const pairEmail=document.querySelector<HTMLAnchorElement>('#contact-comparison-email');
+    const pairDisclosure=document.querySelector<HTMLElement>('#comparison-channel-disclosure');
+    const catalog=new Map(comparisonOptions.map(item=>[item.slug,item]));
+    if(selectedSection&&selectedList&&status&&clear&&share&&print&&shareStatus&&pairWhatsApp&&pairEmail&&pairDisclosure&&buttons.length===catalog.size){
+      const selected=new Set<string>();
+      let revision=0;
+      let copyPending=false;
+      const render=()=>{
+        revision++;
+        shareStatus.textContent='';
+        clear.hidden=selected.size===0;
+        share.hidden=selected.size!==2||!navigator.clipboard?.writeText;
+        print.hidden=selected.size!==2||typeof window.print!=='function';
+        share.disabled=copyPending;
+        const cards=[...selected].map(slug=>catalog.get(slug)).filter(item=>item!==undefined);
+        selectedList.replaceChildren();
+        for(const item of cards){
+          const li=document.createElement('li');
+          li.className='compare-card';
+          const heading=document.createElement('h3');
+          heading.textContent=item.label;
+          const list=document.createElement('dl');
+          for(const [title,detail] of [
+            ['Quando considerar',item.bestFor],
+            ['Como costuma se organizar',item.structure],
+            ['Pergunta para começar',item.question]
+          ]){
+            const term=document.createElement('dt');
+            const definition=document.createElement('dd');
+            term.textContent=title;
+            definition.textContent=detail;
+            list.append(term,definition);
+          }
+          const links=document.createElement('div');
+          links.className='compare-links';
+          const detail=document.createElement('a');
+          detail.href=item.detailHref;
+          detail.textContent='Conhecer '+item.label;
+          const contact=document.createElement('a');
+          contact.href=item.contactHref;
+          contact.textContent='Conversar sobre '+item.label;
+          links.append(detail,contact);
+          li.append(heading,list,links);
+          selectedList.append(li);
+        }
+        // F188: no browser POST: the visitor initiates a curated external link.
+        const pairReady=cards.length===2;
+        pairWhatsApp.hidden=!pairReady;
+        pairEmail.hidden=!pairReady;
+        pairDisclosure.hidden=!pairReady;
+        if(pairReady){
+          const text=composeReviewedComparisonContact([...selected]);
+          pairWhatsApp.href=contactWhatsAppUrl(text.message);
+          pairEmail.href=contactEmailUrl(text.subject,text.message);
+        }else{
+          pairWhatsApp.removeAttribute('href');
+          pairEmail.removeAttribute('href');
+        }
+        selectedSection.hidden=cards.length===0;
+        status.textContent=cards.length===0
+          ?'Escolha até duas soluções para comparar lado a lado.'
+          :cards.length===1
+            ?'1 solução selecionada. Escolha mais uma ou desmarque a atual.'
+            :'2 soluções selecionadas. Desmarque uma para escolher outra.';
+        for(const button of buttons){
+          const slug=button.dataset.compareSelect??'';
+          const active=selected.has(slug);
+          button.disabled=!active&&selected.size===2;
+          button.setAttribute('aria-pressed',String(active));
+          button.textContent=active?'Remover da comparação':'Adicionar à comparação';
+        }
+      };
+      for(const button of buttons){
+        if(!catalog.has(button.dataset.compareSelect??''))continue;
+        button.hidden=false;
+        button.addEventListener('click',()=>{
+          const slug=button.dataset.compareSelect??'';
+          if(selected.has(slug))selected.delete(slug);
+          else if(selected.size<2&&catalog.has(slug))selected.add(slug);
+          const fragment=selected.size===2
+            ?encodeReviewedComparisonFragment([...selected]):'';
+          // Replace rather than push: no visitor history trail of choices.
+          // The selection URL contains only reviewed public slugs. Do not
+          // retain inherited query values in the address bar or history.
+          window.history.replaceState(null,'',
+            window.location.pathname+fragment);
+          render();
+        });
+      }
+      // F288: clear both selections and the shared fragment in one action.
+      // Keep keyboard visitors at the first category selector.
+      clear.addEventListener('click',()=>{
+        selected.clear();
+        window.history.replaceState(null,'',window.location.pathname);
+        render();
+        buttons[0]?.focus();
+      });
+      // F203: explicit visitor print, with no persisted or submitted data.
+      print.addEventListener('click',()=>{if(selected.size===2)window.print();});
+      share.addEventListener('click',async()=>{
+        if(copyPending||selected.size!==2)return;
+        const fragment=encodeReviewedComparisonFragment([...selected]);
+        // Copy only a fixed public route and two approved service IDs.
+        // Never copy arbitrary query strings from the current page.
+        const value=window.location.origin+'/comparar-solucoes/'+fragment;
+        const ticket=++revision;
+        copyPending=true;
+        share.disabled=true;
+        shareStatus.textContent='';
+        try{
+          if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');
+          await navigator.clipboard.writeText(value);
+          if(ticket===revision)
+            shareStatus.textContent='Link da comparação copiado. Compartilhe somente se desejar.';
+        }catch{
+          if(ticket===revision)
+            shareStatus.textContent='Não foi possível copiar automaticamente. Você pode explorar os serviços acima.';
+        }finally{
+          copyPending=false;
+          share.disabled=false;
+        }
+      });
+      const applyFragment=()=>{
+        const pair=decodeReviewedComparisonFragment(window.location.hash);
+        const localId=window.location.hash.slice(1);
+        // Real in-page anchors (including the skip link) must still work.
+        const isLocalAnchor=/^[a-z][a-z0-9-]{0,63}$/.test(localId)&&
+          document.getElementById(localId)!==null;
+        const cleanHash=pair?encodeReviewedComparisonFragment(pair):
+          isLocalAnchor?window.location.hash:'';
+        if(window.location.search||window.location.hash!==cleanHash)
+          window.history.replaceState(null,'',window.location.pathname+cleanHash);
+        selected.clear();
+        if(pair)for(const slug of pair)selected.add(slug);
+        render();
+      };
+      window.addEventListener('hashchange',applyFragment);
+      window.addEventListener('popstate',applyFragment);
+      status.hidden=false;
+      applyFragment();
+    }
+  </script>
+  <style>
+    #contact-comparison-whatsapp[hidden],#contact-comparison-email[hidden],
+    #comparison-channel-disclosure[hidden]{display:none!important}
+    .compare-contact-note{max-width:730px;color:#625a50;margin:22px 0 0}
+    .compare-output-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+    .compare-output-actions button{font:inherit;cursor:pointer}
+    #print-comparison[hidden],#copy-comparison-link[hidden]{display:none!important}
+    #copy-comparison-link{margin-top:18px}
+    #copy-comparison-link:disabled{opacity:.6;cursor:wait}
+    #copy-comparison-status{color:#625a50;margin-top:14px}
+    #copy-comparison-status:empty{display:none}
+    .compare-clear{font:inherit;font-weight:750;cursor:pointer;
+      min-height:44px;padding:10px 16px;border:1px solid #d3b99d;
+      border-radius:10px;color:#884100;background:#fffaf4}
+    .compare-clear:hover{background:#fff0db}
+    .compare-clear:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .compare-clear[hidden]{display:none!important}
+    .compare-selector{font:inherit;font-weight:750;color:#793800;background:#fffaf4;border:1px solid #d3b99d;border-radius:10px;padding:10px 12px;min-height:44px;cursor:pointer;margin-top:20px;text-align:left}
+    .compare-selector[aria-pressed="true"]{color:var(--imagine-ink);background:var(--imagine-orange);border-color:#c3730f}
+    .compare-selector[disabled]{opacity:.55;cursor:not-allowed}
+    .compare-selector[hidden],.compare-chooser-status[hidden],.selected-comparison[hidden]{display:none!important}
+    .compare-selector:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .compare-chooser-status{color:#665f56;margin-top:18px}
+    .selected-comparison{scroll-margin-top:20px}
+    .selected-comparison-list{list-style:none;padding:0}
+    .compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:18px;margin-top:32px}
+    .compare-card{background:white;color:#171b19;border:1px solid #e8e2da;border-radius:16px;padding:clamp(20px,2.4vw,30px);display:flex;flex-direction:column;min-width:0}
+    .compare-card h3{margin:0 0 20px}
+    .compare-card dl{margin:0;flex:1}
+    .compare-card dt{font-size:.89rem;color:#884100;font-weight:800;margin-top:15px}
+    .compare-card dt:first-child{margin-top:0}
+    .compare-card dd{margin:5px 0 0;overflow-wrap:anywhere}
+    .compare-links{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:24px}
+    .compare-links a{font-weight:750;color:#884100;text-underline-offset:4px}
+    #comparacoes{scroll-margin-top:20px}
+    @media(max-width:480px){.compare-grid{grid-template-columns:1fr}.compare-card{padding:22px}}
+    /* A printed pair includes only the two selected cards, not the
+       complete service directory or controls for external channels. */
+    @media print{
+      :global(header),:global(footer),:global(.skip-link){display:none!important}
+      :global(main#conteudo > :not(#selected-comparison)){display:none!important}
+      :global(main#conteudo > #selected-comparison){display:block!important}
+      .selected-comparison{padding:0!important;width:100%;max-width:none}
+      .selected-comparison-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .selected-comparison-list .compare-card{break-inside:avoid;border-color:#767067}
+      .selected-comparison-list .compare-links{display:none!important}
+      .compare-clear,.compare-output-actions,.compare-contact-note,#copy-comparison-status,
+      #contact-comparison-whatsapp,#contact-comparison-email{display:none!important}
+    }
+  </style>
+</BaseLayout>

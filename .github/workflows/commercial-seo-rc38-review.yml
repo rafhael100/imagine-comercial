@@ -1,0 +1,178 @@
+name: Comercial SEO-RC38 - original evidence privacy and build parity
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/commercial-seo-rc38-review.yml'
+      - 'docs/comercial-seo-rc38-readiness.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: comercial-seo-rc38-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rc38-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Checkout Comercial QA source without retained credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Setup Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Checkout pinned SEO RC36 baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: 440d515c1094ed5c8e0094c5c614fe1d6d49d881
+          path: .qa/seo-rc36
+          persist-credentials: false
+      - name: Checkout pinned SEO RC38 candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-seo-engine
+          ref: b60e75fbd3402410f4b5bf91b9d1ab4249e2271f
+          path: .qa/seo-rc38
+          persist-credentials: false
+      - name: Require exact Git SHAs and unchanged checked-out source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .qa/seo-rc36 rev-parse HEAD)" = 440d515c1094ed5c8e0094c5c614fe1d6d49d881
+          test "$(git -C .qa/seo-rc38 rev-parse HEAD)" = b60e75fbd3402410f4b5bf91b9d1ab4249e2271f
+          test -z "$(git -C .qa/seo-rc38 status --porcelain --untracked-files=no)"
+      - name: Execute complete SEO RC38 offline regression suite
+        run: npm --prefix .qa/seo-rc38 test
+      - name: Build and verify the current Comercial site
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/verify-dist.mjs
+      - name: Confirm RC36 and RC38 static HTML audits remain identical
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          old="$(mktemp)"
+          fresh="$(mktemp)"
+          trap 'rm -f "$old" "$fresh"' EXIT
+          node .qa/seo-rc36/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head > "$old"
+          node .qa/seo-rc38/scripts/audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings --strict-public-head > "$fresh"
+          node --input-type=module - "$old" "$fresh" <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const [oldFile,newFile]=process.argv.slice(2);
+          const old=JSON.parse(readFileSync(oldFile,'utf8'));
+          const fresh=JSON.parse(readFileSync(newFile,'utf8'));
+          for(const key of ['summary','routes','errors','warnings'])
+            assert.deepEqual(fresh[key],old[key],key+' audit changed');
+          console.log('SEO RC38: static Comercial HTML audit unchanged');
+          NODE
+      - name: Verify RC38 original-evidence redaction and Portal handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {compareGscPeriods} from './.qa/seo-rc38/src/organic-trends.mjs';
+          import {buildOfflineSeoBrief as oldBrief} from './.qa/seo-rc36/src/seo-brief.mjs';
+          import {buildOfflineSeoBrief as newBrief} from './.qa/seo-rc38/src/seo-brief.mjs';
+          import {preparePortalSeoHandoff} from './.qa/seo-rc38/src/portal-handoff.mjs';
+          import {prepareOfflineGscOrganicTrendDisplay} from './.qa/seo-rc38/src/gsc-organic-trend-display.mjs';
+          const row=(q,clicks,impressions)=>({
+            keys:[q],clicks,impressions,ctr:clicks/impressions,position:8
+          });
+          const previous={dimensions:['query'],startDate:'2026-10-01',
+            endDate:'2026-10-07',rows:[
+              row('PRIVATE-RC38 landing pages',30,300),
+              row('123.456.789-09',1,100)]};
+          const current={dimensions:['query'],startDate:'2026-10-08',
+            endDate:'2026-10-14',rows:[
+              row('PRIVATE-RC38 landing pages',8,180)]};
+          const trend=compareGscPeriods(previous,current);
+          assert.equal(trend.summary.redactedRows,1);
+          const audit={summary:{pages:1,errors:1,warnings:0},
+            errors:[{type:'wrong_canonical',file:'index.html',message:'SECRET-RC38'}],
+            warnings:[]};
+          const previousBrief=oldBrief({audit,trend});
+          assert.equal(previousBrief.organic.previous.clicks,30);
+          const brief=newBrief({audit,trend});
+          assert.equal(brief.organic,null);
+          assert.deepEqual(brief.recommendedReviews.map(x=>x.code),['repair_canonical']);
+          const model=prepareOfflineGscOrganicTrendDisplay({previous,current});
+          assert.equal(model.metricsWithheld,true);
+          assert.deepEqual(model.changes,[]);
+          assert.equal(model.summary.previous,null);
+          assert.equal(model.summary.current,null);
+          const handoff=preparePortalSeoHandoff({
+            tenantRef:'imagine-demo',propertyFingerprint:'a'.repeat(64),
+            sourceRevision:'b'.repeat(40),brief
+          });
+          assert.equal(handoff.organic,null);
+          assert.deepEqual(handoff.suggestedReviews.map(x=>x.code),
+            ['repair_canonical']);
+          assert.equal(handoff.customerDisplayAuthorized,false);
+          assert.equal(handoff.publicationAuthorized,false);
+          assert.doesNotMatch(JSON.stringify({model,brief,handoff}),
+            /PRIVATE-RC38|123\.456\.789-09|SECRET-RC38/);
+          console.log('SEO RC38: GSC original-evidence privacy and Portal handoff parity passed');
+          NODE
+
+      - name: Verify RC38 Unicode privacy, F88 original-evidence handoff and no customer authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {isSensitiveGscQuery} from './.qa/seo-rc38/src/gsc-private-query.mjs';
+          import {prepareOfflinePortalSeoFromOriginalGsc} from './.qa/seo-rc38/src/portal-original-gsc-handoff.mjs';
+          const privateQueries=[
+            '１２３．４５６．７８９－０９',
+            'CPF\u200b 12345678909',
+            'pessoa＠example.com'
+          ];
+          for(const query of privateQueries)assert.equal(isSensitiveGscQuery(query),true);
+          const row=(q,clicks,impressions)=>({
+            keys:[q],clicks,impressions,ctr:clicks/impressions,position:8
+          });
+          const audit={summary:{pages:2,errors:1,warnings:0},
+            errors:[{type:'wrong_canonical',file:'SYNTHETIC-PRIVATE.html',
+              message:'SYNTHETIC-AUDIT-MESSAGE'}],warnings:[],routes:['/','/sintetico/']};
+          const previous={
+            dimensions:['query'],startDate:'2026-10-01',endDate:'2026-10-07',
+            rows:[row('landing pages para empresas',30,300),
+              row(privateQueries[0],1,100)]
+          };
+          const current={
+            dimensions:['query'],startDate:'2026-10-08',endDate:'2026-10-14',
+            rows:[row('landing pages para empresas',8,180)]
+          };
+          const result=prepareOfflinePortalSeoFromOriginalGsc({
+            audit,previous,current,
+            scope:{tenantRef:'imagine-demo',
+              propertyFingerprint:'a'.repeat(64),sourceRevision:'b'.repeat(40)}
+          });
+          assert.equal(result.coverage.metricsWithheld,true);
+          assert.equal(result.coverage.redactedRows,1);
+          assert.equal(result.coverage.reason,'PRIVACY_REDACTION');
+          assert.equal(result.brief.organic,null);
+          assert.equal(result.handoff.organic,null);
+          assert.deepEqual(result.handoff.suggestedReviews.map(x=>x.code),['repair_canonical']);
+          for(const flag of ['oauthVerified','propertyAuthorizationVerified',
+            'backendTenantGrantVerified','customerDisplayAuthorized',
+            'publicationAuthorized','networkPerformed'])
+            assert.equal(result[flag],false,flag);
+          assert.equal(result.releaseStatus,'HOLD_EXTERNAL_AUTHORIZATION');
+          assert.doesNotMatch(JSON.stringify(result),
+            /SYNTHETIC-PRIVATE|SYNTHETIC-AUDIT|123.456.789-09/);
+          console.log('SEO RC38: F89 Unicode redaction and F88 Portal handoff stayed NO-GO');
+          NODE

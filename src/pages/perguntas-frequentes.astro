@@ -1,0 +1,218 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {commercialFaqSections} from '../data/commercial-faq.mjs';
+const pathname='/perguntas-frequentes/';
+---
+<BaseLayout
+  title="Perguntas frequentes sobre serviços digitais | Imagine"
+  description="Dúvidas sobre orçamento, escopo, Landing Pages, anúncios, revisões, resultados, Portal do Cliente e cuidados com acessos antes da contratação."
+  pathname={pathname}
+  breadcrumb={[{label:'Perguntas frequentes',path:pathname}]}
+>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Dúvidas antes da contratação</p>
+      <h1>Perguntas frequentes para planejar com clareza.</h1>
+      <p class="lead">Veja orientações gerais sobre escopo, valores, anúncios, revisões e canais de atendimento. As respostas são informativas: a proposta vigente é que define as condições do serviço contratado.</p>
+      <div class="cta-row">
+        <a class="cta" href="#respostas">Consultar respostas</a>
+        <a class="cta cta-secondary" href="/como-funciona/">Entender o processo</a>
+      </div>
+    </div>
+  </section>
+  <nav class="section shell faq-index" aria-label="Índice de perguntas frequentes">
+    <h2 id="faq-index-heading" tabindex="-1">Encontre sua dúvida</h2>
+    <p>Escolha um tema ou uma pergunta para ir diretamente à resposta. Os links não registram nem enviam sua escolha.</p>
+    <div id="faq-topic-controls" class="faq-topic-controls" role="group" aria-label="Filtrar perguntas por tema" hidden>
+      <button type="button" data-faq-topic="all" aria-pressed="true" aria-controls="respostas">Todos os temas</button>
+      {commercialFaqSections.map(section=>(
+        <button type="button" data-faq-topic={section.code} aria-pressed="false" aria-controls="respostas">{section.title}</button>
+      ))}
+    </div>
+    <p id="faq-filter-status" class="faq-filter-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+    <div class="faq-answer-controls" id="faq-answer-controls" hidden>
+      <button type="button" id="faq-expand-visible" aria-controls="respostas">Expandir respostas visíveis</button>
+      <button type="button" id="faq-collapse-visible" aria-controls="respostas">Recolher respostas visíveis</button>
+    </div>
+    <ul class="faq-index-topics">
+      {commercialFaqSections.map(section=>(
+        <li>
+          <a href={'#faq-'+section.code}>{section.title}</a>
+          <ul>
+            {section.questions.map(item=>(
+              <li><a href={'#duvida-'+item.id}>{item.question}</a></li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  </nav>
+  <div id="respostas">
+    {commercialFaqSections.map((section,index)=>(
+      <section class:list={['section',index%2===0?'section-soft':'']} data-faq-section={section.code} aria-labelledby={'faq-'+section.code}>
+        <div class="shell">
+          <p class="kicker">Perguntas frequentes</p>
+          <h2 id={'faq-'+section.code}>{section.title}</h2>
+          <div class="faq-list">
+            {section.questions.map(item=>(
+              <div id={'duvida-'+item.id} class="faq-entry">
+                <details class="faq-item">
+                  <summary>{item.question}</summary>
+                  <p>{item.answer}</p>
+                  <div class="faq-copy-row" data-faq-share hidden>
+                    <button type="button" data-faq-copy={item.id}
+                      aria-label={'Copiar link da resposta: '+item.question}>
+                      Copiar link desta resposta
+                    </button>
+                    <span role="status" aria-live="polite" aria-atomic="true"
+                      data-faq-copy-status></span>
+                  </div>
+                </details>
+              </div>
+            ))}
+          </div>
+          <p class="faq-back-index"><a href="#faq-index-heading">Voltar ao índice de perguntas</a></p>
+        </div>
+      </section>
+    ))}
+  </div>
+  <section class="section shell">
+    <h2>Ficou alguma dúvida sobre o seu projeto?</h2>
+    <p class="lead">Prepare as informações essenciais do briefing ou compare as soluções antes de conversar com a Imagine. Não envie senhas ou dados sensíveis pelos links públicos.</p>
+    <div class="cta-row">
+      <a class="cta" href="/contato/">Entrar em contato</a>
+      <a class="cta cta-secondary" href="/comparar-solucoes/">Comparar soluções</a>
+    </div>
+  </section>
+  <script>
+    // F191: only known FAQ question IDs can expand native answers.
+    // Navigation is local; no client data is read, stored or transmitted.
+    const approved=new Set([...document.querySelectorAll<HTMLElement>('.faq-entry[id]')]
+      .map(item=>item.id));
+    // F248 progressive enhancement: filters and expand/collapse operate on
+    // the eight public, pre-rendered answers only. No search text, storage,
+    // URL params, network calls, analytics, cookies or visitor identification.
+    const topicControls=document.querySelector<HTMLElement>('#faq-topic-controls');
+    const topicButtons=[...document.querySelectorAll<HTMLButtonElement>('[data-faq-topic]')];
+    const sections=[...document.querySelectorAll<HTMLElement>('[data-faq-section]')];
+    const status=document.querySelector<HTMLElement>('#faq-filter-status');
+    const answerControls=document.querySelector<HTMLElement>('#faq-answer-controls');
+    const expand=document.querySelector<HTMLButtonElement>('#faq-expand-visible');
+    const collapse=document.querySelector<HTMLButtonElement>('#faq-collapse-visible');
+    const availableTopics=new Set(sections.map(section=>section.dataset.faqSection));
+    const totalAnswers=approved.size;
+    // F300: answer permalinks contain only approved FAQ IDs. The action
+    // is opt-in, hidden without JS/clipboard, no query or visitor input.
+    if(navigator.clipboard?.writeText){
+      for(const button of document.querySelectorAll<HTMLButtonElement>('[data-faq-copy]')){
+        const anchor='duvida-'+button.dataset.faqCopy;
+        const region=button.closest<HTMLElement>('[data-faq-share]');
+        const feedback=region?.querySelector<HTMLElement>('[data-faq-copy-status]');
+        if(!approved.has(anchor)||!region||!feedback)continue;
+        region.hidden=false;
+        button.addEventListener('click',async()=>{
+          if(button.disabled)return;
+          button.disabled=true;
+          feedback.textContent='';
+          const href=window.location.origin+'/perguntas-frequentes/#'+anchor;
+          try{
+            await navigator.clipboard.writeText(href);
+            feedback.textContent='Link da resposta copiado.';
+          }catch{
+            feedback.textContent='Não foi possível copiar automaticamente. Use o link da pergunta no índice.';
+          }finally{
+            button.disabled=false;
+          }
+        });
+      }
+    }
+    const applyFilter=(topic:string)=>{
+      if(topic!=='all'&&!availableTopics.has(topic))return;
+      for(const section of sections)
+        section.hidden=topic!=='all'&&section.dataset.faqSection!==topic;
+      for(const button of topicButtons)
+        button.setAttribute('aria-pressed',String(button.dataset.faqTopic===topic));
+      const visible=sections.filter(section=>!section.hidden);
+      const count=visible.reduce((sum,section)=>sum+section.querySelectorAll('.faq-entry').length,0);
+      if(status)status.textContent=topic==='all'
+        ? 'Exibindo todas as '+totalAnswers+' perguntas.'
+        : 'Exibindo '+count+' perguntas do tema '+(visible[0]?.querySelector('h2')?.textContent?.trim()||'selecionado')+'.';
+    };
+    if(topicControls&&status&&answerControls&&expand&&collapse&&topicButtons.length===sections.length+1){
+      topicControls.hidden=false;
+      status.hidden=false;
+      answerControls.hidden=false;
+      for(const button of topicButtons)
+        button.addEventListener('click',()=>applyFilter(button.dataset.faqTopic||'all'));
+      const toggleVisible=(open:boolean)=>{
+        for(const section of sections){
+          if(section.hidden)continue;
+          for(const item of section.querySelectorAll<HTMLDetailsElement>('details.faq-item'))
+            item.open=open;
+        }
+      };
+      expand.addEventListener('click',()=>toggleVisible(true));
+      collapse.addEventListener('click',()=>toggleVisible(false));
+      // Static anchor links always remain usable, even after a filter.
+      for(const link of document.querySelectorAll<HTMLAnchorElement>('.faq-index a[href^="#"]'))
+        link.addEventListener('click',()=>{
+          applyFilter('all');
+          // F261: a link to the current hash does not trigger hashchange.
+          // Reopen that answer explicitly even after filters collapsed it.
+          const id=link.getAttribute('href')?.slice(1)||'';
+          openApprovedAnswer(id);
+        });
+      applyFilter('all');
+    }
+    function openApprovedAnswer(anchor:string){
+      if(!approved.has(anchor))return;
+      const entry=document.getElementById(anchor);
+      if(entry?.closest<HTMLElement>('[data-faq-section]')?.hidden)
+        applyFilter('all'); // valid deep links must never stay hidden
+      const answer=entry?.querySelector<HTMLDetailsElement>('details.faq-item');
+      if(answer)answer.open=true;
+    }
+    const reveal=()=>openApprovedAnswer(window.location.hash.slice(1));
+    window.addEventListener('hashchange',reveal);
+    reveal();
+  </script>
+  <style>
+    .faq-copy-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+      margin:0 0 18px}
+    .faq-copy-row[hidden]{display:none!important}
+    .faq-copy-row button{min-height:44px;padding:9px 13px;font:inherit;font-weight:750;
+      border:1px solid #d1bda5;border-radius:9px;color:#884100;
+      background:#fff8ed;cursor:pointer}
+    .faq-copy-row button:hover{background:#fff0db}
+    .faq-copy-row button:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .faq-copy-row button:disabled{opacity:.65;cursor:wait}
+    .faq-copy-row [role="status"]{font-size:.9rem;color:#5c574e}
+    .faq-index{padding-top:38px;padding-bottom:38px}
+    #faq-index-heading{scroll-margin-top:18px}
+    .faq-back-index{margin:22px 0 0}
+    .faq-back-index a{display:inline-flex;align-items:center;min-height:44px;
+      color:#884100;font-weight:750;text-underline-offset:4px}
+    .faq-back-index a:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .faq-index p{max-width:700px}
+    .faq-topic-controls{display:flex;gap:9px;flex-wrap:wrap;margin:22px 0 12px}
+    .faq-topic-controls[hidden],.faq-answer-controls[hidden],.faq-filter-status[hidden],#respostas [data-faq-section][hidden]{display:none!important}
+    .faq-topic-controls button,.faq-answer-controls button{min-height:44px;padding:10px 14px;border-radius:10px;border:1px solid #d1bda5;background:#fff;color:#884100;font:inherit;font-weight:700;cursor:pointer}
+    .faq-topic-controls button:hover,.faq-answer-controls button:hover{background:#fff0db}
+    .faq-topic-controls button[aria-pressed="true"]{background:#171b19;color:#fff;border-color:#171b19}
+    .faq-filter-status{font-size:.91rem;font-weight:650;color:#5c574e;margin:10px 0}
+    .faq-answer-controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+    .faq-topic-controls button:focus-visible,.faq-answer-controls button:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .faq-index-topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:20px;padding:0;list-style:none}
+    .faq-index-topics>li>a{font-weight:800;color:#884100}
+    .faq-index-topics ul{padding-left:21px;margin-top:12px}
+    .faq-index-topics ul li{margin:9px 0}
+    .faq-index a{text-underline-offset:3px;overflow-wrap:anywhere}
+    .faq-entry{scroll-margin-top:18px}
+    .faq-list{max-width:880px}
+    .faq-item{max-width:none;background:white;border:1px solid #e8e2da;border-radius:12px;padding:0 20px;margin:12px 0}
+    .faq-item summary{font-weight:750;padding:18px 0;cursor:pointer}
+    .faq-item p{padding:0 0 18px;color:#5c574e;margin:0;max-width:760px}
+    #respostas{scroll-margin-top:18px}
+    @media(max-width:480px){.faq-item{padding:0 16px}}
+  </style>
+</BaseLayout>
