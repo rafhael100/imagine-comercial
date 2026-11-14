@@ -98,7 +98,7 @@ try{
    const path=join(dir,item.name),stat=lstatSync(path);
    if(stat.isSymbolicLink())throw Error('symlink');
    if(stat.isDirectory())walk(path);
-   else if(stat.isFile())actual.push(relative(join(root,'dist'),path).replaceAll('\\','/'));
+   else if(stat.isFile())actual.push(relative(join(root,'dist'),path).replaceAll(String.fromCharCode(92),'/'));
    else throw Error('unreviewed file');
   }
  }
