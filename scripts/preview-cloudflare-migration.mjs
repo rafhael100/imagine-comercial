@@ -3,6 +3,7 @@
  */
 import {mkdir,writeFile} from 'node:fs/promises';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
+import {reviewInternationalLegacyCutover} from '../src/lib/international-legacy-cutover-review.mjs';
 import {createMigrationReview,simulateMigrationRequest} from '../src/lib/cloudflare-migration-preview.mjs';
 
 const folder='artifacts/migration-preview';
@@ -21,6 +22,10 @@ await mkdir(folder,{recursive:true});
 await writeFile(folder+'/REVIEW-ONLY-redirects.preview.txt',
  '# SIMULATED CANDIDATES - NOT APPROVED / DO NOT DEPLOY\n'+review.candidateRules+'\n');
 await writeFile(folder+'/migration-review.json',JSON.stringify(review,null,2)+'\n');
+const international=reviewInternationalLegacyCutover();
+if(international.redirectsGenerated!==0||international.readyForCutover||international.originalsReviewed!==12)
+  throw Error('International migration must remain blocked');
+await writeFile(folder+'/international-legacy-HOLD.json',JSON.stringify(international,null,2)+'\\n');
 console.log('Offline migration preview passed:',JSON.stringify({
   candidates:review.candidateCount,held:review.heldCount,
   state:'SIMULATION_ONLY_NO_REDIRECTS_DEPLOYED'
