@@ -1,5 +1,7 @@
 ---
 import {CHANNELS} from '../lib/media-budget-calculator.mjs';
+import {contactWhatsAppUrl} from '../data/contact-channels.mjs';
+import {CALCULATOR_CONTACT_OPTIONS} from '../data/calculator-contact-messages.mjs';
 interface Props {locale:'en'|'es'}
 const {locale}=Astro.props;
 const en=locale==='en';
@@ -27,6 +29,8 @@ const t=en?{
   basis:'Breakdown by channel',
   low:'Your monthly limit is below the suggestion. We will never raise your budget automatically.',
   contact:'Discuss my plan with Imagine',
+  whatsapp:'Discuss my channels on WhatsApp',
+  whatsappNote:'A fixed message lists only your selected channels, no numbers or personal information. Review and send it yourself in WhatsApp.',
   disclaimer:'Setup is BRL 490 once per selected channel, separate from monthly management. The 20% is a reference based on suggested media; the management minimum has not been finalized, so these subtotals are not final prices. Actual management is reconciled after each month against verified spend. Media goes directly to each platform. No results or orders are guaranteed.',
   noLead:'Email delivery and automated CRM follow-up are not active yet. You can contact Imagine through the available channels.',
   leads:'Generate leads',sales:'Increase sales',awareness:'Build awareness',
@@ -56,6 +60,8 @@ const t=en?{
   basis:'Distribución por canal',
   low:'Tu límite mensual está por debajo de la sugerencia. No incrementaremos automáticamente tu presupuesto.',
   contact:'Hablar de mi plan con Imagine',
+  whatsapp:'Hablar sobre mis canales por WhatsApp',
+  whatsappNote:'Un mensaje aprobado incluye solo los canales seleccionados, sin importes ni datos personales. Revisa y confirma el envío en WhatsApp.',
   disclaimer:'La activación de R$ 490 por canal se paga una sola vez, por separado de la gestión mensual. El 20% es una referencia y el mínimo mensual de gestión todavía no está definido: los subtotales no son un precio final. La gestión se concilia tras cada mes según la inversión real verificada. La publicidad se paga directamente a cada plataforma. No se contrata ni garantiza ningún resultado.',
   noLead:'El envío por e-mail y la nutrición automática en el CRM todavía no están disponibles. Puedes contactar con Imagine por sus canales públicos.',
   leads:'Conseguir leads',sales:'Aumentar ventas',awareness:'Dar a conocer mi marca',
@@ -64,6 +70,11 @@ const t=en?{
 };
 const money=n=>new Intl.NumberFormat(en?'en-US':'es-ES',{style:'currency',currency:'BRL'}).format(n/100);
 const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
+const curatedWhatsApp=CALCULATOR_CONTACT_OPTIONS[locale].map(option=>({
+ key:option.key,href:contactWhatsAppUrl(option.message)
+}));
+const defaultWhatsApp=curatedWhatsApp.find(option=>option.key==='meta_ads')?.href;
+if(!defaultWhatsApp)throw new Error('Missing reviewed default calculator contact');
 ---
 <section class="hero"><div class="shell">
   <p class="eyebrow">{t.eyebrow}</p>
@@ -115,7 +126,12 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
         <button type="button" class="cta cta-secondary" id="intl-calc-print" hidden>{t.print}</button>
       </div>
       <p id="intl-calc-copy-status" role="status" aria-live="polite"></p>
-      <a class="cta" href={locale==='en'?'/en/contact/':'/es/contact/'}>{t.contact}</a>
+      <a class="cta" id="intl-calc-whatsapp" href={defaultWhatsApp} target="_blank" rel="noopener noreferrer" aria-describedby="intl-calc-whatsapp-notice">{t.whatsapp}</a>
+      <p id="intl-calc-whatsapp-notice" class="calc-hint">{t.whatsappNote}</p>
+      <div id="intl-reviewed-whatsapp-choices" hidden aria-hidden="true">
+        {curatedWhatsApp.map(option=><a data-intl-calc-contact-key={option.key} href={option.href} tabindex="-1">{t.whatsapp}</a>)}
+      </div>
+      <p><a href={locale==='en'?'/en/contact/':'/es/contact/'}>{t.contact}</a></p>
       <p class="calc-hint">{t.noLead}</p>
     </section>
   </div>
@@ -130,6 +146,9 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
     const copy=get<HTMLButtonElement>('#intl-calc-copy');
     const print=get<HTMLButtonElement>('#intl-calc-print');
     const status=get<HTMLElement>('#intl-calc-copy-status');
+    const whatsapp=get<HTMLAnchorElement>('#intl-calc-whatsapp');
+    const contacts=Array.from(root.querySelectorAll<HTMLAnchorElement>('[data-intl-calc-contact-key]'));
+    const defaultWhatsapp=whatsapp?.getAttribute('href')??'';
     const canCopy=typeof navigator.clipboard?.writeText==='function';
     let summary='';
     if(copy&&canCopy){copy.addEventListener('click',async()=>{
@@ -189,12 +208,17 @@ const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
           (locale==='en-US'?'One-time activation: ':'Activación única: ')+money(p.oneTimeActivationCents),
           (locale==='en-US'?'Illustrative first-cycle subtotal (not final price): ':'Subtotal inicial orientativo (no es precio final): ')+money(p.illustrativeFirstCycleSubtotalCents)
         ].join('\n');
+        const contactKey=p.channels.map(item=>item.id).join('+');
+        const curated=contacts.find(item=>item.dataset.intlCalcContactKey===contactKey);
+        if(!curated)throw new Error('Unreviewed calculator contact selection');
+        if(whatsapp)whatsapp.setAttribute('href',curated.getAttribute('href')??defaultWhatsapp);
         if(status)status.textContent='';
         if(copy)copy.hidden=!canCopy;
         if(print)print.hidden=false;
         if(results){results.hidden=false;results.scrollIntoView({behavior:'smooth',block:'start'});}
       }catch{
         summary='';
+        if(whatsapp)whatsapp.setAttribute('href',defaultWhatsapp);
         if(copy)copy.hidden=true;
         if(print)print.hidden=true;
         if(status)status.textContent='';
