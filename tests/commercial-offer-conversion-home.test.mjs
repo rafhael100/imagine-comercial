@@ -5,6 +5,8 @@ import {services} from '../src/data/services.mjs';
 const home=readFileSync(new URL('../src/pages/index.astro',import.meta.url),'utf8');
 const showcase=readFileSync(new URL('../src/components/QuickServiceRequest.astro',import.meta.url),'utf8');
 const international=readFileSync(new URL('../src/components/InternationalPage.astro',import.meta.url),'utf8');
+const intlSales=readFileSync(new URL('../src/components/InternationalSalesHome.astro',import.meta.url),'utf8');
+const artwork=readFileSync(new URL('../src/components/OfferArtwork.astro',import.meta.url),'utf8');
 
 test('F321 leads with benefit and internal product choice, without requiring signup',()=>{
  assert.match(home,/Seu negócio mais bonito/);
@@ -41,15 +43,33 @@ test('F321 clearly separates media, one-time setup, postpaid management, and Cha
  assert.doesNotMatch(showcase,/<form\b|<input\b|<textarea\b|\bfetch\s*\(|localStorage|sessionStorage|document\.cookie/);
 });
 
-test('F321 international front pages keep the purchase-first sequence in both languages',()=>{
- assert.match(international,/Find my solution/);
- assert.match(international,/Encontrar mi solución/);
- assert.match(international,/Review scope and pricing/);
- assert.match(international,/Revisar alcance y precios/);
- assert.match(international,/Not available|not available for checkout|no disponible para contratar/i);
- assert.match(international,/BRL 170/);
- assert.match(international,/R\$ 170/);
- assert.match(international,/href="#intl-solutions"/);
- assert.match(international,/href="#intl-sites"/);
- assert.match(international,/href="#intl-ads"/);
+test('F323 home EN/ES uses the same four illustrative offers and concise funnel as PT',()=>{
+ assert.match(international,/InternationalSalesHome locale=\{locale\}/);
+ assert.match(intlSales,/Make your business stand out/);
+ assert.match(intlSales,/Haz que tu negocio destaque/);
+ assert.match(intlSales,/I want a website/);
+ assert.match(intlSales,/Quiero un sitio web/);
+ assert.match(intlSales,/href="#intl-solutions"/);
+ assert.match(intlSales,/href="#intl-ads"/);
+ assert.match(intlSales,/featured=\['onepage','landing-pages','criacao-de-sites','gestao-google-ads'\]/);
+ assert.match(intlSales,/additional=\['gestao-meta-ads','sites-por-assinatura','gestao-chatgpt-ads'\]/);
+ assert.match(intlSales,/<OfferArtwork slug=\{slug\}\/>/);
+ assert.match(artwork,/art-gestao-google-ads/);
+ assert.match(intlSales,/Review|Revisa/);
+ assert.match(intlSales,/BRL 170/);
+ assert.match(intlSales,/R\$ 170/);
+ assert.match(intlSales,/BRL 490/);
+ assert.match(intlSales,/R\$ 490/);
+ assert.match(intlSales,/first monthly payment 90 days/);
+ assert.match(intlSales,/primera mensualidad 90 días/);
+ assert.doesNotMatch(intlSales,/<(?:form|input|textarea)\b|\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage/);
+});
+
+test('F323 public international service selection uses opt-in contact, no checkout',()=>{
+ assert.match(intlSales,/localizedSalesWhatsAppUrl\(locale,slug\)/);
+ assert.match(intlSales,/target="_blank" rel="noopener noreferrer"/);
+ assert.match(intlSales,/No se envía automáticamente/);
+ assert.match(intlSales,/Nothing is sent automatically/);
+ assert.match(intlSales,/no public checkout or payment/);
+ assert.doesNotMatch(intlSales,/portal-dev|asaas|paymentEnabled|cart_checkout|customer_id/);
 });
