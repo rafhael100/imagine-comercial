@@ -16,7 +16,8 @@ const guideSlugsByService=Object.freeze({
   'onepage':['landing-page-ou-site'],
   'sites-por-assinatura':['landing-page-ou-site'],
   'gestao-google-ads':['google-ads-ou-meta-ads'],
-  'gestao-meta-ads':['google-ads-ou-meta-ads']
+  'gestao-meta-ads':['google-ads-ou-meta-ads'],
+  'gestao-chatgpt-ads':['google-ads-ou-meta-ads']
 });
 const articleBySlug=new Map(articles.map(article=>[article.slug,article]));
 const serviceSlugs=new Set(services.map(service=>service.slug));

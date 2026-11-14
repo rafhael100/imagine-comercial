@@ -22,7 +22,8 @@ const categories=Object.freeze({
   'onepage':'sites',
   'sites-por-assinatura':'assinaturas',
   'gestao-google-ads':'anuncios',
-  'gestao-meta-ads':'anuncios'
+  'gestao-meta-ads':'anuncios',
+  'gestao-chatgpt-ads':'anuncios'
 });
 const allowed=new Set(serviceCatalogGroups.filter(x=>x.code!=='all').map(x=>x.code));
 const listed=new Set(services.map(s=>s.slug));

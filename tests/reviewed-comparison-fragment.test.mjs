@@ -7,7 +7,7 @@ import {
   decodeReviewedComparisonFragment as decode
 } from '../src/data/reviewed-comparison-fragment.mjs';
 
-test('F175 all 15 unordered pairs round trip to one canonical public hash each',()=>{
+test('F175 all 21 unordered pairs round trip to one canonical public hash each',()=>{
   const all=new Set();
   for(let i=0;i<comparisonOptions.length;i++)
     for(let j=i+1;j<comparisonOptions.length;j++){
@@ -20,7 +20,7 @@ test('F175 all 15 unordered pairs round trip to one canonical public hash each',
       assert.ok(hash.length<90);
       all.add(hash);
     }
-  assert.equal(all.size,15);
+  assert.equal(all.size,21);
 });
 test('F175 malformed, forged, duplicate or unreviewed fragments cannot restore comparison',()=>{
   for(const hash of ['',null,undefined,42,{},'#comparar:',

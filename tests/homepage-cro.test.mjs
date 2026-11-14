@@ -9,7 +9,7 @@ test('homepage leads with real contact CTA, offers service navigation and visual
   assert.ok(s.indexOf('href="/contato/"')<s.indexOf('href="/servicos/"'));
   assert.ok(s.includes('<HeroVisual />'));
   assert.ok(s.includes('additional.map'));
-  assert.equal(services.length,6);
+  assert.equal(services.length,7);
 });
 
 test('decorative illustration makes no unverifiable social proof or ranking claims',()=>{

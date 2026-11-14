@@ -35,6 +35,11 @@ const curated=Object.freeze([
     slug:'gestao-meta-ads',group:'midia',bestFor:'Apresentar ofertas e criar oportunidades de descoberta',
     structure:'Planejamento de campanhas para Instagram e Facebook, com atenção a criativos e público.',
     question:'Como comunicar a oferta a pessoas que ainda não estão pesquisando por ela?'
+  },
+  {
+    slug:'gestao-chatgpt-ads',group:'midia',bestFor:'Explorar anúncios patrocinados no ChatGPT com piloto mensurável',
+    structure:'Canal emergente, condicionado à elegibilidade, aprovação e integração operacional.',
+    question:'A empresa pode testar o canal com métricas próprias e orçamento validado?'
   }
 ]);
 

@@ -22,7 +22,7 @@ const candidate=reviewProgressiveOverlayManifest(manifest);
 const decisions=sitePages.map(page=>classifyProgressiveOverlayRequest(candidate,{
  method:'GET',pathname:page.path,search:''
 }));
-assert.equal(decisions.filter(d=>d.decision==='REVIEWED_NEW_ASTRO_HTML').length,59);
+assert.equal(decisions.filter(d=>d.decision==='REVIEWED_NEW_ASTRO_HTML').length,62);
 assert.equal(decisions.filter(d=>d.decision==='LEGACY_ORIGIN_RETAIN').length,1);
 for(const item of legacyUrls){
  const record=classifyProgressiveOverlayRequest(candidate,{
@@ -38,7 +38,7 @@ for(const candidateAsset of candidate.eligibleStaticAssets){
 }
 const allowedAssets=new Set(candidate.eligibleStaticAssets);
 const pages=readProtectedDist('dist').filter(item=>item.path.endsWith('index.html'));
-assert.equal(pages.length,60);
+assert.equal(pages.length,63);
 let referencedAssets=0;
 for(const page of pages){
  const html=page.bytes.toString('utf8');
@@ -49,14 +49,14 @@ for(const page of pages){
   referencedAssets++;
  }
 }
-assert.ok(referencedAssets>=60,'F314: expected all pages to reference reviewed resources');
+assert.ok(referencedAssets>=63,'F314: expected all pages to reference reviewed resources');
 const handoff=Object.freeze({
  schema:'imagine.comercial.progressive-legacy-overlay-handoff.v1',
  status:'REVIEW_ONLY_NOT_AUTHORIZED_FOR_DEPLOY',
  staticTreeSha256:manifest.treeSha256,
  reviewContract:candidate.schema,
- publicPagesBuilt:60,
- newPagesEligibleForPrivateOverlay:59,
+ publicPagesBuilt:63,
+ newPagesEligibleForPrivateOverlay:62,
  retainedOriginalHomepageCount:1,
  retainedKnownOldUrls:27,
  retainedLegacyHeld:22,
@@ -79,5 +79,5 @@ const handoff=Object.freeze({
 });
 await writeFile('artifacts/release-review/REVIEW-ONLY-progressive-legacy-overlay.json',
  JSON.stringify(handoff,null,2)+'\n');
-console.log('PASS F314: preview only; 59 Astro routes, 27 old and original home preserved, '+
+console.log('PASS F314: preview only; 62 Astro routes, 27 old and original home preserved, '+
  candidate.eligibleStaticAssets.length+' approved assets. Private staging/noindex only, no deploy.');

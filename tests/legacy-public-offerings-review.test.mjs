@@ -20,14 +20,14 @@ test('F172 14 publicly observed legacy headings are review items, never approved
     else assert.equal(item.status,'HOLD_UNMAPPED');
   }
 });
-test('F172 6 public catalog slugs do not hide 10 old categories or 2 new-only scope reviews',()=>{
+test('F172 7 public catalog slugs do not hide 10 old categories or 3 new-only scope reviews',()=>{
   const report=reviewLegacyPublicOfferings();
   assert.equal(report.legacyHeadingsObserved,14);
   assert.equal(report.candidatesRequiringManualEquivalence,4);
   assert.equal(report.unmappedLegacyHeadings,10);
-  assert.equal(report.newCatalogSlugsRequiringScopeReview,2);
+  assert.equal(report.newCatalogSlugsRequiringScopeReview,3);
   assert.deepEqual([...report.newOnlySlugs].sort(),
-    ['onepage','sites-por-assinatura'].sort());
+    ['onepage','sites-por-assinatura','gestao-chatgpt-ads'].sort());
   assert.ok(report.heldHeadings.includes('Criação de Loja Virtual'));
   assert.ok(report.heldHeadings.includes('Sistemas Personalizados'));
   assert.equal(report.contentScopeOwnerApproved,false);

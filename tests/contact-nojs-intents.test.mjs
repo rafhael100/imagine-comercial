@@ -6,8 +6,8 @@ import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
 import {isApprovedPublicExternalHref} from '../src/lib/outbound-link-contract.mjs';
 const source=readFileSync(new URL('../src/pages/contato.astro',import.meta.url),'utf8');
-test('F208 six approved services have static outbound options without script',()=>{
-  assert.equal(services.length,6);
+test('F208 seven approved services have static outbound options without script',()=>{
+  assert.equal(services.length,7);
   const urls=new Set();
   for(const service of services){
     const intent=composeCuratedContactLinks(service.slug);
@@ -16,7 +16,7 @@ test('F208 six approved services have static outbound options without script',()
     assert.ok(isApprovedPublicExternalHref(mail));
     urls.add(whats);urls.add(mail);
   }
-  assert.equal(urls.size,12);
+  assert.equal(urls.size,14);
 });
 test('F208 Astro noscript renders a reviewed service-specific contact card',()=>{
   assert.match(source,/<noscript>/);

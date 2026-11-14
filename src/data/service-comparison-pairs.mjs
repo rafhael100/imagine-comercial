@@ -12,7 +12,8 @@ const alternativeSlugs=Object.freeze({
   'landing-pages':Object.freeze(['onepage','criacao-de-sites']),
   'sites-por-assinatura':Object.freeze(['onepage','criacao-de-sites']),
   'gestao-google-ads':Object.freeze(['gestao-meta-ads','landing-pages']),
-  'gestao-meta-ads':Object.freeze(['gestao-google-ads','landing-pages'])
+  'gestao-meta-ads':Object.freeze(['gestao-google-ads','gestao-chatgpt-ads']),
+  'gestao-chatgpt-ads':Object.freeze(['gestao-google-ads','gestao-meta-ads'])
 });
 const bySlug=new Map(comparisonOptions.map(item=>[item.slug,item]));
 if(Object.keys(alternativeSlugs).length!==services.length||

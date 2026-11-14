@@ -5,7 +5,7 @@ import {comparisonOptions} from '../src/data/service-comparison.mjs';
 import {composeReviewedComparisonContact as compose} from '../src/data/comparison-contact.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
 
-test('F188 all fifteen approved pairs produce stable external channel URLs',()=>{
+test('F188 all twenty-one approved pairs produce stable external channel URLs',()=>{
   const urls=new Set();
   for(let i=0;i<comparisonOptions.length;i++)
   for(let j=i+1;j<comparisonOptions.length;j++){
@@ -22,7 +22,7 @@ test('F188 all fifteen approved pairs produce stable external channel URLs',()=>
     assert.match(email,/^mailto:imagine@imaginecomunicacao\.com\.br\?subject=/);
     urls.add(whatsapp);
   }
-  assert.equal(urls.size,15);
+  assert.equal(urls.size,21);
 });
 test('F188 rejects all unreviewed input and free-text outbound messages',()=>{
   for(const pair of [null,{},[],['onepage'],['onepage','onepage'],

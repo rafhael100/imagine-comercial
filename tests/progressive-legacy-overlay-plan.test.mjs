@@ -20,7 +20,7 @@ function syntheticManifest(){
   schema:'imagine.comercial.release-review.v1',
   mode:'REVIEW_ONLY_NOT_AUTHORIZED_FOR_DEPLOY',
   origin:'https://imaginecomunicacao.com.br/',
-  htmlPages:60,fileCount:files.length,totalBytes:files.length*1000,
+  htmlPages:63,fileCount:files.length,totalBytes:files.length*1000,
   treeSha256:hash('synthetic source, never approved'),
   files
  };
@@ -29,8 +29,8 @@ const req=(pathname,method='GET',search='')=>({method,pathname,search});
 
 test('F314 accepts an exact, full public build manifest only as a route PLAN',()=>{
  const plan=review(syntheticManifest());
- assert.equal(plan.currentStaticHtmlPages,60);
- assert.equal(plan.eligibleNewPages,59);
+ assert.equal(plan.currentStaticHtmlPages,63);
+ assert.equal(plan.eligibleNewPages,62);
  assert.equal(plan.heldLegacyRoutesKept,22);
  assert.equal(plan.historicalRedirectCandidatesKeptWithout301,5);
  assert.equal(plan.oldHomepageKept,true);
@@ -43,7 +43,7 @@ test('F314 accepts an exact, full public build manifest only as a route PLAN',()
  assert.ok(Object.isFrozen(plan));
  assert.ok(Object.isFrozen(plan.eligibleStaticAssets));
 });
-test('F314 routes exactly 59 new pages for GET/HEAD and preserves old homepage',()=>{
+test('F314 routes exactly 62 new pages for GET/HEAD and preserves old homepage',()=>{
  const plan=review(syntheticManifest());
  for(const {path} of sitePages){
   for(const method of ['GET','HEAD']){
@@ -135,7 +135,7 @@ test('F314 even when all route policies are internally valid the production laun
  const status=JSON.parse(renderReadinessReport(['--target=production']));
  const overlay=status.progressiveLegacyOverlay;
  assert.equal(status.approval,'NOT_AUTHORIZED');
- assert.equal(overlay.listedNewPageCandidates,59);
+ assert.equal(overlay.listedNewPageCandidates,62);
  assert.equal(overlay.knownHistoricalRoutesRetained,27);
  assert.equal(overlay.originalHomepageRetained,true);
  assert.equal(overlay.unlistedPathsMustRemainOnOriginal,true);

@@ -7,7 +7,7 @@ import {decodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragme
 const source=readFileSync(new URL('../src/pages/servicos/index.astro',import.meta.url),'utf8');
 const browser=readFileSync(new URL('../scripts/browser-qa.mjs',import.meta.url),'utf8');
 test('F251 only published service slugs can be embedded in card contact shortcuts',()=>{
-  assert.equal(services.length,6);
+  assert.equal(services.length,7);
   for(const s of services){
     assert.match(s.slug,/^[a-z0-9-]+$/);
     assert.ok(sitePages.some(page=>page.path==='/servicos/'+s.slug+'/'));

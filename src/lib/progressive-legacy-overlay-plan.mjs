@@ -22,7 +22,7 @@ const RECORD_KEYS=['path','size','sha256'];
 const MANIFEST_KEYS=['schema','mode','origin','htmlPages','fileCount',
   'totalBytes','treeSha256','files'];
 
-if(STATIC_PAGES.length!==60 || new Set(STATIC_PAGES).size!==60 ||
+if(STATIC_PAGES.length!==63 || new Set(STATIC_PAGES).size!==63 ||
   LEGACY.size!==27 || legacyUrls.filter(x=>x.status==='hold').length!==22 ||
   STATIC_PAGES.some(path=>LEGACY.has(path)))
   throw Error('F314: reviewed current or historic route catalog changed');
@@ -48,7 +48,7 @@ export function reviewProgressiveOverlayManifest(manifest){
     manifest.schema!=='imagine.comercial.release-review.v1'||
     manifest.mode!=='REVIEW_ONLY_NOT_AUTHORIZED_FOR_DEPLOY'||
     manifest.origin!=='https://imaginecomunicacao.com.br/'||
-    manifest.htmlPages!==60||
+    manifest.htmlPages!==63||
     !Number.isSafeInteger(manifest.fileCount)||manifest.fileCount<63||
     manifest.fileCount>300||
     !Number.isSafeInteger(manifest.totalBytes)||manifest.totalBytes<10000||
@@ -82,7 +82,7 @@ export function reviewProgressiveOverlayManifest(manifest){
    assets.add(publicPath);
   }
  }
- if(bytes!==manifest.totalBytes||htmlFiles!==60||paths.size!==60||
+ if(bytes!==manifest.totalBytes||htmlFiles!==63||paths.size!==63||
     STATIC_PAGES.some(path=>!paths.has(path))||
     !found.has('404.html')||!found.has('robots.txt')||
     !found.has('sitemap.xml')||!assets.has('/logo-imagine.png')||

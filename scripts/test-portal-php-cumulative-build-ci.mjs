@@ -71,7 +71,7 @@ try{
     historyText,expectedHistorySha256:historySha,envelope,
     trustKeys:new Map([[envelope.keyId,pem]]),pins
   });
-  assert.equal(reconstructed.serviceCount,6);
+  assert.equal(reconstructed.serviceCount,services.length);
   assert.equal(reconstructed.signedEditorialChanges,2);
   assert.equal(reconstructed.canPublish,false);
   assert.equal(reconstructed.independentFullHistoryAttestationVerified,false);
@@ -93,7 +93,7 @@ try{
   const report=JSON.parse(readFileSync(
     'artifacts/protected-build-review/PROTECTED-BUILD-REVIEW-ONLY.json','utf8'
   ));
-  assert.equal(report.verifiedServiceCount,6);
+  assert.equal(report.verifiedServiceCount,services.length);
   assert.equal(report.deploymentPerformed,false);
   for(const [slug,item]of [['landing-pages',landing],['onepage',onepage]]){
     const html=readFileSync('dist/servicos/'+slug+'/index.html','utf8');
@@ -110,7 +110,7 @@ try{
     IMAGINE_EXPECTED_BUILD_TREE_SHA256:report.compiledTreeSha256,
     IMAGINE_CATALOG_HISTORY_SHA256:'f'.repeat(64)
   }),/Command failed|status/);
-  console.log('F307 PHP Portal Ed25519 -> cumulative Astro six-page protected build -> offline verifier PASS (synthetic only; NO-GO).');
+  console.log('F307 PHP Portal Ed25519 -> cumulative Astro reviewed-service protected build -> offline verifier PASS (synthetic only; NO-GO).');
 }finally{
   rmSync('artifacts/protected-build-review',{recursive:true,force:true});
   try{

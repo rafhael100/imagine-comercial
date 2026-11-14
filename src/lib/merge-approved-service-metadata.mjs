@@ -26,7 +26,7 @@ export function mergeApprovedServiceMetadata(curated, snapshot) {
   });
   // F198: a partially signed update must not silently duplicate SEO titles
   // or meta descriptions already present on any unchanged public page.
-  // Compare the FINAL six-page catalog, not only the signed delta.
+  // Compare the FINAL seven-page catalog, not only the signed delta.
   const titles=new Set(),descriptions=new Set();
   for(const item of merged){
     if(typeof item.title!=='string'||typeof item.description!=='string')

@@ -8,7 +8,7 @@ import {
   isCuratedPublicMessage,isCuratedPublicSubject,isCuratedPublicSubjectBody
 } from '../src/data/curated-channel-text.mjs';
 
-test('F159: both URL constructors accept all 560 reviewed contact combinations',()=>{
+test('F159: both URL constructors accept all 640 reviewed contact combinations',()=>{
   let count=0;
   for(const service of ['',...services.map(x=>x.slug)])
   for(const objective of ['',...contactObjectives.map(x=>x.code)])
@@ -24,7 +24,7 @@ test('F159: both URL constructors accept all 560 reviewed contact combinations',
     assert.equal(email.searchParams.get('body'),message);
     count++;
   }
-  assert.equal(count,560);
+  assert.equal(count,640);
 });
 test('F159: a correct-looking prefix or pasted free text never passes constructors',()=>{
   for(const fake of [

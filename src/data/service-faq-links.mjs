@@ -11,7 +11,8 @@ const mapped=Object.freeze({
   'onepage':Object.freeze(['escolha','materiais']),
   'sites-por-assinatura':Object.freeze(['precos','portal']),
   'gestao-google-ads':Object.freeze(['midia','resultados']),
-  'gestao-meta-ads':Object.freeze(['midia','resultados'])
+  'gestao-meta-ads':Object.freeze(['midia','resultados']),
+  'gestao-chatgpt-ads':Object.freeze(['midia','resultados'])
 });
 if(Object.keys(mapped).length!==services.length||
    services.some(service=>!Object.hasOwn(mapped,service.slug))||

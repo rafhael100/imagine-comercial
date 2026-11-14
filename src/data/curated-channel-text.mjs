@@ -35,7 +35,7 @@ for(let j=i+1;j<comparisonOptions.length;j++){
   subjectBodyPairs.add(subject+'\0'+message);
   comparisonPairs++;
 }
-if(comparisonPairs!==15)throw Error('F188: invalid pair contact catalog');
+if(comparisonPairs!==21)throw Error('F188: invalid pair contact catalog');
 
 // F315: seven fixed provider combinations in each of three languages;
 // no user-supplied spending amounts, identifiers, free text or PII.
@@ -43,7 +43,7 @@ for(const options of Object.values(CALCULATOR_CONTACT_OPTIONS))
   for(const item of options)messages.add(item.message);
 
 
-if(combinations!==560||messages.size<35||subjects.size<7)
+if(combinations!==640||messages.size<35||subjects.size<7)
   throw Error('F159: invalid public curated contact catalog');
 
 export const isCuratedPublicMessage=value=>
