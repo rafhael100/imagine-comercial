@@ -9,6 +9,7 @@ import {resolve,join} from 'node:path';
 import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
+import {verifyServedLanguageParity} from '../src/lib/i18n-served-http-contract.mjs';
 import {sitePages,toAbsoluteUrl} from '../src/data/services.mjs';
 import {verifyIndexablePage,verifySitemapUrls,verifyRobotsSitemap} from '../src/lib/seo-output-contract.mjs';
 import {createSecurityHeadersPreview,localHeaderProfile} from '../src/lib/security-headers-preview.mjs';
@@ -94,6 +95,7 @@ try{
     }
     const html=await response.text();
     verifyIndexablePage(html,toAbsoluteUrl(publicPath));
+    verifyServedLanguageParity(html,publicPath);
   }
 
   const robots=await probe('/robots.txt');
@@ -115,7 +117,7 @@ try{
     assert.doesNotMatch(html,/<link rel="canonical"/,
       blocked+' should not assert a canonical URL');
   }
-  console.log('Cloudflare workerd LOCAL passed: '+candidates.length+' x 301, '+sitePages.length+' x 200, 2 SEO assets, '+(held.length+1)+' x 404; 4 reviewed headers on every public HTML; zero deployments.');
+  console.log('Cloudflare workerd LOCAL passed: '+candidates.length+' x 301, '+sitePages.length+' x 200 with three country flags/four hreflang links each, 2 SEO assets, '+(held.length+1)+' x 404; 4 reviewed headers on every public HTML; zero deployments.');
 } finally{
   if(runner?.pid){
     try{process.kill(-runner.pid,'SIGTERM')}catch{}
