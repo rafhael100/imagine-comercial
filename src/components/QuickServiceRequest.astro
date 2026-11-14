@@ -2,6 +2,10 @@
 import { buildServices as services } from '../lib/build-catalog.mjs';
 import { composeCuratedContactLinks } from '../data/contact-objectives.mjs';
 import { contactWhatsAppUrl } from '../data/contact-channels.mjs';
+import { REVIEWED_OFFERS, reviewedPrivatePortalUrl } from '../../ops/review/purchase/private-portal-handoff-policy.mjs';
+// Never link the live site to a rehearsal. This opt-in only works inside GitHub CI.
+const privatePortalBuild = process.env.GITHUB_ACTIONS === 'true' && process.env.IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW === '1';
+const portalPreviewHref = (slug: string): string => privatePortalBuild && Object.hasOwn(REVIEWED_OFFERS,slug) ? reviewedPrivatePortalUrl(slug) : '';
 const copy: Record<string,string> = {
   'criacao-de-sites':'Um site completo para apresentar sua empresa e seus serviços.',
   'landing-pages':'Uma página focada na sua oferta, campanha ou lançamento.',
@@ -24,15 +28,16 @@ const copy: Record<string,string> = {
         <p class="quick-hire-description">{copy[service.slug]}</p>
         <p class="quick-hire-price">Valores e condições na proposta</p>
         <a class="cta quick-hire-action" data-quick-hire-action
-          href={contactWhatsAppUrl(composeCuratedContactLinks(service.slug).message)}
-          target="_blank" rel="noopener noreferrer"
-          aria-label={'Quero contratar '+service.label+' — conversar no WhatsApp'}
+          href={portalPreviewHref(service.slug) || contactWhatsAppUrl(composeCuratedContactLinks(service.slug).message)}
+          target={portalPreviewHref(service.slug) ? undefined : '_blank'}
+          rel={portalPreviewHref(service.slug) ? 'noreferrer nofollow' : 'noopener noreferrer'}
+          aria-label={portalPreviewHref(service.slug) ? 'Abrir contratação privada de teste: '+service.label : 'Quero contratar '+service.label+' — conversar no WhatsApp'}
           aria-describedby="quick-hire-notice">Quero contratar <span aria-hidden="true">↗</span></a>
         <a class="quick-hire-details" href={'/servicos/'+service.slug+'/'}>Ver o que está incluído</a>
       </article>
     ))}
   </div>
-  <p id="quick-hire-notice" class="quick-hire-notice">O botão abre o WhatsApp com o serviço escolhido. Você confere a mensagem e decide enviá-la. A contratação acontece após confirmar a proposta e as condições; nenhum pagamento é feito aqui.</p>
+  <p id="quick-hire-notice" class="quick-hire-notice">{privatePortalBuild ? 'Prévia privada de contratação: Onepage, Landing Page, Google Ads e Meta Ads abrem somente o Portal de teste. Outros serviços seguem para o WhatsApp. Nenhum cadastro, pagamento ou contrato real é iniciado.' : 'O botão abre o WhatsApp com o serviço escolhido. Você confere a mensagem e decide enviá-la. A contratação acontece após confirmar a proposta e as condições; nenhum pagamento é feito aqui.'}</p>
 </section>
 <style>
   .quick-hire{padding-block:clamp(42px,6vw,76px)}
