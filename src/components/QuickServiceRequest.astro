@@ -92,7 +92,7 @@ const bySlug=Object.fromEntries(services.map(service=>[service.slug,service]));
      {group.slugs.map(slug=>{
       const service=bySlug[slug],detail=offerCopy[slug];
       const preview=portalPreviewHref(slug);
-      const cta=slug==='gestao-chatgpt-ads'?'Conversar sobre disponibilidade':preview?'Escolher e continuar':'Quero conhecer minha proposta';
+      const cta=slug==='gestao-chatgpt-ads'?'Conversar sobre disponibilidade':'Quero conhecer minha proposta';
       return (
        <article class="quick-hire-card" data-quick-hire={service.slug}>
         <div class="offer-top"><span class="offer-tag">{detail.tag}</span><span class="offer-arrow" aria-hidden="true">↗</span></div>
