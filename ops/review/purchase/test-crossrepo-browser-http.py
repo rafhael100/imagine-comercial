@@ -127,7 +127,9 @@ with sync_playwright() as p:
         assert page.locator('tr[data-customer-order]').count() == 0
         assert page.request.get(onepage).status == 404
         assert page.request.get(landing).status == 404
-        assert page.request.post(onepage + "/payment", form={"_token":page.locator("input[name=_token]").first.input_value(), "revision":"0", "outcome":"approved", "sample_ack":"1"}).status == 404
+        page.goto(PORTAL + "/shop?product=onepage")
+        csrf_token = page.locator('input[name="_token"]').first.input_value()
+        assert page.request.post(onepage + "/payment", form={"_token":csrf_token, "revision":"0", "outcome":"approved", "sample_ack":"1"}).status == 404
         page.goto(PORTAL)
         page.get_by_role("button", name="Sair", exact=True).click()
         page.locator('[name="username"]').fill(owner_a)
