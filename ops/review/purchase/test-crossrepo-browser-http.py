@@ -24,7 +24,15 @@ PASSWORD = "ci-crossrepo-synthetic-only-2026"
 
 def from_commercial(page, slug):
     assert page.goto(COMMERCIAL, wait_until="domcontentloaded").status == 200
-    assert page.locator("[data-quick-hire]").count() == 6
+    # The seventh editorial ChatGPT Ads offering has no private checkout:
+    # only the original four Portal CTAs may enter the synthetic shop.
+    assert page.locator("[data-quick-hire]").count() == 7
+    chatgpt = page.locator('[data-quick-hire="gestao-chatgpt-ads"] [data-quick-hire-action]')
+    assert chatgpt.count() == 1
+    assert chatgpt.get_attribute("target") == "_blank"
+    assert "noopener" in (chatgpt.get_attribute("rel") or "")
+    assert (chatgpt.get_attribute("href") or "").startswith("https://wa.me/")
+    assert "/_preview/portal/shop" not in (chatgpt.get_attribute("href") or "")
     for public in ("criacao-de-sites", "sites-por-assinatura"):
         a = page.locator('[data-quick-hire="' + public + '"] [data-quick-hire-action]')
         assert a.count() == 1
