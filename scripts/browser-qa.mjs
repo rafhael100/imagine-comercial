@@ -903,7 +903,7 @@ try {
     const groupButtons=page.locator('#service-catalog-filters [data-service-category]');
     assert.equal(await groupButtons.count(),4,'F250 four reviewed service groups');
     assert.equal(await allCatalogCards.count(),services.length,'F250 full static service catalog');
-    assert.equal(await page.locator('#service-catalog .card:visible').count(),6,
+    assert.equal(await page.locator('#service-catalog .card:visible').count(),7,
       'F250 all services initially visible');
     const previousAddress=page.url();
     await page.locator('[data-service-category="sites"]').click();
@@ -913,13 +913,13 @@ try {
     assert.equal(await page.locator('#service-catalog-status').textContent(),
       'Exibindo 3 serviços de Sites e páginas.');
     await page.locator('[data-service-category="anuncios"]').click();
-    assert.equal(await page.locator('#service-catalog .card:visible').count(),2,
-      'F250 ads category has exactly two services');
+    assert.equal(await page.locator('#service-catalog .card:visible').count(),3,
+      'F250 ads category has exactly three services');
     await page.locator('[data-service-category="assinaturas"]').click();
     assert.equal(await page.locator('#service-catalog .card:visible').count(),1,
       'F250 subscription category has one reviewed service');
     await page.locator('[data-service-category="all"]').click();
-    assert.equal(await page.locator('#service-catalog .card:visible').count(),6,
+    assert.equal(await page.locator('#service-catalog .card:visible').count(),7,
       'F250 show-all restores every published service');
     assert.equal(page.url(),previousAddress,'F250 filters never modify URL or browser history');
     if(viewport.label==='mobile'){
@@ -966,7 +966,7 @@ try {
     await page.waitForURL(host+'/contato/#gestao-meta-ads');
     assert.equal(await page.locator('#service-choice').inputValue(),'gestao-meta-ads');
     assert.equal(await page.locator('#service-guide-results').count(),0,'guide does not leak across pages');
-    assert.equal(await page.locator('#service-choice option').count(),7);
+    assert.equal(await page.locator('#service-choice option').count(),8);
     assert.equal(await page.locator('#service-guide-results[aria-live="polite"]').count(),0);
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('#service-guide-results[aria-live="polite"]').count(),1,
