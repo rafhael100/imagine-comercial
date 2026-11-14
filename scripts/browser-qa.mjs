@@ -961,10 +961,10 @@ try {
     assert.ok((await page.locator('#contact-whatsapp').getAttribute('href'))?.includes('Landing%20Pages'));
     await page.goto(host+'/servicos/',{waitUntil:'load',timeout});
     await page.locator('#service-guide-goal').selectOption('anuncios');
-    assert.equal(await page.locator('#service-guide-links a[data-service-guide-contact]').count(),2);
+    assert.equal(await page.locator('#service-guide-links a[data-service-guide-contact]').count(),3);
     await page.locator('#service-guide-links a[data-service-guide-contact]').last().click();
-    await page.waitForURL(host+'/contato/#gestao-meta-ads');
-    assert.equal(await page.locator('#service-choice').inputValue(),'gestao-meta-ads');
+    await page.waitForURL(host+'/contato/#gestao-chatgpt-ads');
+    assert.equal(await page.locator('#service-choice').inputValue(),'gestao-chatgpt-ads');
     assert.equal(await page.locator('#service-guide-results').count(),0,'guide does not leak across pages');
     assert.equal(await page.locator('#service-choice option').count(),8);
     assert.equal(await page.locator('#service-guide-results[aria-live="polite"]').count(),0);
@@ -994,7 +994,7 @@ try {
           'F58 has a useful static initial recommendation');
         await fallback.goto(host+'/comparar-solucoes/',{waitUntil:'load',timeout});
         assert.equal(await fallback.locator('#comparacoes .compare-card').count(),6,
-          'F174 all six comparison cards stay visible without JavaScript');
+          'F174 all seven comparison cards stay visible without JavaScript');
         assert.equal(await fallback.locator('[data-compare-select]:visible').count(),0,
           'F174 shortlist buttons are hidden without JavaScript');
         assert.equal(await fallback.locator('#copy-comparison-link').isVisible(),false,
