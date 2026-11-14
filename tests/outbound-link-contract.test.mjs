@@ -5,6 +5,7 @@ import {
 } from '../src/data/contact-channels.mjs';
 import {auditApprovedOutboundLinks as audit}
   from '../src/lib/outbound-link-contract.mjs';
+import {CALCULATOR_CONTACT_OPTIONS} from '../src/data/calculator-contact-messages.mjs';
 
 const page=anchors=>'<main>'+anchors.join('')+'</main>';
 const a=(href,extra='')=>'<a href="'+href+'" '+extra+'>Acessar</a>';
@@ -54,4 +55,19 @@ test('F149 never exposes an invalid external URL in the error message',()=>{
     audit(page([a('https://evil.invalid/PERSONAL-SECRET-F149')]));
     assert.fail('must refuse bad domain');
   }catch(e){assert.doesNotMatch(String(e),/PERSONAL-SECRET-F149/);}
+});
+
+test('F315 outbound policy accepts all 21 exact curated calculator links, never arbitrary payload variants',()=>{
+ let passed=0;
+ for(const options of Object.values(CALCULATOR_CONTACT_OPTIONS)){
+  for(const intent of options){
+   const exact=contactWhatsAppUrl(intent.message);
+   assert.equal(audit(page([a(exact,'target="_blank" rel="noopener noreferrer"')]))
+     .externalLinksChecked,1);
+   assert.throws(()=>audit(page([a(exact+'&tag=customer-secret')])),
+     /not an approved public channel/);
+   passed++;
+  }
+ }
+ assert.equal(passed,21);
 });

@@ -8,6 +8,7 @@ import {contactObjectives} from './contact-objectives.mjs';
 import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from './briefing-curado.mjs';
 import {comparisonOptions} from './service-comparison.mjs';
 import {composeReviewedComparisonContact} from './comparison-contact.mjs';
+import {CALCULATOR_CONTACT_OPTIONS} from './calculator-contact-messages.mjs';
 
 const messages=new Set();
 const subjects=new Set();
@@ -35,6 +36,12 @@ for(let j=i+1;j<comparisonOptions.length;j++){
   comparisonPairs++;
 }
 if(comparisonPairs!==15)throw Error('F188: invalid pair contact catalog');
+
+// F315: seven fixed provider combinations in each of three languages;
+// no user-supplied spending amounts, identifiers, free text or PII.
+for(const options of Object.values(CALCULATOR_CONTACT_OPTIONS))
+  for(const item of options)messages.add(item.message);
+
 
 if(combinations!==560||messages.size<35||subjects.size<7)
   throw Error('F159: invalid public curated contact catalog');

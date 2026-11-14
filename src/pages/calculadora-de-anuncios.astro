@@ -2,10 +2,14 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import {contactWhatsAppUrl, contactEmailUrl} from '../data/contact-channels.mjs';
 import {CHANNELS} from '../lib/media-budget-calculator.mjs';
+import {CALCULATOR_CONTACT_OPTIONS} from '../data/calculator-contact-messages.mjs';
 const pathname='/calculadora-de-anuncios/';
 const contactWhatsApp=contactWhatsAppUrl();
 const contactEmail=contactEmailUrl();
 const entries=Object.entries(CHANNELS);
+const curatedWhatsApp=CALCULATOR_CONTACT_OPTIONS.pt.map(option=>({
+  key:option.key,href:contactWhatsAppUrl(option.message)
+}));
 const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(cents/100);
 ---
 <BaseLayout
@@ -99,12 +103,15 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
       <p id="calc-limit-alert" class="calc-limit" role="status" hidden></p>
       <p class="calc-helper">O subtotal do primeiro ciclo é apenas uma simulação: soma investimento sugerido em mídia, gestão de referência de 20% e ativação inicial única. <strong>Não é cotação final:</strong> não inclui eventual mínimo mensal de gestão, cujo valor ainda depende de definição. A gestão é apurada sobre o gasto real verificado após o mês; a mídia é paga diretamente às plataformas. Nenhuma campanha, contratação ou cobrança foi iniciada.</p>
       <div class="cta-row">
-        <a class="cta" href={contactWhatsApp} target="_blank" rel="noopener noreferrer" id="calc-contact-whatsapp">Quero um planejamento personalizado</a>
+        <a class="cta" href={contactWhatsApp} target="_blank" rel="noopener noreferrer" id="calc-contact-whatsapp" aria-describedby="calc-share-notice">Conversar sobre meus canais no WhatsApp</a>
         <a class="cta cta-secondary" href={contactEmail}>Entrar em contato por e-mail</a>
         <button class="cta cta-secondary" type="button" id="calc-copy" hidden>Copiar meu resumo</button>
         <button class="cta cta-secondary" type="button" id="calc-print" hidden>Imprimir ou salvar o estudo em PDF</button>
       </div>
-      <p class="calc-helper">O WhatsApp e o e-mail são canais externos. Você decide enviar a mensagem. Se quiser, copie o resumo e cole na conversa para informar seus objetivos.</p>
+      <p class="calc-helper" id="calc-share-notice">O WhatsApp abrirá uma mensagem pronta contendo apenas os canais escolhidos, sem valores ou dados pessoais. Revise e confirme o envio no próprio aplicativo. Para compartilhar o orçamento, use “Copiar meu resumo”.</p>
+      <div id="calc-reviewed-whatsapp-choices" hidden aria-hidden="true">
+        {curatedWhatsApp.map(option=><a data-calc-contact-key={option.key} href={option.href} tabindex="-1">Mensagem pronta</a>)}
+      </div>
       <p id="calc-copy-status" role="status" aria-live="polite"></p>
     </div>
   </section>
@@ -120,6 +127,9 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
     const form=document.querySelector<HTMLElement>('#media-calculator');
     const error=document.querySelector<HTMLElement>('#calculator-error');
     const result=document.querySelector<HTMLElement>('#media-result');
+    const whatsapp=document.querySelector<HTMLAnchorElement>('#calc-contact-whatsapp');
+    const contacts=Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-calc-contact-key]'));
+    const defaultWhatsapp=whatsapp?.getAttribute('href')??'';
     const method=document.querySelector<HTMLElement>('#calc-method');
     const minimum=document.querySelector<HTMLElement>('#calc-minimum');
     const suggested=document.querySelector<HTMLElement>('#calc-suggested');
@@ -187,6 +197,10 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
           'Ativação inicial única: '+formatBRL(output.oneTimeActivationCents),
           'Subtotal ilustrativo do primeiro ciclo (sem mínimo mensal): '+formatBRL(output.illustrativeFirstCycleSubtotalCents),
           'Mídia paga diretamente aos provedores; não é cotação final nem garantia de resultados.'].join('\n');
+        const contactKey=output.channels.map(x=>x.id).join('+');
+        const curatedContact=contacts.find(x=>x.dataset.calcContactKey===contactKey);
+        if(!curatedContact)throw new Error('Mensagem de atendimento indisponível');
+        if(whatsapp)whatsapp.setAttribute('href',curatedContact.getAttribute('href')??defaultWhatsapp);
         if(copyStatus)copyStatus.textContent='';
         if(printButton)printButton.hidden=false;
         if(result){result.hidden=false;result.scrollIntoView({behavior:'smooth',block:'start'});}
@@ -194,6 +208,7 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
         if(result)result.hidden=true;
         if(printButton)printButton.hidden=true;
         lastSummary='';
+        if(whatsapp)whatsapp.setAttribute('href',defaultWhatsapp);
         if(error){error.hidden=false;error.textContent=e instanceof Error?e.message:'Revise os campos e tente novamente.';}
       }
     });

@@ -19,17 +19,20 @@ try {
       start:'#calculate-run',result:'#media-result',min:'#calc-minimum',
       suggested:'#calc-suggested',fee:'#calc-management',total:'#calc-total',
       activation:'#calc-activation',firstCycle:'#calc-first-cycle',
-      checkbox:'input[name="channel"]',error:'#calculator-error',print:'#calc-print',copy:null},
+      checkbox:'input[name="channel"]',error:'#calculator-error',print:'#calc-print',copy:null,
+      whatsapp:'#calc-contact-whatsapp'},
     {path:'/en/budget-calculator/',lang:'en-US',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
       activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
-      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy'},
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy',
+      whatsapp:'#intl-calc-whatsapp'},
     {path:'/es/budget-calculator/',lang:'es-ES',
       start:'#intl-calc-run',result:'#intl-calc-results',min:'#intl-calc-min',
       suggested:'#intl-calc-suggested',fee:'#intl-calc-fee',total:'#intl-calc-total',
       activation:'#intl-calc-activation',firstCycle:'#intl-calc-first-cycle',
-      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy'}
+      checkbox:'input[name="intl-channel"]',error:'#intl-calc-error',print:'#intl-calc-print',copy:'#intl-calc-copy',
+      whatsapp:'#intl-calc-whatsapp'}
   ];
   for(const route of routes){
     const ctx=await browser.newContext({
@@ -71,6 +74,13 @@ try {
     assert.equal((await page.locator(route.total).textContent())?.trim(),money(1200));
     assert.equal((await page.locator(route.activation).textContent())?.trim(),money(490));
     assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(1690));
+    const initialContact=new URL(await page.locator(route.whatsapp).getAttribute('href'));
+    assert.equal(initialContact.hostname,'wa.me');
+    assert.ok(initialContact.searchParams.get('text')?.includes('Meta Ads'));
+    assert.equal(initialContact.searchParams.get('text')?.includes(String.fromCharCode(36)),false,
+      'WhatsApp message must exclude any currency symbol');
+    assert.equal(initialContact.searchParams.get('text')?.includes(money(1690)),false,
+      'WhatsApp message cannot include calculated amounts');
     if(route.print){
       assert.equal(await page.locator(route.print).isVisible(),true);
       await page.locator(route.print).click();
@@ -86,6 +96,13 @@ try {
     assert.equal((await page.locator(route.total).textContent())?.trim(),money(5160));
     assert.equal((await page.locator(route.activation).textContent())?.trim(),money(1470));
     assert.equal((await page.locator(route.firstCycle).textContent())?.trim(),money(6630));
+    const selectedMessage=new URL(await page.locator(route.whatsapp).getAttribute('href'))
+      .searchParams.get('text')??'';
+    for(const provider of ['Meta Ads','Google Ads','ChatGPT Ads'])
+      assert.ok(selectedMessage.includes(provider),'selected WhatsApp message only mentions reviewed providers');
+    assert.ok(!selectedMessage.includes(money(6630)),'planned budget must remain local');
+    assert.equal(selectedMessage.includes(String.fromCharCode(36)),false,
+      'WhatsApp message cannot include currency amounts');
     if(route.copy){
       assert.equal(await page.locator(route.copy).isVisible(),true);
       await page.locator(route.copy).click();
@@ -107,6 +124,11 @@ try {
       assert.equal(await page.locator(route.print).isHidden(),true);
       assert.equal(await page.locator(route.copy).isHidden(),true);
       assert.equal(await page.locator(route.error).isVisible(),true);
+      const resetMessage=new URL(await page.locator(route.whatsapp).getAttribute('href'))
+        .searchParams.get('text')??'';
+      assert.ok(resetMessage.includes('Meta Ads'));
+      assert.ok(!resetMessage.includes('Google Ads')&&!resetMessage.includes('ChatGPT Ads'));
+      assert.ok(!resetMessage.includes(money(6630)));
     }
 
     // A budget estimate is not an email subscription and never creates a lead.

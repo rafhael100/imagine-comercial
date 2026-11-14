@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'src/lib/media-budget-calculator.mjs'
+      - 'src/data/calculator-contact-messages.mjs'
+      - 'src/data/curated-channel-text.mjs'
+      - 'tests/calculator-contact-messages.test.mjs'
       - 'src/lib/synthetic-calculator-interest-interop-lab.mjs'
       - 'src/pages/calculadora-de-anuncios.astro'
       - 'src/components/InternationalBudgetCalculator.astro'
