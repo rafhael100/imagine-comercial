@@ -20,7 +20,7 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
     <p class="lead">Defina canais e metas e receba uma sugestão transparente de investimento. O resultado é imediato e não exige cadastro.</p>
     <p class="calc-note">Os valores são referências de planejamento, não garantias de cliques, leads ou vendas. Nenhuma campanha será ativada por esta ferramenta.</p>
   </div></section>
-  <section class="section shell" aria-labelledby="calc-heading">
+  <section id="calc-entry" class="section shell" aria-labelledby="calc-heading">
     <div class="calc-grid">
       <div id="media-calculator" class="calc-form">
         <h2 id="calc-heading">Monte seu cenário</h2>
@@ -99,12 +99,13 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
         <a class="cta" href={contactWhatsApp} target="_blank" rel="noopener noreferrer" id="calc-contact-whatsapp">Quero um planejamento personalizado</a>
         <a class="cta cta-secondary" href={contactEmail}>Entrar em contato por e-mail</a>
         <button class="cta cta-secondary" type="button" id="calc-copy" hidden>Copiar meu resumo</button>
+        <button class="cta cta-secondary" type="button" id="calc-print" hidden>Imprimir ou salvar o estudo em PDF</button>
       </div>
       <p class="calc-helper">O WhatsApp e o e-mail são canais externos. Você decide enviar a mensagem. Se quiser, copie o resumo e cole na conversa para informar seus objetivos.</p>
       <p id="calc-copy-status" role="status" aria-live="polite"></p>
     </div>
   </section>
-  <section class="section shell" aria-labelledby="next-step-title">
+  <section id="calc-nurture" class="section shell" aria-labelledby="next-step-title">
     <p class="kicker">Quer acompanhar sua estratégia?</p>
     <h2 id="next-step-title">Receba uma orientação antes de investir.</h2>
     <p>Estamos preparando a opção de receber seu estudo por e-mail e acompanhar dicas de marketing, separando o pedido do relatório da autorização para comunicações futuras.</p>
@@ -125,8 +126,12 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
     const limitAlert=document.querySelector<HTMLElement>('#calc-limit-alert');
     const copy=document.querySelector<HTMLButtonElement>('#calc-copy');
     const copyStatus=document.querySelector<HTMLElement>('#calc-copy-status');
+    const printButton=document.querySelector<HTMLButtonElement>('#calc-print');
     let lastSummary='';
     if(copy && navigator.clipboard?.writeText)copy.hidden=false;
+    if(printButton && typeof window.print==='function'){
+      printButton.addEventListener('click',()=>window.print());
+    }
     if(copy){
       copy.addEventListener('click',async()=>{
         if(!lastSummary)return;
@@ -174,9 +179,11 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
           'Gestão estimada (20%): '+formatBRL(output.illustrativeManagementCents),
           'Mídia paga diretamente aos provedores; resultados não garantidos.'].join('\n');
         if(copyStatus)copyStatus.textContent='';
+        if(printButton)printButton.hidden=false;
         if(result){result.hidden=false;result.scrollIntoView({behavior:'smooth',block:'start'});}
       }catch(e){
         if(result)result.hidden=true;
+        if(printButton)printButton.hidden=true;
         lastSummary='';
         if(error){error.hidden=false;error.textContent=e instanceof Error?e.message:'Revise os campos e tente novamente.';}
       }
@@ -214,5 +221,15 @@ const format=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BR
     a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #aa5800;outline-offset:3px}
     @media(max-width:850px){.calc-grid{grid-template-columns:1fr}}
     @media(max-width:560px){.calc-fields,.results-grid{grid-template-columns:1fr}.calc-form{padding:18px}}
+    @media print{
+      :global(header),:global(footer),.calc-hero,#calc-entry,#calc-nurture{display:none!important}
+      #media-result{display:block!important;padding:0!important;background:#fff!important}
+      #media-result[hidden]{display:none!important}
+      #media-result .cta-row,#calc-copy-status{display:none!important}
+      .results-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .result-card{break-inside:avoid;box-shadow:none}
+      :global(body){color:#171b19}
+      @page{size:A4;margin:15mm}
+    }
   </style>
 </BaseLayout>
