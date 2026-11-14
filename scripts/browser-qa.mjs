@@ -1080,7 +1080,9 @@ try {
         assert.equal(await fallback.locator('a[data-goal-deeplink]').count(),5);
         await fallback.locator('a[data-goal-deeplink]').last().click();
         await fallback.waitForURL(host+'/servicos/#objetivo:anuncios');
-        assert.equal(await fallback.locator('noscript .service-guide-fallback [data-fallback-goal="anuncios"] a').count(),2);
+        assert.equal(await fallback.locator('noscript .service-guide-fallback [data-fallback-goal="anuncios"] a').count(),
+          guideForGoal('anuncios').services.length,
+          'F196 no-JS advertising goal preserves every reviewed ad channel');
         assert.equal(await fallback.locator('.cards article.card').count(),services.length,
           'F196 no-JS still exposes all published services');
         await fallback.goto(host+'/',{waitUntil:'load',timeout});
