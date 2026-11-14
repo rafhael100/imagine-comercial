@@ -16,7 +16,7 @@ test('F208 seven approved services have static outbound options without script',
     assert.ok(isApprovedPublicExternalHref(mail));
     urls.add(whats);urls.add(mail);
   }
-  assert.equal(urls.size,12);
+  assert.equal(urls.size,14);
 });
 test('F208 Astro noscript renders a reviewed service-specific contact card',()=>{
   assert.match(source,/<noscript>/);
