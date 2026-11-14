@@ -52,6 +52,19 @@ def accept_and_create(page, price):
     assert "/shop/orders/" in page.url, page.url
     return page.url
 
+def assert_approved_setup_schedule(page, expected_total, expected_installment):
+    # The Portal owns this HTML and catalog. These are regression assertions,
+    # not client-side pricing data or charges created by the Comercial website.
+    body = page.locator("body").inner_text()
+    assert expected_total in body
+    assert body.count(expected_installment) >= 3, "D0, D30 and D60 installments required"
+    assert "na contratação" in body
+    assert "após 30 dias" in body
+    assert "após 60 dias" in body
+    assert "R$ 79,90/mês" in body
+    assert "90 dias após a contratação" in body
+    assert "independentemente da publicação" in body
+
 def signup(page):
     page.goto(PORTAL + "/register")
     user = "demo-cross-" + uuid.uuid4().hex[:10]
@@ -87,7 +100,7 @@ with sync_playwright() as p:
         owner_a = signup(page)
         assert page.url.endswith("/shop?product=onepage"), page.url
         onepage = accept_and_create(page, "R$ 990,00")
-        assert "R$ 330,00" in page.locator("body").inner_text()
+        assert_approved_setup_schedule(page, "R$ 990,00", "R$ 330,00")
         # One complete *fake* settlement and briefing, never an Asaas payment.
         page.locator('[name="sample_ack"]').check()
         page.locator('[name="outcome"]').select_option("approved")
@@ -99,7 +112,7 @@ with sync_playwright() as p:
         from_commercial(page, "landing-pages")
         assert page.url.endswith("/shop?product=landing-pages"), page.url
         landing = accept_and_create(page, "R$ 1.290,00")
-        assert "R$ 430,00" in page.locator("body").inner_text()
+        assert_approved_setup_schedule(page, "R$ 1.290,00", "R$ 430,00")
         # This order originated from the actual Landing Page CTA.  Queue a
         # server-valued SANDBOX intent, never a PSP call or browser-set amount.
         assert page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").count() == 1
