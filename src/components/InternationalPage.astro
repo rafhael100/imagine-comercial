@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/InternationalLayout.astro';
+import InternationalBudgetCalculator from './InternationalBudgetCalculator.astro';
 import {translations,intlPath,INTERNATIONAL_SECTIONS} from '../data/i18n.mjs';
 import {contactChannels} from '../data/contact-channels.mjs';
 import {internationalArticles,INTERNATIONAL_ARTICLE_SLUGS} from '../data/i18n-articles.mjs';
@@ -26,6 +27,7 @@ if(isService&&!service)throw new Error('Unapproved international service');
 const serviceList=Object.entries(copy.services).map(([slug,value])=>({slug,...value}));
 const pageLabel={
  '':copy.nav.home,services:copy.nav.services,compare:copy.nav.compare,
+ 'budget-calculator':locale==='en'?'Advertising budget calculator':'Calculadora de inversión publicitaria',
  'how-it-works':copy.nav.how,faq:copy.nav.faq,about:copy.nav.about,
  contact:copy.nav.contact,articles:articlesLabel
 };
@@ -40,6 +42,7 @@ const intro=article?.intro??(section==='articles'?
   service?.intro??
   (section==='about'?copy.about.intro:
     section==='contact'?copy.contact.intro:
+    section==='budget-calculator'?(locale==='en'?'Estimate a starting advertising budget for Google, Meta and ChatGPT Ads, without signup.':'Calcula una inversión inicial para Google, Meta y ChatGPT Ads, sin registro.'):
     section==='compare'?copy.compare.intro:
     section==='how-it-works'?copy.headings.processIntro:
     section==='faq'?copy.headings.note:
@@ -135,6 +138,7 @@ const serviceLink=slug=>intlPath(locale,'services/'+slug);
       <section class="section shell"><h2>{copy.headings.contact}</h2><p>{copy.contact.intro}</p><a class="cta" href={paths.contact}>{copy.actions.contact}</a></section>
     </>
   )}
+  {section==='budget-calculator' && <InternationalBudgetCalculator locale={locale} />}
   {section==='compare' && (
     <>
       <section class="hero"><div class="shell"><p class="eyebrow">{copy.nav.compare}</p><h1>{copy.headings.compare}</h1><p class="lead">{copy.compare.intro}</p></div></section>
