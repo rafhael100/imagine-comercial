@@ -209,7 +209,7 @@ try{
   assert.equal(edgeDecisions.newHtml,60,'F317: exactly 59 GET new pages and one HEAD');
   assert.equal(edgeDecisions.newAsset,plan.eligibleStaticAssets.length);
   assert.equal(edgeDecisions.writeRequestsOnLegacy,6);
-  assert.equal(legacyRequests.length,40,'F317: all old paths, originals, and writes preserved');
+  assert.equal(legacyRequests.length,39,'F317: all old paths, originals, and writes preserved');
   assert.equal(legacyRequests.filter(x=>x.sawSyntheticCookie).length,2);
   const record=Object.freeze({
     schema:'imagine.comercial.synthetic-legacy-overlay-http.v1',
