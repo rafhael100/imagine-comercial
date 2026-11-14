@@ -1,0 +1,47 @@
+name: Comercial Performance budget calculator (offline)
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/media-budget-calculator.mjs'
+      - 'src/lib/synthetic-calculator-interest-interop-lab.mjs'
+      - 'src/pages/calculadora-de-anuncios.astro'
+      - 'src/pages/index.astro'
+      - 'tests/media-budget-calculator.test.mjs'
+      - 'tests/synthetic-calculator-interest-interop.test.mjs'
+      - 'scripts/test-calculator-browser-ci.mjs'
+      - '.github/workflows/comercial-media-calculator-p0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-build-and-math:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout reviewed source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Configure reviewed Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Calculate budgets and validate guardrails
+        run: node --test tests/media-budget-calculator.test.mjs tests/synthetic-calculator-interest-interop.test.mjs
+      - name: Build public Astro page
+        run: npm run build
+      - name: Verify built calculator route
+        run: |
+          test -f dist/calculadora-de-anuncios/index.html
+          grep -q 'Calcular meu investimento' dist/calculadora-de-anuncios/index.html
+          grep -q 'não estão disponíveis' dist/calculadora-de-anuncios/index.html
+      - name: Install isolated Chromium
+        run: bash scripts/install-chromium-ci.sh
+      - name: Test localized budget calculator in real private browser
+        run: node scripts/test-calculator-browser-ci.mjs

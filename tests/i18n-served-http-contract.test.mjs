@@ -21,7 +21,8 @@ const render=path=>{
   '</nav></body></html>';
 };
 test('all curated public pages are eligible for exact edge language parity',()=>{
- assert.equal(sitePages.length,57);
+ // 57 original pages plus PT/EN/ES translated calculator = 60 audited routes.
+ assert.equal(sitePages.length,60);
  const seen=new Set();
  for(const {path} of sitePages){
    assert.ok(!seen.has(path),path);

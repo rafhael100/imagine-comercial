@@ -21,14 +21,14 @@ const readiness=JSON.parse(renderReadinessReport(['--target=production']));
 const staticPaths=sitePages.map(p=>p.path);
 const translated=staticPaths.filter(p=>/^\/(?:en|es)\//.test(p));
 const portuguese=staticPaths.filter(p=>!/^\/(?:en|es)\//.test(p));
-assert.equal(staticPaths.length,57,'Trilingual release must have 57 curated public HTML pages');
-assert.equal(portuguese.length,19,'Existing 19 Portuguese public pages must be retained');
-assert.equal(translated.length,38,'Nineteen pages per international language required');
+assert.equal(staticPaths.length,60,'Trilingual release must have 60 reviewed public HTML pages');
+assert.equal(portuguese.length,20,'Existing Portuguese pages plus the reviewed calculator must be retained');
+assert.equal(translated.length,40,'Twenty pages per international language required');
 assert.equal(INTERNATIONAL_ARTICLE_SLUGS.length,5,'All five original guides must have parity');
-assert.equal(INTERNATIONAL_SECTIONS.length,19);
+assert.equal(INTERNATIONAL_SECTIONS.length,20);
 assert.deepEqual(INTERNATIONAL_LANGUAGES,['en','es']);
 assert.equal(manifest.mode,'REVIEW_ONLY_NOT_AUTHORIZED_FOR_DEPLOY');
-assert.equal(manifest.htmlPages,57);
+assert.equal(manifest.htmlPages,60);
 assert.equal(manifest.origin,'https://imaginecomunicacao.com.br/');
 assert.match(manifest.treeSha256,/^[0-9a-f]{64}$/);
 const integrity=reviewStagingBuildIntegrity({
@@ -55,6 +55,14 @@ assert.equal(englishLegacy.redirectsGenerated,0);
 assert.equal(englishLegacy.redirectsAuthorized,0);
 assert.equal(englishLegacy.readyForCutover,false);
 assert.equal(englishLegacy.legalAndEditorialApproval,false);
+const legacyHttp=readiness.legacyHttpContinuity;
+assert.equal(legacyHttp.totalKnownRoutes,27);
+assert.equal(legacyHttp.heldMustBePreserved,22);
+assert.equal(legacyHttp.redirectCandidatesRequireEditorialReview,5);
+assert.equal(legacyHttp.originalPublicHttpSnapshotIndependentlyReviewed,false);
+assert.equal(legacyHttp.candidatePrivateHttpSnapshotIndependentlyReviewed,false);
+assert.equal(legacyHttp.historicalFormsAndLeadsDeliveryVerified,false);
+assert.equal(legacyHttp.readyToReplaceLegacySite,false);
 
 const record={
  schema:'imagine.comercial.trilingual-static-review-handoff.v1',
@@ -74,6 +82,11 @@ const record={
  legacyEnglishUrlsProtected:englishLegacy.originalsReviewed,
  englishLegacyPossibleMappingsOnly:englishLegacy.editorialEquivalentsProposed,
  englishLegacyHeldWithoutEquivalent:englishLegacy.originalsWithoutEquivalent,
+ legacyHttpOriginalObserved:false,
+ legacyHttpCandidateObserved:false,
+ historicalFormsAndLeadsDeliveryVerified:false,
+ heldLegacyPathsRequiringContinuity:22,
+ totalLegacyPathsRequiringReview:27,
  redirectsAuthorized:0,
  publishOrRedirectPerformed:false,
  independentHashAttestationVerified:false,
@@ -85,8 +98,8 @@ const record={
  deploymentAuthorized:false,
  blockers:readiness.blockers
 };
-assert.equal(record.englishPages,19);
-assert.equal(record.spanishPages,19);
+assert.equal(record.englishPages,20);
+assert.equal(record.spanishPages,20);
 await writeFile('artifacts/release-review/REVIEW-ONLY-i18n-static-handoff.json',
  JSON.stringify(record,null,2)+'\n');
-console.log('PASS: 57 public Astro pages + custom 404, 19 each PT, EN and ES; complete hreflang triplets; SHA-256 matched. REVIEW ONLY.');
+console.log('PASS: 60 public Astro pages + custom 404, 20 each PT, EN and ES; complete hreflang triplets; SHA-256 matched. REVIEW ONLY.');
