@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: rafhael100/imagine-portal
-          ref: ea26bbacc15a6d3b34dad56d85120de7fcc793b7
+          ref: 17c9893a4304e050d31303a475f1d167560ed3c4
           path: portal
           persist-credentials: false
       - name: Use Node 22
@@ -51,7 +51,16 @@ jobs:
           set -euo pipefail
           sudo --preserve-env=GITHUB_ACTIONS python3 prepare.py
           docker compose -f compose.yaml -f compose.ci.yaml config --quiet
-          docker compose -f compose.yaml -f compose.ci.yaml up -d
+          # Fail-closed signed owner RLS must be initialized BEFORE the first Laravel request.
+          # On the newer Portal candidate the app constructor refuses a database
+          # with missing owner-scope secret/policies; avoid racing the first request.
+          bash check_customer_schema_ci.sh
+          python3 preflight_private_runtime.py --self-test
+          docker compose -f compose.yaml -f compose.ci.yaml up -d --wait database
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-schema.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-work-schema.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-offer-schema.sql
+          docker compose -f compose.yaml -f compose.ci.yaml up -d application gateway
           python3 - <<'PY'
           import time,urllib.request
           for _ in range(90):
@@ -65,14 +74,12 @@ jobs:
           test "$(docker inspect imagine-purchase-preview-application-1 --format '{{len .HostConfig.PortBindings}}')" = 0
           test "$(docker network inspect imagine-purchase-preview_private --format '{{.Internal}}')" = true
           test "$(docker inspect imagine-purchase-preview-gateway-1 --format '{{(index (index .HostConfig.PortBindings "8080/tcp") 0).HostIp}}')" = 127.0.0.1
-      - name: Install synthetic-only Portal customer and quote schemas
+      - name: Verify current v4 quote and sandbox adapter, no PSP network
         working-directory: portal/apps/portal/ops/private-purchase
         run: |
           set -euo pipefail
-          docker compose exec -T database psql -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-schema.sql
-          docker compose exec -T database psql -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-work-schema.sql
-          docker compose exec -T database psql -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-offer-schema.sql
           docker compose exec -T application php tools/test_commerce.php
+          docker compose exec -T application php private-preview-route-gate.test.php
       - name: Chromium navigates actual Comercial HTML then 4 Portal test orders
         env:
           GITHUB_ACTIONS: 'true'
@@ -101,6 +108,21 @@ jobs:
           count=$(docker compose exec -T database psql -U postgres -d portal_purchase_rehearsal -Atc 'SELECT count(*) FROM purchase_rehearsal.customer_orders')
           test "$count" = "4"
           echo 'PASS four fictional owned orders in disposable database. NO-GO production.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Prove signed FORCE RLS denies raw SQL enumeration and forged claims
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < test_customer_scope.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < test_customer_work_scope.sql
+          echo 'PASS SQL HMAC tenant owner scope, denied forged claims and limited DB role.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify PostgreSQL18 backup/restore with signed RLS intact
+        working-directory: portal/apps/portal/ops/private-purchase
+        env:
+          P0_PG_RESTORE_CI: '1'
+        run: |
+          set -euo pipefail
+          bash ./verify_pg_restore_ci.sh
+          echo 'PASS disposable backup and restore after cross-application checkout; VPS not affected.' >> "$GITHUB_STEP_SUMMARY"
       - name: Shut down only isolated CI services and erase disposable database
         if: always()
         working-directory: portal/apps/portal/ops/private-purchase
