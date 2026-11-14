@@ -41,7 +41,7 @@ function menu(label){
 const desktop=menu("Navegação principal");
 const mobile=menu("Navegação móvel");
 for(const [label,content] of [["desktop",desktop],["mobile",mobile]]){
-  const matches=[...content.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>[\s\S]*?Portal do Cliente[\s\S]*?<\/a>/g)];
+  const matches=[...content.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>[^<]*Portal do Cliente[^<]*<\/a>/g)];
   assert.equal(matches.length,1,label+" must present exactly one Portal do Cliente entrypoint");
   assert.equal(matches[0][1],url,label+" must use the reviewed absolute HTTPS login URL");
   assert.ok(!matches[0][0].includes("target=\"_blank\""),"Login stays in current tab");
