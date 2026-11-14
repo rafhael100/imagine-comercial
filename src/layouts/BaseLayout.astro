@@ -2,6 +2,7 @@
 import { toAbsoluteUrl } from '../data/services.mjs';
 import { resolvePortalLoginLink } from '../lib/portal-login-link.mjs';
 import { contactChannels } from '../data/contact-channels.mjs';
+import {languageAlternates,languageSwitchTargets,intlPath,translations} from '../data/i18n.mjs';
 interface Props {
   title: string;
   description: string;
@@ -10,8 +11,24 @@ interface Props {
   breadcrumb?: { label: string; path: string }[];
   serviceName?: string;
   articleTitle?: string;
+  locale?: 'pt-BR' | 'en' | 'es';
 }
-const { title, description, pathname, noindex = false, breadcrumb = [], serviceName, articleTitle } = Astro.props;
+const { title, description, pathname, noindex = false, breadcrumb = [], serviceName, articleTitle, locale = 'pt-BR' } = Astro.props;
+const international = locale!=='pt-BR';
+const localCopy=international?translations[locale]:null;
+const alternatives=languageAlternates(pathname);
+const languageTargets=languageSwitchTargets(pathname);
+const internationalHome=international?intlPath(locale):'/';
+const intlLinks=international?{
+ services:intlPath(locale,'services'),compare:intlPath(locale,'compare'),
+ how:intlPath(locale,'how-it-works'),faq:intlPath(locale,'faq'),
+ about:intlPath(locale,'about'),contact:intlPath(locale,'contact')
+}:null;
+const languageFlags=[
+ {id:'pt-BR',flag:'🇧🇷',code:'PT',name:'Português'},
+ {id:'en',flag:'🇺🇸',code:'EN',name:'English'},
+ {id:'es',flag:'🇪🇸',code:'ES',name:'Español'}
+] as const;
 const canonical = toAbsoluteUrl(pathname, Astro.site?.toString());
 const socialType = articleTitle ? 'article' : 'website';
 // O atalho é opcional e aparece somente se a URL passa pelo allowlist.
@@ -32,7 +49,7 @@ const organization = {
 const webPage = {
   '@context': 'https://schema.org', '@type': 'WebPage',
   '@id': canonical + '#webpage',
-  name: title, description, url: canonical, inLanguage: 'pt-BR',
+  name: title, description, url: canonical, inLanguage: locale,
   isPartOf: { '@type': 'WebSite', name: 'Imagine Comunicação Digital', url: 'https://imaginecomunicacao.com.br/' }
 };
 const bread = breadcrumb.length ? {
@@ -45,7 +62,7 @@ const bread = breadcrumb.length ? {
 const articleData = articleTitle ? {
   '@context': 'https://schema.org', '@type': 'Article',
   '@id': canonical + '#article', url: canonical, headline: articleTitle,
-  inLanguage: 'pt-BR', mainEntityOfPage: canonical,
+  inLanguage: locale, mainEntityOfPage: canonical,
   publisher: { '@id': 'https://imaginecomunicacao.com.br/#organization' }
 } : null;
 const service = serviceName ? {
@@ -57,7 +74,7 @@ const service = serviceName ? {
 } : null;
 ---
 <!doctype html>
-<html lang="pt-BR">
+<html lang={locale}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -66,8 +83,11 @@ const service = serviceName ? {
     <meta name="description" content={description} />
     <meta name="robots" content={noindex ? 'noindex,nofollow' : 'index,follow'} />
     {!noindex && <link rel="canonical" href={canonical} />}
+    {!noindex && alternatives && Object.entries(alternatives).map(([code,path])=>(
+      <link rel="alternate" hreflang={code} href={toAbsoluteUrl(path)} />
+    ))}
     <meta property="og:type" content={socialType} />
-    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:locale" content={locale==='pt-BR'?'pt_BR':locale==='en'?'en_US':'es_ES'} />
     <meta property="og:site_name" content="Imagine Comunicação Digital" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -179,13 +199,37 @@ const service = serviceName ? {
         .mobile-menu { display: block; position: relative; margin-left: auto; }
       }
       @media (max-width: 620px) { .cta-row a { width: 100%; } .section { padding-block: 42px; } }
-      @media (prefers-reduced-motion: reduce) { :root { scroll-behavior: auto; } }
+      /* Clear, compact national flags. Real links; no JS or client-side translation. */
+      .locale-switcher { display: flex; gap: 4px; align-items: center; justify-content: flex-end; flex-shrink: 0; font-weight: 800; }
+      .locale-switcher .locale-option { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; min-width: 42px; min-height: 46px; border: 1px solid transparent; border-radius: 9px; text-decoration: none; line-height: 1.1; color: #4b4439; }
+      .locale-switcher .locale-option:hover, .locale-switcher .locale-option:focus-visible { border-color: #d6a16a; background: #fff7ec; }
+      .locale-switcher .locale-option[aria-current="page"] { border-color: #d77700; background: #fff0db; }
+      .locale-switcher .locale-flag { font-size: 24px; line-height: 1.25; }
+      .locale-switcher .locale-code { font-size: .62rem; letter-spacing: .04em; }
+      @media (max-width: 1020px) {
+        .header { flex-wrap: wrap; }
+        .mobile-menu { order: 2; margin-left: auto; }
+        .locale-switcher { width: 100%; order: 3; justify-content: center; padding-top: 7px; border-top: 1px solid #f0e9e1; }
+      }
+      @media (max-width: 420px) { .header { gap: 6px; } .brand { max-width: 65%; } .brand img { width: min(155px,100%); } }
+            @media (prefers-reduced-motion: reduce) { :root { scroll-behavior: auto; } }
     </style>
   </head>
   <body>
-    <a href="#conteudo" class="skip-link">Ir para o conteúdo</a>
+    <a href="#conteudo" class="skip-link">{international?localCopy.accessibility.skip:'Ir para o conteúdo'}</a>
     <header class="shell header">
-      <a class="brand" href="/" aria-label="Imagine Comunicação Digital — Página inicial" aria-current={pathname==='/'?'page':undefined}><img src="/logo-imagine.png" alt="" width="190" decoding="async" fetchpriority="high" /></a>
+      <a class="brand" href={internationalHome} aria-label={international?localCopy.accessibility.home:"Imagine Comunicação Digital — Página inicial"} aria-current={pathname===internationalHome?'page':undefined}><img src="/logo-imagine.png" alt="" width="190" decoding="async" fetchpriority="high" /></a>
+      {international ? (
+        <nav aria-label="Primary navigation">
+          <a href={intlLinks.services} aria-current={pathname===intlLinks.services?'page':undefined}>{localCopy.nav.services}</a>
+          <a href={intlLinks.compare} aria-current={pathname===intlLinks.compare?'page':undefined}>{localCopy.nav.compare}</a>
+          <a href={intlLinks.how} aria-current={pathname===intlLinks.how?'page':undefined}>{localCopy.nav.how}</a>
+          <a href={intlLinks.faq} aria-current={pathname===intlLinks.faq?'page':undefined}>{localCopy.nav.faq}</a>
+          <a href={intlLinks.about} aria-current={pathname===intlLinks.about?'page':undefined}>{localCopy.nav.about}</a>
+          <a href={intlLinks.contact} aria-current={pathname===intlLinks.contact?'page':undefined}>{localCopy.nav.contact}</a>
+          {portalLoginUrl && <a class="nav-cta" href={portalLoginUrl} rel="noopener">{localCopy.nav.portal}</a>}
+        </nav>
+      ) : (
       <nav aria-label="Navegação principal">
         <a href="/servicos/" aria-current={pathname==='/servicos/'?'page':undefined} data-section-active={serviceSectionActive?'true':undefined}>Soluções</a>
         <a href="/comparar-solucoes/" aria-current={pathname==='/comparar-solucoes/'?'page':undefined}>Comparar</a>
@@ -202,6 +246,21 @@ const service = serviceName ? {
         <a href="/contato/" aria-current={pathname==='/contato/'?'page':undefined}>Contato</a>
         {portalLoginUrl && <a class="nav-cta" href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}
       </nav>
+      )}
+      {international ? (
+      <details class="mobile-menu">
+        <summary>{localCopy.nav.menu}</summary>
+        <nav class="mobile-nav" aria-label="Mobile navigation">
+          <a href={intlLinks.services} aria-current={pathname===intlLinks.services?'page':undefined}>{localCopy.nav.services}</a>
+          <a href={intlLinks.compare} aria-current={pathname===intlLinks.compare?'page':undefined}>{localCopy.nav.compare}</a>
+          <a href={intlLinks.how} aria-current={pathname===intlLinks.how?'page':undefined}>{localCopy.nav.how}</a>
+          <a href={intlLinks.faq} aria-current={pathname===intlLinks.faq?'page':undefined}>{localCopy.nav.faq}</a>
+          <a href={intlLinks.about} aria-current={pathname===intlLinks.about?'page':undefined}>{localCopy.nav.about}</a>
+          <a href={intlLinks.contact} aria-current={pathname===intlLinks.contact?'page':undefined}>{localCopy.nav.contact}</a>
+          {portalLoginUrl && <a class="nav-cta-mobile" href={portalLoginUrl} rel="noopener">{localCopy.nav.portal}</a>}
+        </nav>
+      </details>
+      ) : (
       <details class="mobile-menu">
         <summary>Menu</summary>
         <nav class="mobile-nav" aria-label="Navegação móvel">
@@ -216,12 +275,23 @@ const service = serviceName ? {
           {portalLoginUrl && <a class="nav-cta-mobile" href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}
         </nav>
       </details>
+      )}
+      <nav class="locale-switcher" aria-label={international?localCopy.accessibility.langLabel:'Escolher idioma do site'}>
+        {languageFlags.map(option=>(
+          <a class="locale-option" href={languageTargets[option.id]}
+            lang={option.id} hreflang={option.id} aria-current={locale===option.id?'page':undefined}
+            aria-label={option.name} title={option.name}>
+            <span class="locale-flag" aria-hidden="true">{option.flag}</span>
+            <span class="locale-code" aria-hidden="true">{option.code}</span>
+          </a>
+        ))}
+      </nav>
     </header>
     <main id="conteudo" tabindex="-1">
       {breadcrumb.length>0 && (
         <nav class="shell breadcrumbs" aria-label="Caminho de navegação">
           <ol>
-            <li><a href="/">Início</a></li>
+            <li><a href={internationalHome}>{international?localCopy.nav.home:'Início'}</a></li>
             {breadcrumb.map((item,index)=>(
               <li>
                 {index===breadcrumb.length-1
@@ -234,6 +304,43 @@ const service = serviceName ? {
       )}
       <slot />
     </main>
+    {international ? (
+      <footer>
+        <div class="shell footer-grid">
+          <div class="footer-about">
+            <a class="footer-brand" href={internationalHome} aria-label={localCopy.accessibility.home}>
+              <img src="/logo-imagine.png" alt="" width="170" loading="lazy" decoding="async" />
+            </a>
+            <p>{localCopy.footer.intro}</p>
+          </div>
+          <nav class="footer-links" aria-label={localCopy.footer.services}>
+            <h2>{localCopy.footer.services}</h2>
+            <a href={intlLinks.services}>{localCopy.footer.all}</a>
+            <a href={intlPath(locale,'services/criacao-de-sites')}>{localCopy.services['criacao-de-sites'].label}</a>
+            <a href={intlPath(locale,'services/landing-pages')}>{localCopy.services['landing-pages'].label}</a>
+            <a href={intlLinks.compare}>{localCopy.nav.compare}</a>
+          </nav>
+          <nav class="footer-links" aria-label={localCopy.footer.about}>
+            <h2>{localCopy.footer.about}</h2>
+            <a href={intlLinks.about}>{localCopy.nav.about}</a>
+            <a href={intlLinks.how}>{localCopy.nav.how}</a>
+            <a href={intlLinks.faq}>{localCopy.nav.faq}</a>
+            <a href={intlLinks.contact}>{localCopy.nav.contact}</a>
+          </nav>
+          <div class="footer-contact">
+            <h2>{localCopy.footer.contact}</h2>
+            <a href={intlLinks.contact}>{localCopy.accessibility.contact}</a>
+            <a href={'mailto:'+contactChannels.email}>{contactChannels.email}</a>
+            <a href={contactChannels.whatsappBaseHref} target="_blank" rel="noopener noreferrer" aria-label={'WhatsApp — '+localCopy.accessibility.external}>{contactChannels.whatsappDisplay}</a>
+            <p>{localCopy.footer.note}</p>
+          </div>
+        </div>
+        <div class="shell footer-bottom">
+          <span>© {new Date().getFullYear()} Imagine Comunicação Digital.</span>
+          <span>{localCopy.footer.terms}</span>
+        </div>
+      </footer>
+    ) : (
     <footer>
       <div class="shell footer-grid">
         <div class="footer-about">
@@ -269,6 +376,7 @@ const service = serviceName ? {
         <span>Atendimento e propostas sujeitos às condições comerciais vigentes.</span>
       </div>
     </footer>
+    )}
     <script>
       // F290: Escape closes only an expanded native navigation disclosure,
       // returning keyboard focus to its summary. Without JS, the native
