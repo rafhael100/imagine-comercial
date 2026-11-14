@@ -92,6 +92,8 @@ assert.equal(readFileSync(resolve(input, "index.html"), "utf8"), source);
 const manifest = {
   candidate: "Comercial-to-individual-Portal-private-preview",
   buttons: Object.keys(cases).length,
+  contextOnlyChannels: ["google_ads", "meta_ads"],
+  mediaBudgetAutoFilled: false,
   restrictedPortalOrigin: "https://portal-dev.imaginecomunica.com.br",
   publicReleaseAuthorized: false,
   paymentEnabled: false,

@@ -55,18 +55,19 @@ if(phase==="private"){
   assert.equal(manifest.publicReleaseAuthorized,false);
   assert.equal(manifest.paymentEnabled,false);
   assert.equal(manifest.unservedCopyOnly,true);
+  const base="https://portal-dev.imaginecomunica.com.br/_preview/portal/shop?product=";
   const serviceMap=new Map([
-    ["onepage","onepage"],
-    ["landing-pages","landing-pages"],
-    ["gestao-google-ads","performance"],
-    ["gestao-meta-ads","performance"]
+    ["onepage",base+"onepage"],
+    ["landing-pages",base+"landing-pages"],
+    ["gestao-google-ads",base+"performance&channel=google_ads"],
+    ["gestao-meta-ads",base+"performance&channel=meta_ads"]
   ]);
-  for(const [slug,offer] of serviceMap){
+  for(const [slug,expectedUrl] of serviceMap){
     const card=html.match(new RegExp('<article\\b[^>]*data-quick-hire="'+slug+'"[^>]*>[\\s\\S]*?<\\/article>'))?.[0];
     assert.ok(card,"Service card missing: "+slug);
     const links=[...card.matchAll(/<a\b[^>]*data-quick-hire-action[^>]*>/g)];
     assert.equal(links.length,1,"One CTA per service: "+slug);
-    assert.ok(links[0][0].includes('href="https://portal-dev.imaginecomunica.com.br/_preview/portal/shop?product='+offer+'"'),
+    assert.ok(links[0][0].includes('href="'+expectedUrl+'"'),
       "Private candidate must preserve chosen service: "+slug);
   }
   assert.ok(html.includes("Ambiente privado"),"Private review must prominently state scope");

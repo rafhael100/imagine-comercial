@@ -1,16 +1,20 @@
-# P0 — contrato estrito dos CTAs privados Comercial → Portal
+# P0 — handoff Comercial → Portal com canal explícito
 
-Apenas o candidato de CI `prepare-customer-portal.mjs` monta URLs com a nova política `private-portal-handoff-policy.mjs`. Quatro identificadores de cartões são aceitos, direcionados ao Portal privado de homologação em HTTPS, com somente `product` e sem URL arbitrária fornecida pelo navegador.
+**Implementação atual exclusiva de CI e homologação privada**, sem publicação do site Astro nem preços calculados no Comercial.
 
-| Cartão Comercial | SKU de teste do Portal |
+O gerador `prepare-customer-portal.mjs` usa `private-portal-handoff-policy.mjs` para construir somente as seguintes URLs de prévia no host HTTPS `portal-dev.imaginecomunica.com.br`:
+
+| Cartão no Comercial | Query de prévia privada |
 | --- | --- |
-| Onepage | `onepage` |
-| Landing Page | `landing-pages` |
-| Google Ads | `performance` |
-| Meta Ads | `performance` |
+| Onepage | `product=onepage` |
+| Landing Page | `product=landing-pages` |
+| Google Ads | `product=performance&channel=google_ads` |
+| Meta Ads | `product=performance&channel=meta_ads` |
 
-**Limitação explícita:** Google Ads e Meta Ads ainda apontam ao mesmo SKU `performance`. Este handoff não identifica nem cobra automaticamente canais distintos. A regra comercial aprovada de Performance (20% da mídia, mídia mínima de R$ 700 por canal) deve ser aplicada somente pelo catálogo/checkout do Portal com identificação explícita de canais, antes de qualquer compromisso financeiro. Nunca inferir que os dois botões representam uma assinatura duplicada, nem inventar cobrança automática de dois canais.
+A PR do Portal [#746](https://github.com/rafhael100/imagine-portal/pull/746), empilhada sobre o checkout da PR #744, prepara o reconhecimento desse contexto após login/cadastro e sua exibição como aviso informativo. **O canal não seleciona orçamento, não fixa valores e não autoriza cobrança ou conta.** O Portal apresenta campos vazios para o cliente informar a verba de mídia e confirmar sua escolha; pode escolher também o segundo canal. O servidor calcula os honorários (20% da mídia, mínimo de investimento de R$ 700 por canal). Os anúncios são pagos pelo cliente diretamente ao Google/Meta; a gestão é separada.
 
-O site Astro publicado, os dados e a origem financeira não foram alterados. O helper não aceita preço, cliente, token, desconto, retorno externo, webhook ou redirect como argumentos. Tests em `tests/private-portal-handoff-policy.test.mjs` recusam host, HTTP, fragmentos, parâmetros adicionais e produto desconhecido. Não há chamadas de rede, de PSP ou publicação.
+A URL é montada somente pelo catálogo permitido; o Comercial não aceita redirect, IDs de clientes, preço, contrato, desconto, segredos ou quantidade por query. O gerador modifica uma cópia temporária do build em GitHub Actions e preserva o original e o hero. Testes verificam os quatro destinos exatos, desktop/mobile, segurança do host e parâmetros, e o manifesto NO-GO.
 
-**Release:** DRAFT / NO-GO / sem cobrança, sem merge e sem deploy. Antes de operação real, o Portal deve validar identidade, seleção de canais, consentimentos, preço assinado/versionado, recebimento Asaas reconciliado e provisionamento.
+**Gates para operação real:** reconciliar branches de revisão e hashes de Portal/Comercial, homologar login e checkout na VPS privada, IAM/LGPD, Asaas sandbox e produção, eventos idempotentes, ledger, contratos, nota fiscal, provisão de Sites e plano de rollback. Não configurar DNS, produção, chaves ou cobrança nesta etapa.
+
+**Status:** DRAFT / NO-GO / NO-MERGE / NO-DEPLOY / NO-CHARGE.

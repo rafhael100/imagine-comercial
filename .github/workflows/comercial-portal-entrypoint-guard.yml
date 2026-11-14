@@ -7,6 +7,8 @@ on:
       - 'src/components/QuickServiceRequest.astro'
       - 'ops/review/purchase/prepare-customer-portal.mjs'
       - 'ops/review/purchase/test-portal-entrypoint.mjs'
+      - 'ops/review/purchase/private-portal-handoff-policy.mjs'
+      - 'tests/private-portal-handoff-policy.test.mjs'
       - '.github/workflows/comercial-portal-entrypoint-guard.yml'
 permissions:
   contents: read
@@ -33,6 +35,7 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
           node scripts/verify-dist.mjs
+          node --test tests/private-portal-handoff-policy.test.mjs
       - name: Verify both desktop and mobile Portal entrypoints
         run: |
           set -euo pipefail
