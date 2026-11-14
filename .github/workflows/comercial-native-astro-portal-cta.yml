@@ -1,0 +1,58 @@
+name: Comercial native Astro Portal CTA rehearsal (strict CI only)
+on:
+  pull_request:
+    paths:
+      - 'src/components/QuickServiceRequest.astro'
+      - 'ops/review/purchase/private-portal-handoff-policy.mjs'
+      - 'ops/review/purchase/test-native-astro-preview.mjs'
+      - '.github/workflows/comercial-native-astro-portal-cta.yml'
+permissions:
+  contents: read
+jobs:
+  native-astro-candidates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Fetch exact candidate, no persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Use Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Build normal public Astro source unchanged
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node scripts/verify-dist.mjs
+          node ops/review/purchase/test-native-astro-preview.mjs dist public
+          cp dist/index.html "$RUNNER_TEMP/comercial-original-index.html"
+      - name: Compile gated private review from the same Astro source
+        env:
+          IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW: '1'
+        run: |
+          set -euo pipefail
+          npm run build
+          node scripts/verify-dist.mjs
+          node ops/review/purchase/test-native-astro-preview.mjs dist private
+      - name: Check only allowed copy and unaltered hero
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          const a=readFileSync(process.env.RUNNER_TEMP+'/comercial-original-index.html','utf8');
+          const b=readFileSync('dist/index.html','utf8');
+          const hero=/<section\b[^>]*class="[^"]*hero-main[^"]*"[^>]*>[\s\S]*?<\/section>/;
+          assert.equal(a.match(hero)?.[0],b.match(hero)?.[0],'Approved hero must remain identical');
+          assert.notEqual(a,b,'Opt-in must generate a separate private candidate');
+          console.log('PASS original hero preserved; no upload or deploy');
+          NODE
+      - name: Explicit no-go summary
+        run: |
+          echo 'Two ephemeral CI builds generated. Original public mode keeps all six WhatsApp CTAs.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Private mode routes four reviewed products only to the Portal development preview; no external browser navigation.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'DRAFT / NO-GO: neither build was deployed, no PSP credentials or real charge.' >> "$GITHUB_STEP_SUMMARY"
