@@ -102,7 +102,7 @@ const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:str
       const offer=cardText[slug];
       const pricing=moneyCards[slug];
       const preview=portalPreviewHref(slug);
-      return <article class={'quick-hire-card feature-'+slug} data-quick-hire={service.slug}>
+      return <article id={slug==='gestao-google-ads'?'anuncios-performance':undefined} class={'quick-hire-card feature-'+slug} data-quick-hire={service.slug}>
         <div class={'offer-art art-'+slug} aria-hidden="true">
           <span class="art-icon">
             {slug==='onepage'&&<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01M7 13h7M7 16h10"/></svg>}
@@ -142,7 +142,7 @@ const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:str
       </article>;
     })}
   </div>
-  <div id="anuncios-performance" class="more-services">
+  <div id="mais-solucoes" class="more-services">
     <span>Também temos:</span>
     {extraSlugs.map(slug=>{
       const service=bySlug[slug],offer=cardText[slug],preview=portalPreviewHref(slug);
