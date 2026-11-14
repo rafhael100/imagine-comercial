@@ -35,7 +35,9 @@ if(phase==="public"){
 } else {
   assert.ok(html.includes("Prévia privada de contratação"),"Private disclaimer required");
   for(const [slug,url] of Object.entries(expected)){
-    assert.ok(attrs[slug].includes('href="'+url+'"'),"Native Astro CTA mismatch: "+slug);
+    // Astro HTML-escapes query ampersands inside attributes. Compare encoded output.
+    const htmlUrl=url.replaceAll("&","&amp;");
+    assert.ok(attrs[slug].includes('href="'+htmlUrl+'"'),"Native Astro CTA mismatch: "+slug);
     assert.ok(!attrs[slug].includes('target="_blank"'),"Private CTA stays same tab");
     assert.ok(attrs[slug].includes('rel="noreferrer nofollow"'));
   }
