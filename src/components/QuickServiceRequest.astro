@@ -70,8 +70,8 @@ if(Object.keys(offerCopy).some(slug=>!offeredIds.has(slug)) ||
   throw new Error('Commercial showcase catalog requires editorial review');
 const bySlug=Object.fromEntries(services.map(service=>[service.slug,service]));
 
-const featuredSlugs=['onepage','landing-pages','criacao-de-sites','gestao-google-ads'] as const;
-const extraSlugs=['gestao-meta-ads','sites-por-assinatura','gestao-chatgpt-ads'] as const;
+const featuredSlugs=['onepage','landing-pages','gestao-chatgpt-ads','gestao-google-ads'] as const;
+const extraSlugs=['gestao-meta-ads','sites-por-assinatura','criacao-de-sites'] as const;
 const cardText:Record<string,{title:string,benefit:string,action:string,eyebrow:string}>={
  onepage:{title:'Onepage',eyebrow:'Para começar',benefit:'Sua empresa inteira em uma página bonita e profissional.',action:'Quero minha Onepage'},
  'landing-pages':{title:'Landing Page',eyebrow:'Para converter',benefit:'Uma página para destacar sua oferta e gerar oportunidades.',action:'Quero minha Landing Page'},
@@ -79,13 +79,14 @@ const cardText:Record<string,{title:string,benefit:string,action:string,eyebrow:
  'gestao-google-ads':{title:'Gestão de anúncios',eyebrow:'Para atrair clientes',benefit:'Google, Instagram e Facebook com estratégia e acompanhamento.',action:'Quero anunciar'},
  'gestao-meta-ads':{title:'Instagram e Facebook',eyebrow:'Meta Ads',benefit:'Anúncios para despertar interesse pela sua marca.',action:'Quero Meta Ads'},
  'sites-por-assinatura':{title:'Sites por assinatura',eyebrow:'Outra modalidade',benefit:'Conheça um modelo de site com serviço recorrente.',action:'Consultar planos'},
- 'gestao-chatgpt-ads':{title:'ChatGPT Ads',eyebrow:'Em validação',benefit:'Estude a viabilidade desse novo canal com a Imagine.',action:'Consultar disponibilidade'}
+ 'gestao-chatgpt-ads':{title:'ChatGPT Ads',eyebrow:'Novo canal de anúncios',benefit:'Leve sua oferta a pessoas explorando soluções no ChatGPT.',action:'Quero anunciar no ChatGPT'}
 };
 if([...featuredSlugs,...extraSlugs].length!==services.length||
   new Set([...featuredSlugs,...extraSlugs]).size!==services.length||
   [...featuredSlugs,...extraSlugs].some(slug=>!offeredIds.has(slug)))
   throw new Error('The four-card sales showcase must retain exactly seven reviewed offers');
 const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:string,secondaryValue:string,note:string}>={
+ 'gestao-chatgpt-ads':{primary:'Ativação',primaryValue:'R$ 490',secondary:'Gestão',secondaryValue:'20%',note:'Mínimo R$ 170/mês por canal · mídia à parte'},
  onepage:{primary:'Implantação',primaryValue:'R$ 990',secondary:'Mensalidade',secondaryValue:'R$ 79,90',note:'3× R$ 330 · 1ª mensalidade em D+90'},
  'landing-pages':{primary:'Implantação',primaryValue:'R$ 1.290',secondary:'Mensalidade',secondaryValue:'R$ 79,90',note:'3× R$ 430 · 1ª mensalidade em D+90'},
  'criacao-de-sites':{primary:'Investimento',primaryValue:'Sob proposta',secondary:'Escopo',secondaryValue:'Personalizado',note:'Valores e prazo definidos antes do aceite'},
@@ -115,6 +116,7 @@ const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:str
             <div><span>{pricing.secondary}</span><strong>{pricing.secondaryValue}{slug==='onepage'||slug==='landing-pages'?<small>/mês</small>:null}</strong></div>
           </div>
           <p class="offer-term">{pricing.note}</p>
+          {slug==='gestao-chatgpt-ads'&&<p class="offer-note">Planejamento de mídia: R$ 1.200 / 30 dias (R$ 40/dia). Recomendado: R$ 1.800. Veiculação sujeita à aprovação da plataforma.</p>}
           {slug==='gestao-google-ads'&&<p class="offer-note">Mídia mínima: Google R$ 1.000 · Meta R$ 700 / mês. A ativação é por canal.</p>}
           <a class="cta quick-hire-action" data-quick-hire-action
              href={preview || contactWhatsAppUrl(composeCuratedContactLinks(service.slug).message)}
