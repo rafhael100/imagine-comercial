@@ -38,7 +38,7 @@ const firstEdit=()=>release('release_update_landing_02','2026-11-10T10:00:00Z',[
 ]);
 const secondEdit=()=>release('release_update_onepage_03','2026-11-11T10:00:00Z',[
   {...initial[2],version:2,
-    title:'Onepage empresarial com conteúdo atualizado',
+    title:'Site Onepage empresarial com conteúdo atualizado',
     description:'Nova descrição assinada para a apresentação comercial de Onepages Imagine; não elimina a atualização prévia das Landing Pages.'}
 ]);
 const input=(releases=[start(),firstEdit(),secondEdit()])=>({
