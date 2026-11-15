@@ -107,6 +107,12 @@ try {
           'https://imaginecomunicacao.com.br'+route);
         assert.equal(await p.locator('nav.locale-switcher a').count(),3);
         assert.equal(await p.locator('nav.locale-switcher a[aria-current="page"]').count(),1);
+        // F323: mobile international header cannot render desktop nav and
+        // native menu together; the flags remain reachable at every width.
+        assert.equal(await p.locator('header > nav[aria-label="Primary navigation"]').isVisible(),width===1440,
+          'Desktop navigation visibility '+lang+' at '+width);
+        assert.equal(await p.locator('header details.mobile-menu summary').isVisible(),width===375,
+          'Native mobile menu visibility '+lang+' at '+width);
         for(const code of ['pt-BR','en','es']){
           const flag=p.locator('nav.locale-switcher a[lang="'+code+'"]');
           assert.equal(await flag.count(),1,'Visible '+code+' choice');
