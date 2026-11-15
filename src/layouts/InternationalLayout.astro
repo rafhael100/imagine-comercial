@@ -107,12 +107,12 @@ const service = serviceName ? {
       * { box-sizing: border-box; }
       body { margin: 0; line-height: 1.6; }
       a { color: inherit; }
-      .shell { width: min(1160px, calc(100% - 36px)); margin-inline: auto; }
+      .shell { width: min(1440px, calc(100% - 48px)); margin-inline: auto; }
       .skip-link { position: absolute; top: -100px; left: 12px; padding: 10px; background: white; color: var(--imagine-ink); z-index: 99; }
       .skip-link:focus { top: 10px; }
       .header { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; padding-block: 17px; }
       .brand { display: inline-flex; align-items: center; min-height: 52px; max-width: 46%; text-decoration: none; color: var(--imagine-ink); } .brand img { display:block; width: min(190px, 100%); height: auto; max-height: 64px; object-fit: contain; object-position: left center; }
-      nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(12px, 2vw, 24px); font-size: .91rem; font-weight: 650; }
+      nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(8px, 1vw, 16px); font-size: .91rem; font-weight: 650; }
       nav a { text-decoration: none; }
       /* F259: desktop navigation and client portal links meet minimum pointer target size. */
       .header > nav[aria-label="Navegação principal"] > a { display: inline-flex; align-items: center; min-height: 44px; }
@@ -284,7 +284,7 @@ const service = serviceName ? {
           <a class="locale-option" href={languageTargets[option.id]}
             lang={option.id} hreflang={option.id} aria-current={locale===option.id?'page':undefined}
             aria-label={option.name} title={option.name}>
-            <span class="locale-flag" aria-hidden="true">{option.flag}</span>
+            <span class="locale-flag" aria-hidden="true"><svg viewBox="0 0 30 20" width="30" height="20" focusable="false" aria-hidden="true">{option.id==='pt-BR'?<><path fill="#229e45" d="M0 0h30v20H0z"/><path fill="#ffdf00" d="m15 2 12 8-12 8L3 10z"/><circle cx="15" cy="10" r="5" fill="#183a8f"/><path d="M10 8q5-1 10 4" fill="none" stroke="white" stroke-width="1"/></>:option.id==='en'?<><path fill="white" d="M0 0h30v20H0z"/>{[0,3,6,9,12,15,18].map(y=><path fill="#ba2539" d={`M0 ${y}h30v2H0z`}/>)}<path fill="#233a72" d="M0 0h13v11H0z"/><text x="2" y="8" fill="white" font-size="7">✦✦</text></>:<><path fill="#b51d2d" d="M0 0h30v20H0z"/><path fill="#ffc93e" d="M0 5h30v10H0z"/><path fill="#b51d2d" d="M8 8h4v5H8z"/></>}</svg></span>
             <span class="locale-code" aria-hidden="true">{option.code}</span>
           </a>
         ))}
