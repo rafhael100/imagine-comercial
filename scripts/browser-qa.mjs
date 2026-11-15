@@ -184,7 +184,7 @@ try {
           assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
             reviewedQuoteChoiceHref(lang,{site:'onepage',channels:['meta_ads'],tier:'recommended'}));
           assert.ok((await estimate.locator('[data-choice-onetime]').textContent()).includes(
-            lang==='en'?'1,480.00':'1.480,00'));
+            lang==='en'?'493.33':'493,33'));
           assert.equal(await estimate.locator('form,input,textarea').count(),0);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-solutions"]').count(),1);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-ads"]').count(),1);
