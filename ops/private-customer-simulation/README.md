@@ -1,5 +1,7 @@
 # Jornada privada de demonstração — D01
 
+> **Auditoria atualizada (15/11/2026):** ver [F322–F329](../../docs/COMERCIAL-AUDITORIA-FUNCIONAL-F322-F329-2026-11-15.md). A demonstração D01 e a interface pública de 3x são **estimativas**, distintas do checkout financeiro Portal V5. A F329 corrige somente a exibição de total e centavos, mantendo o calendário fictício DEMO-V2 e sem ativar PSP; validar integração/termos reais antes de release.
+
 Simulador separado do checkout operacional: **não usa Asaas/C6, identidade real, MFA, banco de clientes ou provisionamento**. Não comprova a integração operacional descrita no Portal issue #830. Permite percorrer o desenho completo com site + Google/Meta preservados, inclusive pagamento pendente/recusado e briefing bloqueado até aprovação fictícia.
 
 PHP recalcula os valores; a URL só aceita enums de seleção. Conta fictícia fixa (sem senha/PII), sessão exclusiva, CSRF, rotação ao identificar-se, nonce/revisão de pedido, repetição de aprovação sem duplicar, cookies Secure/HttpOnly/SameSite, respostas no-store/noindex, CSP sem rede externa. A gravação usa somente arquivos de sessão do contêiner de demonstração, isolados do Portal.
