@@ -72,11 +72,11 @@ try {
       assert.equal(await link.getAttribute('target'),'_blank');
       assert.equal(await link.getAttribute('rel'),'noopener noreferrer');
       assert.ok((await link.textContent()).includes(
-        service.slug==='gestao-chatgpt-ads'?'Consultar disponibilidade':
+        service.slug==='gestao-chatgpt-ads'?'Quero anunciar no ChatGPT':
           service.slug==='onepage'?'Quero minha Onepage':
           service.slug==='landing-pages'?'Quero minha Landing Page':
           service.slug==='criacao-de-sites'?'Quero meu site':
-          service.slug==='gestao-google-ads'?'Quero anunciar':
+          service.slug==='gestao-google-ads'?'Quero anunciar no Google':
           service.slug==='gestao-meta-ads'?'Quero Meta Ads':'Consultar planos'),
         'Purchase decision must be explained before account creation');
       assert.ok(await link.isVisible());
