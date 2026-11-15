@@ -57,7 +57,15 @@ function quote(array $s): array {
 $step = $_GET['step'] ?? 'choose';
 if (!is_string($step) || !in_array($step,['choose','summary','account','review','payment','success','briefing','panel'],true)) $step='choose';
 $error = '';
-if ($_SERVER['REQUEST_METHOD']==='GET' && isset($_GET['site']) && $flow['order']===null) {
+if ($_SERVER['REQUEST_METHOD']==='GET' && ($_GET['entry']??null)==='card') {
+    try {
+        $chosen=selection($_GET);
+        $flow=['selection'=>$chosen,'customer'=>null,'order'=>null];
+        $_SESSION['csrf']=bin2hex(random_bytes(32));
+        $step='choose';
+    } catch (DomainException $e) { $error=$e->getMessage(); $step='choose'; }
+}
+elseif ($_SERVER['REQUEST_METHOD']==='GET' && isset($_GET['site']) && $flow['order']===null) {
     try { $flow['selection']=selection($_GET); $step='summary'; } catch (DomainException $e) { $error=$e->getMessage(); $step='choose'; }
 }
 if ($_SERVER['REQUEST_METHOD']==='POST') {
