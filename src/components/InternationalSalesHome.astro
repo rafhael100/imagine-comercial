@@ -43,7 +43,7 @@ const copy=locale==='en'?{
   'gestao-google-ads':{short:'Ads management',tag:'Reach customers',benefit:'Google, Instagram and Facebook with a clear plan.',action:'Start advertising'},
   'gestao-meta-ads':{short:'Instagram & Facebook',benefit:'Build interest with relevant social ads.',action:'Discuss Meta Ads'},
   'sites-por-assinatura':{short:'Subscription websites',benefit:'Explore a website with recurring service.',action:'Ask about plans'},
-  'gestao-chatgpt-ads':{short:'ChatGPT Ads',benefit:'Pilot planning, subject to platform eligibility.',action:'Check availability'}
+  'gestao-chatgpt-ads':{short:'ChatGPT Ads',tag:'A new ad channel',benefit:'Reach people exploring solutions in ChatGPT.',action:'Advertise on ChatGPT'}
  }
 }:{
  eyebrow:'SITIOS WEB Y MARKETING DIGITAL',
@@ -76,21 +76,23 @@ const copy=locale==='en'?{
   'gestao-google-ads':{short:'Gestión de anuncios',tag:'Nuevos clientes',benefit:'Google, Instagram y Facebook con estrategia.',action:'Quiero anunciarme'},
   'gestao-meta-ads':{short:'Instagram y Facebook',benefit:'Conecta con tu público en redes sociales.',action:'Consultar Meta Ads'},
   'sites-por-assinatura':{short:'Sitios por suscripción',benefit:'Un sitio web con servicio recurrente.',action:'Consultar planes'},
-  'gestao-chatgpt-ads':{short:'ChatGPT Ads',benefit:'Planifica un piloto sujeto a disponibilidad.',action:'Consultar disponibilidad'}
+  'gestao-chatgpt-ads':{short:'ChatGPT Ads',tag:'Nuevo canal de anuncios',benefit:'Llega a personas que exploran soluciones en ChatGPT.',action:'Anunciar en ChatGPT'}
  }
 };
-const featured=['onepage','landing-pages','criacao-de-sites','gestao-google-ads'] as const;
-const additional=['gestao-meta-ads','sites-por-assinatura','gestao-chatgpt-ads'] as const;
+const featured=['onepage','landing-pages','gestao-chatgpt-ads','gestao-google-ads'] as const;
+const additional=['gestao-meta-ads','sites-por-assinatura','criacao-de-sites'] as const;
 const languageLink=slug=>intlPath(locale,'services/'+slug);
 const fee=locale==='en'?{
  onepage:['BRL 990','BRL 79.90','/mo'],
  'landing-pages':['BRL 1,290','BRL 79.90','/mo'],
  'criacao-de-sites':[copy.proposed,copy.tailored,''],
+ 'gestao-chatgpt-ads':['BRL 490','20%',''],
  'gestao-google-ads':['BRL 490','20%','']
 }:{
  onepage:['R$ 990','R$ 79,90','/mes'],
  'landing-pages':['R$ 1.290','R$ 79,90','/mes'],
  'criacao-de-sites':[copy.proposed,copy.tailored,''],
+ 'gestao-chatgpt-ads':['R$ 490','20%',''],
  'gestao-google-ads':['R$ 490','20%','']
 };
 ---
@@ -139,9 +141,10 @@ const fee=locale==='en'?{
       <p class="intl-offer-lead">{offer.benefit}</p>
       <div class="intl-price-row">
        <div><small>{slug==='criacao-de-sites'?copy.priceCustom:copy.priceStart}</small><strong>{price[0]}</strong></div>
-       <div><small>{slug==='criacao-de-sites'?copy.priceScope:slug==='gestao-google-ads'?copy.fee:copy.priceMonth}</small><strong>{price[1]}<span>{price[2]}</span></strong></div>
+       <div><small>{slug==='criacao-de-sites'?copy.priceScope:(slug==='gestao-google-ads'||slug==='gestao-chatgpt-ads')?copy.fee:copy.priceMonth}</small><strong>{price[1]}<span>{price[2]}</span></strong></div>
       </div>
-      <p class="intl-pricing-note">{slug==='onepage'?copy.setupNoteOne:slug==='landing-pages'?copy.setupNoteLanding:slug==='gestao-google-ads'?copy.adsNote:copy.siteNote}</p>
+      <p class="intl-pricing-note">{slug==='onepage'?copy.setupNoteOne:slug==='landing-pages'?copy.setupNoteLanding:(slug==='gestao-google-ads'||slug==='gestao-chatgpt-ads')?copy.adsNote:copy.siteNote}</p>
+      {slug==='gestao-chatgpt-ads'&&<p class="intl-ad-note">{locale==='en'?'Media planning: BRL 1,200 / 30 days (BRL 40/day). Recommended: BRL 1,800. Delivery subject to platform approval.':'Plan de medios: R$ 1.200 / 30 días (R$ 40/día). Recomendado: R$ 1.800. Sujeto a aprobación de la plataforma.'}</p>}
       {slug==='gestao-google-ads'&&<p class="intl-ad-note">{copy.adsMore}</p>}
       <a class="cta intl-buy" href={localizedSalesWhatsAppUrl(locale,slug)} target="_blank" rel="noopener noreferrer"
        aria-label={offer.action+' — WhatsApp'} aria-describedby="intl-buy-disclosure">{offer.action} <span aria-hidden="true">↗</span></a>
