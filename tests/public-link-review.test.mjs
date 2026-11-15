@@ -43,6 +43,18 @@ test('F32 blocks broken internal routes and disallowed hash fragments',()=>{
   ]) assert.throws(()=>review([href]),/internal route missing|broken or unapproved fragment/);
 });
 
+test('F329: navigation may link to exact home purchase section from any public page',()=>{
+  for(const from of ['/', '/servicos/', '/sobre/', '/conteudos/']){
+    const result=review(['/#simular-compra'],from);
+    assert.equal(result.internal,1);
+    assert.equal(result.sameDocument,0);
+  }
+  for(const bad of [
+    '/#simular-comprA', '/#simular-compra-extra', '/#qualquer-secao',
+    '/?campaign=1#simular-compra', '/#simular%2Dcompra'
+  ])assert.throws(()=>review([bad],'/servicos/'),/fragment|unsafe/);
+});
+
 test('F32 blocks domain lookalikes, marketing links and unsafe protocols',()=>{
   for(const href of [
     'https://evil.invalid/','https://wa.me.evil.invalid/5585996632689',
