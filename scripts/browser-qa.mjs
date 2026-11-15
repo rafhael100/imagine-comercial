@@ -107,7 +107,14 @@ try {
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
     assert.equal(await preview.locator('input, form, textarea').count(),0);
     await preview.locator('[data-choice-site="onepage"]').click();
+    // Investment choices are intentionally hidden until an ad channel is selected.
+    assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
+    await preview.locator('[data-choice-channel="google_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-investment]').isVisible(),true);
     await preview.locator('[data-choice-tier="recommended"]').click();
+    assert.equal(await preview.locator('[data-choice-tier="recommended"]').getAttribute('aria-pressed'),'true');
+    await preview.locator('[data-choice-channel="google_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'false');
     assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Seu negócio mais bonito.Mais oportunidades.');
     assert.ok((await quickPage.locator('#quick-hire-notice').textContent()).includes('nenhum pagamento'));
