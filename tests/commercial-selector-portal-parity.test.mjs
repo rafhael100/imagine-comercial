@@ -57,7 +57,10 @@ test('F326 every eligible anonymous UI combination reconciles with Portal-checke
  assert.equal(cases,24);
 });
 test('F326 never use ChatGPT Ads price references as enabled checkout or accept unknown channels',()=>{
- assert.equal(REVIEWED_CHANNEL_CHOICES.chatgpt_ads,undefined);
- assert.throws(()=>buildCommercialChoicePreview({site:'none',channels:['chatgpt_ads'],tier:'minimum'}));
+ assert.equal(REVIEWED_CHANNEL_CHOICES.chatgpt_ads.minimumMediaCents,120000);
+ const quote=buildCommercialChoicePreview({site:'none',channels:['chatgpt_ads'],tier:'minimum'});
+ assert.equal(quote.adMediaCents,120000);
+ assert.equal(quote.adManagementEstimateCents,24000);
+ assert.equal(quote.eligibleForPublicCheckout,false);
  assert.throws(()=>previewCommercialSelection({offer:'performance',channels:{chatgpt_ads:120000}}));
 });
