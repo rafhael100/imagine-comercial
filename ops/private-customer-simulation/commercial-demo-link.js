@@ -33,6 +33,9 @@
     const raw=a.closest('[data-quick-hire]')?.dataset.quickHire||'';
     if(['onepage','landing-pages','gestao-google-ads','gestao-meta-ads'].includes(raw)){
       a.removeAttribute('target');a.setAttribute('aria-label','Simular compra: '+raw);
+      const site=raw==='onepage'?'onepage':raw==='landing-pages'?'landing-pages':'none';
+      const channels=raw==='gestao-google-ads'?['google_ads']:raw==='gestao-meta-ads'?['meta_ads']:[];
+      a.href=url(site,channels,'recommended');
     }
   }
   for (const root of document.querySelectorAll('[data-choice-preview]')) {
@@ -42,6 +45,8 @@
     const note=root.querySelector('.choice-disclosure');
     if(note)note.textContent='Modo de demonstração privada: escolha, conta fictícia, pedido, pagamento simulado e briefing. Nenhum valor será cobrado e nenhum serviço real será ativado.';
   }
+  const notice=document.querySelector('#quick-hire-notice');
+  if(notice)notice.textContent='Demonstração privada: Onepage, Landing Page e anúncios abrem o fluxo de compra simulado com a escolha preservada. Serviços sob proposta seguem para atendimento. Nenhuma cobrança real.';
   const nav=document.querySelector('header nav')||document.querySelector('header');
   if(nav&&!document.querySelector('[data-demo-start]')) {
     const a=document.createElement('a');a.href=base;a.dataset.demoStart='';a.textContent='Simular compra completa';
