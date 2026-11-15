@@ -82,7 +82,7 @@ class Journey(unittest.TestCase):
     def test_combined_complete_pending_declined_approved_briefing(self):
         c = Client()
         c.choose(channels=['google_ads', 'meta_ads'])
-        for text in ['Onepage', 'Google Ads', 'Instagram + Facebook', 'R$ 1.310,00', 'R$ 370,00', 'R$ 1.700,00']:
+        for text in ['Onepage', 'Google Ads', 'Instagram + Facebook', 'R$ 656,66', 'R$ 370,00', 'R$ 1.700,00']:
             self.assertIn(text, c.body)
         oid = c.create()
         self.assertRegex(oid, r'^DEMO-[A-F0-9]{10}$')
@@ -121,7 +121,7 @@ class Journey(unittest.TestCase):
                         if site == 'none' and not channels:
                             self.assertIn('Escolha um site ou pelo menos um canal', c.body)
                             continue
-                        expected = (330 if site == 'onepage' else 430 if site == 'landing-pages' else 0) + 490 * len(channels)
+                        expected = ((99000 if site == 'onepage' else 129000 if site == 'landing-pages' else 0) + 49000 * len(channels)) // 3 / 100
                         formatted = f'{expected:,.2f}'.replace(',', 'x').replace('.', ',').replace('x', '.')
                         self.assertIn('R$ ' + formatted, c.body)
                         for ch in channels:
