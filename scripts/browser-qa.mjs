@@ -166,7 +166,7 @@ try {
             lang+': exactly four illustrated flagship cards');
           assert.equal(await p.locator('.intl-shop-card .offer-art').count(),4,
             lang+': the same shared decorative illustrations as Portuguese');
-          for(const slug of ['onepage','landing-pages','criacao-de-sites','gestao-google-ads']){
+          for(const slug of ['onepage','landing-pages','gestao-chatgpt-ads','gestao-google-ads']){
             const card=p.locator('.intl-shop-card[data-international-offer="'+slug+'"]');
             assert.equal(await card.locator('.intl-buy').getAttribute('href'),
               localizedSalesWhatsAppUrl(lang,slug),
