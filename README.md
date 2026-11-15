@@ -1,5 +1,7 @@
 # Imagine Comercial
 
+> **F331 — metodologia Visitas → Leads → Clientes:** [funil visual, calculadora anônima e especificação para Codex](docs/COMERCIAL-F331-FUNIL-CALCULADORA-VISITAS-LEADS-CLIENTES.md). Cenários de conversão são hipóteses educacionais, **não previsões nem benchmarks**. A simulação não recolhe nome/e-mail, não ativa CRM e permanece em PR de revisão sem deploy.
+
 Site público comercial da Imagine Comunicação Digital — `imaginecomunicacao.com.br`.
 
 **Decisão técnica aprovada (08/11/2026): Astro**, arquitetura **SEO-first** e **híbrida** (SSG como padrão; SSR controlado somente se necessário e após homologação). A prova de conceito comparativa com Next.js/Nuxt foi dispensada por decisão do responsável.
