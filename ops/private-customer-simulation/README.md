@@ -38,3 +38,7 @@ Somente a jornada fictícia ganhou o terceiro canal: o gate de checkout operacio
 Novas simulações usam DEMO-V2-3X-2026-11-15: implantação + todas as ativações juntas em 3x sem juros, D0/D30/D60. Duas primeiras parcelas são floor(total/3), a última recebe os centavos restantes; soma exata ao total. Mensalidade do site em D+90 e gestão pós-paga permanecem separadas. Pedidos fictícios anteriores preservam seu snapshot; iniciar nova simulação para experimentar a nova regra. Esse ajuste foi aplicado à estimativa comercial e ao demonstrador, não altera cobrança real do Portal/PSP.
 
 Bloco comercial da calculadora incluído após o seletor nos três idiomas, usando as rotas já existentes, sem captura de dados ou promessa de resultado.
+
+## Seletor anônimo da home — terceiro canal
+
+ChatGPT Ads agora integra também a estimativa pública do componente CommercialChoicePreview, com parâmetros reutilizados da calculadora (R$1.200 mínimo / R$1.800 recomendado). São 48 seleções e 46 mensagens opt-in por idioma, sem dados pessoais. O gate operacional Portal continua rejeitando ChatGPT explicitamente e não o mapeia silenciosamente para Google/Meta. O overlay privado preserva os três enums e abre a demonstração. A inclusão na estimativa não comprova contratação, pagamento ou veiculação reais.
