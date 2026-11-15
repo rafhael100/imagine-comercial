@@ -158,7 +158,8 @@ class Journey(unittest.TestCase):
             for candidate in ['google_ads', 'meta_ads', 'chatgpt_ads']:
                 self.assertEqual(('value="' + candidate + '" checked') in c.body, candidate == channel)
             c.choose('none', [channel])
-            self.assertIn('Sem site', c.body)
+            self.assertNotIn('<h3>Onepage</h3>', c.body)
+            self.assertNotIn('<h3>Landing Page</h3>', c.body)
 
     def test_csrf_and_foreign_order_rejection(self):
         a, b = Client(), Client()
