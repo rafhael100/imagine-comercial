@@ -32,3 +32,9 @@ O include do location fica no bloco server HTTPS em sites-available/imagine-dev,
 O simulador aceita chatgpt_ads isolado ou combinado com Google/Meta. Mídia ilustrativa R$1.200/30 dias (R$40/dia) ou recomendada R$1.800/30 dias; ativação Imagine R$490 e gestão max(R$170,20% da mídia). R$1.200 não é um mínimo mensal universal da plataforma: é o planejamento de 30 dias. Referência oficial consultada em 15/11/2026: https://help.openai.com/en/articles/20001210-creating-campaigns-for-chatgpt-ads (BRL40/dia); disponibilidade de autoatendimento Brasil: https://help.openai.com/pt-br/articles/20001245-ads-manager-availability . Conta, anúncios e veiculação continuam sujeitos à aprovação e condições da plataforma.
 
 Somente a jornada fictícia ganhou o terceiro canal: o gate de checkout operacional do Portal e a precificação pública validada contra o Portal continuam restritos aos canais já homologados. Não tratar a simulação como integração operacional OpenAI Ads. Seis testes HTTP passam incluindo todas as oito combinações ChatGPT com/sem Google/Meta e mínimo/recomendado, com aprovação fictícia, briefing e painel.
+
+## Parcelamento aprovado — 15/11/2026
+
+Novas simulações usam DEMO-V2-3X-2026-11-15: implantação + todas as ativações juntas em 3x sem juros, D0/D30/D60. Duas primeiras parcelas são floor(total/3), a última recebe os centavos restantes; soma exata ao total. Mensalidade do site em D+90 e gestão pós-paga permanecem separadas. Pedidos fictícios anteriores preservam seu snapshot; iniciar nova simulação para experimentar a nova regra. Esse ajuste foi aplicado à estimativa comercial e ao demonstrador, não altera cobrança real do Portal/PSP.
+
+Bloco comercial da calculadora incluído após o seletor nos três idiomas, usando as rotas já existentes, sem captura de dados ou promessa de resultado.
