@@ -9,7 +9,7 @@ from html.parser import HTMLParser
 
 BASE = '/simulacao/compra/'
 HOST = 'comercial-dev.imaginecomunica.com.br'
-PORT = int(os.environ.get('SIMULATION_TEST_PORT', '18084'))
+PORT = int(os.environ.get('SIMULATION_TEST_PORT', '18085'))
 
 
 class Inputs(HTMLParser):
@@ -68,6 +68,7 @@ class Client:
         return self.post('choose', site=site, **{'channels[]': channels or []}, tier=tier)
 
     def create(self):
+        self.get('account')
         self.post('account', mode='register')
         self.post('order', ack='yes')
         return Inputs(self.body).values['order_id']
