@@ -38,8 +38,8 @@ function selection(array $input): array {
     if (!in_array($input['site'], ['none','onepage','landing-pages'], true) || !in_array($input['tier'], ['minimum','recommended'], true)) throw new DomainException('Serviço ou faixa de investimento inválidos.');
     $channels = $input['channels'] ?? [];
     if (is_string($channels)) $channels = $channels === '' ? [] : explode(',', $channels);
-    if (!is_array($channels) || count($channels)>2 || count(array_unique($channels, SORT_REGULAR))!==count($channels)) throw new DomainException('Canais inválidos.');
-    foreach ($channels as $channel) if (!is_string($channel) || !in_array($channel, ['google_ads','meta_ads'], true)) throw new DomainException('Este canal não está disponível para simulação.');
+    if (!is_array($channels) || count($channels)>3 || count(array_unique($channels, SORT_REGULAR))!==count($channels)) throw new DomainException('Canais inválidos.');
+    foreach ($channels as $channel) if (!is_string($channel) || !in_array($channel, ['google_ads','meta_ads','chatgpt_ads'], true)) throw new DomainException('Este canal não está disponível para simulação.');
     sort($channels);
     if ($input['site']==='none' && !$channels) throw new DomainException('Escolha um site ou pelo menos um canal de anúncios.');
     return ['site'=>$input['site'],'channels'=>$channels,'tier'=>$input['tier']];
@@ -48,8 +48,8 @@ function quote(array $s): array {
     $setup = match($s['site']) { 'onepage'=>99000, 'landing-pages'=>129000, default=>0 };
     $ads=[];
     foreach ($s['channels'] as $ch) {
-        $media = $ch==='google_ads' ? ($s['tier']==='minimum'?100000:150000) : ($s['tier']==='minimum'?70000:100000);
-        $ads[]=['channel'=>$ch,'label'=>$ch==='google_ads'?'Google Ads':'Instagram + Facebook','media'=>$media,'management'=>max(17000, intdiv($media,5)),'activation'=>49000];
+        $media = match($ch){'google_ads'=>$s['tier']==='minimum'?100000:150000,'meta_ads'=>$s['tier']==='minimum'?70000:100000,'chatgpt_ads'=>$s['tier']==='minimum'?120000:180000};
+        $ads[]=['channel'=>$ch,'label'=>match($ch){'google_ads'=>'Google Ads','meta_ads'=>'Instagram + Facebook','chatgpt_ads'=>'ChatGPT Ads'},'media'=>$media,'management'=>max(17000, intdiv($media,5)),'activation'=>49000];
     }
     return ['policy'=>'DEMO-V1-2026-11-14','site'=>$s['site'], 'siteLabel'=>match($s['site']){'onepage'=>'Onepage','landing-pages'=>'Landing Page',default=>'Sem site'},'setup'=>$setup,'installment'=>intdiv($setup,3),'monthly'=>$setup?7990:0,'ads'=>$ads,'activation'=>count($ads)*49000,'media'=>array_sum(array_column($ads,'media')),'management'=>array_sum(array_column($ads,'management')),'now'=>intdiv($setup,3)+count($ads)*49000];
 }
