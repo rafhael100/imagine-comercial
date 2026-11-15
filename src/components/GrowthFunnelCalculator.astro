@@ -5,7 +5,6 @@
  * Contact details are NEVER submitted by this static component.
  */
 import {buildGrowthPotential} from '../lib/growth-potential-calculator.mjs';
-import {contactWhatsAppUrl} from '../data/contact-channels.mjs';
 import {intlPath} from '../data/i18n.mjs';
 interface Props {locale?: 'pt-BR'|'en'|'es';}
 const {locale='pt-BR'}=Astro.props;
@@ -72,7 +71,6 @@ const copy={
 const t=copy[locale];
 const contact=locale==='pt-BR'?'/contato/':intlPath(locale,'contact');
 const solutions=locale==='pt-BR'?'/servicos/':intlPath(locale,'services');
-const whatsapp=contactWhatsAppUrl();
 const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:'reference'});
 ---
 <section class="growth-funnel-section" id="calculadora-visitas-leads-clientes"
@@ -91,7 +89,7 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
    </div>
    <div class="funnel-interaction">
     <h3>{t.calc}</h3>
-    <form data-growth-form novalidate>
+    <div data-growth-form>
      <div class="funnel-inputs">
       <div class="funnel-field">
        <label for={'growth-sector-'+locale}>{t.sector}</label>
@@ -116,9 +114,9 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
       </div>
      </fieldset>
      <p class="funnel-error" id={'growth-invalid-'+locale} data-growth-error role="alert" hidden>{t.invalid}</p>
-     <button type="submit" class="cta funnel-calculate">{t.calculate} <span aria-hidden="true">↗</span></button>
+     <button type="button" data-growth-calculate class="cta funnel-calculate">{t.calculate} <span aria-hidden="true">↗</span></button>
      <details class="funnel-math"><summary>{t.explain}</summary><p>{t.basis}</p><p>{t.sectorNote}</p></details>
-    </form>
+    </div>
    </div>
   </div>
   <div class="funnel-results" data-growth-results hidden aria-live="polite" aria-atomic="true">
@@ -164,8 +162,7 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
   const label=(selector,value)=>{const node=root.querySelector(selector);if(node)node.textContent=value;};
   let last=null;
   // User enters only anonymous sector/estimated volume. Nothing is saved or sent.
-  form?.addEventListener('submit',event=>{
-   event.preventDefault();
+  form?.querySelector('[data-growth-calculate]')?.addEventListener('click',()=>{
    const raw=input.value;
    const weekly=Number(raw);
    if(!/^\d{1,6}$/.test(raw)||!Number.isSafeInteger(weekly)||weekly>MAX_WEEKLY_VISITS||
@@ -194,6 +191,13 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
    for(const [name,val] of [['visits',estimate.monthlyVisits],['leads',estimate.leads],['customers',estimate.customers]]){
     const node=root.querySelector('[data-funnel-'+name+']');
     if(node){node.hidden=false;node.textContent=fmt(val);}
+   }
+  });
+  // Keyboard users can still calculate directly from the inputs.
+  form?.addEventListener('keydown',event=>{
+   if(event.key==='Enter' && event.target?.matches('input,select')){
+    event.preventDefault();
+    form.querySelector('[data-growth-calculate]')?.click();
    }
   });
   // Explicit user click: optional clipboard copy only, no network and no PII.
