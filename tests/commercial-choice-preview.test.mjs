@@ -84,8 +84,12 @@ test('F324: browser component is an anonymous click-only preview across PT EN ES
  assert.match(pt,/href="#simular-compra">Montar meu orçamento/);
  assert.match(international,/href="#simular-compra">\{copy\.flowAction\}/);
  assert.match(component,/href=\{initialHref\}/);
- assert.match(component,/target="_blank" rel="noopener noreferrer"/);
+ assert.match(component,/target=\{privatePortalBuild\?undefined:"_blank"\}/);
+ assert.match(component,/data-private-handoff-base=\{privatePortalBuild\?REVIEWED_PRIVATE_QUOTE_BASE:undefined\}/);
  assert.match(component,/reviewedQuoteChoiceHref\(locale,\{site,channels,tier\}\)/);
+ assert.match(component,/portal\.searchParams\.set\('site',site\)/);
+ assert.match(component,/portal\.searchParams\.set\('channels',\[\.\.\.channels\]\.sort\(\)\.join\(','\)\)/);
+ assert.match(component,/isPrivateQuotePreviewBuild\(\)/);
  assert.match(component,/eligibleForPublicCheckout|Simulação, não contratação|no public checkout|No hay compra pública activa/);
  assert.doesNotMatch(component,/<(?:form|input|textarea)\b|\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|innerHTML|document\.cookie|FormData|requestSubmit|\.submit\s*\(/);
  assert.ok(component.includes('aria-pressed'));
