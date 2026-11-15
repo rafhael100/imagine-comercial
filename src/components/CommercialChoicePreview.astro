@@ -73,11 +73,11 @@ const fmt=cents=>{
     </div>
     <p class="choice-help">{copy.noAds}</p>
    </section>
-   <section class="choice-step" aria-label={copy.tier}>
+   <section class="choice-step" aria-label={copy.tier} data-choice-investment hidden>
     <h4>{copy.tier}</h4>
     <div class="choice-options" data-choice-tiers>
-     <button type="button" data-choice-tier="minimum" aria-pressed="false">{copy.minimum}</button>
-     <button type="button" data-choice-tier="recommended" aria-pressed="true">{copy.recommended}</button>
+     <button type="button" data-choice-tier="minimum" aria-pressed="false">{copy.minimum}<small data-choice-tier-prices="minimum" aria-live="polite"></small></button>
+     <button type="button" data-choice-tier="recommended" aria-pressed="true">{copy.recommended}<small data-choice-tier-prices="recommended" aria-live="polite"></small></button>
     </div>
     <p class="choice-help">{copy.tierNote}</p>
    </section>
@@ -110,6 +110,14 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
   const label=(attr,text)=>{const node=root.querySelector('['+attr+']');if(node)node.textContent=text;};
   const render=()=>{
    const estimate=buildCommercialChoicePreview({site,channels,tier});
+   const investment=root.querySelector('[data-choice-investment]');
+   if(investment)investment.hidden=channels.length===0;
+   for(const price of root.querySelectorAll('[data-choice-tier-prices]')){
+    const option=price.getAttribute('data-choice-tier-prices');
+    const planned=buildCommercialChoicePreview({site,channels,tier:option});
+    const suffix=locale==='en'?'/month':locale==='es'?'/mes':'/mês';
+    price.textContent=planned.adLines.map(line=>(line.channel==='google_ads'?'Google':'Meta')+' '+format(line.mediaCents)+suffix).join(' · ');
+   }
    for(const button of root.querySelectorAll('[data-choice-site]'))
     button.setAttribute('aria-pressed',String(button.getAttribute('data-choice-site')===site));
    for(const button of root.querySelectorAll('[data-choice-channel]'))
@@ -166,6 +174,9 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  .choice-options button{min-height:44px;display:inline-flex;align-items:center;gap:6px;border:1px solid #ded3c6;border-radius:11px;background:#fff;color:#493d32;font:inherit;font-size:.84rem;font-weight:700;cursor:pointer;padding:10px 12px}
  .choice-options button[aria-pressed="true"]{background:#ffeed8;border-color:#aa5605;color:#723900;box-shadow:inset 0 0 0 1px #aa5605}
  .choice-options button:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+ .choice-options [data-choice-tier]{flex-direction:column;align-items:flex-start}
+ .choice-options [data-choice-tier-prices]{font-size:.72rem;font-weight:400}
+ .choice-step[hidden]{display:none}
  .choice-help{color:#736759;font-size:.75rem;line-height:1.4;margin:10px 0 0}
  .choice-summary{min-width:0;padding:20px 18px;background:#f7f8f5;border-radius:15px;border:1px solid #e8e8de}
  .summary-heading{display:flex;align-items:center;gap:9px;margin-bottom:17px}
