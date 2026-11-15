@@ -86,13 +86,13 @@ test('F331: calculator HTML and JS remain anonymous, accessible and non-submitti
   'data-growth-copy','data-growth-copied','data-funnel-visits',
   'data-funnel-leads','data-funnel-customers',
   'aria-live="polite"','aria-atomic="true"','aria-labelledby',
-  "event.preventDefault()","navigator.clipboard.writeText",
-  "contactWhatsAppUrl"
+  "data-growth-calculate","navigator.clipboard.writeText",
+  "event.preventDefault()"
  ])assert.ok(s.includes(text),text);
  assert.match(s,/role="alert"/);
  assert.match(s,/inputmode="numeric"/);
  assert.match(s,/max="100000"/);
- assert.match(s,/novalidate/);
+ assert.doesNotMatch(s,/<form\\b/);
  assert.match(s,/name="weekly"/);
  assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|document\.cookie|innerHTML|\bPOST\b/);
  assert.doesNotMatch(s,/type="email"|name="email"|name="telefone"|name="cpf"/);
