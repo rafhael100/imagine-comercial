@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroVisual from '../components/HeroVisual.astro';
 import QuickServiceRequest from '../components/QuickServiceRequest.astro';
+import GrowthPillars from '../components/GrowthPillars.astro';
 import {guideGoals} from '../lib/public-service-guide.mjs';
 import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
 import {buildServices as services} from '../lib/build-catalog.mjs';
@@ -29,6 +30,7 @@ const featured = services.filter(s=>['criacao-de-sites','landing-pages','gestao-
       <HeroVisual />
     </div>
   </section>
+  <GrowthPillars variant="feature" locale="pt-BR" />
   <QuickServiceRequest />
   <section class="section home-quick-links shell" aria-labelledby="home-featured-title">
     <div class="quick-links-title">

@@ -2,6 +2,7 @@
 import { toAbsoluteUrl } from '../data/services.mjs';
 import { resolvePortalLoginLink } from '../lib/portal-login-link.mjs';
 import { contactChannels } from '../data/contact-channels.mjs';
+import GrowthPillars from '../components/GrowthPillars.astro';
 import {languageAlternates,languageSwitchTargets} from '../data/i18n.mjs';
 interface Props {
   title: string;
@@ -302,6 +303,7 @@ const service = serviceName ? {
           <p>Os contatos foram observados no site atual e precisam ser reconfirmados antes da publicação.</p>
         </div>
       </div>
+      <div class="shell"><GrowthPillars variant="signature" locale="pt-BR" /></div>
       <div class="shell footer-bottom">
         <span>© {new Date().getFullYear()} Imagine Comunicação Digital.</span>
         <span>Atendimento e propostas sujeitos às condições comerciais vigentes.</span>

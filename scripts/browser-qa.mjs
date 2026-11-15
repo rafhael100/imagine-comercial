@@ -65,6 +65,15 @@ try {
     await quickPage.goto(host+'/',{waitUntil:'networkidle'});
     const cards=quickPage.locator('[data-quick-hire]');
     assert.equal(await cards.count(),services.length,'Quick hiring covers all seven published services');
+    // F330: the approved methodology is visible without redesigning the hero.
+    const featuredMethod=quickPage.locator('[data-imagine-growth-pillars][data-growth-variant="feature"]');
+    assert.equal(await featuredMethod.count(),1);
+    assert.deepEqual(await featuredMethod.locator('[data-growth-stage]').allTextContents(),
+      ['Visitas','Leads','Clientes']);
+    const footerMethod=quickPage.locator('footer [data-imagine-growth-pillars][data-growth-variant="signature"]');
+    assert.equal(await footerMethod.count(),1);
+    assert.deepEqual(await footerMethod.locator('[data-growth-stage]').allTextContents(),
+      ['Visitas','Leads','Clientes']);
     for(const service of services){
       const card=quickPage.locator('[data-quick-hire="'+service.slug+'"]');
       const link=card.locator('[data-quick-hire-action]');
@@ -156,7 +165,16 @@ try {
         }
         assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
           'International page horizontal overflow '+route+' '+width);
+        // Signature stays consistent on all localized pages.
+        const footerPillars=p.locator('footer [data-imagine-growth-pillars][data-growth-variant="signature"]');
+        assert.equal(await footerPillars.count(),1);
+        assert.deepEqual(await footerPillars.locator('[data-growth-stage]').allTextContents(),
+          lang==='en'?['Visits','Leads','Customers']:['Visitas','Leads','Clientes']);
         if(section===''){
+          const homeMethod=p.locator('[data-imagine-growth-pillars][data-growth-variant="feature"]');
+          assert.equal(await homeMethod.count(),1);
+          assert.deepEqual(await homeMethod.locator('[data-growth-stage]').allTextContents(),
+            lang==='en'?['Visits','Leads','Customers']:['Visitas','Leads','Clientes']);
           // F323: all seven offers remain discoverable; only four dominate the
           // international visual homepage. CTA links must remain allowlisted.
           assert.equal(await p.locator('[data-international-offer]').count(),7,
