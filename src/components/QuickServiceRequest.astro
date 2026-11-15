@@ -76,7 +76,7 @@ const cardText:Record<string,{title:string,benefit:string,action:string,eyebrow:
  onepage:{title:'Onepage',eyebrow:'Para começar',benefit:'Sua empresa inteira em uma página bonita e profissional.',action:'Quero minha Onepage'},
  'landing-pages':{title:'Landing Page',eyebrow:'Para converter',benefit:'Uma página para destacar sua oferta e gerar oportunidades.',action:'Quero minha Landing Page'},
  'criacao-de-sites':{title:'Site completo',eyebrow:'Para crescer',benefit:'Mais espaço para seus serviços, sua marca e sua história.',action:'Quero meu site'},
- 'gestao-google-ads':{title:'Gestão de anúncios',eyebrow:'Para atrair clientes',benefit:'Google, Instagram e Facebook com estratégia e acompanhamento.',action:'Quero anunciar'},
+ 'gestao-google-ads':{title:'Google Ads',eyebrow:'Para quem procura sua solução',benefit:'Apareça no Google para pessoas que procuram seus produtos e serviços.',action:'Quero anunciar no Google'},
  'gestao-meta-ads':{title:'Instagram e Facebook',eyebrow:'Meta Ads',benefit:'Anúncios para despertar interesse pela sua marca.',action:'Quero Meta Ads'},
  'sites-por-assinatura':{title:'Sites por assinatura',eyebrow:'Outra modalidade',benefit:'Conheça um modelo de site com serviço recorrente.',action:'Consultar planos'},
  'gestao-chatgpt-ads':{title:'ChatGPT Ads',eyebrow:'Novo canal de anúncios',benefit:'Leve sua oferta a pessoas explorando soluções no ChatGPT.',action:'Quero anunciar no ChatGPT'}
@@ -117,7 +117,7 @@ const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:str
           </div>
           <p class="offer-term">{pricing.note}</p>
           {slug==='gestao-chatgpt-ads'&&<p class="offer-note">Planejamento de mídia: R$ 1.200 / 30 dias (R$ 40/dia). Recomendado: R$ 1.800. Veiculação sujeita à aprovação da plataforma.</p>}
-          {slug==='gestao-google-ads'&&<p class="offer-note">Mídia mínima: Google R$ 1.000 · Meta R$ 700 / mês. A ativação é por canal.</p>}
+          {slug==='gestao-google-ads'&&<p class="offer-note">Mídia no Google: mínimo R$ 1.000/mês · recomendado R$ 1.500/mês.</p>}
           <a class="cta quick-hire-action" data-quick-hire-action
              href={preview || contactWhatsAppUrl(composeCuratedContactLinks(service.slug).message)}
              target={preview?undefined:'_blank'}
@@ -196,12 +196,13 @@ const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:str
  .offer-more{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:700;font-size:.81rem;color:#874100;min-height:41px;text-decoration:underline;text-underline-offset:3px}
  .more-services{display:grid;grid-template-columns:1fr repeat(3,minmax(0,2.1fr));gap:9px;align-items:center;margin-top:20px;scroll-margin-top:90px}
  .more-services>span{font-weight:800;font-size:.82rem;color:#63594e}
- .mini-offer{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;padding:10px 12px;background:#fff;border:1px solid #e6ded4;border-radius:13px}
+ .mini-offer{position:relative;display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;padding:10px 12px;background:#fff;border:1px solid #e6ded4;border-radius:13px}
  .mini-offer-icon{display:grid;place-items:center;width:33px;height:33px;background:#fff0dc;border-radius:10px;color:#945117;font-weight:800;font-size:21px}
  .mini-offer-copy{display:grid;gap:3px;min-width:0}
  .mini-offer-copy strong{font-size:.87rem;line-height:1.2}
  .mini-offer-copy small{font-size:.71rem;color:#6a6055;line-height:1.35}
- .mini-more{display:none}
+ .mini-cta::after{content:"";position:absolute;inset:0;border-radius:13px}
+ .mini-more{position:relative;z-index:1;display:none}
  .mini-cta{display:flex;align-items:center;gap:3px;font-size:.74rem;font-weight:800;color:#945000;text-align:right;text-decoration:none}
  .see-all{grid-column:2/-1;justify-self:end;color:#995000;font-size:.82rem;text-underline-offset:4px}
  .checkout-preview{margin:35px 0 0;padding:23px 28px;background:#171b19;color:#fff;border-radius:18px;display:grid;grid-template-columns:280px minmax(0,1fr);gap:24px;align-items:center}
