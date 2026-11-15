@@ -1,0 +1,51 @@
+name: Comercial F325 - jornada de compra navegavel offline (review only)
+on:
+  pull_request:
+    paths:
+      - 'ops/review/purchase/build-buyer-journey-preview.mjs'
+      - 'ops/review/purchase/test-buyer-journey-browser.mjs'
+      - 'src/lib/commercial-selection-preview.mjs'
+      - 'src/lib/media-budget-calculator.mjs'
+      - '.github/workflows/comercial-f325-buyer-journey.yml'
+permissions:
+  contents: read
+jobs:
+  browser-only-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact candidate with no persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Reproducible local dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Prepare local Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build standalone noindex artifact without Portal or public dist
+        env:
+          IMAGINE_BUYER_JOURNEY_REVIEW: '1'
+        run: node ops/review/purchase/build-buyer-journey-preview.mjs
+      - name: Assert only reviewed pricing plus no signup, PSP or network
+        run: |
+          node --test tests/commercial-selection-preview.test.mjs
+          node ops/review/purchase/test-buyer-journey-browser.mjs
+      - name: Review artifacts only (HTML and screenshots)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: imagine-comercial-f325-buyer-journey-review-only
+          path: |
+            artifacts/review-f325-private-buyer-journey.html
+            artifacts/f325/buyer-journey-375.png
+            artifacts/f325/buyer-journey-1440.png
+          if-no-files-found: error
+          retention-days: 7
+      - name: Explicit release block
+        run: |
+          echo 'Review-only HTML and screenshots, entirely generated inside CI.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No public route, no merge, no deploy, no signup, no financial operations.' >> "$GITHUB_STEP_SUMMARY"
