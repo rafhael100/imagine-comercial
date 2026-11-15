@@ -39,10 +39,15 @@ const htmlForbidden=Object.freeze([
 const CALCULATOR_HTML = new Set([
   'calculadora-de-anuncios/index.html',
   'en/budget-calculator/index.html',
-  'es/budget-calculator/index.html'
+  'es/budget-calculator/index.html',
+  // F331: homepage funnel accepts ONLY one anonymous number and three radio choices.
+  'index.html','en/index.html','es/index.html'
 ]);
 const BUDGET_VALUES = new Set(['google_ads','meta_ads','chatgpt_ads']);
-const NUMBER_IDS = new Set(['lead-goal','intl-leads']);
+const NUMBER_IDS = new Set(['lead-goal','intl-leads',
+  'growth-weekly-pt-BR','growth-weekly-en','growth-weekly-es']);
+const GROWTH_RADIO_NAMES = new Set(['growth-scenario-pt-BR','growth-scenario-en','growth-scenario-es']);
+const GROWTH_RADIO_VALUES = new Set(['conservative','reference','optimistic']);
 const MONEY_IDS = new Set(['historic-cpl','monthly-limit','intl-cpl','intl-cap']);
 function stripReviewedCalculatorInputs(source) {
   return source.replace(/<\s*input\b[^>]*>/gi,tag=>{
@@ -57,6 +62,9 @@ function stripReviewedCalculatorInputs(source) {
       id===undefined && BUDGET_VALUES.has(value))
       return '';
     if(type==='number' && NUMBER_IDS.has(id) && name===undefined)
+      return '';
+    if(type==='radio' && id===undefined &&
+      GROWTH_RADIO_NAMES.has(name) && GROWTH_RADIO_VALUES.has(value))
       return '';
     if(type==='text' && MONEY_IDS.has(id) && name===undefined &&
       /\binputmode="decimal"/i.test(tag))
