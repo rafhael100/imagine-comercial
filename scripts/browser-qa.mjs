@@ -73,7 +73,7 @@ try {
       assert.equal(await link.getAttribute('rel'),'noopener noreferrer');
       assert.ok((await link.textContent()).includes(
         service.slug==='gestao-chatgpt-ads'?'Quero anunciar no ChatGPT':
-          service.slug==='onepage'?'Quero minha Onepage':
+          service.slug==='onepage'?'Quero minho Site Onepage':
           service.slug==='landing-pages'?'Quero minha Landing Page':
           service.slug==='criacao-de-sites'?'Quero meu site':
           service.slug==='gestao-google-ads'?'Quero anunciar no Google':
