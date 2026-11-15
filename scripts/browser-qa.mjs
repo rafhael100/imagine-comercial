@@ -116,7 +116,7 @@ try {
     await preview.locator('[data-choice-channel="google_ads"]').click();
     assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'false');
-    assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Seu negócio mais bonito.Mais oportunidades.');
+    assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Sua empresa à frente da concorrência.Mais presença. Mais oportunidades.');
     assert.ok((await quickPage.locator('#quick-hire-notice').textContent()).includes('nenhum pagamento'));
     assert.ok(await quickPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'Quick hiring has no horizontal overflow');
     await quickPage.screenshot({path:artifacts+'/quick-hire-'+width+'.png',fullPage:true});
