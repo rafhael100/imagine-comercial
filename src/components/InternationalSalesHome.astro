@@ -7,6 +7,7 @@
  */
 import OfferArtwork from './OfferArtwork.astro';
 import CommercialChoicePreview from './CommercialChoicePreview.astro';
+import GrowthPillars from './GrowthPillars.astro';
 import {intlPath} from '../data/i18n.mjs';
 import {localizedSalesWhatsAppUrl} from '../data/localized-sales-contact.mjs';
 interface Props { locale:'en'|'es'; }
@@ -123,6 +124,7 @@ const fee=locale==='en'?{
   </div>
  </div>
 </section>
+<GrowthPillars variant="feature" locale={locale} />
 <section class="intl-shop-section" id="intl-solutions" aria-labelledby="intl-shop-title">
  <div class="shell">
   <div class="intl-shop-heading">
