@@ -5,11 +5,11 @@ import {reviewedQuoteChoiceHref} from '../src/data/reviewed-quote-choice-href.mj
 import {contactChannels,contactWhatsAppUrl} from '../src/data/contact-channels.mjs';
 import {isApprovedPublicExternalHref} from '../src/lib/outbound-link-contract.mjs';
 
-test('F324: only 66 fixed quote messages in 3 languages, no personal data',()=>{
+test('F324: only 138 fixed quote messages in 3 languages, no personal data',()=>{
  assert.deepEqual(QUOTE_LOCALES,['pt-BR','en','es']);
  let count=0;
  for(const locale of QUOTE_LOCALES){
-  assert.equal(Object.keys(REVIEWED_QUOTE_MESSAGES[locale]).length,22);
+  assert.equal(Object.keys(REVIEWED_QUOTE_MESSAGES[locale]).length,46);
   for(const site of ['none','onepage','landing-pages'])
    for(const channels of [[],['google_ads'],['meta_ads'],['google_ads','meta_ads']])
     for(const tier of ['minimum','recommended']){
@@ -35,7 +35,7 @@ test('F324: unknown locales, products, channels and tiers fail closed',()=>{
  for(const [locale,selection] of [
   ['fr',{site:'onepage',channels:[],tier:'minimum'}],
   ['pt-BR',{site:'constructor',channels:[],tier:'minimum'}],
-  ['en',{site:'none',channels:['chatgpt_ads'],tier:'minimum'}],
+  ['en',{site:'none',channels:['unknown_ads'],tier:'minimum'}],
   ['es',{site:'onepage',channels:['meta_ads','meta_ads'],tier:'minimum'}],
   ['en',{site:'onepage',channels:['google_ads'],tier:'other'}],
  ]){
