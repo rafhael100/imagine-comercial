@@ -21,7 +21,8 @@
       if (a.getAttribute('aria-disabled')==='true') {event.preventDefault();return;}
       event.preventDefault(); location.assign(choice(a.closest('[data-choice-preview]'))); return;
     }
-    if (a.matches('[data-demo-start]')) {event.preventDefault();location.assign(base);return;}
+    if (a.matches('[data-purchase-intent]')) {event.preventDefault();location.assign(url(a.dataset.purchaseIntent==='ads'?'none':'onepage',[],'recommended'));return;}
+    if (a.matches('[data-demo-start],[data-purchase-start]')) {event.preventDefault();location.assign(base);return;}
     if (a.matches('[data-quick-hire-action]')) {
       const raw = a.closest('[data-quick-hire]')?.dataset.quickHire || '';
       const site = raw.includes('landing') ? 'landing-pages' : raw.includes('onepage') ? 'onepage' : 'none';
@@ -55,7 +56,7 @@
     }
   }
   const nav=document.querySelector('header nav')||document.querySelector('header');
-  if(nav&&!document.querySelector('[data-demo-start]')) {
+  if(nav&&!document.querySelector('[data-demo-start],[data-purchase-start]')) {
     const a=document.createElement('a');a.href=base;a.dataset.demoStart='';a.textContent='Simular compra completa';
     a.className='cta';nav.append(a);
   }
