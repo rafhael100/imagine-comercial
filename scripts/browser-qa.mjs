@@ -18,6 +18,7 @@ import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 import {composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
 import {localizedSalesWhatsAppUrl} from '../src/data/localized-sales-contact.mjs';
+import {reviewedQuoteChoiceHref} from '../src/data/reviewed-quote-choice-href.mjs';
 import {composeReviewedComparisonContact} from '../src/data/comparison-contact.mjs';
 import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
@@ -85,7 +86,8 @@ try {
     const preview=quickPage.locator('[data-choice-preview]');
     assert.equal(await preview.count(),1);
     assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('990,00'));
-    assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),'/contato/');
+    assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
+      reviewedQuoteChoiceHref('pt-BR',{site:'onepage',channels:[],tier:'recommended'}));
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
     assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('1.970,00'));
@@ -96,6 +98,8 @@ try {
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('1.700,00'));
     await preview.locator('[data-choice-site="landing-pages"]').click();
     assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('2.270,00'));
+    assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
+      reviewedQuoteChoiceHref('pt-BR',{site:'landing-pages',channels:['google_ads','meta_ads'],tier:'minimum'}));
     await preview.locator('[data-choice-site="none"]').click();
     assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('980,00'));
     await preview.locator('[data-choice-channel="google_ads"]').click();
@@ -168,9 +172,11 @@ try {
           const estimate=p.locator('[data-choice-preview]');
           assert.equal(await estimate.count(),1);
           assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
-            '/'+lang+'/contact/');
+            reviewedQuoteChoiceHref(lang,{site:'onepage',channels:[],tier:'recommended'}));
           await estimate.locator('[data-choice-channel="meta_ads"]').click();
           assert.equal(await estimate.locator('[data-choice-channel="meta_ads"]').getAttribute('aria-pressed'),'true');
+          assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
+            reviewedQuoteChoiceHref(lang,{site:'onepage',channels:['meta_ads'],tier:'recommended'}));
           assert.ok((await estimate.locator('[data-choice-onetime]').textContent()).includes(
             lang==='en'?'1,480.00':'1.480,00'));
           assert.equal(await estimate.locator('form,input,textarea').count(),0);
