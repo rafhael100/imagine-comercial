@@ -1,0 +1,62 @@
+---
+/** Shared purely decorative artwork for the four reviewed flagship offers; no external images/scripts. */
+interface Props {slug: 'onepage'|'landing-pages'|'criacao-de-sites'|'gestao-google-ads';}
+const {slug}=Astro.props;
+if(!['onepage','landing-pages','criacao-de-sites','gestao-google-ads'].includes(slug))
+  throw new Error('Unsupported sales artwork');
+---
+<div class={'offer-art art-'+slug} aria-hidden="true">
+          <span class="art-icon">
+            {slug==='onepage'&&<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01M7 13h7M7 16h10"/></svg>}
+            {slug==='landing-pages'&&<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M9 6h6M8 10h8M8 13h6M9 18h6"/></svg>}
+            {slug==='criacao-de-sites'&&<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20M7 13h4v4H7zM14 13h5M14 16h5"/></svg>}
+            {slug==='gestao-google-ads'&&<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19h16M7 16v-5M12 16V6M17 16v-8M5 8l6-5 6 2 3-2"/></svg>}
+          </span>
+          <span class="art-device">
+            <span class="art-browser-bar"><i></i><i></i><i></i></span>
+            {slug==='onepage'&&<span class="art-ui"><b class="ui-title"></b><i class="ui-line"></i><i class="ui-line short"></i><em class="ui-button"></em><span class="ui-circles"><i></i><i></i><i></i></span></span>}
+            {slug==='landing-pages'&&<span class="art-ui landing-ui"><b class="ui-title"></b><i class="ui-line short"></i><span class="ui-photo"></span><em class="ui-button"></em></span>}
+            {slug==='criacao-de-sites'&&<span class="art-ui sites-ui"><span class="ui-split"><i></i><i></i></span><b class="ui-title"></b><span class="ui-grid"><i></i><i></i><i></i></span></span>}
+            {slug==='gestao-google-ads'&&<span class="art-ui ads-ui"><i class="ui-line short"></i><span class="ui-bars"><i></i><i></i><i></i><i></i><i></i></span><i class="ui-line"></i></span>}
+          </span>
+          <span class="art-float" aria-hidden="true">✦</span>
+        </div>
+<style>
+ .offer-art{height:142px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#fff4e5,#ffd39e)}
+ .art-landing-pages{background:linear-gradient(135deg,#fff0ec,#f4c4ad)}
+ .art-criacao-de-sites{background:linear-gradient(135deg,#eaf4ee,#c3e2d1)}
+ .art-gestao-google-ads{background:linear-gradient(135deg,#e9eefb,#bdcceb)}
+ .art-icon{position:absolute;top:14px;left:14px;width:33px;height:33px;border-radius:11px;display:grid;place-items:center;background:#ffffffc9;color:#70420d;box-shadow:0 3px 10px #00000009}
+ .art-icon svg{width:20px;height:20px}
+ .art-device{position:relative;display:block;width:168px;height:108px;margin-top:24px;background:#fff;border-radius:9px 9px 0 0;box-shadow:0 9px 30px #27221b27;transform:rotate(-5deg);overflow:hidden;border:1px solid #ffffff}
+ .art-landing-pages .art-device{width:98px;height:136px;border-radius:13px 13px 0 0;transform:rotate(5deg);margin-top:25px}
+ .art-criacao-de-sites .art-device{transform:rotate(4deg);width:182px}
+ .art-gestao-google-ads .art-device{transform:rotate(-2deg);width:170px}
+ .art-browser-bar{height:15px;background:#f5f3ef;display:flex;align-items:center;gap:4px;padding:0 9px}
+ .art-browser-bar i{display:block;width:4px;height:4px;border-radius:50%;background:#d0c7bb}
+ .art-ui{display:grid;gap:7px;padding:13px 18px}
+ .ui-title{display:block;background:#25292a;width:70%;height:10px;border-radius:2px}
+ .ui-line{display:block;height:5px;background:#dcdfe0;border-radius:3px;width:85%}
+ .ui-line.short{width:57%}
+ .ui-button{display:block;width:58px;height:13px;border-radius:3px;background:#f9941d}
+ .ui-circles{display:flex;gap:8px;padding-top:3px}
+ .ui-circles i{display:block;background:#f3ece3;border-radius:50%;width:16px;height:16px}
+ .landing-ui{padding:12px;gap:6px}
+ .landing-ui .ui-title{width:90%;height:8px}
+ .landing-ui .ui-photo{height:40px;background:linear-gradient(145deg,#facd93,#ec884a);border-radius:4px}
+ .landing-ui .ui-button{height:13px;width:66px}
+ .sites-ui .ui-split{display:flex;gap:8px}
+ .sites-ui .ui-split i{height:22px;width:50%;background:#f1c484;border-radius:4px}
+ .sites-ui .ui-split i:last-child{background:#a8ccba}
+ .sites-ui .ui-grid{display:flex;gap:7px}
+ .sites-ui .ui-grid i{width:33%;height:18px;background:#e8edea;border-radius:4px}
+ .ads-ui{gap:8px}
+ .ui-bars{display:flex;align-items:flex-end;gap:9px;height:45px;border-bottom:1px solid #aab7d1}
+ .ui-bars i{display:block;width:18px;border-radius:3px 3px 0 0;background:#6685bc;height:23px}
+ .ui-bars i:nth-child(2){height:32px;background:#efa04c}
+ .ui-bars i:nth-child(3){height:27px}
+ .ui-bars i:nth-child(4){height:44px;background:#eda353}
+ .ui-bars i:nth-child(5){height:37px}
+ .art-float{position:absolute;top:30px;right:22px;font-size:27px;color:#b87717}
+ @media(max-width:680px){.offer-art{height:160px}}
+</style>

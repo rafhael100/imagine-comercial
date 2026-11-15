@@ -1,0 +1,261 @@
+---
+/**
+ * F323 — compact, genuinely localized international sales home.
+ * Four editorial flagship offers share the exact PT visual artwork.
+ * Seven offers remain discoverable; lead links are reviewed constants,
+ * never auto-submit forms, charge money or expose private Portal staging.
+ */
+import OfferArtwork from './OfferArtwork.astro';
+import {intlPath} from '../data/i18n.mjs';
+import {localizedSalesWhatsAppUrl} from '../data/localized-sales-contact.mjs';
+interface Props { locale:'en'|'es'; }
+const {locale}=Astro.props;
+if(locale!=='en'&&locale!=='es')throw Error('Unsupported international showcase locale');
+const copy=locale==='en'?{
+ eyebrow:'WEBSITES & DIGITAL MARKETING',
+ heroA:'Make your business stand out.',
+ heroB:'Reach more customers.',
+ lead:'Beautiful business websites. Smart advertising campaigns. Choose what you need — no complicated steps.',
+ website:'I want a website',advertise:'I want to advertise',
+ benefits:['Explore without signing up','Clear prices and options','Personalized support'],
+ solutions:'CHOOSE YOUR SOLUTION',title:'Choose. Customize. ',titleAccent:'Get started.',
+ compare:'Not sure?',compareAction:'Compare services',
+ priceStart:'Setup',priceMonth:'Monthly',priceCustom:'Investment',priceScope:'Scope',
+ proposed:'By proposal',tailored:'Tailored',single:'One-time per channel',
+ siteNote:'Scope and price confirmed before acceptance.',
+ setupNoteOne:'3 × BRL 330 · first monthly payment 90 days after agreement',
+ setupNoteLanding:'3 × BRL 430 · first monthly payment 90 days after agreement',
+ adsNote:'Management: 20% of actual spend, min. BRL 170/month per channel',
+ adsMore:'Media paid to the platform · Google min. BRL 1,000 / Meta min. BRL 700 per month',
+ fee:'Management',details:'Details',also:'Also available',
+ all:'Explore all services',calculator:'Estimate an ad budget',
+ flowKicker:'IT IS THAT SIMPLE',flow:'Choose first. Sign up only when ready.',
+ steps:['Choose','Customize','Review','Confirm'],
+ finalHeading:'Ready to get your business moving?',
+ finalMessage:'Pick the solution that fits your next step.',
+ finalButton:'Explore solutions',contact:'Talk to Imagine',
+ disclosure:'Choosing a service opens WhatsApp with a suggested message for you to review. Nothing is sent automatically; no public checkout or payment is enabled.',
+ labels:{
+  onepage:{short:'Onepage',tag:'A simple start',benefit:'Your business on one professional page.',action:'Get my Onepage'},
+  'landing-pages':{short:'Landing Page',tag:'Focused offers',benefit:'A page that gives your campaign a clear next step.',action:'Get a Landing Page'},
+  'criacao-de-sites':{short:'Business website',tag:'Room to grow',benefit:'Showcase your company, services and expertise.',action:'Get my website'},
+  'gestao-google-ads':{short:'Ads management',tag:'Reach customers',benefit:'Google, Instagram and Facebook with a clear plan.',action:'Start advertising'},
+  'gestao-meta-ads':{short:'Instagram & Facebook',benefit:'Build interest with relevant social ads.',action:'Discuss Meta Ads'},
+  'sites-por-assinatura':{short:'Subscription websites',benefit:'Explore a website with recurring service.',action:'Ask about plans'},
+  'gestao-chatgpt-ads':{short:'ChatGPT Ads',benefit:'Pilot planning, subject to platform eligibility.',action:'Check availability'}
+ }
+}:{
+ eyebrow:'SITIOS WEB Y MARKETING DIGITAL',
+ heroA:'Haz que tu negocio destaque.',
+ heroB:'Llega a más clientes.',
+ lead:'Sitios profesionales. Campañas inteligentes. Elige la solución ideal sin complicaciones.',
+ website:'Quiero un sitio web',advertise:'Quiero anunciarme',
+ benefits:['Explora sin registro','Precios y opciones claros','Asesoría personalizada'],
+ solutions:'ELIGE TU SOLUCIÓN',title:'Elige. Personaliza. ',titleAccent:'Empieza.',
+ compare:'¿No sabes cuál elegir?',compareAction:'Compara servicios',
+ priceStart:'Implantación',priceMonth:'Mensualidad',priceCustom:'Inversión',priceScope:'Alcance',
+ proposed:'A consultar',tailored:'Personalizado',single:'Única por canal',
+ siteNote:'Alcance y precio confirmados antes de contratar.',
+ setupNoteOne:'3 × R$ 330 · primera mensualidad 90 días después de contratar',
+ setupNoteLanding:'3 × R$ 430 · primera mensualidad 90 días después de contratar',
+ adsNote:'Gestión: 20% de la inversión real, mínimo R$ 170/mes por canal',
+ adsMore:'Publicidad pagada a la plataforma · Google mín. R$ 1.000 / Meta mín. R$ 700 al mes',
+ fee:'Gestión',details:'Detalles',also:'También tenemos',
+ all:'Ver todos los servicios',calculator:'Calcular inversión publicitaria',
+ flowKicker:'ASÍ DE FÁCIL',flow:'Primero eliges. Los datos vienen al final.',
+ steps:['Elige','Personaliza','Revisa','Confirma'],
+ finalHeading:'¿Tu negocio está listo para dar el siguiente paso?',
+ finalMessage:'Elige la solución que mejor se adapte a tu empresa.',
+ finalButton:'Explorar soluciones',contact:'Hablar con Imagine',
+ disclosure:'Al elegir un servicio se abre WhatsApp con un mensaje que puedes revisar. No se envía automáticamente y la compra pública aún no está habilitada.',
+ labels:{
+  onepage:{short:'Onepage',tag:'Empieza hoy',benefit:'Tu empresa en una página profesional.',action:'Quiero mi Onepage'},
+  'landing-pages':{short:'Landing Page',tag:'Oferta en foco',benefit:'Una página creada para destacar tu propuesta.',action:'Quiero una Landing Page'},
+  'criacao-de-sites':{short:'Sitio web completo',tag:'Para crecer',benefit:'Presenta tu empresa, servicios y experiencia.',action:'Quiero mi sitio web'},
+  'gestao-google-ads':{short:'Gestión de anuncios',tag:'Nuevos clientes',benefit:'Google, Instagram y Facebook con estrategia.',action:'Quiero anunciarme'},
+  'gestao-meta-ads':{short:'Instagram y Facebook',benefit:'Conecta con tu público en redes sociales.',action:'Consultar Meta Ads'},
+  'sites-por-assinatura':{short:'Sitios por suscripción',benefit:'Un sitio web con servicio recurrente.',action:'Consultar planes'},
+  'gestao-chatgpt-ads':{short:'ChatGPT Ads',benefit:'Planifica un piloto sujeto a disponibilidad.',action:'Consultar disponibilidad'}
+ }
+};
+const featured=['onepage','landing-pages','criacao-de-sites','gestao-google-ads'] as const;
+const additional=['gestao-meta-ads','sites-por-assinatura','gestao-chatgpt-ads'] as const;
+const languageLink=slug=>intlPath(locale,'services/'+slug);
+const fee=locale==='en'?{
+ onepage:['BRL 990','BRL 79.90','/mo'],
+ 'landing-pages':['BRL 1,290','BRL 79.90','/mo'],
+ 'criacao-de-sites':[copy.proposed,copy.tailored,''],
+ 'gestao-google-ads':['BRL 490','20%','']
+}:{
+ onepage:['R$ 990','R$ 79,90','/mes'],
+ 'landing-pages':['R$ 1.290','R$ 79,90','/mes'],
+ 'criacao-de-sites':[copy.proposed,copy.tailored,''],
+ 'gestao-google-ads':['R$ 490','20%','']
+};
+---
+<section class="intl-shop-hero" aria-labelledby="intl-main-heading">
+ <div class="shell intl-hero-grid">
+  <div class="intl-hero-copy">
+   <p class="eyebrow">{copy.eyebrow}</p>
+   <h1 id="intl-main-heading">{copy.heroA} <span>{copy.heroB}</span></h1>
+   <p class="intl-lead">{copy.lead}</p>
+   <div class="intl-hero-actions">
+    <a class="cta" href="#intl-solutions">{copy.website} <span aria-hidden="true">↗</span></a>
+    <a class="cta cta-secondary" href="#intl-ads">{copy.advertise} <span aria-hidden="true">↗</span></a>
+   </div>
+   <ul class="intl-benefits">{copy.benefits.map(item=><li>{item}</li>)}</ul>
+  </div>
+  <div class="intl-hero-picture" aria-hidden="true">
+   <div class="intl-picture-halo"></div>
+   <div class="intl-device">
+    <div class="device-header"><span></span><span></span><span></span></div>
+    <div class="device-brand"><i></i><i></i></div>
+    <div class="device-headline"><b></b><b></b></div>
+    <div class="device-description"><i></i><i></i></div>
+    <div class="device-action"></div>
+    <div class="device-features"><i></i><i></i><i></i></div>
+   </div>
+   <div class="intl-mobile"><div></div><i></i><i></i><b></b></div>
+   <div class="intl-floating-star">✦</div>
+  </div>
+ </div>
+</section>
+<section class="intl-shop-section" id="intl-solutions" aria-labelledby="intl-shop-title">
+ <div class="shell">
+  <div class="intl-shop-heading">
+   <div><p class="eyebrow">{copy.solutions}</p><h2 id="intl-shop-title">{copy.title}<span>{copy.titleAccent}</span></h2></div>
+   <a href={intlPath(locale,'compare')}>{copy.compare} <strong>{copy.compareAction}</strong> <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="intl-shop-grid">
+   {featured.map(slug=>{
+    const offer=copy.labels[slug];
+    const price=fee[slug];
+    return <article class="intl-shop-card" id={slug==='gestao-google-ads'?'intl-ads':undefined} data-international-offer={slug}>
+     <OfferArtwork slug={slug}/>
+     <div class="intl-card-body">
+      <span class="intl-offer-tag">{offer.tag}</span>
+      <h3>{offer.short}</h3>
+      <p class="intl-offer-lead">{offer.benefit}</p>
+      <div class="intl-price-row">
+       <div><small>{slug==='criacao-de-sites'?copy.priceCustom:copy.priceStart}</small><strong>{price[0]}</strong></div>
+       <div><small>{slug==='criacao-de-sites'?copy.priceScope:slug==='gestao-google-ads'?copy.fee:copy.priceMonth}</small><strong>{price[1]}<span>{price[2]}</span></strong></div>
+      </div>
+      <p class="intl-pricing-note">{slug==='onepage'?copy.setupNoteOne:slug==='landing-pages'?copy.setupNoteLanding:slug==='gestao-google-ads'?copy.adsNote:copy.siteNote}</p>
+      {slug==='gestao-google-ads'&&<p class="intl-ad-note">{copy.adsMore}</p>}
+      <a class="cta intl-buy" href={localizedSalesWhatsAppUrl(locale,slug)} target="_blank" rel="noopener noreferrer"
+       aria-label={offer.action+' — WhatsApp'} aria-describedby="intl-buy-disclosure">{offer.action} <span aria-hidden="true">↗</span></a>
+      <a class="intl-learn" href={languageLink(slug)}>{copy.details} <span aria-hidden="true">↗</span></a>
+     </div>
+    </article>;
+   })}
+  </div>
+  <div class="intl-more">
+   <span class="intl-more-label">{copy.also}</span>
+   {additional.map(slug=>{
+    const offer=copy.labels[slug];
+    return <article class="intl-mini-offer" data-international-offer={slug}>
+      <span class="intl-mini-icon" aria-hidden="true">{slug==='gestao-meta-ads'?'◎':slug==='sites-por-assinatura'?'▣':'✳'}</span>
+      <div><strong>{offer.short}</strong><small>{offer.benefit}</small></div>
+      <a href={localizedSalesWhatsAppUrl(locale,slug)} target="_blank" rel="noopener noreferrer"
+       aria-label={offer.action+' — WhatsApp'} aria-describedby="intl-buy-disclosure">{offer.action} <span aria-hidden="true">↗</span></a>
+    </article>;
+   })}
+  </div>
+  <div class="intl-more-actions">
+   <a href={intlPath(locale,'services')}>{copy.all} <span aria-hidden="true">↗</span></a>
+   <a href={intlPath(locale,'budget-calculator')}>{copy.calculator} <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="intl-flow" aria-label={copy.flow}>
+   <div><p class="eyebrow">{copy.flowKicker}</p><h3>{copy.flow}</h3></div>
+   <ol>{copy.steps.map((step,i)=><li><span>{String(i+1).padStart(2,'0')}</span><strong>{step}</strong></li>)}</ol>
+  </div>
+  <p id="intl-buy-disclosure" class="intl-buy-disclosure">{copy.disclosure}</p>
+ </div>
+</section>
+<section class="intl-final-cta">
+ <div class="shell intl-final-row">
+  <div><h2>{copy.finalHeading}</h2><p>{copy.finalMessage}</p></div>
+  <div><a class="cta" href="#intl-solutions">{copy.finalButton}</a><a class="cta cta-secondary" href={intlPath(locale,'contact')}>{copy.contact}</a></div>
+ </div>
+</section>
+<style>
+ .intl-shop-hero{padding-block:clamp(42px,5vw,80px);background:#fff}
+ .intl-hero-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);align-items:center;gap:clamp(20px,4vw,54px)}
+ .intl-hero-copy h1{font-size:clamp(2.75rem,4.5vw,4.6rem);line-height:1.1;letter-spacing:-.05em;margin:14px 0 18px}
+ .intl-hero-copy h1 span{color:#a95400}
+ .intl-lead{max-width:570px;font-size:clamp(1.05rem,1.55vw,1.2rem);color:#514c43;line-height:1.58}
+ .intl-hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:27px}
+ .intl-hero-actions a{min-height:54px;display:inline-flex;align-items:center;gap:12px;border-radius:11px}
+ .intl-benefits{display:flex;flex-wrap:wrap;gap:8px 17px;margin:24px 0 0;padding:0;list-style:none}
+ .intl-benefits li{font-size:.84rem;font-weight:730;color:#4c5149}
+ .intl-benefits li:before{content:'✓';margin-right:7px;color:#986000}
+ .intl-hero-picture{position:relative;height:365px;min-width:0;display:flex;align-items:center;justify-content:center;isolation:isolate}
+ .intl-picture-halo{position:absolute;inset:0;background:radial-gradient(circle,#ffe5c2 0%,#fff2df 42%,transparent 74%);filter:blur(8px);z-index:-1}
+ .intl-device{position:relative;width:84%;max-width:405px;height:260px;border:1px solid #e5d9cd;background:#fff;border-radius:17px;box-shadow:0 25px 55px #33251520;transform:rotate(-4deg);overflow:hidden;padding:16px 20px}
+ .device-header{margin:-16px -20px 20px;padding:12px 17px;background:#faf8f4;display:flex;gap:5px;border-bottom:1px solid #eee6da}
+ .device-header span{width:7px;height:7px;border-radius:50%;background:#d5bfa9}
+ .device-brand{display:flex;gap:5px;margin-bottom:23px}
+ .device-brand i{width:70px;height:11px;background:#222722;border-radius:4px}
+ .device-brand i:last-child{background:#f9941d;width:15px}
+ .device-headline{display:grid;gap:7px}.device-headline b{display:block;height:14px;width:78%;border-radius:5px;background:#313631}.device-headline b:last-child{width:56%}
+ .device-description{display:grid;gap:6px;margin:14px 0}.device-description i{height:6px;background:#dedbd4;border-radius:5px;width:75%}.device-description i:last-child{width:65%}
+ .device-action{background:#f9941d;border-radius:5px;width:100px;height:26px}
+ .device-features{display:flex;gap:8px;margin-top:18px}
+ .device-features i{height:25px;flex:1;background:#f6f1e9;border:1px solid #ebe3d7;border-radius:7px}
+ .intl-mobile{position:absolute;width:95px;height:170px;right:7%;bottom:6%;border-radius:17px;background:#fff;box-shadow:0 17px 25px #2d251b27;border:5px solid #2d2f2d;transform:rotate(7deg);padding:23px 10px 12px}
+ .intl-mobile div{height:36px;background:linear-gradient(120deg,#ffc586,#f9941d);border-radius:6px}
+ .intl-mobile i{display:block;height:8px;background:#e5e5e1;margin-top:9px;border-radius:3px}
+ .intl-mobile i:nth-child(3){width:65%}
+ .intl-mobile b{display:block;background:#f9941d;border-radius:5px;width:70%;height:14px;margin-top:13px}
+ .intl-floating-star{position:absolute;right:3%;top:3%;font-size:36px;color:#be750e}
+ .intl-shop-section{background:#fffdf9;padding:clamp(40px,5vw,72px) 0;scroll-margin-top:85px}
+ .intl-shop-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}
+ .intl-shop-heading h2{font-size:clamp(2rem,3.3vw,3.2rem);line-height:1.14;letter-spacing:-.045em;margin:7px 0 0}
+ .intl-shop-heading h2 span{color:#ae5700}
+ .intl-shop-heading>a{font-size:.86rem;color:#64594c;text-decoration:none}
+ .intl-shop-heading>a strong{color:#975000}
+ .intl-shop-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+ .intl-shop-card{min-width:0;background:#fff;border:1px solid #e9ded1;border-radius:19px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px #30291b09;scroll-margin-top:90px}
+ .intl-card-body{padding:19px 16px 16px;display:flex;flex-direction:column;flex:1}
+ .intl-offer-tag{font-size:.72rem;font-weight:800;color:#934b04}
+ .intl-card-body h3{font-size:clamp(1.23rem,1.7vw,1.43rem);line-height:1.19;letter-spacing:-.03em;margin:5px 0 8px}
+ .intl-offer-lead{color:#514c43;font-size:.88rem;line-height:1.5;min-height:4.3em;margin:0 0 14px}
+ .intl-price-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:auto}
+ .intl-price-row>div{display:flex;flex-direction:column;gap:4px;padding:10px 8px;background:#faf7f1;border-radius:9px;min-width:0}
+ .intl-price-row small{font-size:.71rem;color:#66594c}
+ .intl-price-row strong{font-size:clamp(.84rem,1.05vw,1rem);line-height:1.22;color:#252522;letter-spacing:-.03em;white-space:nowrap}
+ .intl-price-row strong span{font-size:.65rem;font-weight:500}
+ .intl-pricing-note,.intl-ad-note{font-size:.73rem;color:#695f53;line-height:1.46;margin:10px 0 13px;min-height:2.8em}
+ .intl-ad-note{margin:-4px 0 12px}
+ .intl-buy{display:flex;justify-content:center;align-items:center;gap:10px;min-height:46px;text-align:center;font-weight:800;font-size:.84rem;line-height:1.25;padding:12px}
+ .intl-learn{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;font-size:.84rem;font-weight:740;color:#884100;text-underline-offset:3px}
+ .intl-more{display:grid;grid-template-columns:1fr repeat(3,minmax(0,2.1fr));gap:9px;align-items:center;margin:20px 0 0}
+ .intl-more-label{font-size:.82rem;font-weight:800;color:#63594e}
+ .intl-mini-offer{display:grid;grid-template-columns:35px minmax(0,1fr);align-items:center;gap:9px;padding:11px;background:#fff;border:1px solid #e6ded4;border-radius:13px;min-width:0}
+ .intl-mini-icon{display:grid;place-items:center;background:#fff0db;border-radius:10px;color:#894500;width:33px;height:33px;font-size:20px}
+ .intl-mini-offer>div{display:grid;gap:4px;min-width:0}
+ .intl-mini-offer strong{font-size:.85rem;line-height:1.2}
+ .intl-mini-offer small{font-size:.7rem;color:#635c53;line-height:1.35}
+ .intl-mini-offer a{grid-column:2;color:#934e08;font-size:.77rem;font-weight:800;text-decoration:none}
+ .intl-more-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:14px;margin:12px 0 0}
+ .intl-more-actions a{font-size:.84rem;font-weight:740;color:#884100}
+ .intl-flow{margin-top:34px;display:grid;grid-template-columns:minmax(190px,.6fr) minmax(0,1.4fr);gap:25px;align-items:center;background:#171b19;color:#fff;border-radius:18px;padding:25px 28px}
+ .intl-flow .eyebrow{color:#ffbd77}
+ .intl-flow h3{font-size:1.42rem;line-height:1.25;margin:8px 0 0}
+ .intl-flow ol{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:0;margin:0}
+ .intl-flow li{display:grid;gap:8px;justify-items:center;text-align:center;padding:13px 8px;border-radius:11px;background:#2b302c;font-size:.83rem}
+ .intl-flow li span{color:#ffb76b;font-weight:800}
+ .intl-buy-disclosure{font-size:.77rem;line-height:1.5;color:#686053;margin:14px 0 0}
+ .intl-final-cta{background:#171b19;color:#fff;padding:clamp(40px,5vw,75px) 0}
+ .intl-final-row{display:flex;align-items:center;justify-content:space-between;gap:25px}
+ .intl-final-row h2{font-size:clamp(1.9rem,3vw,2.6rem);line-height:1.16;max-width:670px;margin:0}
+ .intl-final-row p{color:#dce3de;margin-bottom:0}
+ .intl-final-cta .cta-secondary{color:#fff;border-color:#e1b779}
+ .intl-final-cta .cta-secondary:hover{color:#171b19;background:#fff0db}
+ .intl-final-row>div:last-child{display:flex;gap:12px;flex-wrap:wrap}
+ .intl-shop-section a:focus-visible,.intl-shop-hero a:focus-visible,.intl-final-cta a:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+ @media(max-width:1120px){.intl-shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.intl-more{grid-template-columns:1fr}.intl-final-row{display:block}.intl-final-row>div:last-child{margin-top:24px}}
+ @media(max-width:850px){.intl-hero-grid{grid-template-columns:1fr}.intl-hero-picture{height:280px}.intl-device{height:225px}.intl-mobile{height:145px;width:82px}.intl-flow{grid-template-columns:1fr}}
+ @media(max-width:650px){.intl-shop-grid{grid-template-columns:1fr}.intl-offer-lead{min-height:0}.intl-shop-heading{display:block}.intl-shop-heading>a{display:inline-block;margin-top:12px}.intl-hero-copy h1{font-size:clamp(2.4rem,10vw,3.6rem)}.intl-flow ol{grid-template-columns:repeat(2,minmax(0,1fr))}.intl-hero-actions a{flex:1;min-width:145px;justify-content:center}.intl-card-body{padding:20px}}
+ @media(prefers-reduced-motion:reduce){.intl-shop-hero{scroll-behavior:auto}}
+</style>

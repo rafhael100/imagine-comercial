@@ -17,6 +17,7 @@ import {preparationQuestions} from '../src/data/commercial-process.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 import {composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
+import {localizedSalesWhatsAppUrl} from '../src/data/localized-sales-contact.mjs';
 import {composeReviewedComparisonContact} from '../src/data/comparison-contact.mjs';
 import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
@@ -106,6 +107,12 @@ try {
           'https://imaginecomunicacao.com.br'+route);
         assert.equal(await p.locator('nav.locale-switcher a').count(),3);
         assert.equal(await p.locator('nav.locale-switcher a[aria-current="page"]').count(),1);
+        // F323: mobile international header cannot render desktop nav and
+        // native menu together; the flags remain reachable at every width.
+        assert.equal(await p.locator('header > nav[aria-label="Primary navigation"]').isVisible(),width===1440,
+          'Desktop navigation visibility '+lang+' at '+width);
+        assert.equal(await p.locator('header details.mobile-menu summary').isVisible(),width===375,
+          'Native mobile menu visibility '+lang+' at '+width);
         for(const code of ['pt-BR','en','es']){
           const flag=p.locator('nav.locale-switcher a[lang="'+code+'"]');
           assert.equal(await flag.count(),1,'Visible '+code+' choice');
@@ -115,6 +122,25 @@ try {
         assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
           'International page horizontal overflow '+route+' '+width);
         if(section===''){
+          // F323: all seven offers remain discoverable; only four dominate the
+          // international visual homepage. CTA links must remain allowlisted.
+          assert.equal(await p.locator('[data-international-offer]').count(),7,
+            lang+': all published offers present in the short visual home');
+          assert.equal(await p.locator('.intl-shop-card').count(),4,
+            lang+': exactly four illustrated flagship cards');
+          assert.equal(await p.locator('.intl-shop-card .offer-art').count(),4,
+            lang+': the same shared decorative illustrations as Portuguese');
+          for(const slug of ['onepage','landing-pages','criacao-de-sites','gestao-google-ads']){
+            const card=p.locator('.intl-shop-card[data-international-offer="'+slug+'"]');
+            assert.equal(await card.locator('.intl-buy').getAttribute('href'),
+              localizedSalesWhatsAppUrl(lang,slug),
+              lang+': WhatsApp message must match selected offer');
+            assert.equal(await card.locator('.intl-buy').getAttribute('target'),'_blank');
+            assert.equal(await card.locator('.intl-buy').getAttribute('rel'),'noopener noreferrer');
+            assert.equal(await card.locator('.intl-price-row').isVisible(),true);
+          }
+          assert.equal(await p.locator('.intl-shop-hero a[href="#intl-solutions"]').count(),1);
+          assert.equal(await p.locator('.intl-shop-hero a[href="#intl-ads"]').count(),1);
           await p.screenshot({
             path:artifacts+'/language-'+lang+'-'+width+'.png',
             fullPage:true
