@@ -1,0 +1,278 @@
+---
+/**
+ * F331 — lightweight interactive funnel and anonymous estimate.
+ * None of these rates are sector benchmarks or outcome forecasts.
+ * Contact details are NEVER submitted by this static component.
+ */
+import {buildGrowthPotential} from '../lib/growth-potential-calculator.mjs';
+import {contactWhatsAppUrl} from '../data/contact-channels.mjs';
+import {intlPath} from '../data/i18n.mjs';
+interface Props {locale?: 'pt-BR'|'en'|'es';}
+const {locale='pt-BR'}=Astro.props;
+if(!['pt-BR','en','es'].includes(locale))throw Error('Unsupported growth calculator locale');
+const copy={
+ 'pt-BR':{
+ eyebrow:'SIMULE SUA JORNADA',title:'Das visitas às oportunidades.',
+ intro:'Veja como visitas podem se transformar em leads e clientes — em um exercício de planejamento.',
+ step:['Visitas','Leads','Clientes'],funnel:['Pessoas chegam ao seu site','Parte delas entra em contato','Parte dos leads pode comprar'],
+ calc:'Calcule seu potencial',sector:'Segmento do negócio',weekly:'Visitas esperadas por semana',
+ scenario:'Cenário de simulação',calculate:'Ver estimativa',
+ sectors:{services:'Serviços',retail:'Comércio local',ecommerce:'Loja virtual',education:'Educação',healthcare:'Saúde',food:'Alimentação',other:'Outro segmento'},
+ scenarios:{conservative:'Conservador',reference:'Referência',optimistic:'Otimista'},
+ explain:'Como calculamos?',basis:'Usamos 4 semanas por mês e hipóteses fictícias de conversão (não são médias de mercado): conservador 2% das visitas em leads e 10% dos leads em clientes; referência 4% e 20%; otimista 6% e 30%.',
+ results:'Sua simulação',visits:'Visitas/mês',leads:'Leads possíveis/mês',customers:'Clientes potenciais/mês',
+ range:'Intervalo entre os três cenários',detail:'Cenário selecionado',note:'Exercício matemático, não previsão: resultados reais dependem de público, oferta, site, atendimento, concorrência e medição. Visitas não significam pessoas únicas; leads não são vendas.',
+ contactTitle:'Quer transformar essa ideia em estratégia?',contactText:'Veja as opções da Imagine ou converse com nossa equipe. Sem cadastro obrigatório para a simulação.',
+ contact:'Conversar com a Imagine',copyAction:'Copiar resumo',copied:'Resumo copiado. Cole na conversa quando desejar.',copyFallback:'Não foi possível copiar automaticamente. Selecione os valores para compartilhar.',
+ sectorNote:'O segmento personaliza a descrição, não as taxas hipotéticas.',
+ invalid:'Informe um número inteiro entre 0 e 100.000 visitas por semana.',
+ segmentDisplay:'Segmento',scenarioDisplay:'Cenário',noTransfer:'Nada é enviado ou armazenado ao calcular. O contato é opcional e iniciado por você.',
+ optional:'Dados pessoais não são solicitados: o cadastro para receber o plano por e-mail depende da homologação do CRM.',
+ explore:'Conhecer soluções',
+ },
+ en:{
+ eyebrow:'EXPLORE YOUR FUNNEL',title:'From visits to opportunities.',
+ intro:'See how website visits might become leads and customers in a simple planning exercise.',
+ step:['Visits','Leads','Customers'],funnel:['People visit your website','Some choose to contact you','Some leads may buy'],
+ calc:'Estimate your potential',sector:'Business sector',weekly:'Expected visits per week',
+ scenario:'Illustrative scenario',calculate:'Show estimate',
+ sectors:{services:'Services',retail:'Local retail',ecommerce:'Online store',education:'Education',healthcare:'Healthcare',food:'Food & dining',other:'Other'},
+ scenarios:{conservative:'Conservative',reference:'Reference',optimistic:'Optimistic'},
+ explain:'How is this calculated?',basis:'We use 4 weeks per month and hypothetical conversion assumptions (not industry averages): conservative 2% of visits to leads and 10% of leads to customers; reference 4% and 20%; optimistic 6% and 30%.',
+ results:'Your illustration',visits:'Visits/month',leads:'Possible leads/month',customers:'Potential customers/month',
+ range:'Range across the three scenarios',detail:'Selected scenario',note:'Arithmetic illustration, not a forecast. Real outcomes depend on audience, offer, website, sales follow-up, competition and measurement. Visits are not unique people and leads are not sales.',
+ contactTitle:'Ready to explore a strategy?',contactText:'See Imagine solutions or talk to our team. No signup is required to calculate.',
+ contact:'Talk to Imagine',copyAction:'Copy summary',copied:'Summary copied. Paste it into your conversation if you wish.',copyFallback:'Could not copy automatically. You can select the figures to share.',
+ sectorNote:'Sector personalizes the description, not these hypothetical rates.',
+ invalid:'Enter a whole number between 0 and 100,000 visits per week.',
+ segmentDisplay:'Sector',scenarioDisplay:'Scenario',noTransfer:'Nothing is sent or stored when calculating. Contact is optional and initiated by you.',
+ optional:'No personal details requested: emailing your plan requires a separate, approved CRM integration.',
+ explore:'Explore solutions',
+ },
+ es:{
+ eyebrow:'EXPLORA TU EMBUDO',title:'De visitas a oportunidades.',
+ intro:'Descubre cómo las visitas pueden convertirse en contactos y clientes mediante un ejercicio de planificación.',
+ step:['Visitas','Leads','Clientes'],funnel:['Personas llegan a tu sitio','Algunas deciden contactar','Algunos leads pueden comprar'],
+ calc:'Calcula tu potencial',sector:'Sector del negocio',weekly:'Visitas esperadas por semana',
+ scenario:'Escenario ilustrativo',calculate:'Ver estimación',
+ sectors:{services:'Servicios',retail:'Comercio local',ecommerce:'Tienda online',education:'Educación',healthcare:'Salud',food:'Alimentación',other:'Otro'},
+ scenarios:{conservative:'Conservador',reference:'Referencia',optimistic:'Optimista'},
+ explain:'¿Cómo calculamos?',basis:'Usamos 4 semanas por mes e hipótesis ficticias (no promedios de mercado): conservador 2% de visitas en leads y 10% de leads en clientes; referencia 4% y 20%; optimista 6% y 30%.',
+ results:'Tu simulación',visits:'Visitas/mes',leads:'Posibles leads/mes',customers:'Clientes potenciales/mes',
+ range:'Intervalo de los tres escenarios',detail:'Escenario elegido',note:'Ejercicio matemático, no pronóstico: los resultados dependen del público, oferta, sitio, atención, competencia y medición. Visita no equivale a persona única, ni lead a venta.',
+ contactTitle:'¿Quieres desarrollar una estrategia?',contactText:'Conoce las soluciones Imagine o conversa con nuestro equipo. No necesitas registrarte para calcular.',
+ contact:'Hablar con Imagine',copyAction:'Copiar resumen',copied:'Resumen copiado. Pégalo en tu conversación si lo deseas.',copyFallback:'No se pudo copiar automáticamente. Puedes seleccionar las cifras para compartirlas.',
+ sectorNote:'El sector personaliza la descripción, no las tasas hipotéticas.',
+ invalid:'Introduce un entero entre 0 y 100.000 visitas semanales.',
+ segmentDisplay:'Sector',scenarioDisplay:'Escenario',noTransfer:'No se envía ni guarda información al calcular. El contacto es opcional y lo inicias tú.',
+ optional:'No se solicitan datos personales: enviar tu plan por correo requiere una integración CRM homologada.',
+ explore:'Conocer soluciones',
+ }
+} as const;
+const t=copy[locale];
+const contact=locale==='pt-BR'?'/contato/':intlPath(locale,'contact');
+const solutions=locale==='pt-BR'?'/servicos/':intlPath(locale,'services');
+const whatsapp=contactWhatsAppUrl();
+const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:'reference'});
+---
+<section class="growth-funnel-section" id="calculadora-visitas-leads-clientes"
+ data-growth-calculator data-growth-locale={locale}
+ aria-labelledby="growth-funnel-heading">
+ <div class="shell">
+  <div class="funnel-heading">
+   <div><p class="eyebrow">{t.eyebrow}</p><h2 id="growth-funnel-heading">{t.title}</h2><p>{t.intro}</p></div>
+  </div>
+  <div class="growth-funnel-grid">
+   <div class="funnel-art" role="group" aria-label={t.step.join(' → ')}>
+    <div class="funnel-level level-visits"><span class="funnel-level-icon" aria-hidden="true">◉</span><div><strong>{t.step[0]}</strong><small>{t.funnel[0]}</small></div><output data-funnel-visits aria-label={t.visits} hidden></output></div>
+    <div class="funnel-level level-leads"><span class="funnel-level-icon" aria-hidden="true">◎</span><div><strong>{t.step[1]}</strong><small>{t.funnel[1]}</small></div><output data-funnel-leads aria-label={t.leads} hidden></output></div>
+    <div class="funnel-level level-customers"><span class="funnel-level-icon" aria-hidden="true">↗</span><div><strong>{t.step[2]}</strong><small>{t.funnel[2]}</small></div><output data-funnel-customers aria-label={t.customers} hidden></output></div>
+    <div class="funnel-caption">{t.noTransfer}</div>
+   </div>
+   <div class="funnel-interaction">
+    <h3>{t.calc}</h3>
+    <form data-growth-form novalidate>
+     <div class="funnel-inputs">
+      <div class="funnel-field">
+       <label for={'growth-sector-'+locale}>{t.sector}</label>
+       <select id={'growth-sector-'+locale} name="sector" data-growth-sector>
+        {Object.entries(t.sectors).map(([value,label])=><option value={value} selected={value==='services'}>{label}</option>)}
+       </select>
+      </div>
+      <div class="funnel-field">
+       <label for={'growth-weekly-'+locale}>{t.weekly}</label>
+       <input id={'growth-weekly-'+locale} name="weekly" type="number" inputmode="numeric"
+        min="0" max="100000" step="1" value="100" required data-growth-weekly
+        aria-describedby={'growth-invalid-'+locale}/>
+      </div>
+     </div>
+     <fieldset class="funnel-scenarios">
+      <legend>{t.scenario}</legend>
+      <div class="funnel-scenario-options">
+       {Object.entries(t.scenarios).map(([scenario,label])=><label>
+        <input type="radio" name={'growth-scenario-'+locale} value={scenario} checked={scenario==='reference'} data-growth-scenario/>
+        <span>{label}</span>
+       </label>)}
+      </div>
+     </fieldset>
+     <p class="funnel-error" id={'growth-invalid-'+locale} data-growth-error role="alert" hidden>{t.invalid}</p>
+     <button type="submit" class="cta funnel-calculate">{t.calculate} <span aria-hidden="true">↗</span></button>
+     <details class="funnel-math"><summary>{t.explain}</summary><p>{t.basis}</p><p>{t.sectorNote}</p></details>
+    </form>
+   </div>
+  </div>
+  <div class="funnel-results" data-growth-results hidden aria-live="polite" aria-atomic="true">
+   <div class="funnel-results-title"><div><p class="eyebrow">{t.results}</p><h3>{t.detail}: <span data-growth-scenario-label>{t.scenarios.reference}</span></h3></div></div>
+   <div class="funnel-result-grid">
+    <div><span>{t.visits}</span><strong data-growth-monthly>{initial.monthlyVisits}</strong></div>
+    <div><span>{t.leads}</span><strong data-growth-leads>{initial.leads}</strong></div>
+    <div><span>{t.customers}</span><strong data-growth-customers>{initial.customers}</strong></div>
+   </div>
+   <p class="funnel-range">{t.range}: <strong data-growth-ranges></strong></p>
+   <p class="funnel-disclaimer">{t.note}</p>
+   <div class="funnel-contact">
+    <div><h4>{t.contactTitle}</h4><p>{t.contactText}</p></div>
+    <div class="funnel-cta-row">
+     <a class="cta" href={contact}>{t.contact}</a>
+     <a class="funnel-explore" href={solutions}>{t.explore}</a>
+     <button type="button" data-growth-copy>{t.copyAction}</button>
+    </div>
+    <p class="funnel-copied" data-growth-copied role="status" hidden></p>
+   </div>
+   <p class="funnel-privacy">{t.optional}</p>
+  </div>
+ </div>
+</section>
+<script>
+ import {buildGrowthPotential,GROWTH_SECTORS,MAX_WEEKLY_VISITS} from '../lib/growth-potential-calculator.mjs';
+ const messages={
+  'pt-BR':{scenario:['Conservador','Referência','Otimista'],invalid:'Informe um número inteiro entre 0 e 100.000 visitas por semana.',range:'Leads de {l} a {h}; clientes de {a} a {b}',week:'Visitas semanais',monthly:'Visitas mensais',leads:'Leads possíveis',customers:'Clientes potenciais',sector:'Segmento',copied:'Resumo copiado. Cole na conversa quando desejar.',fail:'Não foi possível copiar automaticamente. Selecione os valores para compartilhar.',warning:'Simulação matemática, não previsão nem garantia.'},
+  en:{scenario:['Conservative','Reference','Optimistic'],invalid:'Enter a whole number between 0 and 100,000 visits per week.',range:'Leads from {l} to {h}; customers from {a} to {b}',week:'Weekly visits',monthly:'Monthly visits',leads:'Possible leads',customers:'Potential customers',sector:'Sector',copied:'Summary copied. Paste it into your conversation if you wish.',fail:'Could not copy automatically. You can select the figures to share.',warning:'Arithmetic exercise, not a forecast or guarantee.'},
+  es:{scenario:['Conservador','Referencia','Optimista'],invalid:'Introduce un entero entre 0 y 100.000 visitas semanales.',range:'Leads de {l} a {h}; clientes de {a} a {b}',week:'Visitas semanales',monthly:'Visitas mensuales',leads:'Leads posibles',customers:'Clientes potenciales',sector:'Sector',copied:'Resumen copiado. Pégalo en tu conversación si lo deseas.',fail:'No se pudo copiar automáticamente. Puedes seleccionar las cifras para compartirlas.',warning:'Ejercicio matemático, no pronóstico ni garantía.'}
+ };
+ const scenarioCodes=['conservative','reference','optimistic'];
+ for(const root of document.querySelectorAll('[data-growth-calculator]')){
+  const locale=root.getAttribute('data-growth-locale')||'pt-BR';
+  const t=messages[locale]||messages['pt-BR'];
+  const input=root.querySelector('[data-growth-weekly]');
+  const sector=root.querySelector('[data-growth-sector]');
+  const form=root.querySelector('[data-growth-form]');
+  const output=root.querySelector('[data-growth-results]');
+  const error=root.querySelector('[data-growth-error]');
+  const copyStatus=root.querySelector('[data-growth-copied]');
+  const fmt=n=>new Intl.NumberFormat(locale==='en'?'en-US':'pt-BR',{maximumFractionDigits:0}).format(n);
+  const label=(selector,value)=>{const node=root.querySelector(selector);if(node)node.textContent=value;};
+  let last=null;
+  // User enters only anonymous sector/estimated volume. Nothing is saved or sent.
+  form?.addEventListener('submit',event=>{
+   event.preventDefault();
+   const raw=input.value;
+   const weekly=Number(raw);
+   if(!/^\d{1,6}$/.test(raw)||!Number.isSafeInteger(weekly)||weekly>MAX_WEEKLY_VISITS||
+     !GROWTH_SECTORS.includes(sector.value)){
+    error.hidden=false;
+    error.textContent=t.invalid;
+    output.hidden=true;
+    last=null;
+    return;
+   }
+   const code=form.querySelector('[data-growth-scenario]:checked')?.value||'reference';
+   let estimate;
+   try{estimate=buildGrowthPotential({weeklyVisits:weekly,sector:sector.value,scenario:code});}
+   catch{error.hidden=false;error.textContent=t.invalid;output.hidden=true;last=null;return;}
+   error.hidden=true;
+   last=estimate;
+   output.hidden=false;
+   copyStatus.hidden=true;
+   label('[data-growth-monthly]',fmt(estimate.monthlyVisits));
+   label('[data-growth-leads]',fmt(estimate.leads));
+   label('[data-growth-customers]',fmt(estimate.customers));
+   label('[data-growth-scenario-label]',t.scenario[scenarioCodes.indexOf(code)]);
+   label('[data-growth-ranges]',t.range
+    .replace('{l}',fmt(estimate.leadsRange[0])).replace('{h}',fmt(estimate.leadsRange[1]))
+    .replace('{a}',fmt(estimate.customersRange[0])).replace('{b}',fmt(estimate.customersRange[1])));
+   for(const [name,val] of [['visits',estimate.monthlyVisits],['leads',estimate.leads],['customers',estimate.customers]]){
+    const node=root.querySelector('[data-funnel-'+name+']');
+    if(node){node.hidden=false;node.textContent=fmt(val);}
+   }
+  });
+  // Explicit user click: optional clipboard copy only, no network and no PII.
+  root.querySelector('[data-growth-copy]')?.addEventListener('click',async()=>{
+   if(!last)return;
+   const sectorLabel=sector.selectedOptions[0]?.textContent?.trim()||'';
+   const message=[
+    t.sector+': '+sectorLabel,
+    t.week+': '+fmt(last.weeklyVisits),
+    t.monthly+': '+fmt(last.monthlyVisits),
+    t.leads+': '+fmt(last.leads),
+    t.customers+': '+fmt(last.customers),
+    t.warning
+   ].join('\n');
+   try{
+    if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
+    await navigator.clipboard.writeText(message);
+    copyStatus.textContent=t.copied;
+   }catch{
+    copyStatus.textContent=t.fail;
+   }
+   copyStatus.hidden=false;
+  });
+ }
+</script>
+<style>
+ .growth-funnel-section{padding:clamp(34px,4vw,52px) 0;background:#fbfbf8;scroll-margin-top:95px}
+ .funnel-heading{margin-bottom:20px;max-width:720px}
+ .funnel-heading .eyebrow,.funnel-results .eyebrow{color:#9a500a;letter-spacing:.095em;font-size:.71rem;font-weight:850;margin:0 0 6px}
+ .funnel-heading h2{font-size:clamp(1.65rem,2.7vw,2.45rem);letter-spacing:-.04em;margin:0 0 8px;line-height:1.16}
+ .funnel-heading>div>p:last-child{font-size:.92rem;color:#586052;margin:0;line-height:1.5}
+ .growth-funnel-grid{display:grid;grid-template-columns:minmax(0,.87fr) minmax(0,1.13fr);gap:18px}
+ .funnel-art,.funnel-interaction{border:1px solid #e4e7da;background:#fff;border-radius:18px;padding:clamp(16px,2.4vw,25px);min-width:0}
+ .funnel-art{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+ .funnel-level{display:flex;align-items:center;gap:10px;min-height:80px;border-radius:14px;padding:12px 16px;max-width:100%;position:relative;transition:width .2s ease}
+ .funnel-level>div{flex:1;min-width:0}
+ .funnel-level strong{display:block;font-size:1.04rem}
+ .funnel-level small{display:block;font-size:.73rem;line-height:1.3;margin-top:3px}
+ .funnel-level output{font-size:1rem;font-weight:850;white-space:nowrap}
+ .level-visits{width:100%;background:#fce7c9;color:#753d0b}
+ .level-leads{width:87%;background:#e9f0e5;color:#31592c}
+ .level-customers{width:73%;background:#d7e6d0;color:#254722}
+ .funnel-level-icon{font-size:1.5rem;flex:none;width:26px;text-align:center}
+ .funnel-caption{font-size:.72rem;line-height:1.45;color:#64695f;text-align:center;max-width:350px;margin-top:4px}
+ .funnel-interaction h3{margin:0 0 14px;font-size:1.15rem}
+ .funnel-inputs{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+ .funnel-field label,.funnel-scenarios legend{display:block;font-size:.79rem;font-weight:750;margin:0 0 7px}
+ .funnel-field select,.funnel-field input{width:100%;font:inherit;font-size:.86rem;background:#fff;border:1px solid #c9d0c3;border-radius:10px;min-height:45px;padding:8px 10px;max-width:100%}
+ .funnel-scenarios{border:0;padding:0;margin:16px 0 12px;min-width:0}
+ .funnel-scenario-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .funnel-scenario-options label{position:relative;cursor:pointer;min-width:0}
+ .funnel-scenario-options input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer}
+ .funnel-scenario-options span{display:flex;align-items:center;justify-content:center;text-align:center;min-height:41px;padding:8px 5px;border:1px solid #d6d9cf;border-radius:9px;font-weight:730;font-size:.77rem;color:#4b5348}
+ .funnel-scenario-options input:checked+span{background:#fff2dd;border-color:#a75c08;box-shadow:inset 0 0 0 1px #a75c08;color:#854300}
+ .funnel-scenario-options input:focus-visible+span{outline:3px solid #b25b00;outline-offset:2px}
+ .funnel-field input:focus-visible,.funnel-field select:focus-visible,.funnel-calculate:focus-visible,.funnel-cta-row a:focus-visible,.funnel-cta-row button:focus-visible{outline:3px solid #b25b00;outline-offset:2px}
+ .funnel-calculate{display:flex;align-items:center;justify-content:center;gap:12px;min-height:48px;width:100%;font-size:.9rem;cursor:pointer}
+ .funnel-error{color:#ae3010;font-size:.81rem;font-weight:670;margin:5px 0 8px}
+ .funnel-math{margin-top:12px;font-size:.78rem;line-height:1.5;color:#565c51}
+ .funnel-math summary{font-weight:730;color:#7c420d;cursor:pointer;min-height:30px}
+ .funnel-math p{margin:8px 0}
+ .funnel-results{margin-top:16px;background:#fff;border:1px solid #e5e6df;border-radius:18px;padding:clamp(17px,2.5vw,28px)}
+ .funnel-results-title h3{font-size:1.15rem;margin:4px 0 15px}
+ .funnel-result-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+ .funnel-result-grid>div{display:grid;gap:8px;padding:16px;background:#f7f8f4;border:1px solid #edf0e7;border-radius:11px}
+ .funnel-result-grid>div:nth-child(1){background:#fff5e6;border-color:#f1e1cc}
+ .funnel-result-grid span{font-size:.81rem;color:#52604f;font-weight:650}
+ .funnel-result-grid strong{font-size:clamp(1.4rem,2.8vw,2.25rem);letter-spacing:-.04em;line-height:1.1}
+ .funnel-range{font-size:.85rem;margin:13px 0;color:#3f4b3c}
+ .funnel-disclaimer{font-size:.76rem;line-height:1.55;color:#5a6055;margin:8px 0 0}
+ .funnel-contact{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;background:#fffaf2;border-radius:12px;padding:15px;margin-top:20px}
+ .funnel-contact h4{font-size:.97rem;margin:0 0 6px}
+ .funnel-contact p{margin:0;font-size:.78rem;color:#54564d;line-height:1.4}
+ .funnel-cta-row{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+ .funnel-cta-row .cta{min-height:44px;display:inline-flex;align-items:center;font-size:.78rem;text-decoration:none}
+ .funnel-cta-row button,.funnel-explore{font:inherit;font-size:.78rem;min-height:44px;display:inline-flex;align-items:center;border:0;background:transparent;text-decoration:underline;color:#824000;font-weight:750;cursor:pointer}
+ .funnel-copied,.funnel-privacy{font-size:.75rem;color:#52604d;line-height:1.45;margin:4px 0 0}
+ .funnel-privacy{margin-top:12px}
+ @media(max-width:860px){.growth-funnel-grid{grid-template-columns:1fr}.funnel-art{min-height:320px}.funnel-contact{grid-template-columns:1fr}.funnel-cta-row{justify-content:flex-start}}
+ @media(max-width:540px){.growth-funnel-section{padding:25px 0}.funnel-inputs{grid-template-columns:1fr}.funnel-art,.funnel-interaction{padding:15px}.funnel-result-grid{grid-template-columns:1fr}.funnel-result-grid>div{display:flex;align-items:center;justify-content:space-between}.funnel-level{padding:10px;min-height:72px}.funnel-level small{font-size:.69rem}.funnel-level-icon{font-size:1.2rem;width:19px}.funnel-level strong{font-size:.88rem}.funnel-level output{font-size:.8rem}.funnel-scenario-options span{font-size:.72rem}}
+ @media(prefers-reduced-motion:reduce){.funnel-level{transition:none}}
+</style>
