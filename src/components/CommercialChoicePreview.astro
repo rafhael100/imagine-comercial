@@ -14,7 +14,7 @@ const calculator=locale==='pt-BR'?'/calculadora-de-anuncios/':intlPath(locale,'b
 const copy=locale==='en'?{
  eyebrow:'BEFORE YOU SIGN UP',heading:'Build your starting estimate.',intro:'Pick a website and the ad channels you want. See a clear cost breakdown.',
  site:'1 · Your website',noSite:'No website',onepage:'Onepage',landing:'Landing Page',
- channels:'2 · Advertising channels',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Optional · choose one or both',
+ channels:'2 · Advertising channels',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Optional · combine your channels',
  tier:'3 · Media planning',minimum:'Minimum',recommended:'Recommended',tierNote:'Recommended is a planning guide, not a results forecast.',
  summary:'Your estimate',siteSetup:'Website setup',siteMonthly:'Website monthly fee',adActivation:'Ads activation (one-time)',adManagement:'Estimated ads management / month',media:'Ad spend paid to platforms / month',
  total:'Setup + activation (3 interest-free installments)',installments:'Website setup in 3 installments',payLater:'Website monthly fee starts 90 days after contracting; advertising management is settled after each full month according to actual spend.',
@@ -24,7 +24,7 @@ const copy=locale==='en'?{
 }:locale==='es'?{
  eyebrow:'ANTES DEL REGISTRO',heading:'Prepara tu presupuesto inicial.',intro:'Elige tu sitio web y tus canales de anuncios. Consulta los valores.',
  site:'1 · Tu sitio web',noSite:'Sin sitio',onepage:'Onepage',landing:'Landing Page',
- channels:'2 · Canales de publicidad',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · elige uno o ambos',
+ channels:'2 · Canales de publicidad',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · combina tus canales',
  tier:'3 · Plan de inversión',minimum:'Mínimo',recommended:'Recomendado',tierNote:'La inversión recomendada es orientativa, no una previsión de resultados.',
  summary:'Tu resumen',siteSetup:'Implantación del sitio',siteMonthly:'Mensualidad del sitio',adActivation:'Activación de anuncios (única)',adManagement:'Gestión estimada de anuncios / mes',media:'Publicidad pagada a las plataformas / mes',
  total:'Implantación + activaciones (3 cuotas sin intereses)',installments:'Implantación del sitio en 3 cuotas',payLater:'Mensualidad del sitio desde el día 90 tras contratar. La gestión se calcula después de cada mes completo según la inversión real.',
@@ -34,7 +34,7 @@ const copy=locale==='en'?{
 }:{
  eyebrow:'ANTES DO CADASTRO',heading:'Monte seu orçamento em poucos cliques.',intro:'Escolha um site e os canais de anúncios. Veja os valores separados.',
  site:'1 · Seu site',noSite:'Sem site',onepage:'Onepage',landing:'Landing Page',
- channels:'2 · Canais de anúncios',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · selecione um ou os dois',
+ channels:'2 · Canais de anúncios',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · escolha um ou combine os canais',
  tier:'3 · Investimento em mídia',minimum:'Mínimo',recommended:'Recomendado',tierNote:'O recomendado é uma referência de planejamento, não promessa de resultado.',
  summary:'Resumo da sua escolha',siteSetup:'Implantação do site',siteMonthly:'Mensalidade do site',adActivation:'Ativação de anúncios (única)',adManagement:'Gestão estimada de anúncios / mês',media:'Mídia paga às plataformas / mês',
  total:'Implantação + ativações (3x sem juros)',installments:'Implantação do site em 3 parcelas',payLater:'Mensalidade do site a partir de D+90 da contratação, mesmo sem publicação. Gestão de anúncios apurada após cada mês completo, conforme a mídia real.',
@@ -70,6 +70,7 @@ const fmt=cents=>{
     <div class="choice-options" data-choice-channels>
      <button type="button" data-choice-channel="google_ads" aria-pressed="false"><span aria-hidden="true">◈</span> {copy.google}</button>
      <button type="button" data-choice-channel="meta_ads" aria-pressed="false"><span aria-hidden="true">◎</span> {copy.meta}</button>
+     <button type="button" data-choice-channel="chatgpt_ads" aria-pressed="false"><span aria-hidden="true">✦</span> ChatGPT Ads</button>
     </div>
     <p class="choice-help">{copy.noAds}</p>
    </section>
@@ -123,7 +124,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
     const option=price.getAttribute('data-choice-tier-prices');
     const planned=buildCommercialChoicePreview({site,channels,tier:option});
     const suffix=locale==='en'?'/month':locale==='es'?'/mes':'/mês';
-    price.textContent=planned.adLines.map(line=>(line.channel==='google_ads'?'Google':'Meta')+' '+format(line.mediaCents)+suffix).join(' · ');
+    price.textContent=planned.adLines.map(line=>(line.channel==='google_ads'?'Google':line.channel==='meta_ads'?'Meta':'ChatGPT')+' '+format(line.mediaCents)+suffix).join(' · ');
    }
    for(const button of root.querySelectorAll('[data-choice-site]'))
     button.setAttribute('aria-pressed',String(button.getAttribute('data-choice-site')===site));
@@ -158,7 +159,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
   });
   for(const button of root.querySelectorAll('[data-choice-channel]'))button.addEventListener('click',()=>{
    const value=button.getAttribute('data-choice-channel');
-   if(value!=='google_ads'&&value!=='meta_ads')return;
+   if(!['google_ads','meta_ads','chatgpt_ads'].includes(value))return;
    channels=channels.includes(value)?channels.filter(channel=>channel!==value):[...channels,value];
    render();
   });
