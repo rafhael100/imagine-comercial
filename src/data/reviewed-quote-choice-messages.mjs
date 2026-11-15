@@ -6,22 +6,22 @@
 import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
 export const QUOTE_LOCALES=Object.freeze(['pt-BR','en','es']);
 const sites=Object.freeze(['none','onepage','landing-pages']);
-const channels=Object.freeze([[],['google_ads'],['meta_ads'],['google_ads','meta_ads']]);
+const channels=Object.freeze([[],['google_ads'],['meta_ads'],['google_ads','meta_ads'],['chatgpt_ads'],['google_ads','chatgpt_ads'],['meta_ads','chatgpt_ads'],['google_ads','meta_ads','chatgpt_ads']]);
 const tiers=Object.freeze(['minimum','recommended']);
 const labels=Object.freeze({
  'pt-BR':Object.freeze({
   sites:Object.freeze({none:'',onepage:'Onepage','landing-pages':'Landing Page'}),
-  channels:Object.freeze({google_ads:'Google Ads',meta_ads:'Meta Ads'}),
+  channels:Object.freeze({google_ads:'Google Ads',meta_ads:'Meta Ads',chatgpt_ads:'ChatGPT Ads'}),
   tier:Object.freeze({minimum:'mídia no patamar mínimo',recommended:'mídia no patamar recomendado'})
  }),
  en:Object.freeze({
   sites:Object.freeze({none:'',onepage:'Onepage','landing-pages':'Landing Page'}),
-  channels:Object.freeze({google_ads:'Google Ads',meta_ads:'Meta Ads'}),
+  channels:Object.freeze({google_ads:'Google Ads',meta_ads:'Meta Ads',chatgpt_ads:'ChatGPT Ads'}),
   tier:Object.freeze({minimum:'minimum media plan',recommended:'recommended media plan'})
  }),
  es:Object.freeze({
   sites:Object.freeze({none:'',onepage:'Onepage','landing-pages':'Landing Page'}),
-  channels:Object.freeze({google_ads:'Google Ads',meta_ads:'Meta Ads'}),
+  channels:Object.freeze({google_ads:'Google Ads',meta_ads:'Meta Ads',chatgpt_ads:'ChatGPT Ads'}),
   tier:Object.freeze({minimum:'inversión mínima en publicidad',recommended:'inversión recomendada en publicidad'})
  })
 });
@@ -51,7 +51,7 @@ for(const locale of QUOTE_LOCALES){
 export const REVIEWED_QUOTE_MESSAGES=Object.freeze(catalog);
 for(const locale of QUOTE_LOCALES){
  const messages=Object.values(REVIEWED_QUOTE_MESSAGES[locale]);
- if(messages.length!==22||new Set(messages).size!==22||
+ if(messages.length!==46||new Set(messages).size!==46||
    messages.some(message=>message.length>280||/[\r\n\x00-\x1f]/.test(message)))
    throw Error('F324: invalid reviewed quote message catalog');
 }
