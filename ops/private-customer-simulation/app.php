@@ -52,7 +52,7 @@ function quote(array $s): array {
         $ads[]=['channel'=>$ch,'label'=>match($ch){'google_ads'=>'Google Ads','meta_ads'=>'Instagram + Facebook','chatgpt_ads'=>'ChatGPT Ads'},'media'=>$media,'management'=>max(17000, intdiv($media,5)),'activation'=>49000];
     }
     $total=$setup+count($ads)*49000;$part=intdiv($total,3);
-    return ['total'=>$total,'paymentParts'=>[$part,$part,$total-2*$part],'policy'=>'DEMO-V2-3X-2026-11-15','site'=>$s['site'], 'siteLabel'=>match($s['site']){'onepage'=>'Onepage','landing-pages'=>'Landing Page',default=>'Sem site'},'setup'=>$setup,'installment'=>intdiv($setup,3),'monthly'=>$setup?7990:0,'ads'=>$ads,'activation'=>count($ads)*49000,'media'=>array_sum(array_column($ads,'media')),'management'=>array_sum(array_column($ads,'management')),'now'=>$part];
+    return ['total'=>$total,'paymentParts'=>[$part,$part,$total-2*$part],'policy'=>'DEMO-V2-3X-2026-11-15','site'=>$s['site'], 'siteLabel'=>match($s['site']){'onepage'=>'Site Onepage','landing-pages'=>'Landing Page',default=>'Sem site'},'setup'=>$setup,'installment'=>intdiv($setup,3),'monthly'=>$setup?7990:0,'ads'=>$ads,'activation'=>count($ads)*49000,'media'=>array_sum(array_column($ads,'media')),'management'=>array_sum(array_column($ads,'management')),'now'=>$part];
 }
 $step = $_GET['step'] ?? 'choose';
 if (!is_string($step) || !in_array($step,['choose','summary','account','review','payment','success','briefing','panel'],true)) $step='choose';
