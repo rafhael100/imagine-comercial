@@ -226,6 +226,7 @@ const service = serviceName ? {
         <a href="/sobre/" aria-current={pathname==='/sobre/'?'page':undefined}>Sobre</a>
         <a href="/contato/" aria-current={pathname==='/contato/'?'page':undefined}>Contato</a>
         {portalLoginUrl && <a class="nav-cta" href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}
+        <a class="cta" href="/#simular-compra" data-purchase-start>Simular compra completa</a>
       </nav>
       <details class="mobile-menu">
         <summary>Menu</summary>
@@ -239,6 +240,7 @@ const service = serviceName ? {
           <a href="/sobre/" aria-current={pathname==='/sobre/'?'page':undefined}>Sobre</a>
           <a href="/contato/" aria-current={pathname==='/contato/'?'page':undefined}>Contato</a>
           {portalLoginUrl && <a class="nav-cta-mobile" href={portalLoginUrl} rel="noopener">Portal do Cliente</a>}
+          <a class="cta" href="/#simular-compra" data-purchase-start>Simular compra completa</a>
         </nav>
       </details>
       <nav class="locale-switcher" aria-label="Escolher idioma do site">
