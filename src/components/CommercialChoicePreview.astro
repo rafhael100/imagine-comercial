@@ -159,6 +159,10 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
    const value=button.getAttribute('data-choice-tier');
    if(value==='minimum'||value==='recommended'){tier=value;render();}
   });
+  for(const trigger of document.querySelectorAll('[data-purchase-intent]'))trigger.addEventListener('click',()=>{
+   site=trigger.getAttribute('data-purchase-intent')==='ads'?'none':'onepage';
+   channels=[];render();
+  });
   render();
  }
 </script>
