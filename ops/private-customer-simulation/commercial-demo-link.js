@@ -4,7 +4,7 @@
   if (location.hostname !== 'comercial-dev.imaginecomunica.com.br') return;
   const base = '/simulacao/compra/';
   function url(site, channels, tier) {
-    const p = new URLSearchParams({site,channels:channels.sort().join(','),tier});
+    const p = new URLSearchParams({site,channels:channels.sort().join(','),tier,entry:'card'});
     return base + '?' + p.toString();
   }
   function choice(root) {
