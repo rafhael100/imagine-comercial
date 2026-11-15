@@ -85,29 +85,35 @@ try {
     // without login, collecting personal data, submitting an order or contacting a provider.
     const preview=quickPage.locator('[data-choice-preview]');
     assert.equal(await preview.count(),1);
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('990,00'));
+    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('330,00'));
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
       reviewedQuoteChoiceHref('pt-BR',{site:'onepage',channels:[],tier:'recommended'}));
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('1.970,00'));
+    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('656,66'));
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('2.500,00'));
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('500,00'));
     await preview.locator('[data-choice-tier="minimum"]').click();
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('370,00'));
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('1.700,00'));
     await preview.locator('[data-choice-site="landing-pages"]').click();
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('2.270,00'));
+    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('756,66'));
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
       reviewedQuoteChoiceHref('pt-BR',{site:'landing-pages',channels:['google_ads','meta_ads'],tier:'minimum'}));
     await preview.locator('[data-choice-site="none"]').click();
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('980,00'));
+    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('326,66'));
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
     assert.equal(await preview.locator('input, form, textarea').count(),0);
     await preview.locator('[data-choice-site="onepage"]').click();
+    assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
+    await preview.locator('[data-choice-channel="google_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-investment]').isVisible(),true);
     await preview.locator('[data-choice-tier="recommended"]').click();
+    assert.equal(await preview.locator('[data-choice-tier="recommended"]').getAttribute('aria-pressed'),'true');
+    await preview.locator('[data-choice-channel="google_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'false');
     assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Sua empresa à frente da concorrência.Mais presença. Mais oportunidades.');
     assert.ok((await quickPage.locator('#quick-hire-notice').textContent()).includes('nenhum pagamento'));
