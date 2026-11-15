@@ -1308,7 +1308,7 @@ try {
     // uploaded to the site; Chrome print rendering shows only curated labels.
     const printBriefing=page.locator('#print-briefing');
     assert.equal(await printBriefing.isVisible(),true,'F249 explicit print control');
-    assert.equal(await page.locator('#print-briefing-service').textContent(),'Onepage');
+    assert.equal(await page.locator('#print-briefing-service').textContent(),'Site Onepage');
     assert.equal(await page.locator('#print-briefing-message').textContent(),briefing.message);
     await page.evaluate(()=>{
       window.__testContactPrintCount=0;
