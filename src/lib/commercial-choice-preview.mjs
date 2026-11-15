@@ -1,6 +1,6 @@
 /**
  * F324: deterministic commercial *estimate*, never an order or payment request.
- * Onepage/Landing values follow the reviewed Portal sandbox catalog.
+ * Site Onepage/Landing values follow the reviewed Portal sandbox catalog.
  * Ad spend thresholds are Imagine's public editorial planning parameters;
  * the Portal remains the sole authority for final contracted terms.
  *
