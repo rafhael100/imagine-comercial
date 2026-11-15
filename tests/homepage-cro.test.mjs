@@ -6,8 +6,8 @@ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
 test('homepage leads with real contact CTA, offers service navigation and visual illustration',()=>{
   const s=read('src/pages/index.astro');
-  assert.ok(s.indexOf('href="#solucoes"')<s.indexOf('href="/contato/"'));
-  assert.ok(s.includes('href="#anuncios-performance"'));
+  assert.ok(s.indexOf('href="#simular-compra"')<s.indexOf('href="/contato/"'));
+  assert.ok(s.includes('href="#simular-compra" data-purchase-intent="ads"'));
   assert.ok(s.includes('<HeroVisual />'));
   assert.ok(s.includes('<QuickServiceRequest />'));
   assert.equal(services.length,7);
