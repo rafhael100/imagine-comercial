@@ -1,13 +1,13 @@
 /**
  * F324: deterministic commercial *estimate*, never an order or payment request.
- * Onepage/Landing values follow the reviewed Portal sandbox catalog.
+ * Site Onepage/Landing values follow the reviewed Portal sandbox catalog.
  * Ad spend thresholds are Imagine's public editorial planning parameters;
  * the Portal remains the sole authority for final contracted terms.
  *
  * All monetary calculations use integer Brazilian centavos.
  */
 import {PREVIEW_SITES, PREVIEW_CHANNELS} from './commercial-selection-preview.mjs';
-import {illustrateFullMonthManagementCents,MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS} from './media-budget-calculator.mjs';
+import {CHANNELS,ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS,illustrateFullMonthManagementCents,MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS} from './media-budget-calculator.mjs';
 
 // F326: one reviewed source for both the public selector and Portal V5 parity.
 // No copy-pasted site prices or channel floors in the browser component.
@@ -18,7 +18,7 @@ export const REVIEWED_SITE_CHOICES=Object.freeze({
      monthlyCents:policy.monthlyCents})]))
 });
 export const REVIEWED_CHANNEL_CHOICES=Object.freeze(Object.fromEntries(
-  Object.entries(PREVIEW_CHANNELS).map(([code,policy])=>
+  Object.entries({...PREVIEW_CHANNELS,chatgpt_ads:{minimumMediaCents:CHANNELS.chatgpt_ads.floorCents,recommendedMediaCents:CHANNELS.chatgpt_ads.recommendedCents,activationCents:ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS}}).map(([code,policy])=>
     [code,Object.freeze({
       minimumMediaCents:policy.minimumMediaCents,recommendedMediaCents:policy.recommendedMediaCents,
       activationCents:policy.activationCents,
@@ -37,7 +37,7 @@ export function buildCommercialChoicePreview(selection){
   const {site,channels,tier}=selection;
   if(typeof site!=='string'||!Object.hasOwn(REVIEWED_SITE_CHOICES,site))
     throw new TypeError('Unreviewed site choice');
-  if(!Array.isArray(channels)||channels.length>2||
+  if(!Array.isArray(channels)||channels.length>3||
     channels.some(channel=>typeof channel!=='string'||!Object.hasOwn(REVIEWED_CHANNEL_CHOICES,channel))||
     new Set(channels).size!==channels.length)
     throw new TypeError('Unreviewed or duplicate advertising channel');

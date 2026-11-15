@@ -12,7 +12,7 @@ export const INTERNATIONAL_ARTICLE_SLUGS=Object.freeze([
 const en={
   'landing-page-ou-site':{
     title:'Landing Page or website: how to choose | Imagine',
-    description:'Compare Landing Pages, Onepage websites and multi-page company sites. Learn how audience, content, campaigns and search goals shape the right choice.',
+    description:'Compare Landing Pages, Site Onepage and multi-page company sites. Learn how audience, content, campaigns and search goals shape the right choice.',
     eyebrow:'Website planning guide',
     heading:'Landing Page or website: which format is right for your business?',
     intro:'The best format depends on your goal, how much information you need to explain and how visitors discover your offer. Start with the customer journey rather than choosing a technology first.',
@@ -20,8 +20,8 @@ const en={
       ['A company website and a campaign page serve different needs',
         'A Landing Page typically focuses attention on one offer or action. It may explain a service, invite an enquiry or support a campaign. Visitors arriving from a specific advertisement benefit from a clear connection between the message in the ad and the page they open.',
         'A multi-page website has broader goals. It can explain several services, share company background and answer questions at different stages of a buying decision. Each substantial topic needs a clear place in the navigation.'],
-      ['When a Onepage website may be enough',
-        'A Onepage brings your core company information together on a single page, with sections for services, benefits and contact. It suits a straightforward presentation with relatively little content.',
+      ['When a Site Onepage may be enough',
+        'O Site Onepage brings your core company information together on a single page, with sections for services, benefits and contact. It suits a straightforward presentation with relatively little content.',
         'If your business grows to cover many products or topics, separate pages can make information easier to find. No format is universally better for search rankings; the content must match the visitor’s intent.'],
       ['How search optimization affects the decision',
         'When you want people to find your business through different searches, map the questions and needs your customers have. Each useful page should address a distinct topic instead of repeating keywords or location names without additional value.',
@@ -134,7 +134,7 @@ const en={
 const es={
   'landing-page-ou-site':{
     title:'Landing Page o sitio web: cómo elegir | Imagine',
-    description:'Compara Landing Pages, sitios Onepage y sitios empresariales con varias páginas. El objetivo, los contenidos y el SEO ayudan a tomar la decisión.',
+    description:'Compara Landing Pages, sitios Site Onepage y sitios empresariales con varias páginas. El objetivo, los contenidos y el SEO ayudan a tomar la decisión.',
     eyebrow:'Guía para contratar un sitio',
     heading:'Landing Page o sitio web: ¿cuál conviene a tu negocio?',
     intro:'La mejor opción depende de tus objetivos, la información que necesitas presentar y cómo las personas descubren tu oferta. La decisión comienza con el recorrido del cliente.',
@@ -142,8 +142,8 @@ const es={
       ['Un sitio empresarial y una página de campaña tienen objetivos distintos',
         'Una Landing Page suele concentrarse en una oferta o acción. Puede explicar un servicio, recibir una consulta o apoyar una campaña. Una persona que llega desde un anuncio necesita continuidad entre el mensaje publicitario y la página.',
         'Un sitio con varias páginas puede presentar diferentes servicios, explicar la empresa y responder preguntas en varias etapas de compra. Cada tema importante necesita un espacio claro en la navegación.'],
-      ['Cuándo puede ser suficiente una Onepage',
-        'Una Onepage reúne la información esencial de una empresa en una sola página, con secciones de servicios, beneficios y contacto. Es útil para una presentación sencilla.',
+      ['Cuándo puede ser suficiente un Site Onepage',
+        'Un Site Onepage reúne la información esencial de una empresa en una sola página, con secciones de servicios, beneficios y contacto. Es útil para una presentación sencilla.',
         'Cuando el negocio necesita más temas y servicios, las páginas independientes pueden facilitar la búsqueda. Ningún formato garantiza posiciones en Google.'],
       ['Cómo influye el SEO en la elección',
         'Si buscas atraer visitantes por diferentes necesidades, identifica las preguntas reales de tus clientes. Cada página debe resolver un tema específico, no repetir palabras clave o nombres de ciudades sin aportar valor.',

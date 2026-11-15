@@ -14,9 +14,9 @@ const {locale}=Astro.props;
 if(locale!=='en'&&locale!=='es')throw Error('Unsupported international showcase locale');
 const copy=locale==='en'?{
  eyebrow:'WEBSITES & DIGITAL MARKETING',
- heroA:'Make your business stand out.',
- heroB:'Reach more customers.',
- lead:'Beautiful business websites. Smart advertising campaigns. Choose what you need — no complicated steps.',
+ heroA:'Put your business ahead of the competition.',
+ heroB:'More presence. More opportunities.',
+ lead:'Professional websites and strategic advertising to make your brand stand out, attract customers and turn interest into business.',
  website:'I want a website',advertise:'I want to advertise',
  benefits:['Explore without signing up','Clear prices and options','Personalized support'],
  solutions:'CHOOSE YOUR SOLUTION',title:'Choose. Customize. ',titleAccent:'Get started.',
@@ -27,7 +27,7 @@ const copy=locale==='en'?{
  setupNoteOne:'3 × BRL 330 · first monthly payment 90 days after agreement',
  setupNoteLanding:'3 × BRL 430 · first monthly payment 90 days after agreement',
  adsNote:'Management: 20% of actual spend, min. BRL 170/month per channel',
- adsMore:'Media paid to the platform · Google min. BRL 1,000 / Meta min. BRL 700 per month',
+ adsMore:'Google media budget: min. BRL 1,000/month · recommended BRL 1,500/month',
  fee:'Management',details:'Details',also:'Also available',
  all:'Explore all services',calculator:'Estimate an ad budget',
  flowKicker:'IT IS THAT SIMPLE',flow:'Choose first. Sign up only when ready.',flowAction:'Build my estimate',
@@ -37,19 +37,19 @@ const copy=locale==='en'?{
  finalButton:'Explore solutions',contact:'Talk to Imagine',
  disclosure:'Choosing a service opens WhatsApp with a suggested message for you to review. Nothing is sent automatically; no public checkout or payment is enabled.',
  labels:{
-  onepage:{short:'Onepage',tag:'A simple start',benefit:'Your business on one professional page.',action:'Get my Onepage'},
+  onepage:{short:'Site Onepage',tag:'A simple start',benefit:'Your business on one professional page.',action:'Get my Site Onepage'},
   'landing-pages':{short:'Landing Page',tag:'Focused offers',benefit:'A page that gives your campaign a clear next step.',action:'Get a Landing Page'},
   'criacao-de-sites':{short:'Business website',tag:'Room to grow',benefit:'Showcase your company, services and expertise.',action:'Get my website'},
-  'gestao-google-ads':{short:'Ads management',tag:'Reach customers',benefit:'Google, Instagram and Facebook with a clear plan.',action:'Start advertising'},
+  'gestao-google-ads':{short:'Google Ads',tag:'Reach people searching',benefit:'Reach people searching Google for your products and services.',action:'Advertise on Google'},
   'gestao-meta-ads':{short:'Instagram & Facebook',benefit:'Build interest with relevant social ads.',action:'Discuss Meta Ads'},
   'sites-por-assinatura':{short:'Subscription websites',benefit:'Explore a website with recurring service.',action:'Ask about plans'},
-  'gestao-chatgpt-ads':{short:'ChatGPT Ads',benefit:'Pilot planning, subject to platform eligibility.',action:'Check availability'}
+  'gestao-chatgpt-ads':{short:'ChatGPT Ads',tag:'A new ad channel',benefit:'Reach people exploring solutions in ChatGPT.',action:'Advertise on ChatGPT'}
  }
 }:{
  eyebrow:'SITIOS WEB Y MARKETING DIGITAL',
- heroA:'Haz que tu negocio destaque.',
- heroB:'Llega a más clientes.',
- lead:'Sitios profesionales. Campañas inteligentes. Elige la solución ideal sin complicaciones.',
+ heroA:'Tu empresa por delante de la competencia.',
+ heroB:'Más presencia. Más oportunidades.',
+ lead:'Sitios profesionales y anuncios estratégicos para destacar tu marca, atraer clientes y convertir el interés en negocio.',
  website:'Quiero un sitio web',advertise:'Quiero anunciarme',
  benefits:['Explora sin registro','Precios y opciones claros','Asesoría personalizada'],
  solutions:'ELIGE TU SOLUCIÓN',title:'Elige. Personaliza. ',titleAccent:'Empieza.',
@@ -60,7 +60,7 @@ const copy=locale==='en'?{
  setupNoteOne:'3 × R$ 330 · primera mensualidad 90 días después de contratar',
  setupNoteLanding:'3 × R$ 430 · primera mensualidad 90 días después de contratar',
  adsNote:'Gestión: 20% de la inversión real, mínimo R$ 170/mes por canal',
- adsMore:'Publicidad pagada a la plataforma · Google mín. R$ 1.000 / Meta mín. R$ 700 al mes',
+ adsMore:'Inversión en Google: mínimo R$ 1.000/mes · recomendado R$ 1.500/mes',
  fee:'Gestión',details:'Detalles',also:'También tenemos',
  all:'Ver todos los servicios',calculator:'Calcular inversión publicitaria',
  flowKicker:'ASÍ DE FÁCIL',flow:'Primero eliges. Los datos vienen al final.',flowAction:'Preparar mi presupuesto',
@@ -70,27 +70,29 @@ const copy=locale==='en'?{
  finalButton:'Explorar soluciones',contact:'Hablar con Imagine',
  disclosure:'Al elegir un servicio se abre WhatsApp con un mensaje que puedes revisar. No se envía automáticamente y la compra pública aún no está habilitada.',
  labels:{
-  onepage:{short:'Onepage',tag:'Empieza hoy',benefit:'Tu empresa en una página profesional.',action:'Quiero mi Onepage'},
+  onepage:{short:'Site Onepage',tag:'Empieza hoy',benefit:'Tu empresa en una página profesional.',action:'Quiero mi Site Onepage'},
   'landing-pages':{short:'Landing Page',tag:'Oferta en foco',benefit:'Una página creada para destacar tu propuesta.',action:'Quiero una Landing Page'},
   'criacao-de-sites':{short:'Sitio web completo',tag:'Para crecer',benefit:'Presenta tu empresa, servicios y experiencia.',action:'Quiero mi sitio web'},
-  'gestao-google-ads':{short:'Gestión de anuncios',tag:'Nuevos clientes',benefit:'Google, Instagram y Facebook con estrategia.',action:'Quiero anunciarme'},
+  'gestao-google-ads':{short:'Google Ads',tag:'Para quienes buscan soluciones',benefit:'Llega a personas que buscan tus productos y servicios en Google.',action:'Anunciar en Google'},
   'gestao-meta-ads':{short:'Instagram y Facebook',benefit:'Conecta con tu público en redes sociales.',action:'Consultar Meta Ads'},
   'sites-por-assinatura':{short:'Sitios por suscripción',benefit:'Un sitio web con servicio recurrente.',action:'Consultar planes'},
-  'gestao-chatgpt-ads':{short:'ChatGPT Ads',benefit:'Planifica un piloto sujeto a disponibilidad.',action:'Consultar disponibilidad'}
+  'gestao-chatgpt-ads':{short:'ChatGPT Ads',tag:'Nuevo canal de anuncios',benefit:'Llega a personas que exploran soluciones en ChatGPT.',action:'Anunciar en ChatGPT'}
  }
 };
-const featured=['onepage','landing-pages','criacao-de-sites','gestao-google-ads'] as const;
-const additional=['gestao-meta-ads','sites-por-assinatura','gestao-chatgpt-ads'] as const;
+const featured=['onepage','landing-pages','gestao-chatgpt-ads','gestao-google-ads'] as const;
+const additional=['gestao-meta-ads','sites-por-assinatura','criacao-de-sites'] as const;
 const languageLink=slug=>intlPath(locale,'services/'+slug);
 const fee=locale==='en'?{
  onepage:['BRL 990','BRL 79.90','/mo'],
  'landing-pages':['BRL 1,290','BRL 79.90','/mo'],
  'criacao-de-sites':[copy.proposed,copy.tailored,''],
+ 'gestao-chatgpt-ads':['BRL 490','20%',''],
  'gestao-google-ads':['BRL 490','20%','']
 }:{
  onepage:['R$ 990','R$ 79,90','/mes'],
  'landing-pages':['R$ 1.290','R$ 79,90','/mes'],
  'criacao-de-sites':[copy.proposed,copy.tailored,''],
+ 'gestao-chatgpt-ads':['R$ 490','20%',''],
  'gestao-google-ads':['R$ 490','20%','']
 };
 ---
@@ -139,9 +141,10 @@ const fee=locale==='en'?{
       <p class="intl-offer-lead">{offer.benefit}</p>
       <div class="intl-price-row">
        <div><small>{slug==='criacao-de-sites'?copy.priceCustom:copy.priceStart}</small><strong>{price[0]}</strong></div>
-       <div><small>{slug==='criacao-de-sites'?copy.priceScope:slug==='gestao-google-ads'?copy.fee:copy.priceMonth}</small><strong>{price[1]}<span>{price[2]}</span></strong></div>
+       <div><small>{slug==='criacao-de-sites'?copy.priceScope:(slug==='gestao-google-ads'||slug==='gestao-chatgpt-ads')?copy.fee:copy.priceMonth}</small><strong>{price[1]}<span>{price[2]}</span></strong></div>
       </div>
-      <p class="intl-pricing-note">{slug==='onepage'?copy.setupNoteOne:slug==='landing-pages'?copy.setupNoteLanding:slug==='gestao-google-ads'?copy.adsNote:copy.siteNote}</p>
+      <p class="intl-pricing-note">{slug==='onepage'?copy.setupNoteOne:slug==='landing-pages'?copy.setupNoteLanding:(slug==='gestao-google-ads'||slug==='gestao-chatgpt-ads')?copy.adsNote:copy.siteNote}</p>
+      {slug==='gestao-chatgpt-ads'&&<p class="intl-ad-note">{locale==='en'?'Media planning: BRL 1,200 / 30 days (BRL 40/day). Recommended: BRL 1,800. Delivery subject to platform approval.':'Plan de medios: R$ 1.200 / 30 días (R$ 40/día). Recomendado: R$ 1.800. Sujeto a aprobación de la plataforma.'}</p>}
       {slug==='gestao-google-ads'&&<p class="intl-ad-note">{copy.adsMore}</p>}
       <a class="cta intl-buy" href={localizedSalesWhatsAppUrl(locale,slug)} target="_blank" rel="noopener noreferrer"
        aria-label={offer.action+' — WhatsApp'} aria-describedby="intl-buy-disclosure">{offer.action} <span aria-hidden="true">↗</span></a>

@@ -10,7 +10,7 @@ export const commercialFaqSections=Object.freeze([
       Object.freeze({
         id:'escolha',
         question:'Preciso saber qual serviço contratar antes de entrar em contato?',
-        answer:'Não. Você pode apresentar o objetivo da empresa e comparar formatos possíveis. Onepage, site com várias páginas, Landing Page e gestão de anúncios respondem a necessidades diferentes. A escolha e os entregáveis devem ser confirmados na proposta.'
+        answer:'Não. Você pode apresentar o objetivo da empresa e comparar formatos possíveis. Site Onepage, site com várias páginas, Landing Page e gestão de anúncios respondem a necessidades diferentes. A escolha e os entregáveis devem ser confirmados na proposta.'
       }),
       Object.freeze({
         id:'materiais',

@@ -11,7 +11,7 @@ const guide=[
   {
     code:'apresentar',
     goal:'Apresentar uma empresa de forma objetiva',
-    explanation:'Se a apresentação e os contatos cabem em uma página organizada, a Onepage pode ser um ponto de partida.',
+    explanation:'Se a apresentação e os contatos cabem em uma página organizada, o Site Onepage pode ser um ponto de partida.',
     slugs:['onepage']
   },
   {

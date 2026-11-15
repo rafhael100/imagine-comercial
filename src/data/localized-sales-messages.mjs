@@ -2,7 +2,7 @@
 import {services} from './services.mjs';
 const messages=Object.freeze({
  en:Object.freeze({
-  onepage:'Hello Imagine, I would like to discuss a Onepage website for my business.',
+  onepage:'Hello Imagine, I would like to discuss a Site Onepage for my business.',
   'landing-pages':'Hello Imagine, I would like to discuss a Landing Page for my business.',
   'criacao-de-sites':'Hello Imagine, I would like to discuss a complete business website.',
   'gestao-google-ads':'Hello Imagine, I would like to discuss Google Ads management.',
@@ -11,7 +11,7 @@ const messages=Object.freeze({
   'gestao-chatgpt-ads':'Hello Imagine, I would like information about ChatGPT Ads pilot eligibility.'
  }),
  es:Object.freeze({
-  onepage:'Hola Imagine, quisiera consultar sobre una página Onepage para mi empresa.',
+  onepage:'Hola Imagine, quisiera consultar sobre un Site Onepage para mi empresa.',
   'landing-pages':'Hola Imagine, quisiera consultar sobre una Landing Page para mi empresa.',
   'criacao-de-sites':'Hola Imagine, quisiera consultar sobre un sitio web completo para mi empresa.',
   'gestao-google-ads':'Hola Imagine, quisiera consultar sobre la gestión de anuncios en Google Ads.',

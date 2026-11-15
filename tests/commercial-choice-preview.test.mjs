@@ -37,7 +37,7 @@ test('F324: media minimum applies management floor per channel, not to combined 
  assert.equal(both.adMediaCents,170000);
  assert.equal(both.contractedSetupAndActivationCents,98000);
  assert.equal(both.actualManagementRequiresPostpaidVerification,true);
- assert.deepEqual(Object.keys(REVIEWED_CHANNEL_CHOICES).sort(),['google_ads','meta_ads']);
+ assert.deepEqual(Object.keys(REVIEWED_CHANNEL_CHOICES).sort(),['chatgpt_ads','google_ads','meta_ads']);
 });
 
 test('F324: recommended tier and website + ads composition remain separate',()=>{
@@ -62,9 +62,9 @@ test('F324: reject unsupported or duplicated choices and channels',()=>{
  for(const input of [
   null,{},[],{site:'__proto__',channels:[],tier:'minimum'},
   {site:'criacao-de-sites',channels:[],tier:'minimum'},
-  {site:'onepage',channels:['chatgpt_ads'],tier:'minimum'},
+  {site:'onepage',channels:['unknown_ads'],tier:'minimum'},
   {site:'onepage',channels:['meta_ads','meta_ads'],tier:'minimum'},
-  {site:'onepage',channels:['google_ads','meta_ads','chatgpt_ads'],tier:'minimum'},
+  {site:'onepage',channels:['google_ads','meta_ads','chatgpt_ads','unknown_ads'],tier:'minimum'},
   {site:'onepage',channels:['google_ads'],tier:'vip'},
   {site:'onepage',channels:'google_ads',tier:'recommended'}
  ])assert.throws(()=>buildCommercialChoicePreview(input));
@@ -89,4 +89,15 @@ test('F324: browser component is an anonymous click-only preview across PT EN ES
  assert.match(component,/eligibleForPublicCheckout|Simulação, não contratação|no public checkout|No hay compra pública activa/);
  assert.doesNotMatch(component,/<(?:form|input|textarea)\b|\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|innerHTML|document\.cookie|FormData|requestSubmit|\.submit\s*\(/);
  assert.ok(component.includes('aria-pressed'));
+});
+
+test('approved three-channel selector supports all 48 anonymous estimates without enabling checkout',()=>{
+ for(const site of ['none','onepage','landing-pages'])for(const tier of ['minimum','recommended'])for(let mask=0;mask<8;mask++){
+  const channels=['google_ads','meta_ads','chatgpt_ads'].filter((_,i)=>mask&(1<<i));
+  const q=buildCommercialChoicePreview({site,channels,tier});
+  assert.equal(q.adActivationCents,49000*channels.length);
+  assert.equal(q.adMediaCents,q.adLines.reduce((sum,line)=>sum+line.mediaCents,0));
+  assert.equal(q.eligibleForPublicCheckout,false);
+  assert.equal(q.hasChoice,site!=='none'||channels.length>0);
+ }
 });

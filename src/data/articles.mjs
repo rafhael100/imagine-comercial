@@ -5,7 +5,7 @@ export const articles = Object.freeze([
   {
     "slug": "landing-page-ou-site",
     "title": "Landing Page ou site: qual escolher? | Imagine",
-    "description": "Entenda quando investir em Landing Page, Onepage ou site com várias páginas e como escolher a estrutura mais adequada ao seu negócio.",
+    "description": "Entenda quando investir em Landing Page, Site Onepage ou site com várias páginas e como escolher a estrutura mais adequada ao seu negócio.",
     "eyebrow": "Guia de contratação",
     "heading": "Landing Page ou site: qual formato faz sentido para o seu negócio?",
     "intro": "O melhor formato depende do objetivo da empresa, da diversidade de informações e de como as pessoas vão descobrir a oferta. A decisão começa pela jornada do cliente, não pela tecnologia.",
@@ -16,8 +16,8 @@ export const articles = Object.freeze([
         "Um site com várias páginas responde a necessidades mais amplas: apresentar diferentes serviços, contar a história da empresa, compartilhar estudos de caso e reunir conteúdos que respondem a perguntas ao longo de uma decisão de compra. Nesse caso, a navegação e a arquitetura de conteúdo precisam permitir que cada assunto relevante tenha seu espaço."
       ],
       [
-        "Quando a Onepage pode ser suficiente",
-        "Uma Onepage reúne as informações essenciais do negócio em uma página organizada por seções. É uma alternativa quando a empresa precisa de uma presença clara e objetiva, sem grande diversidade de temas. O desafio aparece quando a organização cresce: adicionar muitos serviços e conteúdos em uma única página pode dificultar a navegação.",
+        "Quando o Site Onepage pode ser suficiente",
+        "Um Site Onepage reúne as informações essenciais do negócio em uma página organizada por seções. É uma alternativa quando a empresa precisa de uma presença clara e objetiva, sem grande diversidade de temas. O desafio aparece quando a organização cresce: adicionar muitos serviços e conteúdos em uma única página pode dificultar a navegação.",
         "Para negócios com portfólio amplo ou estratégia orgânica de longo prazo, páginas separadas podem ser mais adequadas. Não existe regra universal de que uma estrutura sempre ranqueia melhor; o conteúdo precisa corresponder à intenção de quem pesquisa."
       ],
       [

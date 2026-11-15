@@ -41,8 +41,8 @@ function sample(){
   ]);
   const onepage=signed('release_f306_onepage_03','2026-11-11T01:00:00Z',[
     {...original[2],version:2,
-      title:'Onepage profissional com foco nas necessidades da empresa',
-      description:'Uma nova descrição pública assinada do serviço Onepage, que não deve restaurar a antiga descrição da Landing Page.'}
+      title:'Site Onepage profissional com foco nas necessidades da empresa',
+      description:'Uma nova descrição pública assinada do serviço Site Onepage, que não deve restaurar a antiga descrição da Landing Page.'}
   ]);
   const releases=[first,landing,onepage];
   const historyText=JSON.stringify({

@@ -46,21 +46,21 @@ export const services = Object.freeze([
   },
   {
     slug: 'onepage',
-    label: 'Onepage',
-    title: 'Criação de Onepage empresarial | Imagine',
-    description: 'Onepage profissional para apresentar sua empresa, seus serviços e seus canais de contato em uma única página organizada.',
+    label: 'Site Onepage',
+    title: 'Criação de Site Onepage empresarial | Imagine',
+    description: 'Site Onepage profissional para apresentar sua empresa, seus serviços e seus canais de contato em uma única página organizada.',
     eyebrow: 'Apresentação em uma página',
-    heading: 'Apresente sua empresa com clareza em uma Onepage profissional.',
+    heading: 'Apresente sua empresa com clareza em um Site Onepage profissional.',
     intro: 'Reunimos a apresentação do negócio, seus diferenciais e os canais de atendimento em uma experiência de navegação simples.',
-    approach: 'A Onepage é uma alternativa para empresas que precisam de uma presença digital objetiva, com todas as informações essenciais concentradas em uma página.',
+    approach: 'O Site Onepage é uma alternativa para empresas que precisam de uma presença digital objetiva, com todas as informações essenciais concentradas em uma página.',
     details: [
       ['Apresentação objetiva', 'Seções para explicar o que a empresa faz e para quem seus serviços são indicados.'],
       ['Navegação intuitiva', 'Organização visual com acessos rápidos às informações mais procuradas.'],
       ['Estrutura preparada', 'Fundamentos técnicos de SEO, responsividade e acessibilidade desde a construção.']
     ],
     faqs: [
-      ['Quando vale escolher uma Onepage?', 'Quando o conteúdo cabe de maneira clara em uma única página e a prioridade é apresentar a empresa com simplicidade.'],
-      ['Uma Onepage substitui um site com várias páginas?', 'Depende da quantidade e diversidade de assuntos. Projetos com muitos serviços ou necessidades de SEO temático podem se beneficiar de páginas independentes.']
+      ['Quando vale escolher um Site Onepage?', 'Quando o conteúdo cabe de maneira clara em uma única página e a prioridade é apresentar a empresa com simplicidade.'],
+      ['Um Site Onepage substitui um site com várias páginas?', 'Depende da quantidade e diversidade de assuntos. Projetos com muitos serviços ou necessidades de SEO temático podem se beneficiar de páginas independentes.']
     ]
   },
   {
