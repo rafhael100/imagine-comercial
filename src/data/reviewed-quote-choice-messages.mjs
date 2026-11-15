@@ -43,7 +43,7 @@ export const REVIEWED_QUOTE_MESSAGES=Object.freeze(Object.fromEntries(QUOTE_LOCA
   const selection={site,channels:chosen,tier};
   const quote=buildCommercialChoicePreview(selection);
   return quote.hasChoice?[key(selection),generate(locale,selection)]:null;
- }).filter(Boolean)))))
+ }).filter(Boolean))))
 ])));
 for(const locale of QUOTE_LOCALES){
  const messages=Object.values(REVIEWED_QUOTE_MESSAGES[locale]);
