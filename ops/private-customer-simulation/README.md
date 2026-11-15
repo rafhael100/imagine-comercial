@@ -42,3 +42,7 @@ Bloco comercial da calculadora incluído após o seletor nos três idiomas, usan
 ## Seletor anônimo da home — terceiro canal
 
 ChatGPT Ads agora integra também a estimativa pública do componente CommercialChoicePreview, com parâmetros reutilizados da calculadora (R$1.200 mínimo / R$1.800 recomendado). São 48 seleções e 46 mensagens opt-in por idioma, sem dados pessoais. O gate operacional Portal continua rejeitando ChatGPT explicitamente e não o mapeia silenciosamente para Google/Meta. O overlay privado preserva os três enums e abre a demonstração. A inclusão na estimativa não comprova contratação, pagamento ou veiculação reais.
+
+## Nome comercial aprovado e validação — 15/11/2026
+
+Produto exibido como **Site Onepage**. Descrição aprovada: “Sua empresa em um site de página única, profissional e fácil de navegar.” Textos atualizados na home, catálogo, comparações, conteúdos e demonstração; identificadores técnicos e rotas preservados. 1011 testes Node aprovados; build e verificação de 63 páginas aprovados. Sete testes HTTP da jornada aprovados na VPS. Publicação privada atualizada com backup e overlay PT/EN/ES preservado. Verificação visual autenticada continua pendente.
