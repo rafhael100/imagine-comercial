@@ -130,6 +130,22 @@ class Journey(unittest.TestCase):
         c.post('choose', site='onepage', tier='minimum', now='1', price='1')
         self.assertIn('R$ 330,00', c.body)
 
+    def test_chatgpt_combinations_complete_purchase(self):
+        import itertools
+        for tier in ['minimum', 'recommended']:
+            for google, meta in itertools.product([False, True], repeat=2):
+                channels = ['chatgpt_ads'] + (['google_ads'] if google else []) + (['meta_ads'] if meta else [])
+                c = Client()
+                c.choose('none', channels, tier)
+                self.assertIn('ChatGPT Ads', c.body)
+                oid = c.create()
+                c.payment('approved')
+                self.assertIn(oid, c.body)
+                c.get('briefing')
+                c.post('briefing', goal='leads', style='modern')
+                self.assertIn('ChatGPT Ads', c.body)
+                self.assertIn(oid, c.body)
+
     def test_csrf_and_foreign_order_rejection(self):
         a, b = Client(), Client()
         a.choose()
@@ -146,7 +162,7 @@ class Journey(unittest.TestCase):
         self.assertEqual(b.status, 419)
 
     def test_invalid_channels_and_no_premature_briefing(self):
-        for channels in [['chatgpt_ads'], ['google_ads', 'google_ads'], ['google_ads', 'meta_ads', 'other']]:
+        for channels in [['unknown_ads'], ['google_ads', 'google_ads'], ['google_ads', 'meta_ads', 'other']]:
             c = Client()
             c.choose(channels=channels)
             self.assertIn('role="alert"', c.body)
