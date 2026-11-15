@@ -47,6 +47,13 @@
   }
   const notice=document.querySelector('#quick-hire-notice');
   if(notice)notice.textContent='Demonstração privada: Onepage, Landing Page e anúncios abrem o fluxo de compra simulado com a escolha preservada. Serviços sob proposta seguem para atendimento. Nenhuma cobrança real.';
+  for(const menu of document.querySelectorAll('header nav[aria-label="Navegação principal"], header nav.mobile-nav')){
+    if(!menu.querySelector('.nav-cta,.nav-cta-mobile')){
+      const portal=document.createElement('a');portal.href='https://portal-dev.imaginecomunica.com.br/_preview/portal/';
+      portal.className=menu.classList.contains('mobile-nav')?'nav-cta-mobile':'nav-cta';
+      portal.textContent='Portal do Cliente';menu.append(portal);
+    }
+  }
   const nav=document.querySelector('header nav')||document.querySelector('header');
   if(nav&&!document.querySelector('[data-demo-start]')) {
     const a=document.createElement('a');a.href=base;a.dataset.demoStart='';a.textContent='Simular compra completa';
