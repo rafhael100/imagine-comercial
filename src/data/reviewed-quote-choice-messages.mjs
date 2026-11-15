@@ -10,17 +10,17 @@ const channels=Object.freeze([[],['google_ads'],['meta_ads'],['google_ads','meta
 const tiers=Object.freeze(['minimum','recommended']);
 const labels=Object.freeze({
  'pt-BR':Object.freeze({
-  sites:Object.freeze({none:'',onepage:'Onepage','landing-pages':'Landing Page'}),
+  sites:Object.freeze({none:'',onepage:'Site Onepage','landing-pages':'Landing Page'}),
   channels:Object.freeze({google_ads:'Google Ads',meta_ads:'Meta Ads',chatgpt_ads:'ChatGPT Ads'}),
   tier:Object.freeze({minimum:'mídia no patamar mínimo',recommended:'mídia no patamar recomendado'})
  }),
  en:Object.freeze({
-  sites:Object.freeze({none:'',onepage:'Onepage','landing-pages':'Landing Page'}),
+  sites:Object.freeze({none:'',onepage:'Site Onepage','landing-pages':'Landing Page'}),
   channels:Object.freeze({google_ads:'Google Ads',meta_ads:'Meta Ads',chatgpt_ads:'ChatGPT Ads'}),
   tier:Object.freeze({minimum:'minimum media plan',recommended:'recommended media plan'})
  }),
  es:Object.freeze({
-  sites:Object.freeze({none:'',onepage:'Onepage','landing-pages':'Landing Page'}),
+  sites:Object.freeze({none:'',onepage:'Site Onepage','landing-pages':'Landing Page'}),
   channels:Object.freeze({google_ads:'Google Ads',meta_ads:'Meta Ads',chatgpt_ads:'ChatGPT Ads'}),
   tier:Object.freeze({minimum:'inversión mínima en publicidad',recommended:'inversión recomendada en publicidad'})
  })
