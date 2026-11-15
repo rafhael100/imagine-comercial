@@ -38,13 +38,17 @@ function generate(locale,selection){
   return 'Hola Imagine, quisiera consultar esta estimación de sitio y anuncios: '+choice+'; '+suffix+'. Entiendo que los valores definitivos deben confirmarse.';
  return 'Olá, Imagine! Gostaria de conversar sobre esta simulação de site e anúncios: '+choice+'; '+suffix+'. Sei que os valores finais precisam ser confirmados.';
 }
-export const REVIEWED_QUOTE_MESSAGES=Object.freeze(Object.fromEntries(QUOTE_LOCALES.map(locale=>[
- locale,Object.freeze(Object.fromEntries(sites.flatMap(site=>channels.flatMap(chosen=>tiers.map(tier=>{
+const catalog={};
+for(const locale of QUOTE_LOCALES){
+ const messages={};
+ for(const site of sites)for(const chosen of channels)for(const tier of tiers){
   const selection={site,channels:chosen,tier};
-  const quote=buildCommercialChoicePreview(selection);
-  return quote.hasChoice?[key(selection),generate(locale,selection)]:null;
- }).filter(Boolean))))
-])));
+  if(!buildCommercialChoicePreview(selection).hasChoice)continue;
+  messages[key(selection)]=generate(locale,selection);
+ }
+ catalog[locale]=Object.freeze(messages);
+}
+export const REVIEWED_QUOTE_MESSAGES=Object.freeze(catalog);
 for(const locale of QUOTE_LOCALES){
  const messages=Object.values(REVIEWED_QUOTE_MESSAGES[locale]);
  if(messages.length!==22||new Set(messages).size!==22||
