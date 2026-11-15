@@ -6,15 +6,25 @@
  *
  * All monetary calculations use integer Brazilian centavos.
  */
+import {PREVIEW_SITES, PREVIEW_CHANNELS} from './commercial-selection-preview.mjs';
+import {illustrateFullMonthManagementCents,MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS} from './media-budget-calculator.mjs';
+
+// F326: one reviewed source for both the public selector and Portal V5 parity.
+// No copy-pasted site prices or channel floors in the browser component.
 export const REVIEWED_SITE_CHOICES=Object.freeze({
   none:Object.freeze({setupCents:0,installmentCents:0,monthlyCents:0}),
-  onepage:Object.freeze({setupCents:99000,installmentCents:33000,monthlyCents:7990}),
-  'landing-pages':Object.freeze({setupCents:129000,installmentCents:43000,monthlyCents:7990})
+  ...Object.fromEntries(Object.entries(PREVIEW_SITES).map(([code,policy])=>
+    [code,Object.freeze({setupCents:policy.setupCents,installmentCents:policy.installmentCents,
+     monthlyCents:policy.monthlyCents})]))
 });
-export const REVIEWED_CHANNEL_CHOICES=Object.freeze({
-  google_ads:Object.freeze({minimumMediaCents:100000,recommendedMediaCents:150000,activationCents:49000,managementFloorCents:17000}),
-  meta_ads:Object.freeze({minimumMediaCents:70000,recommendedMediaCents:100000,activationCents:49000,managementFloorCents:17000})
-});
+export const REVIEWED_CHANNEL_CHOICES=Object.freeze(Object.fromEntries(
+  Object.entries(PREVIEW_CHANNELS).map(([code,policy])=>
+    [code,Object.freeze({
+      minimumMediaCents:policy.minimumMediaCents,recommendedMediaCents:policy.recommendedMediaCents,
+      activationCents:policy.activationCents,
+      managementFloorCents:MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS
+    })])
+));
 export const REVIEWED_ESTIMATE_TIERS=Object.freeze(['minimum','recommended']);
 
 /**
@@ -36,7 +46,7 @@ export function buildCommercialChoicePreview(selection){
   const adLines=channels.map(channel=>{
     const policy=REVIEWED_CHANNEL_CHOICES[channel];
     const mediaCents=tier==='recommended'?policy.recommendedMediaCents:policy.minimumMediaCents;
-    const managementCents=Math.max(Math.round(mediaCents*20/100),policy.managementFloorCents);
+    const managementCents=illustrateFullMonthManagementCents(mediaCents);
     return Object.freeze({
       channel,mediaCents,activationCents:policy.activationCents,managementCents
     });
