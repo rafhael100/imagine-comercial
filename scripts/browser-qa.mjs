@@ -80,7 +80,7 @@ try {
     assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false);
     assert.equal(await funnel.locator('input[type=email],input[type=tel],input[name=name]').count(),0);
     assert.equal(await funnel.locator('[data-funnel-visits]').isVisible(),false);
-    await funnel.locator('[data-growth-form] button[type=submit]').click();
+    await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-results]').isVisible(),true);
     assert.equal(await funnel.locator('[data-growth-monthly]').textContent(),'400');
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'16');
@@ -88,20 +88,20 @@ try {
     assert.ok((await funnel.locator('[data-growth-ranges]').textContent()).includes('8'));
     assert.ok((await funnel.locator('[data-growth-ranges]').textContent()).includes('24'));
     await funnel.locator('[data-growth-scenario][value=conservative]').check();
-    await funnel.locator('[data-growth-form] button[type=submit]').click();
+    await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'8');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'1');
     await funnel.locator('[data-growth-scenario][value=optimistic]').check();
-    await funnel.locator('[data-growth-form] button[type=submit]').click();
+    await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'24');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'7');
     await funnel.locator('[data-growth-weekly]').fill('100001');
-    await funnel.locator('[data-growth-form] button[type=submit]').click();
+    await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-error]').isVisible(),true);
     assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false);
     await funnel.locator('[data-growth-weekly]').fill('100');
     await funnel.locator('[data-growth-scenario][value=reference]').check();
-    await funnel.locator('[data-growth-form] button[type=submit]').click();
+    await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-results]').isVisible(),true);
     assert.equal(await funnel.locator('.funnel-cta-row a[href="/contato/"]').count(),1);
     for(const service of services){
@@ -208,7 +208,7 @@ try {
           const localizedFunnel=p.locator('[data-growth-calculator]');
           assert.equal(await localizedFunnel.count(),1);
           assert.equal(await localizedFunnel.locator('[data-growth-results]').isVisible(),false);
-          await localizedFunnel.locator('[data-growth-form] button[type=submit]').click();
+          await localizedFunnel.locator('[data-growth-calculate]').click();
           assert.equal(await localizedFunnel.locator('[data-growth-results]').isVisible(),true);
           assert.equal(await localizedFunnel.locator('[data-growth-monthly]').textContent(),'400');
           assert.equal(await localizedFunnel.locator('[data-growth-leads]').textContent(),'16');
