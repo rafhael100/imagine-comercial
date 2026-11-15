@@ -82,7 +82,7 @@ class Journey(unittest.TestCase):
     def test_combined_complete_pending_declined_approved_briefing(self):
         c = Client()
         c.choose(channels=['google_ads', 'meta_ads'])
-        for text in ['Onepage', 'Google Ads', 'Instagram + Facebook', 'R$ 656,66', 'R$ 370,00', 'R$ 1.700,00']:
+        for text in ['Site Onepage', 'Google Ads', 'Instagram + Facebook', 'R$ 656,66', 'R$ 370,00', 'R$ 1.700,00']:
             self.assertIn(text, c.body)
         oid = c.create()
         self.assertRegex(oid, r'^DEMO-[A-F0-9]{10}$')
@@ -105,7 +105,7 @@ class Journey(unittest.TestCase):
         self.assertIn('Concluído', c.body)
         c.get('panel')
         self.assertIn(oid, c.body)
-        self.assertIn('Onepage', c.body)
+        self.assertIn('Site Onepage', c.body)
         self.assertIn('Google Ads', c.body)
         self.assertIn('Instagram + Facebook', c.body)
         c.post('order', ack='yes')
@@ -158,7 +158,7 @@ class Journey(unittest.TestCase):
             for candidate in ['google_ads', 'meta_ads', 'chatgpt_ads']:
                 self.assertEqual(('value="' + candidate + '" checked') in c.body, candidate == channel)
             c.choose('none', [channel])
-            self.assertNotIn('<h3>Onepage</h3>', c.body)
+            self.assertNotIn('<h3>Site Onepage</h3>', c.body)
             self.assertNotIn('<h3>Landing Page</h3>', c.body)
 
     def test_csrf_and_foreign_order_rejection(self):
