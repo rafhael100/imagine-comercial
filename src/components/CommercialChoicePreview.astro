@@ -87,7 +87,7 @@ const fmt=cents=>{
    <div class="summary-line"><span>{copy.siteSetup}</span><strong data-choice-site-setup>{fmt(initial.siteSetupCents)}</strong></div>
    <p class="choice-installment" data-choice-installment>{copy.installments}: 3 × {fmt(initial.siteInstallmentCents)}</p>
    <div class="summary-line"><span>{copy.adActivation}</span><strong data-choice-activation>{fmt(initial.adActivationCents)}</strong></div>
-   <div class="summary-total"><span>{copy.total}</span><strong data-choice-onetime>3 × {fmt(Math.floor(initial.contractedSetupAndActivationCents/3))}<small data-choice-total> · Total {fmt(initial.contractedSetupAndActivationCents)}</small></strong></div>
+   <div class="summary-total"><span>{copy.total}</span><strong data-choice-onetime>3 × {fmt(Math.floor(initial.contractedSetupAndActivationCents/3))}</strong></div>
    <div class="summary-line"><span>{copy.siteMonthly}</span><strong data-choice-site-monthly>{fmt(initial.siteMonthlyCents)}</strong></div>
    <div class="summary-line"><span>{copy.adManagement}</span><strong data-choice-management>{fmt(initial.adManagementEstimateCents)}</strong></div>
    <div class="summary-line"><span>{copy.media}</span><strong data-choice-media>{fmt(initial.adMediaCents)}</strong></div>
@@ -133,7 +133,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
     button.setAttribute('aria-pressed',String(button.getAttribute('data-choice-tier')===tier));
    label('data-choice-site-setup',format(estimate.siteSetupCents));
    label('data-choice-activation',format(estimate.adActivationCents));
-   label('data-choice-onetime','3 × '+format(Math.floor(estimate.contractedSetupAndActivationCents/3))+' · Total '+format(estimate.contractedSetupAndActivationCents));
+   label('data-choice-onetime','3 × '+format(Math.floor(estimate.contractedSetupAndActivationCents/3)));
    label('data-choice-site-monthly',format(estimate.siteMonthlyCents));
    label('data-choice-management',format(estimate.adManagementEstimateCents));
    label('data-choice-media',format(estimate.adMediaCents));
