@@ -7,10 +7,19 @@
  * ativacao = uma vez por canal; gestao = estimativa mensal pós-paga
  * (20% da mídia EFETIVA, mínimo R$170/canal, mês civil completo).
  */
-export const PREVIEW_CHANNELS = Object.freeze({
-  google_ads: Object.freeze({minimumMediaCents:100000,recommendedMediaCents:150000,activationCents:49000}),
-  meta_ads: Object.freeze({minimumMediaCents:70000,recommendedMediaCents:100000,activationCents:49000})
-});
+import {
+  CHANNELS,ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS,
+  MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS,MONTHLY_MANAGEMENT_RATE_PERCENT,
+  illustrateFullMonthManagementCents
+} from './media-budget-calculator.mjs';
+const REVIEWED_CHANNELS = Object.freeze(['google_ads','meta_ads']);
+export const PREVIEW_CHANNELS = Object.freeze(Object.fromEntries(
+  REVIEWED_CHANNELS.map(code=>[code,Object.freeze({
+    minimumMediaCents:CHANNELS[code].floorCents,
+    recommendedMediaCents:CHANNELS[code].recommendedCents,
+    activationCents:ONE_TIME_ACTIVATION_PER_CHANNEL_CENTS
+  })])
+));
 export const PREVIEW_SITES = Object.freeze({
   onepage: Object.freeze({setupCents:99000,installments:3,installmentCents:33000,monthlyCents:7990,firstMonthlyAfterDays:90}),
   'landing-pages': Object.freeze({setupCents:129000,installments:3,installmentCents:43000,monthlyCents:7990,firstMonthlyAfterDays:90})
@@ -68,7 +77,7 @@ export function previewCommercialSelection(selection) {
       code,plannedMediaCents,minimumMediaCents:policy.minimumMediaCents,
       recommendedMediaCents:policy.recommendedMediaCents,
       activationCents:policy.activationCents,
-      estimatedMonthlyManagementCents:Math.max(17000,Math.round(plannedMediaCents*20/100))
+      estimatedMonthlyManagementCents:illustrateFullMonthManagementCents(plannedMediaCents)
     });
   });
   const sum=key=>channels.reduce((total,channel)=>total+channel[key],0);
@@ -77,8 +86,8 @@ export function previewCommercialSelection(selection) {
     activationCents:sum('activationCents'),
     plannedMediaPaidToPlatformsCents:sum('plannedMediaCents'),
     estimatedMonthlyManagementCents:sum('estimatedMonthlyManagementCents'),
-    minimumMonthlyManagementPerChannelCents:17000,
-    managementPercentage:20,managementSettledOn:'verified_actual_media_full_civil_month',
+    minimumMonthlyManagementPerChannelCents:MONTHLY_MANAGEMENT_MINIMUM_PER_CHANNEL_CENTS,
+    managementPercentage:MONTHLY_MANAGEMENT_RATE_PERCENT,managementSettledOn:'verified_actual_media_full_civil_month',
     estimateNotInvoice:true,
     mediaPaidDirectlyToPlatforms:true
   });
