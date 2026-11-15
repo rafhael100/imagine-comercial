@@ -150,7 +150,7 @@ const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:str
     <a class="see-all" href="/servicos/">Ver todos os serviços <span aria-hidden="true">↗</span></a>
   </div>
   <div class="checkout-preview" id="fluxo-comercial" aria-labelledby="checkout-flow-title">
-    <div class="flow-caption"><p class="eyebrow">SIMPLES ASSIM</p><h3 id="checkout-flow-title">Primeiro a escolha.<br/>O cadastro fica para o final.</h3></div>
+    <div class="flow-caption"><p class="eyebrow">SIMPLES ASSIM</p><h3 id="checkout-flow-title">Primeiro a escolha.<br/>O cadastro fica para o final.</h3><a class="flow-cta" href="#simular-compra">Montar meu orçamento <span aria-hidden="true">↗</span></a></div>
     <ol>
       <li><span class="flow-mark">01</span><strong>Escolha</strong></li>
       <li><span class="flow-mark">02</span><strong>Personalize</strong></li>
@@ -203,6 +203,7 @@ const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:str
  .checkout-preview{margin:35px 0 0;padding:23px 28px;background:#171b19;color:#fff;border-radius:18px;display:grid;grid-template-columns:280px minmax(0,1fr);gap:24px;align-items:center}
  .checkout-preview .eyebrow{color:#ffbf79;font-size:.71rem;letter-spacing:.1em}
  .checkout-preview h3{font-size:1.42rem;margin:6px 0 0;line-height:1.23}
+ .checkout-preview .flow-cta{display:inline-flex;align-items:center;gap:8px;color:#fff5df;min-height:44px;font-weight:780;margin-top:12px;font-size:.87rem;text-underline-offset:4px}
  .checkout-preview ol{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
  .checkout-preview li{display:grid;justify-items:center;gap:9px;font-size:.84rem;background:#272d29;border-radius:11px;padding:13px 9px;text-align:center}
  .flow-mark{font-weight:800;color:#ffba6b}
