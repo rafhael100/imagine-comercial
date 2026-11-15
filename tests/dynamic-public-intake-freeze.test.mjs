@@ -27,7 +27,7 @@ test('F160: public assets cannot retain leads in IndexedDB or detached workers',
 
 test('F160: no-JS public catalog and visitor-triggered clipboard remain supported',()=>{
  const html='<a href="/contato/#onepage">Solicitar proposta</a>'+
-   '<select id="service-choice"><option value="onepage">Onepage</option></select>';
+   '<select id="service-choice"><option value="onepage">Site Onepage</option></select>';
  const script="const link=document.createElement('a');"+
    "const list=document.createElement('li');"+
    "navigator.clipboard.writeText('Olá, gostaria de conhecer os serviços da Imagine.');";
