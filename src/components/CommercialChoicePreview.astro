@@ -6,6 +6,7 @@
 import {intlPath} from '../data/i18n.mjs';
 import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
 import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
+import {reviewedPrivateQuoteHandoffUrl,REVIEWED_PRIVATE_QUOTE_BASE,isPrivateQuotePreviewBuild} from '../../ops/review/purchase/private-quote-handoff-f325.mjs';
 interface Props {locale?:'pt-BR'|'en'|'es';}
 const {locale='pt-BR'}=Astro.props;
 if(!['pt-BR','en','es'].includes(locale))throw Error('Unreviewed quote locale');
@@ -18,7 +19,7 @@ const copy=locale==='en'?{
  tier:'3 · Media planning',minimum:'Minimum',recommended:'Recommended',tierNote:'Recommended is a planning guide, not a results forecast.',
  summary:'Your estimate',siteSetup:'Website setup',siteMonthly:'Website monthly fee',adActivation:'Ads activation (one-time)',adManagement:'Estimated ads management / month',media:'Ad spend paid to platforms / month',
  total:'Contracted setup + activation',installments:'Website setup in 3 installments',payLater:'Website monthly fee starts 90 days after contracting; advertising management is settled after each full month according to actual spend.',
- cta:'Discuss this selection on WhatsApp',calc:'Try the detailed ads calculator',
+ cta:'Discuss this selection on WhatsApp',privateCta:'Continue in test Portal',privateNotice:'Private review only. The Portal will revalidate your selected services and calculate every price on the server. You will sign in or register with synthetic data and explicitly review separate site and advertising orders. No real billing.',calc:'Try the detailed ads calculator',
  notice:'Estimate only, not an order. Clicking WhatsApp opens a message about your chosen services and media tier for your review; nothing is sent automatically. No personal data are collected and public checkout is not active. Final terms require Portal confirmation.',
  empty:'Choose a website or at least one ad channel to continue.'
 }:locale==='es'?{
@@ -28,7 +29,7 @@ const copy=locale==='en'?{
  tier:'3 · Plan de inversión',minimum:'Mínimo',recommended:'Recomendado',tierNote:'La inversión recomendada es orientativa, no una previsión de resultados.',
  summary:'Tu resumen',siteSetup:'Implantación del sitio',siteMonthly:'Mensualidad del sitio',adActivation:'Activación de anuncios (única)',adManagement:'Gestión estimada de anuncios / mes',media:'Publicidad pagada a las plataformas / mes',
  total:'Implantación + activaciones contratadas',installments:'Implantación del sitio en 3 cuotas',payLater:'Mensualidad del sitio desde el día 90 tras contratar. La gestión se calcula después de cada mes completo según la inversión real.',
- cta:'Consultar mi selección por WhatsApp',calc:'Abrir calculadora de anuncios',
+ cta:'Consultar mi selección por WhatsApp',privateCta:'Continuar en el Portal de prueba',privateNotice:'Revisión privada: el Portal verificará servicios y precios en el servidor. Inicio de sesión y datos ficticios antes de confirmar cada pedido por separado. Sin cobro real.',calc:'Abrir calculadora de anuncios',
  notice:'Estimación, no compra. Al pulsar WhatsApp se prepara un mensaje con los servicios y la inversión elegidos: tú decides enviarlo. Sin envío automático ni captura de datos personales. El checkout público no está activo; las condiciones finales se confirman en el Portal.',
  empty:'Elige un sitio o al menos un canal de anuncios.'
 }:{
@@ -38,18 +39,21 @@ const copy=locale==='en'?{
  tier:'3 · Investimento em mídia',minimum:'Mínimo',recommended:'Recomendado',tierNote:'O recomendado é uma referência de planejamento, não promessa de resultado.',
  summary:'Resumo da sua escolha',siteSetup:'Implantação do site',siteMonthly:'Mensalidade do site',adActivation:'Ativação de anúncios (única)',adManagement:'Gestão estimada de anúncios / mês',media:'Mídia paga às plataformas / mês',
  total:'Implantação + ativações contratadas',installments:'Implantação do site em 3 parcelas',payLater:'Mensalidade do site a partir de D+90 da contratação, mesmo sem publicação. Gestão de anúncios apurada após cada mês completo, conforme a mídia real.',
- cta:'Conversar no WhatsApp sobre esta escolha',calc:'Usar calculadora completa de anúncios',
+ cta:'Conversar no WhatsApp sobre esta escolha',privateCta:'Continuar no Portal de teste',privateNotice:'Revisão privada: o Portal validará os serviços e recalculará os valores no servidor. Faça login ou cadastro fictício e confira cada pedido separadamente. Sem cobrança real.',calc:'Usar calculadora completa de anúncios',
  notice:'Simulação, não contratação: ao clicar no WhatsApp, abrimos uma mensagem com os serviços e a faixa de investimento escolhidos para você revisar e decidir se envia. Não há envio automático nem coleta de dados pessoais. O checkout público ainda não está ativo; os valores finais precisam ser confirmados no Portal.',
  empty:'Escolha um site ou pelo menos um canal para avançar.'
 };
 const initial=buildCommercialChoicePreview({site:'onepage',channels:[],tier:'recommended'});
-const initialHref=reviewedQuoteChoiceHref(locale,{site:'onepage',channels:[],tier:'recommended'});
+const privatePortalBuild=isPrivateQuotePreviewBuild();
+const initialHref=privatePortalBuild
+ ? reviewedPrivateQuoteHandoffUrl({site:'onepage',channels:[],tier:'recommended'})
+ : reviewedQuoteChoiceHref(locale,{site:'onepage',channels:[],tier:'recommended'});
 const fmt=cents=>{
  const raw=(cents/100).toLocaleString(locale==='en'?'en-US':'pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
  return (locale==='en'?'BRL ':'R$ ')+raw;
 };
 ---
-<section id="simular-compra" class="choice-section" data-choice-preview data-locale={locale} aria-labelledby="choice-heading">
+<section id="simular-compra" class="choice-section" data-choice-preview data-locale={locale} data-private-handoff-base={privatePortalBuild?REVIEWED_PRIVATE_QUOTE_BASE:undefined} aria-labelledby="choice-heading">
  <div class="choice-title">
   <p class="eyebrow">{copy.eyebrow}</p>
   <h3 id="choice-heading">{copy.heading}</h3>
@@ -92,12 +96,12 @@ const fmt=cents=>{
    <div class="summary-line"><span>{copy.adManagement}</span><strong data-choice-management>{fmt(initial.adManagementEstimateCents)}</strong></div>
    <div class="summary-line"><span>{copy.media}</span><strong data-choice-media>{fmt(initial.adMediaCents)}</strong></div>
    <p class="choice-payment-rule">{copy.payLater}</p>
-   <a class="cta choice-action" href={initialHref} data-choice-fallback={contact} target="_blank" rel="noopener noreferrer" data-choice-action>{copy.cta} <span aria-hidden="true">↗</span></a>
+   <a class="cta choice-action" href={initialHref} data-choice-fallback={contact} target={privatePortalBuild?undefined:"_blank"} rel={privatePortalBuild?"nofollow noreferrer":"noopener noreferrer"} referrerpolicy="no-referrer" data-choice-action>{privatePortalBuild?copy.privateCta:copy.cta} <span aria-hidden="true">↗</span></a>
    <p data-choice-empty hidden class="choice-empty">{copy.empty}</p>
    <a class="choice-calculator" href={calculator}>{copy.calc} <span aria-hidden="true">↗</span></a>
   </aside>
  </div>
- <p class="choice-disclosure">{copy.notice}</p>
+ <p class="choice-disclosure">{privatePortalBuild?copy.privateNotice:copy.notice}</p>
 </section>
 <script>
  import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
@@ -130,7 +134,22 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
    }
    const action=root.querySelector('[data-choice-action]');
    if(action){
-    action.setAttribute('href',estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):action.getAttribute('data-choice-fallback'));
+    const privateBase=root.getAttribute('data-private-handoff-base');
+    let destination;
+    if(estimate.hasChoice && privateBase){
+      // No price, customer data or tracking parameters. The PHP Portal
+      // independently checks enums, minimums, eligibility and acceptance.
+      const portal=new URL(privateBase);
+      portal.searchParams.set('site',site);
+      portal.searchParams.set('channels',[...channels].sort().join(','));
+      portal.searchParams.set('tier',tier);
+      destination=portal.href;
+    }else if(estimate.hasChoice){
+      destination=reviewedQuoteChoiceHref(locale,{site,channels,tier});
+    }else{
+      destination=action.getAttribute('data-choice-fallback');
+    }
+    action.setAttribute('href',destination);
     action.setAttribute('aria-disabled',String(!estimate.hasChoice));
     action.tabIndex=estimate.hasChoice?0:-1;
    }

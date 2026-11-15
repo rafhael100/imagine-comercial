@@ -1,0 +1,61 @@
+name: Comercial F325 quote-choice private handoff (NO-DEPLOY)
+on:
+  pull_request:
+    paths:
+      - 'ops/review/purchase/private-quote-handoff-f325.mjs'
+      - 'ops/review/purchase/check-private-quote-build-f325.mjs'
+      - 'src/components/CommercialChoicePreview.astro'
+      - 'src/lib/commercial-choice-preview.mjs'
+      - 'tests/private-quote-handoff-f325.test.mjs'
+      - 'tests/commercial-choice-preview.test.mjs'
+      - '.github/workflows/comercial-f325-private-quote-handoff.yml'
+permissions:
+  contents: read
+jobs:
+  strict-public-versus-private:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      IMAGINE_RELEASE_TARGET: review
+    steps:
+      - name: Checkout exact candidate without tokens
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned packages and run F325 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --test tests/private-quote-handoff-f325.test.mjs tests/commercial-choice-preview.test.mjs
+      - name: Public build must only offer reviewed WhatsApp, never staging
+        shell: bash
+        env:
+          IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW: '0'
+        run: |
+          set -euo pipefail
+          npm run build
+          node scripts/verify-dist.mjs
+          node ops/review/purchase/check-private-quote-build-f325.mjs dist public
+      - name: Explicit private CI build must preserve exact choice URL
+        shell: bash
+        env:
+          IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW: '1'
+        run: |
+          set -euo pipefail
+          test "${GITHUB_ACTIONS}" = true
+          npm run build
+          node ops/review/purchase/check-private-quote-build-f325.mjs dist private
+          echo 'F325: private-only Portal selection; no prices, credentials, checkout, PSP or real data.' >> "$GITHUB_STEP_SUMMARY"
+      - name: No artifacts or deployment from a private build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -f dist/.env
+          echo 'F325: no staging artifact upload, no deploy, no merge and no production permission.' >> "$GITHUB_STEP_SUMMARY"
