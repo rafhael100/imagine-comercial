@@ -16,6 +16,7 @@ const CHANNEL_TO_SLUG=Object.freeze({
 
 function decision(selection){
  const estimate=buildCommercialChoicePreview(selection);
+ if(estimate.channels.some(channel=>!Object.hasOwn(CHANNEL_TO_SLUG,channel)))throw Error('No reviewed private Portal mapping');
  if(!estimate.hasChoice)return Object.freeze({
   code:'no_selection',supported:false,slug:null,
   reason:'Select a reviewed product before continuing'
