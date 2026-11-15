@@ -87,6 +87,9 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[],approvedPort
         const fragment=url.hash.slice(1);
         if(url.pathname==='/contato/' && intents.has(fragment)) {
           // Intent hash selects the public contact dropdown, not an HTML ID.
+        }else if(url.pathname==='/' && fragment==='simular-compra') {
+          // F329: cross-page header CTA, an exact reviewed home section.
+          // Do not permit arbitrary home hashes, user input or query strings.
         }else if(url.pathname==='/servicos/' &&
                   approvedGoalHashes.has(fragment)) {
           // Only an editorial business goal, never user data or search text.
