@@ -81,6 +81,8 @@ test('F324: browser component is an anonymous click-only preview across PT EN ES
  assert.match(component,/data-choice-site="landing-pages"/);
  assert.match(component,/data-choice-tier="minimum"/);
  assert.match(component,/data-choice-tier="recommended"/);
+ assert.match(pt,/href="#simular-compra">Montar meu orçamento/);
+ assert.match(international,/href="#simular-compra">\{copy\.flowAction\}/);
  assert.match(component,/href=\{contact\}/);
  assert.match(component,/eligibleForPublicCheckout|Simulação, não contratação|no public checkout|No hay compra pública activa/);
  assert.doesNotMatch(component,/<(?:form|input|textarea)\b|\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|innerHTML|document\.cookie|FormData|requestSubmit|\.submit\s*\(/);
