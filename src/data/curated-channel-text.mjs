@@ -10,6 +10,7 @@ import {comparisonOptions} from './service-comparison.mjs';
 import {composeReviewedComparisonContact} from './comparison-contact.mjs';
 import {CALCULATOR_CONTACT_OPTIONS} from './calculator-contact-messages.mjs';
 import {localizedSalesMessages} from './localized-sales-messages.mjs';
+import {REVIEWED_QUOTE_MESSAGES} from './reviewed-quote-choice-messages.mjs';
 
 const messages=new Set();
 const subjects=new Set();
@@ -45,6 +46,9 @@ for(const options of Object.values(CALCULATOR_CONTACT_OPTIONS))
 
 // F323: English/Spanish fixed offer-specific contact links; no visitor input.
 for(const localeMessages of Object.values(localizedSalesMessages))
+  for(const message of Object.values(localeMessages))messages.add(message);
+// F324: approved quote combinations only, not visitor-supplied text.
+for(const localeMessages of Object.values(REVIEWED_QUOTE_MESSAGES))
   for(const message of Object.values(localeMessages))messages.add(message);
 
 
