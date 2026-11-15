@@ -10,7 +10,7 @@ export const processStages=Object.freeze([
   }),
   Object.freeze({
     key:'formato',title:'Escolher o formato',
-    summary:'Onepage, site, Landing Page e gestão de mídia têm finalidades diferentes. Algumas necessidades podem combinar soluções.',
+    summary:'Site Onepage, site, Landing Page e gestão de mídia têm finalidades diferentes. Algumas necessidades podem combinar soluções.',
     confirmation:'Qual formato atende ao objetivo sem acrescentar complexidade desnecessária?'
   }),
   Object.freeze({
