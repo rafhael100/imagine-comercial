@@ -10,9 +10,9 @@ const artwork=readFileSync(new URL('../src/components/OfferArtwork.astro',import
 
 test('F321 leads with benefit and internal product choice, without requiring signup',()=>{
  assert.match(home,/Seu negócio mais bonito/);
- assert.match(home,/href="#solucoes">Quero um site/);
+ assert.match(home,/href="#simular-compra" data-purchase-intent="site">Quero um site/);
  assert.match(home,/Sem cadastro para explorar/);
- assert.ok(home.indexOf('href="#solucoes"')<home.indexOf('href="/contato/"'));
+ assert.ok(home.indexOf('href="#simular-compra"')<home.indexOf('href="/contato/"'));
  assert.doesNotMatch(home,/<(?:form|input|textarea)\b|\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 });
 
