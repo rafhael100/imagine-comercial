@@ -23,19 +23,19 @@
     }
     if (a.matches('[data-purchase-intent]')) {event.preventDefault();location.assign(url(a.dataset.purchaseIntent==='ads'?'none':'onepage',[],'recommended'));return;}
     if (a.matches('[data-demo-start],[data-purchase-start]')) {event.preventDefault();location.assign(base);return;}
-    if (a.matches('[data-quick-hire-action]')) {
-      const raw = a.closest('[data-quick-hire]')?.dataset.quickHire || '';
+    if (a.matches('[data-quick-hire-action],.intl-buy')) {
+      const raw = (a.closest('[data-quick-hire]')?.dataset.quickHire||a.closest('[data-international-offer]')?.dataset.internationalOffer) || '';
       const site = raw.includes('landing') ? 'landing-pages' : raw.includes('onepage') ? 'onepage' : 'none';
-      const channels = raw.includes('google') ? ['google_ads'] : raw.includes('meta') ? ['meta_ads'] : [];
+      const channels = raw.includes('chatgpt') ? ['chatgpt_ads'] : raw.includes('google') ? ['google_ads'] : raw.includes('meta') ? ['meta_ads'] : [];
       if (site!=='none'||channels.length) {event.preventDefault();location.assign(url(site,channels,'recommended'));}
     }
   }, true);
-  for(const a of document.querySelectorAll('[data-quick-hire-action]')){
-    const raw=a.closest('[data-quick-hire]')?.dataset.quickHire||'';
-    if(['onepage','landing-pages','gestao-google-ads','gestao-meta-ads'].includes(raw)){
+  for(const a of document.querySelectorAll('[data-quick-hire-action],.intl-buy')){
+    const raw=(a.closest('[data-quick-hire]')?.dataset.quickHire||a.closest('[data-international-offer]')?.dataset.internationalOffer)||'';
+    if(['onepage','landing-pages','gestao-google-ads','gestao-meta-ads','gestao-chatgpt-ads'].includes(raw)){
       a.removeAttribute('target');a.setAttribute('aria-label','Simular compra: '+raw);
       const site=raw==='onepage'?'onepage':raw==='landing-pages'?'landing-pages':'none';
-      const channels=raw==='gestao-google-ads'?['google_ads']:raw==='gestao-meta-ads'?['meta_ads']:[];
+      const channels=raw==='gestao-chatgpt-ads'?['chatgpt_ads']:raw==='gestao-google-ads'?['google_ads']:raw==='gestao-meta-ads'?['meta_ads']:[];
       a.href=url(site,channels,'recommended');
     }
   }
