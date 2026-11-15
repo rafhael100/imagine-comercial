@@ -51,8 +51,8 @@ test('F323 home EN/ES uses the same four illustrative offers and concise funnel 
  assert.match(intlSales,/Quiero un sitio web/);
  assert.match(intlSales,/href="#intl-solutions"/);
  assert.match(intlSales,/href="#intl-ads"/);
- assert.match(intlSales,/featured=\['onepage','landing-pages','criacao-de-sites','gestao-google-ads'\]/);
- assert.match(intlSales,/additional=\['gestao-meta-ads','sites-por-assinatura','gestao-chatgpt-ads'\]/);
+ assert.match(intlSales,/featured=\['onepage','landing-pages','gestao-chatgpt-ads','gestao-google-ads'\]/);
+ assert.match(intlSales,/additional=\['gestao-meta-ads','sites-por-assinatura','criacao-de-sites'\]/);
  assert.match(intlSales,/<OfferArtwork slug=\{slug\}\/>/);
  assert.match(artwork,/art-gestao-google-ads/);
  assert.match(intlSales,/Review|Revisa/);
