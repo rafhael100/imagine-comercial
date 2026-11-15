@@ -9,7 +9,7 @@ const intlSales=readFileSync(new URL('../src/components/InternationalSalesHome.a
 const artwork=readFileSync(new URL('../src/components/OfferArtwork.astro',import.meta.url),'utf8');
 
 test('F321 leads with benefit and internal product choice, without requiring signup',()=>{
- assert.match(home,/Seu negócio mais bonito/);
+ assert.match(home,/Sua empresa à frente da concorrência/);
  assert.match(home,/href="#simular-compra" data-purchase-intent="site">Quero um site/);
  assert.match(home,/Sem cadastro para explorar/);
  assert.ok(home.indexOf('href="#simular-compra"')<home.indexOf('href="/contato/"'));
@@ -45,8 +45,8 @@ test('F321 clearly separates media, one-time setup, postpaid management, and Cha
 
 test('F323 home EN/ES uses the same four illustrative offers and concise funnel as PT',()=>{
  assert.match(international,/InternationalSalesHome locale=\{locale\}/);
- assert.match(intlSales,/Make your business stand out/);
- assert.match(intlSales,/Haz que tu negocio destaque/);
+ assert.match(intlSales,/Put your business ahead of the competition/);
+ assert.match(intlSales,/Tu empresa por delante de la competencia/);
  assert.match(intlSales,/I want a website/);
  assert.match(intlSales,/Quiero un sitio web/);
  assert.match(intlSales,/href="#intl-solutions"/);
