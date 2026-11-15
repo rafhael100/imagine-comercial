@@ -17,9 +17,9 @@ const copy=locale==='en'?{
  channels:'2 · Advertising channels',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Optional · choose one or both',
  tier:'3 · Media planning',minimum:'Minimum',recommended:'Recommended',tierNote:'Recommended is a planning guide, not a results forecast.',
  summary:'Your estimate',siteSetup:'Website setup',siteMonthly:'Website monthly fee',adActivation:'Ads activation (one-time)',adManagement:'Estimated ads management / month',media:'Ad spend paid to platforms / month',
- total:'Full setup + activation (not due all at once)',installments:'Website setup in 3 installments',payLater:'Website monthly fee starts 90 days after contracting; advertising management is settled after each full month according to actual spend.',
+ total:'Setup + activation (3 interest-free installments)',installments:'Website setup in 3 installments',payLater:'Website monthly fee starts 90 days after contracting; advertising management is settled after each full month according to actual spend.',
  cta:'Discuss this selection on WhatsApp',calc:'Try the detailed ads calculator',
- notice:'Estimate only, not an order. Website setup installments and ad activation have distinct due dates.  Clicking WhatsApp opens a message about your chosen services and media tier for your review; nothing is sent automatically. No personal data are collected and public checkout is not active. Final terms require Portal confirmation.',
+ notice:'Estimate only, not an order. Setup and activation together in 3 interest-free installments; any cent difference is included in the last installment.  Clicking WhatsApp opens a message about your chosen services and media tier for your review; nothing is sent automatically. No personal data are collected and public checkout is not active. Final terms require Portal confirmation.',
  empty:'Choose a website or at least one ad channel to continue.'
 }:locale==='es'?{
  eyebrow:'ANTES DEL REGISTRO',heading:'Prepara tu presupuesto inicial.',intro:'Elige tu sitio web y tus canales de anuncios. Consulta los valores.',
@@ -27,9 +27,9 @@ const copy=locale==='en'?{
  channels:'2 · Canales de publicidad',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · elige uno o ambos',
  tier:'3 · Plan de inversión',minimum:'Mínimo',recommended:'Recomendado',tierNote:'La inversión recomendada es orientativa, no una previsión de resultados.',
  summary:'Tu resumen',siteSetup:'Implantación del sitio',siteMonthly:'Mensualidad del sitio',adActivation:'Activación de anuncios (única)',adManagement:'Gestión estimada de anuncios / mes',media:'Publicidad pagada a las plataformas / mes',
- total:'Implantación + activaciones (no vence todo ahora)',installments:'Implantación del sitio en 3 cuotas',payLater:'Mensualidad del sitio desde el día 90 tras contratar. La gestión se calcula después de cada mes completo según la inversión real.',
+ total:'Implantación + activaciones (3 cuotas sin intereses)',installments:'Implantación del sitio en 3 cuotas',payLater:'Mensualidad del sitio desde el día 90 tras contratar. La gestión se calcula después de cada mes completo según la inversión real.',
  cta:'Consultar mi selección por WhatsApp',calc:'Abrir calculadora de anuncios',
- notice:'Estimación, no compra. Las cuotas de implantación y la activación tienen vencimientos distintos.  Al pulsar WhatsApp se prepara un mensaje con los servicios y la inversión elegidos: tú decides enviarlo. Sin envío automático ni captura de datos personales. El checkout público no está activo; las condiciones finales se confirman en el Portal.',
+ notice:'Estimación, no compra. Implantación y activaciones juntas en 3 cuotas sin intereses; ajuste de céntimos en la última cuota.  Al pulsar WhatsApp se prepara un mensaje con los servicios y la inversión elegidos: tú decides enviarlo. Sin envío automático ni captura de datos personales. El checkout público no está activo; las condiciones finales se confirman en el Portal.',
  empty:'Elige un sitio o al menos un canal de anuncios.'
 }:{
  eyebrow:'ANTES DO CADASTRO',heading:'Monte seu orçamento em poucos cliques.',intro:'Escolha um site e os canais de anúncios. Veja os valores separados.',
@@ -37,9 +37,9 @@ const copy=locale==='en'?{
  channels:'2 · Canais de anúncios',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · selecione um ou os dois',
  tier:'3 · Investimento em mídia',minimum:'Mínimo',recommended:'Recomendado',tierNote:'O recomendado é uma referência de planejamento, não promessa de resultado.',
  summary:'Resumo da sua escolha',siteSetup:'Implantação do site',siteMonthly:'Mensalidade do site',adActivation:'Ativação de anúncios (única)',adManagement:'Gestão estimada de anúncios / mês',media:'Mídia paga às plataformas / mês',
- total:'Implantação + ativações (não vence tudo agora)',installments:'Implantação do site em 3 parcelas',payLater:'Mensalidade do site a partir de D+90 da contratação, mesmo sem publicação. Gestão de anúncios apurada após cada mês completo, conforme a mídia real.',
+ total:'Implantação + ativações (3x sem juros)',installments:'Implantação do site em 3 parcelas',payLater:'Mensalidade do site a partir de D+90 da contratação, mesmo sem publicação. Gestão de anúncios apurada após cada mês completo, conforme a mídia real.',
  cta:'Conversar no WhatsApp sobre esta escolha',calc:'Usar calculadora completa de anúncios',
- notice:'Simulação, não contratação: as parcelas de implantação e a ativação têm vencimentos distintos.  ao clicar no WhatsApp, abrimos uma mensagem com os serviços e a faixa de investimento escolhidos para você revisar e decidir se envia. Não há envio automático nem coleta de dados pessoais. O checkout público ainda não está ativo; os valores finais precisam ser confirmados no Portal.',
+ notice:'Simulação, não contratação: implantação e ativações juntas em 3 parcelas sem juros, com ajuste de centavos na última quando necessário.  ao clicar no WhatsApp, abrimos uma mensagem com os serviços e a faixa de investimento escolhidos para você revisar e decidir se envia. Não há envio automático nem coleta de dados pessoais. O checkout público ainda não está ativo; os valores finais precisam ser confirmados no Portal.',
  empty:'Escolha um site ou pelo menos um canal para avançar.'
 };
 const initial=buildCommercialChoicePreview({site:'onepage',channels:[],tier:'recommended'});
@@ -87,7 +87,7 @@ const fmt=cents=>{
    <div class="summary-line"><span>{copy.siteSetup}</span><strong data-choice-site-setup>{fmt(initial.siteSetupCents)}</strong></div>
    <p class="choice-installment" data-choice-installment>{copy.installments}: 3 × {fmt(initial.siteInstallmentCents)}</p>
    <div class="summary-line"><span>{copy.adActivation}</span><strong data-choice-activation>{fmt(initial.adActivationCents)}</strong></div>
-   <div class="summary-total"><span>{copy.total}</span><strong data-choice-onetime>{fmt(initial.contractedSetupAndActivationCents)}</strong></div>
+   <div class="summary-total"><span>{copy.total}</span><strong data-choice-onetime>3 × {fmt(Math.floor(initial.contractedSetupAndActivationCents/3))}<small data-choice-total> · Total {fmt(initial.contractedSetupAndActivationCents)}</small></strong></div>
    <div class="summary-line"><span>{copy.siteMonthly}</span><strong data-choice-site-monthly>{fmt(initial.siteMonthlyCents)}</strong></div>
    <div class="summary-line"><span>{copy.adManagement}</span><strong data-choice-management>{fmt(initial.adManagementEstimateCents)}</strong></div>
    <div class="summary-line"><span>{copy.media}</span><strong data-choice-media>{fmt(initial.adMediaCents)}</strong></div>
@@ -98,6 +98,13 @@ const fmt=cents=>{
   </aside>
  </div>
  <p class="choice-disclosure">{copy.notice}</p>
+</section>
+<section class="calculator-promo" aria-labelledby="calculator-promo-title">
+ <div><p class="eyebrow">{locale==='en'?'PLAN BEFORE YOU ADVERTISE':locale==='es'?'PLANIFICA ANTES DE ANUNCIAR':'PLANEJE ANTES DE ANUNCIAR'}</p>
+ <h3 id="calculator-promo-title">{locale==='en'?'A clearer plan for your advertising budget.':locale==='es'?'Más claridad para invertir en anuncios.':'Quanto investir para dar o próximo passo?'}</h3>
+ <p>{locale==='en'?'Answer a few questions about your business and explore a media budget tailored to your scenario. Compare channels and understand ad spend and management costs before deciding.':locale==='es'?'Responde unas preguntas sobre tu negocio y explora un presupuesto para tu escenario. Compara canales y entiende la inversión en medios y la gestión antes de decidir.':'Responda algumas perguntas sobre o seu negócio e explore um planejamento para o seu cenário. Compare canais e entenda quanto vai para mídia e quanto custa a gestão antes de decidir.'}</p>
+ <p class="calculator-promo-note">{locale==='en'?'Free planning tool · No signup to explore · Estimates, not guaranteed results':locale==='es'?'Planificación gratuita · Sin registro para explorar · Estimaciones, sin garantía de resultados':'Planejamento gratuito · Sem cadastro para explorar · Estimativas, sem promessa de resultado'}</p></div>
+ <a class="cta" href={calculator}>{locale==='en'?'Plan my advertising budget':locale==='es'?'Calcular mi inversión':'Calcular meu investimento'} <span aria-hidden="true">→</span></a>
 </section>
 <script>
  import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
@@ -126,7 +133,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
     button.setAttribute('aria-pressed',String(button.getAttribute('data-choice-tier')===tier));
    label('data-choice-site-setup',format(estimate.siteSetupCents));
    label('data-choice-activation',format(estimate.adActivationCents));
-   label('data-choice-onetime',format(estimate.contractedSetupAndActivationCents));
+   label('data-choice-onetime','3 × '+format(Math.floor(estimate.contractedSetupAndActivationCents/3))+' · Total '+format(estimate.contractedSetupAndActivationCents));
    label('data-choice-site-monthly',format(estimate.siteMonthlyCents));
    label('data-choice-management',format(estimate.adManagementEstimateCents));
    label('data-choice-media',format(estimate.adMediaCents));
@@ -167,6 +174,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  }
 </script>
 <style>
+ .calculator-promo{display:flex;align-items:center;justify-content:space-between;gap:32px;background:#fff3e0;border:1px solid #efc38b;border-radius:22px;padding:clamp(24px,4vw,48px);margin-top:28px}.calculator-promo h3{font-size:clamp(1.6rem,2.5vw,2.3rem);line-height:1.2;margin:8px 0 16px}.calculator-promo p{max-width:800px}.calculator-promo-note{font-size:.8rem;color:#66513b}.calculator-promo>.cta{flex-shrink:0;min-height:54px;text-decoration:none}.summary-total strong small{display:block;font-size:.75rem;font-weight:500;white-space:normal}@media(max-width:800px){.calculator-promo{flex-direction:column;align-items:stretch}.calculator-promo>.cta{text-align:center}}
  .choice-section{background:#fff;border:1px solid #eadfcf;border-radius:22px;padding:clamp(20px,3vw,35px);margin-top:26px;scroll-margin-top:90px}
  .choice-title h3{font-size:clamp(1.5rem,2.7vw,2.35rem);letter-spacing:-.04em;line-height:1.19;margin:5px 0 7px}
  .choice-title>p:last-child{font-size:.91rem;color:#58534c;margin:0 0 22px}
