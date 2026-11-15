@@ -146,6 +146,20 @@ class Journey(unittest.TestCase):
                 self.assertIn('ChatGPT Ads', c.body)
                 self.assertIn(oid, c.body)
 
+    def test_ad_card_opens_choice_without_site_and_only_clicked_channel(self):
+        for channel in ['google_ads', 'meta_ads', 'chatgpt_ads']:
+            c = Client()
+            c.choose()
+            c.create()
+            c.request(BASE + '?' + urllib.parse.urlencode(dict(site='none', channels=channel, tier='recommended', entry='card')))
+            self.assertEqual(c.status, 200)
+            self.assertIn('choice-form', c.body)
+            self.assertIn('value="none" checked', c.body)
+            for candidate in ['google_ads', 'meta_ads', 'chatgpt_ads']:
+                self.assertEqual(('value="' + candidate + '" checked') in c.body, candidate == channel)
+            c.choose('none', [channel])
+            self.assertIn('Sem site', c.body)
+
     def test_csrf_and_foreign_order_rejection(self):
         a, b = Client(), Client()
         a.choose()
