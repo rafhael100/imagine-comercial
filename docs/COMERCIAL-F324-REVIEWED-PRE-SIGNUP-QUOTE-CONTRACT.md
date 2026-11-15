@@ -1,5 +1,7 @@
 # F324 — cálculo informativo e contrato de escolha pré-cadastro
 
+> **Atualização de escopo (15/11/2026):** os valores desta política F324 continuam a referência do checkout **Google/Meta**. A PR #412 acrescentou **ChatGPT Ads somente à simulação ilustrativa**, sem habilitar canal financeiro no Portal. A mesma PR passou a propor "implantação + ativações em 3x sem juros" na UI e na demonstração D01; isso **não** alterou o catálogo de cobrança atual do Portal, que ainda exige ativação separada. A correção F329 mostra total e última parcela com centavos exatos. Consulte a [auditoria funcional F322–F329](COMERCIAL-AUDITORIA-FUNCIONAL-F322-F329-2026-11-15.md) antes de usar este documento em decisões de release.
+
 Status: **DRAFT / NO-MERGE / NO-DEPLOY / NO-CHARGE**.
 
 ## Problema resolvido

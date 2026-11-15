@@ -72,11 +72,11 @@ try {
       assert.equal(await link.getAttribute('target'),'_blank');
       assert.equal(await link.getAttribute('rel'),'noopener noreferrer');
       assert.ok((await link.textContent()).includes(
-        service.slug==='gestao-chatgpt-ads'?'Consultar disponibilidade':
+        service.slug==='gestao-chatgpt-ads'?'Quero anunciar no ChatGPT':
           service.slug==='onepage'?'Quero minha Onepage':
           service.slug==='landing-pages'?'Quero minha Landing Page':
           service.slug==='criacao-de-sites'?'Quero meu site':
-          service.slug==='gestao-google-ads'?'Quero anunciar':
+          service.slug==='gestao-google-ads'?'Quero anunciar no Google':
           service.slug==='gestao-meta-ads'?'Quero Meta Ads':'Consultar planos'),
         'Purchase decision must be explained before account creation');
       assert.ok(await link.isVisible());
@@ -107,9 +107,16 @@ try {
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
     assert.equal(await preview.locator('input, form, textarea').count(),0);
     await preview.locator('[data-choice-site="onepage"]').click();
+    // F328: investment options only appear when a media channel is selected.
+    assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
+    await preview.locator('[data-choice-channel="google_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-investment]').isVisible(),true);
     await preview.locator('[data-choice-tier="recommended"]').click();
+    assert.equal(await preview.locator('[data-choice-tier="recommended"]').getAttribute('aria-pressed'),'true');
+    await preview.locator('[data-choice-channel="google_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'false');
-    assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Seu negócio mais bonito.Mais oportunidades.');
+    assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Sua empresa à frente da concorrência.Mais presença. Mais oportunidades.');
     assert.ok((await quickPage.locator('#quick-hire-notice').textContent()).includes('nenhum pagamento'));
     assert.ok(await quickPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'Quick hiring has no horizontal overflow');
     await quickPage.screenshot({path:artifacts+'/quick-hire-'+width+'.png',fullPage:true});
@@ -159,7 +166,7 @@ try {
             lang+': exactly four illustrated flagship cards');
           assert.equal(await p.locator('.intl-shop-card .offer-art').count(),4,
             lang+': the same shared decorative illustrations as Portuguese');
-          for(const slug of ['onepage','landing-pages','criacao-de-sites','gestao-google-ads']){
+          for(const slug of ['onepage','landing-pages','gestao-chatgpt-ads','gestao-google-ads']){
             const card=p.locator('.intl-shop-card[data-international-offer="'+slug+'"]');
             assert.equal(await card.locator('.intl-buy').getAttribute('href'),
               localizedSalesWhatsAppUrl(lang,slug),
