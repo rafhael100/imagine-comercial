@@ -9,7 +9,7 @@ PHP recalcula os valores; a URL só aceita enums de seleção. Conta fictícia f
 - Host aceito exclusivamente `comercial-dev.imaginecomunica.com.br`.
 - PHP 8.3+; `IMAGINE_CUSTOMER_SIMULATION=private-demo-v1`.
 - Diretório de sessões gravável `/data/sessions`; dados fictícios, nunca versionados.
-- Publicar o contêiner apenas em `127.0.0.1:18084`, sem segredos ou mounts do Portal.
+- Publicar o contêiner apenas em `127.0.0.1:18085`, sem segredos ou mounts do Portal.
 - Proxy em `/simulacao/compra/` deve **herdar a autenticação Basic já existente**, sem CORS, sem liberação pública, sem alterar os outros ambientes.
 - `commercial-demo-link.js` é um overlay apenas do document root de desenvolvimento, não entra em `public/`, `dist/` nem no build público. Injeta o atalho da simulação e captura a seleção da home.
 - Reversão: restaurar HTML antes do overlay, remover somente o location específico do simulador, validar/recarregar Nginx, parar apenas o contêiner `imagine-customer-simulation`.
