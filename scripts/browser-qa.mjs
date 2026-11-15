@@ -80,6 +80,31 @@ try {
         'Purchase decision must be explained before account creation');
       assert.ok(await link.isVisible());
     }
+    // F324: a visitor can choose a website, both ad channels and media tier
+    // without login, collecting personal data, submitting an order or contacting a provider.
+    const preview=quickPage.locator('[data-choice-preview]');
+    assert.equal(await preview.count(),1);
+    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('990,00'));
+    assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),'/contato/');
+    await preview.locator('[data-choice-channel="google_ads"]').click();
+    await preview.locator('[data-choice-channel="meta_ads"]').click();
+    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('1.970,00'));
+    assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('2.500,00'));
+    assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('500,00'));
+    await preview.locator('[data-choice-tier="minimum"]').click();
+    assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('370,00'));
+    assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('1.700,00'));
+    await preview.locator('[data-choice-site="landing-pages"]').click();
+    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('2.270,00'));
+    await preview.locator('[data-choice-site="none"]').click();
+    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('980,00'));
+    await preview.locator('[data-choice-channel="google_ads"]').click();
+    await preview.locator('[data-choice-channel="meta_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
+    assert.equal(await preview.locator('input, form, textarea').count(),0);
+    await preview.locator('[data-choice-site="onepage"]').click();
+    await preview.locator('[data-choice-tier="recommended"]').click();
+    assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'false');
     assert.equal(await quickPage.locator('.hero-main h1').textContent(),'Seu negócio mais bonito.Mais oportunidades.');
     assert.ok((await quickPage.locator('#quick-hire-notice').textContent()).includes('nenhum pagamento'));
     assert.ok(await quickPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'Quick hiring has no horizontal overflow');
@@ -139,6 +164,16 @@ try {
             assert.equal(await card.locator('.intl-buy').getAttribute('rel'),'noopener noreferrer');
             assert.equal(await card.locator('.intl-price-row').isVisible(),true);
           }
+          // F324: localized, privacy-preserving pre-purchase preview.
+          const estimate=p.locator('[data-choice-preview]');
+          assert.equal(await estimate.count(),1);
+          assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
+            '/'+lang+'/contact/');
+          await estimate.locator('[data-choice-channel="meta_ads"]').click();
+          assert.equal(await estimate.locator('[data-choice-channel="meta_ads"]').getAttribute('aria-pressed'),'true');
+          assert.ok((await estimate.locator('[data-choice-onetime]').textContent()).includes(
+            lang==='en'?'1,480.00':'1.480,00'));
+          assert.equal(await estimate.locator('form,input,textarea').count(),0);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-solutions"]').count(),1);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-ads"]').count(),1);
           await p.screenshot({
