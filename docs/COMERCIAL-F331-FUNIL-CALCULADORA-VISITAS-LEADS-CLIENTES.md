@@ -93,7 +93,7 @@ As variantes equivalentes de EN/ES estão no componente, sob o mesmo contrato e 
 ## 6. Comportamento, validações e privacidade
 
 - Cálculo 100% no navegador, apenas com dados sintéticos/projeções fornecidas pelo visitante.
-- `submit` interceptado por `preventDefault`; **nenhum POST, fetch, pixel, cookie, local/sessionStorage, CRM, Webhook, N8N, SQL, API ou servidor**.
+- Cálculo disparado por **botão local**, com suporte a Enter nos campos; **não há elemento HTML de formulário**, nem POST, fetch, pixel, cookies, local/sessionStorage, CRM, Webhook, N8N, SQL, API ou servidor. Isso atende ao gate de segurança F31.
 - Resultado não é guardado, e não há identificação do visitante nem download automático. O botão copiar só escreve na área de transferência após clique, quando suportado.
 - Links comerciais são **internos já aprovados** `/contato/` e `/servicos/`, ou equivalentes internacionais. Não criar WhatsApp dinâmico com valores arbitrários em URLs, nem publicar nomes/e-mails em parâmetros.
 - Sem coleta pessoal operacional: não chamar o recurso de “cadastro integrado ao CRM” nem afirmar que a equipe recebe o cenário automaticamente.
