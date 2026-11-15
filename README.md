@@ -1,5 +1,8 @@
 # Imagine Comercial
 
+> **Auditoria funcional de 15/11/2026 — F322–F329:** [matriz de novas funcionalidades, PRs e riscos de integração](docs/COMERCIAL-AUDITORIA-FUNCIONAL-F322-F329-2026-11-15.md).
+> As melhorias de vitrine PT/EN/ES, 3x **ilustrativos** em implantação + ativações, calculadora, ChatGPT Ads de planejamento e a prévia privada estão distribuídas em PRs **DRAFT**. O Portal ainda não possui cobrança combinada 3x homologada. A versão pública não foi liberada por esta auditoria; não unificar branches sem revisão de QA e segurança.
+
 Site público comercial da Imagine Comunicação Digital — `imaginecomunicacao.com.br`.
 
 **Decisão técnica aprovada (08/11/2026): Astro**, arquitetura **SEO-first** e **híbrida** (SSG como padrão; SSR controlado somente se necessário e após homologação). A prova de conceito comparativa com Next.js/Nuxt foi dispensada por decisão do responsável.
