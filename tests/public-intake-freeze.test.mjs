@@ -24,6 +24,30 @@ test('F76: reject every unapproved public form and embedded third-party content'
     /F76: blocked/);
 });
 
+test('F331: only one numeric visits field and three reviewed anonymous scenario controls in home',()=>{
+  for(const locale of ['pt-BR','en','es']){
+    const page=locale==='pt-BR'?'index.html':locale+'/index.html';
+    const week='<input type="number" id="growth-weekly-'+locale+'" min="0" max="100000" value="100">';
+    const radios=['conservative','reference','optimistic'].map(v=>
+      '<input type="radio" name="growth-scenario-'+locale+'" value="'+v+'">').join('');
+    assert.equal(assertNoUnapprovedPublicIntake(page,'<section>'+week+radios+'</section>'),true);
+    for(const bad of [
+      '<form>'+week+'</form>',
+      '<input type="email" name="email">',
+      '<input type="tel" name="phone">',
+      '<input type="text" id="growth-weekly-'+locale+'">',
+      '<input type="number" id="growth-weekly-'+locale+'" name="email">',
+      '<input type="number" id="growth-weekly-'+locale+'" formaction="/api/leads">',
+      '<input type="radio" name="growth-scenario-'+locale+'" value="vip">',
+      '<input type="radio" name="growth-scenario-'+locale+'" value="reference" oninput="evil()">',
+      '<input type="radio" name="growth-scenario-fake" value="reference">',
+      '<textarea name="message"></textarea>'
+    ])assert.throws(()=>assertNoUnapprovedPublicIntake(page,bad),/F76/);
+  }
+  assert.throws(()=>assertNoUnapprovedPublicIntake('contato/index.html',
+    '<input type="number" id="growth-weekly-pt-BR">'),/F76/);
+});
+
 test('F76: block programmatic lead intake, cookies and network APIs in HTML or JS',()=>{
   for(const source of [
     'fetch("/api/contact",{method:"POST"})',
