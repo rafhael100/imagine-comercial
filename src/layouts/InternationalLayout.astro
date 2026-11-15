@@ -196,7 +196,7 @@ const service = serviceName ? {
       :focus-visible { outline: 3px solid #b45b00; outline-offset: 4px; }
       @media (max-width: 1020px) {
         .header { flex-wrap: nowrap; align-items: center; position: relative; }
-        .header > nav[aria-label="Navegação principal"] { display: none; }
+        .header > nav[aria-label="Navegação principal"], .header > nav[aria-label="Primary navigation"] { display: none; }
         .mobile-menu { display: block; position: relative; margin-left: auto; }
       }
       @media (max-width: 620px) { .cta-row a { width: 100%; } .section { padding-block: 42px; } }
