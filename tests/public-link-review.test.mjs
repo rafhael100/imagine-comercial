@@ -43,6 +43,15 @@ test('F32 blocks broken internal routes and disallowed hash fragments',()=>{
   ]) assert.throws(()=>review([href]),/internal route missing|broken or unapproved fragment/);
 });
 
+test('Approved simulator section is reachable from subpages without arbitrary hash allowance',()=>{
+  for(const from of ['/','/servicos/','/conteudos/']){
+    const checked=review(['/#simular-compra'],from);
+    assert.equal(checked.internal,1);
+  }
+  for(const bad of ['/#unknown-section','/#simular-compra-extra','/?foo=1#simular-compra'])
+    assert.throws(()=>review([bad],'/servicos/'));
+});
+
 test('F32 blocks domain lookalikes, marketing links and unsafe protocols',()=>{
   for(const href of [
     'https://evil.invalid/','https://wa.me.evil.invalid/5585996632689',
