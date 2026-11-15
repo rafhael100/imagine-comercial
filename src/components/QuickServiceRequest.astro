@@ -1,5 +1,6 @@
 ---
 import OfferArtwork from './OfferArtwork.astro';
+import CommercialChoicePreview from './CommercialChoicePreview.astro';
 import {buildServices as services} from '../lib/build-catalog.mjs';
 import {composeCuratedContactLinks} from '../data/contact-objectives.mjs';
 import {contactWhatsAppUrl} from '../data/contact-channels.mjs';
@@ -157,6 +158,7 @@ const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:str
       <li><span class="flow-mark">04</span><strong>Contrate</strong></li>
     </ol>
   </div>
+  <CommercialChoicePreview locale="pt-BR"/>
   <div class="quick-hire-disclosure"><p id="quick-hire-notice">{privatePortalBuild
    ? 'Prévia privada de contratação: apenas ofertas homologáveis abrem o Portal de teste; outros serviços seguem para atendimento. Nenhum cadastro, contrato ou pagamento real é iniciado.'
    : 'Nesta prévia pública, o botão abre uma conversa no WhatsApp sobre o serviço escolhido; nenhum pagamento é realizado aqui. O checkout digital ainda depende da homologação do Portal.'}</p>
