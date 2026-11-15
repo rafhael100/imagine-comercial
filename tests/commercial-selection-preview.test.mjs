@@ -88,3 +88,22 @@ test('F324 preview knows only catalog channels supported by private Portal hando
  }
  assert.equal(summary.estimatedOnly,true);
 });
+
+test('F324 selection and public calculator share one approved policy for Google/Meta',async()=>{
+ const {calculateMediaBudget,CHANNELS,illustrateFullMonthManagementCents}=await import('../src/lib/media-budget-calculator.mjs');
+ for(const code of ['google_ads','meta_ads']) {
+  const publicPolicy=CHANNELS[code];
+  assert.equal(PREVIEW_CHANNELS[code].minimumMediaCents,publicPolicy.floorCents);
+  assert.equal(PREVIEW_CHANNELS[code].recommendedMediaCents,publicPolicy.recommendedCents);
+  for(const budget of [publicPolicy.floorCents,publicPolicy.recommendedCents,400000]){
+   const selection=previewCommercialSelection({offer:'performance',channels:{[code]:budget}});
+   assert.equal(selection.estimatedMonthlyManagementCents,illustrateFullMonthManagementCents(budget));
+  }
+ }
+ const publicEstimate=calculateMediaBudget({channels:['google_ads','meta_ads']});
+ const channelBudgets=Object.fromEntries(publicEstimate.channels.map(c=>[c.id,c.suggestedCents]));
+ const estimate=previewCommercialSelection({offer:'performance',channels:channelBudgets});
+ assert.equal(estimate.estimatedMonthlyManagementCents,publicEstimate.illustrativeManagementCents);
+ assert.equal(estimate.activationCents,publicEstimate.oneTimeActivationCents);
+ assert.equal(estimate.plannedMediaPaidToPlatformsCents,publicEstimate.suggestedMediaCents);
+});
