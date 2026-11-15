@@ -6,6 +6,7 @@
  * never auto-submit forms, charge money or expose private Portal staging.
  */
 import OfferArtwork from './OfferArtwork.astro';
+import CommercialChoicePreview from './CommercialChoicePreview.astro';
 import {intlPath} from '../data/i18n.mjs';
 import {localizedSalesWhatsAppUrl} from '../data/localized-sales-contact.mjs';
 interface Props { locale:'en'|'es'; }
@@ -169,6 +170,7 @@ const fee=locale==='en'?{
    <div><p class="eyebrow">{copy.flowKicker}</p><h3>{copy.flow}</h3></div>
    <ol>{copy.steps.map((step,i)=><li><span>{String(i+1).padStart(2,'0')}</span><strong>{step}</strong></li>)}</ol>
   </div>
+  <CommercialChoicePreview locale={locale}/>
   <p id="intl-buy-disclosure" class="intl-buy-disclosure">{copy.disclosure}</p>
  </div>
 </section>
