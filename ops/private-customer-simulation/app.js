@@ -12,6 +12,7 @@ if (choiceForm) {
   const channels = [...choiceForm.querySelectorAll('input[name="channels[]"]')];
   const updateChannelPrices = () => {
     const chosen = channels.filter(input => input.checked).map(input => input.value);
+    choiceForm.querySelector('[data-investment-section]').hidden = chosen.length === 0;
     for (const group of choiceForm.querySelectorAll('[data-channel-prices]')) {
       for (const price of group.querySelectorAll('[data-price-channel]')) {
         price.hidden = !chosen.includes(price.dataset.priceChannel);
