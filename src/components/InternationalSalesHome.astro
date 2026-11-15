@@ -6,6 +6,7 @@
  * never auto-submit forms, charge money or expose private Portal staging.
  */
 import OfferArtwork from './OfferArtwork.astro';
+import CommercialChoicePreview from './CommercialChoicePreview.astro';
 import {intlPath} from '../data/i18n.mjs';
 import {localizedSalesWhatsAppUrl} from '../data/localized-sales-contact.mjs';
 interface Props { locale:'en'|'es'; }
@@ -29,7 +30,7 @@ const copy=locale==='en'?{
  adsMore:'Media paid to the platform · Google min. BRL 1,000 / Meta min. BRL 700 per month',
  fee:'Management',details:'Details',also:'Also available',
  all:'Explore all services',calculator:'Estimate an ad budget',
- flowKicker:'IT IS THAT SIMPLE',flow:'Choose first. Sign up only when ready.',
+ flowKicker:'IT IS THAT SIMPLE',flow:'Choose first. Sign up only when ready.',flowAction:'Build my estimate',
  steps:['Choose','Customize','Review','Confirm'],
  finalHeading:'Ready to get your business moving?',
  finalMessage:'Pick the solution that fits your next step.',
@@ -62,7 +63,7 @@ const copy=locale==='en'?{
  adsMore:'Publicidad pagada a la plataforma · Google mín. R$ 1.000 / Meta mín. R$ 700 al mes',
  fee:'Gestión',details:'Detalles',also:'También tenemos',
  all:'Ver todos los servicios',calculator:'Calcular inversión publicitaria',
- flowKicker:'ASÍ DE FÁCIL',flow:'Primero eliges. Los datos vienen al final.',
+ flowKicker:'ASÍ DE FÁCIL',flow:'Primero eliges. Los datos vienen al final.',flowAction:'Preparar mi presupuesto',
  steps:['Elige','Personaliza','Revisa','Confirma'],
  finalHeading:'¿Tu negocio está listo para dar el siguiente paso?',
  finalMessage:'Elige la solución que mejor se adapte a tu empresa.',
@@ -166,9 +167,10 @@ const fee=locale==='en'?{
    <a href={intlPath(locale,'budget-calculator')}>{copy.calculator} <span aria-hidden="true">↗</span></a>
   </div>
   <div class="intl-flow" aria-label={copy.flow}>
-   <div><p class="eyebrow">{copy.flowKicker}</p><h3>{copy.flow}</h3></div>
+   <div><p class="eyebrow">{copy.flowKicker}</p><h3>{copy.flow}</h3><a class="intl-flow-cta" href="#simular-compra">{copy.flowAction} <span aria-hidden="true">↗</span></a></div>
    <ol>{copy.steps.map((step,i)=><li><span>{String(i+1).padStart(2,'0')}</span><strong>{step}</strong></li>)}</ol>
   </div>
+  <CommercialChoicePreview locale={locale}/>
   <p id="intl-buy-disclosure" class="intl-buy-disclosure">{copy.disclosure}</p>
  </div>
 </section>
@@ -241,6 +243,7 @@ const fee=locale==='en'?{
  .intl-more-actions a{font-size:.84rem;font-weight:740;color:#884100}
  .intl-flow{margin-top:34px;display:grid;grid-template-columns:minmax(190px,.6fr) minmax(0,1.4fr);gap:25px;align-items:center;background:#171b19;color:#fff;border-radius:18px;padding:25px 28px}
  .intl-flow .eyebrow{color:#ffbd77}
+ .intl-flow .intl-flow-cta{display:inline-flex;align-items:center;min-height:44px;color:#fff3df;font-size:.86rem;font-weight:800;margin-top:10px;text-underline-offset:4px}
  .intl-flow h3{font-size:1.42rem;line-height:1.25;margin:8px 0 0}
  .intl-flow ol{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:0;margin:0}
  .intl-flow li{display:grid;gap:8px;justify-items:center;text-align:center;padding:13px 8px;border-radius:11px;background:#2b302c;font-size:.83rem}

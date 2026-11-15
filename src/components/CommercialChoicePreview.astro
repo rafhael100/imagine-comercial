@@ -1,0 +1,189 @@
+---
+/**
+ * F324 — anonymous selection and estimate, not a cart or live checkout.
+ * No forms, tracking, persistence, payment, browser requests or private links.
+ */
+import {intlPath} from '../data/i18n.mjs';
+import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
+import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
+interface Props {locale?:'pt-BR'|'en'|'es';}
+const {locale='pt-BR'}=Astro.props;
+if(!['pt-BR','en','es'].includes(locale))throw Error('Unreviewed quote locale');
+const contact=locale==='pt-BR'?'/contato/':intlPath(locale,'contact');
+const calculator=locale==='pt-BR'?'/calculadora-de-anuncios/':intlPath(locale,'budget-calculator');
+const copy=locale==='en'?{
+ eyebrow:'BEFORE YOU SIGN UP',heading:'Build your starting estimate.',intro:'Pick a website and the ad channels you want. See a clear cost breakdown.',
+ site:'1 · Your website',noSite:'No website',onepage:'Onepage',landing:'Landing Page',
+ channels:'2 · Advertising channels',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Optional · choose one or both',
+ tier:'3 · Media planning',minimum:'Minimum',recommended:'Recommended',tierNote:'Recommended is a planning guide, not a results forecast.',
+ summary:'Your estimate',siteSetup:'Website setup',siteMonthly:'Website monthly fee',adActivation:'Ads activation (one-time)',adManagement:'Estimated ads management / month',media:'Ad spend paid to platforms / month',
+ total:'Contracted setup + activation',installments:'Website setup in 3 installments',payLater:'Website monthly fee starts 90 days after contracting; advertising management is settled after each full month according to actual spend.',
+ cta:'Discuss this selection on WhatsApp',calc:'Try the detailed ads calculator',
+ notice:'Estimate only, not an order. Clicking WhatsApp opens a message about your chosen services and media tier for your review; nothing is sent automatically. No personal data are collected and public checkout is not active. Final terms require Portal confirmation.',
+ empty:'Choose a website or at least one ad channel to continue.'
+}:locale==='es'?{
+ eyebrow:'ANTES DEL REGISTRO',heading:'Prepara tu presupuesto inicial.',intro:'Elige tu sitio web y tus canales de anuncios. Consulta los valores.',
+ site:'1 · Tu sitio web',noSite:'Sin sitio',onepage:'Onepage',landing:'Landing Page',
+ channels:'2 · Canales de publicidad',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · elige uno o ambos',
+ tier:'3 · Plan de inversión',minimum:'Mínimo',recommended:'Recomendado',tierNote:'La inversión recomendada es orientativa, no una previsión de resultados.',
+ summary:'Tu resumen',siteSetup:'Implantación del sitio',siteMonthly:'Mensualidad del sitio',adActivation:'Activación de anuncios (única)',adManagement:'Gestión estimada de anuncios / mes',media:'Publicidad pagada a las plataformas / mes',
+ total:'Implantación + activaciones contratadas',installments:'Implantación del sitio en 3 cuotas',payLater:'Mensualidad del sitio desde el día 90 tras contratar. La gestión se calcula después de cada mes completo según la inversión real.',
+ cta:'Consultar mi selección por WhatsApp',calc:'Abrir calculadora de anuncios',
+ notice:'Estimación, no compra. Al pulsar WhatsApp se prepara un mensaje con los servicios y la inversión elegidos: tú decides enviarlo. Sin envío automático ni captura de datos personales. El checkout público no está activo; las condiciones finales se confirman en el Portal.',
+ empty:'Elige un sitio o al menos un canal de anuncios.'
+}:{
+ eyebrow:'ANTES DO CADASTRO',heading:'Monte seu orçamento em poucos cliques.',intro:'Escolha um site e os canais de anúncios. Veja os valores separados.',
+ site:'1 · Seu site',noSite:'Sem site',onepage:'Onepage',landing:'Landing Page',
+ channels:'2 · Canais de anúncios',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · selecione um ou os dois',
+ tier:'3 · Investimento em mídia',minimum:'Mínimo',recommended:'Recomendado',tierNote:'O recomendado é uma referência de planejamento, não promessa de resultado.',
+ summary:'Resumo da sua escolha',siteSetup:'Implantação do site',siteMonthly:'Mensalidade do site',adActivation:'Ativação de anúncios (única)',adManagement:'Gestão estimada de anúncios / mês',media:'Mídia paga às plataformas / mês',
+ total:'Implantação + ativações contratadas',installments:'Implantação do site em 3 parcelas',payLater:'Mensalidade do site a partir de D+90 da contratação, mesmo sem publicação. Gestão de anúncios apurada após cada mês completo, conforme a mídia real.',
+ cta:'Conversar no WhatsApp sobre esta escolha',calc:'Usar calculadora completa de anúncios',
+ notice:'Simulação, não contratação: ao clicar no WhatsApp, abrimos uma mensagem com os serviços e a faixa de investimento escolhidos para você revisar e decidir se envia. Não há envio automático nem coleta de dados pessoais. O checkout público ainda não está ativo; os valores finais precisam ser confirmados no Portal.',
+ empty:'Escolha um site ou pelo menos um canal para avançar.'
+};
+const initial=buildCommercialChoicePreview({site:'onepage',channels:[],tier:'recommended'});
+const initialHref=reviewedQuoteChoiceHref(locale,{site:'onepage',channels:[],tier:'recommended'});
+const fmt=cents=>{
+ const raw=(cents/100).toLocaleString(locale==='en'?'en-US':'pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+ return (locale==='en'?'BRL ':'R$ ')+raw;
+};
+---
+<section id="simular-compra" class="choice-section" data-choice-preview data-locale={locale} aria-labelledby="choice-heading">
+ <div class="choice-title">
+  <p class="eyebrow">{copy.eyebrow}</p>
+  <h3 id="choice-heading">{copy.heading}</h3>
+  <p>{copy.intro}</p>
+ </div>
+ <div class="choice-layout">
+  <div class="choice-steps">
+   <section class="choice-step" aria-label={copy.site}>
+    <h4>{copy.site}</h4>
+    <div class="choice-options" data-choice-sites>
+     <button type="button" data-choice-site="onepage" aria-pressed="true">{copy.onepage}</button>
+     <button type="button" data-choice-site="landing-pages" aria-pressed="false">{copy.landing}</button>
+     <button type="button" data-choice-site="none" aria-pressed="false">{copy.noSite}</button>
+    </div>
+   </section>
+   <section class="choice-step" aria-label={copy.channels}>
+    <h4>{copy.channels}</h4>
+    <div class="choice-options" data-choice-channels>
+     <button type="button" data-choice-channel="google_ads" aria-pressed="false"><span aria-hidden="true">◈</span> {copy.google}</button>
+     <button type="button" data-choice-channel="meta_ads" aria-pressed="false"><span aria-hidden="true">◎</span> {copy.meta}</button>
+    </div>
+    <p class="choice-help">{copy.noAds}</p>
+   </section>
+   <section class="choice-step" aria-label={copy.tier}>
+    <h4>{copy.tier}</h4>
+    <div class="choice-options" data-choice-tiers>
+     <button type="button" data-choice-tier="minimum" aria-pressed="false">{copy.minimum}</button>
+     <button type="button" data-choice-tier="recommended" aria-pressed="true">{copy.recommended}</button>
+    </div>
+    <p class="choice-help">{copy.tierNote}</p>
+   </section>
+  </div>
+  <aside class="choice-summary" aria-label={copy.summary}>
+   <div class="summary-heading"><span aria-hidden="true">✦</span><h4>{copy.summary}</h4></div>
+   <div class="summary-line"><span>{copy.siteSetup}</span><strong data-choice-site-setup>{fmt(initial.siteSetupCents)}</strong></div>
+   <p class="choice-installment" data-choice-installment>{copy.installments}: 3 × {fmt(initial.siteInstallmentCents)}</p>
+   <div class="summary-line"><span>{copy.adActivation}</span><strong data-choice-activation>{fmt(initial.adActivationCents)}</strong></div>
+   <div class="summary-total"><span>{copy.total}</span><strong data-choice-onetime>{fmt(initial.contractedSetupAndActivationCents)}</strong></div>
+   <div class="summary-line"><span>{copy.siteMonthly}</span><strong data-choice-site-monthly>{fmt(initial.siteMonthlyCents)}</strong></div>
+   <div class="summary-line"><span>{copy.adManagement}</span><strong data-choice-management>{fmt(initial.adManagementEstimateCents)}</strong></div>
+   <div class="summary-line"><span>{copy.media}</span><strong data-choice-media>{fmt(initial.adMediaCents)}</strong></div>
+   <p class="choice-payment-rule">{copy.payLater}</p>
+   <a class="cta choice-action" href={initialHref} data-choice-fallback={contact} target="_blank" rel="noopener noreferrer" data-choice-action>{copy.cta} <span aria-hidden="true">↗</span></a>
+   <p data-choice-empty hidden class="choice-empty">{copy.empty}</p>
+   <a class="choice-calculator" href={calculator}>{copy.calc} <span aria-hidden="true">↗</span></a>
+  </aside>
+ </div>
+ <p class="choice-disclosure">{copy.notice}</p>
+</section>
+<script>
+ import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
+import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
+ // No form, network, persistence, account creation or external redirect.
+ for(const root of document.querySelectorAll('[data-choice-preview]')){
+  const locale=root.getAttribute('data-locale')||'pt-BR';
+  const format=cents=>(locale==='en'?'BRL ':'R$ ')+(cents/100).toLocaleString(locale==='en'?'en-US':'pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let site='onepage',channels=[],tier='recommended';
+  const label=(attr,text)=>{const node=root.querySelector('['+attr+']');if(node)node.textContent=text;};
+  const render=()=>{
+   const estimate=buildCommercialChoicePreview({site,channels,tier});
+   for(const button of root.querySelectorAll('[data-choice-site]'))
+    button.setAttribute('aria-pressed',String(button.getAttribute('data-choice-site')===site));
+   for(const button of root.querySelectorAll('[data-choice-channel]'))
+    button.setAttribute('aria-pressed',String(channels.includes(button.getAttribute('data-choice-channel'))));
+   for(const button of root.querySelectorAll('[data-choice-tier]'))
+    button.setAttribute('aria-pressed',String(button.getAttribute('data-choice-tier')===tier));
+   label('data-choice-site-setup',format(estimate.siteSetupCents));
+   label('data-choice-activation',format(estimate.adActivationCents));
+   label('data-choice-onetime',format(estimate.contractedSetupAndActivationCents));
+   label('data-choice-site-monthly',format(estimate.siteMonthlyCents));
+   label('data-choice-management',format(estimate.adManagementEstimateCents));
+   label('data-choice-media',format(estimate.adMediaCents));
+   const installments=root.querySelector('[data-choice-installment]');
+   if(installments){
+    installments.hidden=estimate.site==='none';
+    const heading=locale==='en'?'Website setup in 3 installments':locale==='es'?'Implantación del sitio en 3 cuotas':'Implantação do site em 3 parcelas';
+    installments.textContent=heading+': 3 × '+format(estimate.siteInstallmentCents);
+   }
+   const action=root.querySelector('[data-choice-action]');
+   if(action){
+    action.setAttribute('href',estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):action.getAttribute('data-choice-fallback'));
+    action.setAttribute('aria-disabled',String(!estimate.hasChoice));
+    action.tabIndex=estimate.hasChoice?0:-1;
+   }
+   const empty=root.querySelector('[data-choice-empty]');
+   if(empty)empty.hidden=estimate.hasChoice;
+  };
+  for(const button of root.querySelectorAll('[data-choice-site]'))button.addEventListener('click',()=>{
+   const value=button.getAttribute('data-choice-site');
+   if(value==='none'||value==='onepage'||value==='landing-pages'){site=value;render();}
+  });
+  for(const button of root.querySelectorAll('[data-choice-channel]'))button.addEventListener('click',()=>{
+   const value=button.getAttribute('data-choice-channel');
+   if(value!=='google_ads'&&value!=='meta_ads')return;
+   channels=channels.includes(value)?channels.filter(channel=>channel!==value):[...channels,value];
+   render();
+  });
+  for(const button of root.querySelectorAll('[data-choice-tier]'))button.addEventListener('click',()=>{
+   const value=button.getAttribute('data-choice-tier');
+   if(value==='minimum'||value==='recommended'){tier=value;render();}
+  });
+  render();
+ }
+</script>
+<style>
+ .choice-section{background:#fff;border:1px solid #eadfcf;border-radius:22px;padding:clamp(20px,3vw,35px);margin-top:26px;scroll-margin-top:90px}
+ .choice-title h3{font-size:clamp(1.5rem,2.7vw,2.35rem);letter-spacing:-.04em;line-height:1.19;margin:5px 0 7px}
+ .choice-title>p:last-child{font-size:.91rem;color:#58534c;margin:0 0 22px}
+ .choice-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(285px,.95fr);gap:18px}
+ .choice-steps{display:grid;gap:12px}
+ .choice-step{min-width:0;border:1px solid #ece6dd;border-radius:14px;padding:16px;background:#fffdf8}
+ .choice-step h4{font-size:1rem;margin:0 0 13px;line-height:1.25}
+ .choice-options{display:flex;gap:8px;flex-wrap:wrap}
+ .choice-options button{min-height:44px;display:inline-flex;align-items:center;gap:6px;border:1px solid #ded3c6;border-radius:11px;background:#fff;color:#493d32;font:inherit;font-size:.84rem;font-weight:700;cursor:pointer;padding:10px 12px}
+ .choice-options button[aria-pressed="true"]{background:#ffeed8;border-color:#aa5605;color:#723900;box-shadow:inset 0 0 0 1px #aa5605}
+ .choice-options button:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+ .choice-help{color:#736759;font-size:.75rem;line-height:1.4;margin:10px 0 0}
+ .choice-summary{min-width:0;padding:20px 18px;background:#f7f8f5;border-radius:15px;border:1px solid #e8e8de}
+ .summary-heading{display:flex;align-items:center;gap:9px;margin-bottom:17px}
+ .summary-heading>span{display:grid;place-items:center;background:#fff0d8;color:#955000;border-radius:10px;width:32px;height:32px}
+ .summary-heading h4{font-size:1.13rem;letter-spacing:-.025em;margin:0}
+ .summary-line{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:7px 0;border-bottom:1px solid #e6e6e0}
+ .summary-line span{font-size:.8rem;line-height:1.3;color:#575b54}
+ .summary-line strong{white-space:nowrap;text-align:right;font-size:.9rem;color:#222820}
+ .choice-installment{font-size:.74rem;color:#605d57;margin:4px 0 7px}
+ .summary-total{display:flex;justify-content:space-between;gap:12px;align-items:baseline;background:#e9f0e9;padding:13px;margin:11px 0;border-radius:10px}
+ .summary-total span{font-size:.8rem;font-weight:730;color:#29352a}
+ .summary-total strong{font-size:1.16rem;white-space:nowrap}
+ .choice-payment-rule{font-size:.74rem;color:#62645e;line-height:1.48;margin:14px 0}
+ .choice-action{display:flex;justify-content:center;align-items:center;gap:8px;min-height:48px;text-decoration:none;font-size:.82rem;line-height:1.3}
+ .choice-action[aria-disabled="true"]{pointer-events:none;opacity:.5}
+ .choice-empty{font-size:.77rem;color:#915000}
+ .choice-calculator{display:block;text-align:center;font-size:.8rem;font-weight:700;color:#884100;min-height:44px;padding-top:12px}
+ .choice-disclosure{font-size:.75rem;color:#6a6259;line-height:1.5;max-width:1050px;margin:17px 0 0}
+ @media(max-width:800px){.choice-layout{grid-template-columns:1fr}}
+ @media(max-width:440px){.choice-section{padding:18px 13px}.choice-step{padding:13px}.choice-summary{padding:17px 13px}.choice-options button{font-size:.78rem;padding:10px}.summary-line strong{font-size:.81rem}.summary-total strong{font-size:1.04rem}}
+</style>
