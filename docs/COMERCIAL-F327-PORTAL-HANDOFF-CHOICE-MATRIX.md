@@ -1,5 +1,7 @@
 # Imagine Comercial F327 — Portal handoff fail-closed por combinação
 
+> **Nota de atualização (15/11/2026):** esta matriz permanece **histórica e vinculada à PR #411**, cujo destino privado admitia apenas **um produto**. A [PR Portal #828](https://github.com/rafhael100/imagine-portal/pull/828) implementou posteriormente, **em outra branch ainda DRAFT**, uma recepção de site + Google/Meta e uma tela com **dois pedidos separados** (não carrinho único). A [PR Comercial #409](https://github.com/rafhael100/imagine-comercial/pull/409) tem seu próprio contrato de handoff privado, não é sucessora automática de F327. Não retirar o bloqueio de F327 nem afirmar que #828 habilita checkout combinado sem reconciliação de branches e gates. Ver [auditoria F322–F329](COMERCIAL-AUDITORIA-FUNCIONAL-F322-F329-2026-11-15.md).
+
 **Objetivo:** não encaminhar uma escolha combinada da vitrine PT/EN/ES para um endpoint do Portal que receba só um dos itens, o que resultaria em contratação parcial ou perda da seleção.
 
 ## Contrato seguro e suporte atual
