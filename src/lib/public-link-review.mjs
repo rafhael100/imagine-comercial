@@ -5,6 +5,7 @@
  */
 import {sitePages,services} from '../data/services.mjs';
 import {decodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
+import {decodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
 import {resolvePortalLoginLink} from './portal-login-link.mjs';
 import {contactChannels} from '../data/contact-channels.mjs';
 import {commercialFaqSections} from '../data/commercial-faq.mjs';
@@ -91,6 +92,9 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[],approvedPort
         }else if(url.pathname==='/contato/' &&
                   decodeCuratedBriefingFragment(url.hash)!==null) {
           // A canonical public-only briefing, never a free-form hash or PII.
+        }else if(url.pathname==='/contato/' &&
+                  decodeCuratedBriefingFragment(url.hash)!==null) {
+          // Strict public catalog codec, not a free-form input or HTML ID.
         }else if(url.pathname==='/' && fragment==='simular-compra') {
           // Only the exact existing reviewed simulator section in the home.
         }else if(url.pathname==='/servicos/' &&
