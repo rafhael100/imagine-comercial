@@ -141,7 +141,7 @@ test('F333: asynchronous clipboard completion cannot restore stale status after 
 
 test('F334: funnel-to-contact link carries only reviewed public briefing priority',()=>{
  const target=encodeCuratedBriefingFragment('','','','contatos');
- assert.equal(target,'#briefing:~:~:~:contatos');
+ assert.equal(target,'#briefing:_:_:_:contatos');
  assert.deepEqual(decodeCuratedBriefingFragment(target),{
   service:'',objective:'',stage:'',priority:'contatos'
  });

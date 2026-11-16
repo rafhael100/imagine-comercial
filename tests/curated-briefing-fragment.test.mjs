@@ -15,9 +15,10 @@ test('F169 640 public briefing combinations round-trip without free text or PII'
   for(const stage of ['',...briefingStages.map(x=>x.code)])
   for(const priority of ['',...briefingPriorities.map(x=>x.code)]){
     const fragment=encode(service,objective,stage,priority);
-    assert.match(fragment,/^#briefing:[a-z0-9~-]+:[a-z0-9~-]+:[a-z0-9~-]+:[a-z0-9~-]+$/);
+    assert.match(fragment,/^#briefing:[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+$/);
     assert.equal(fragment.includes('?'),false);
     assert.equal(fragment.includes('%'),false);
+    assert.equal(fragment.includes(':~:'),false,'Chromium must not strip public briefing state');
     assert.ok(fragment.length<145);
     assert.deepEqual(decode(fragment),{service,objective,stage,priority});
     assert.ok(Object.isFrozen(decode(fragment)));
@@ -25,10 +26,10 @@ test('F169 640 public briefing combinations round-trip without free text or PII'
   }
   assert.equal(count,640);
   assert.equal(seen.size,640);
-  assert.equal(encode(),'#briefing:~:~:~:~');
+  assert.equal(encode(),'#briefing:_:_:_:_');
 });
 test('F169 unsupported user text, alternate encoding and malformed hashes fail closed',()=>{
-  for(const value of ['#onepage','#briefing:onepage',
+  for(const value of ['#briefing:~:~:~:contatos','#onepage','#briefing:onepage',
     '#briefing:onepage:novo-projeto:iniciando',
     '#briefing:onepage:novo-projeto:iniciando:oferta:extra',
     '#briefing:onepage:CPF-123:iniciando:oferta',

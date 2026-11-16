@@ -101,7 +101,7 @@ test('F196 compiled site permits only five vetted business-goal fragments',()=>{
 test('F335 permits only existing canonical public briefing fragment on PT contact',()=>{
  const pages=valid();
  const fragment=encodeCuratedBriefingFragment('','','','contatos');
- assert.equal(fragment,'#briefing:~:~:~:contatos');
+ assert.equal(fragment,'#briefing:_:_:_:contatos');
  assert.deepEqual(decodeCuratedBriefingFragment(fragment),{
   service:'',objective:'',stage:'',priority:'contatos'
  });
@@ -115,11 +115,11 @@ test('F335 refuses arbitrary briefing, cross-locale injection and private URL da
  const allowed=encodeCuratedBriefingFragment('','','','contatos');
  const bad=[
   '/como-funciona/'+allowed,
-  '/contato/#briefing:~:~:~:pessoal',
-  '/contato/#briefing:~:~:~:contatos:extra',
-  '/contato/#briefing:~:~:~:contatos%20CPF',
-  '/contato/#briefing:~:~:~:contatos?tracking=1',
-  '/contato/#briefing:~:~:~:contatos#extra',
+  '/contato/#briefing:_:_:_:pessoal',
+  '/contato/#briefing:_:_:_:contatos:extra',
+  '/contato/#briefing:_:_:_:contatos%20CPF',
+  '/contato/#briefing:_:_:_:contatos?tracking=1',
+  '/contato/#briefing:_:_:_:contatos#extra',
   '/contato/#briefing:~:~:~:CONTATOS'
  ];
  for(const href of bad){

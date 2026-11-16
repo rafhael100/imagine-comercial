@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {reviewPublicLinks} from '../src/lib/public-link-review.mjs';
+import {encodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
 import {contactWhatsAppUrl,contactEmailUrl,contactChannels} from '../src/data/contact-channels.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
 
@@ -16,6 +17,21 @@ test('F32 allows curated internal routes, skip link and contact intent only',()=
   ]);
   assert.deepEqual(r,{checked:6,internal:6,external:0,sameDocument:1});
   assert.ok(Object.isFrozen(r));
+});
+
+
+test('F336 real DOM links allow only canonical Chromium-safe curated briefing',()=>{
+  const fragment=encodeCuratedBriefingFragment('','','','contatos');
+  assert.equal(fragment,'#briefing:_:_:_:contatos');
+  assert.equal(review(['/contato/'+fragment],'/').internal,1);
+  for(const invalid of [
+    '/contato/#briefing:~:~:~:contatos',
+    '/contato/#briefing:_:_:_:private',
+    '/contato/#briefing:_:_:_:contatos:extra',
+    '/contato/#briefing:_:_:_:contatos?token=1',
+    '/servicos/'+fragment
+  ])assert.throws(()=>review([invalid],'/'),
+    /broken or unapproved fragment|unsafe/);
 });
 
 test('F159 allows only exact reviewed contact-channel URLs',()=>{
