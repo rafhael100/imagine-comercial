@@ -164,6 +164,8 @@ try {
     const copiedSummary=await quickPage.evaluate(()=>globalThis.__funnelCopiedSummary);
     assert.match(copiedSummary,/Cenário: Otimista/);
     assert.match(copiedSummary,/Clientes potenciais: 7/);
+    assert.match(copiedSummary,/Leads de 8 a 24; clientes de 1 a 7/,
+      'F340: the copied estimate must disclose lower and upper model outcomes');
     assert.match(copiedSummary,/6% das visitas.*30% dos leads.*4 semanas/,
       'F335: copied summary includes the rates and four-week assumption');
     assert.equal(await funnel.locator('[data-growth-copied]').isVisible(),true);
@@ -334,6 +336,15 @@ try {
             ? /6% of visits.*30% of leads.*4-week planning month/.test(localizedSummary)
             : /6% de visitas.*30% de leads.*4 semanas/.test(localizedSummary),
             lang+': copied estimate must include hypothetical percentages and 4 weeks');
+          // F340: rate transparency alone is not enough; communicate the
+          // uncertainty range before any optional customer conversation.
+          const nf=new Intl.NumberFormat(lang==='en'?'en-US':'pt-BR');
+          const expectedRange=lang==='en'
+            ? 'Leads from '+nf.format(allScenarios.leadsRange[0])+' to '+nf.format(allScenarios.leadsRange[1])+
+              '; customers from '+nf.format(allScenarios.customersRange[0])+' to '+nf.format(allScenarios.customersRange[1])
+            : 'Leads de '+nf.format(allScenarios.leadsRange[0])+' a '+nf.format(allScenarios.leadsRange[1])+
+              '; clientes de '+nf.format(allScenarios.customersRange[0])+' a '+nf.format(allScenarios.customersRange[1]);
+          assert.ok(localizedSummary.includes(expectedRange),lang+': copied summary must include scenario range');
           assert.ok(lang==='en'
             ? /6% of visits.*30% of leads/.test(await localizedFunnel.locator('[data-growth-assumptions]').textContent())
             : /6% de visitas.*30% de leads/.test(await localizedFunnel.locator('[data-growth-assumptions]').textContent()),
