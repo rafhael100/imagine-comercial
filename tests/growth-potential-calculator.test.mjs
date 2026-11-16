@@ -297,3 +297,26 @@ test('F340: copied funnel estimate includes the full modelled range, not only op
  assert.deepEqual(sample.customersRange,[1,7]);
  assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 });
+
+test('F344: optional funnel-to-quote journey is a local public anchor, not a paid transaction',()=>{
+ const funnel=read('src/components/GrowthFunnelCalculator.astro');
+ const home=read('src/pages/index.astro');
+ const pt=read('src/components/QuickServiceRequest.astro');
+ const intl=read('src/components/InternationalSalesHome.astro');
+ const choice=read('src/components/CommercialChoicePreview.astro');
+ for(const label of [
+  'Simular investimento em site e anúncios',
+  'Estimate website and ads costs',
+  'Estimar costos de sitio y anuncios'
+ ])assert.ok(funnel.includes(label),label);
+ assert.match(funnel,/<a class="funnel-quote" href="#simular-compra" data-growth-quote>\{t.quoteAction\}<\/a>/);
+ assert.match(funnel,/<p class="funnel-quote-note">\{t.quoteNote\}<\/p>/);
+ assert.match(home,/<GrowthFunnelCalculator locale="pt-BR" \/>/);
+ assert.match(home,/<QuickServiceRequest \/>/);
+ assert.match(pt,/<CommercialChoicePreview locale="pt-BR"\/>/);
+ assert.match(intl,/<GrowthFunnelCalculator locale=\{locale\} \/>/);
+ assert.match(intl,/<CommercialChoicePreview locale=\{locale\}\/>/);
+ assert.match(choice,/<section id="simular-compra"[^>]*data-choice-preview/);
+ assert.doesNotMatch(funnel,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|URLSearchParams/);
+ assert.doesNotMatch(funnel,/data-growth-quote[^>]*\?/);
+});
