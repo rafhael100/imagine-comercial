@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {auditCrossPageFragmentTargets as audit}
   from '../src/lib/cross-page-fragment-contract.mjs';
+import {encodeCuratedBriefingFragment,decodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
 
 const page=(path,body)=>({path,html:'<html><body>'+body+'</body></html>'});
 const valid=()=>[
@@ -95,4 +96,35 @@ test('F196 compiled site permits only five vetted business-goal fragments',()=>{
     pages[0].html+='<a href="/servicos/#objetivo:'+goal+'">Falha</a>';
     assert.throws(()=>audit(pages),/cross-page fragment/);
   }
+});
+
+test('F335 permits only existing canonical public briefing fragment on PT contact',()=>{
+ const pages=valid();
+ const fragment=encodeCuratedBriefingFragment('','','','contatos');
+ assert.equal(fragment,'#briefing:~:~:~:contatos');
+ assert.deepEqual(decodeCuratedBriefingFragment(fragment),{
+  service:'',objective:'',stage:'',priority:'contatos'
+ });
+ pages[0].html+='<a href="/contato/'+fragment+'">Falar com a Imagine</a>';
+ const result=audit(pages);
+ assert.equal(result.crossPageFragmentsChecked,4);
+ assert.equal(result.approvedContactIntents,3);
+ assert.equal(result.networkPerformed,false);
+});
+test('F335 refuses arbitrary briefing, cross-locale injection and private URL data',()=>{
+ const allowed=encodeCuratedBriefingFragment('','','','contatos');
+ const bad=[
+  '/como-funciona/'+allowed,
+  '/contato/#briefing:~:~:~:pessoal',
+  '/contato/#briefing:~:~:~:contatos:extra',
+  '/contato/#briefing:~:~:~:contatos%20CPF',
+  '/contato/#briefing:~:~:~:contatos?tracking=1',
+  '/contato/#briefing:~:~:~:contatos#extra',
+  '/contato/#briefing:~:~:~:CONTATOS'
+ ];
+ for(const href of bad){
+  const pages=valid();
+  pages[0].html+='<a href="'+href+'">Não aprovado</a>';
+  assert.throws(()=>audit(pages),/F148:/,href);
+ }
 });
