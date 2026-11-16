@@ -173,7 +173,7 @@ const initialAssumptions=t.assumptions
    <details class="funnel-compare" data-growth-compare>
     <summary>{t.compareTitle}</summary>
     <p>{t.compareNote}</p>
-    <div class="funnel-compare-scroll">
+    <div class="funnel-compare-scroll" tabindex="0" role="region" aria-label={t.compareTitle}>
      <table>
       <caption>{t.compareTitle}</caption>
       <thead><tr><th scope="col">{t.scenario}</th><th scope="col">{t.leads}</th><th scope="col">{t.customers}</th></tr></thead>
@@ -455,6 +455,7 @@ const initialAssumptions=t.assumptions
  .funnel-compare summary:focus-visible{outline:3px solid #b25b00;outline-offset:2px}
  .funnel-compare>p{font-size:.78rem;line-height:1.5;color:#4e5d48;margin:7px 0}
  .funnel-compare-scroll{overflow-x:auto}
+ .funnel-compare-scroll:focus-visible{outline:3px solid #b25b00;outline-offset:2px}
  .funnel-compare table{border-collapse:collapse;text-align:left;width:100%;min-width:360px;font-size:.79rem}
  .funnel-compare caption{text-align:left;color:#40543c;margin:8px 0;font-weight:700}
  .funnel-compare th,.funnel-compare td{padding:10px;border-bottom:1px solid #e4eade}
