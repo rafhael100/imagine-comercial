@@ -6,6 +6,7 @@
  */
 import {buildGrowthPotential} from '../lib/growth-potential-calculator.mjs';
 import {intlPath} from '../data/i18n.mjs';
+import {encodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
 interface Props {locale?: 'pt-BR'|'en'|'es';}
 const {locale='pt-BR'}=Astro.props;
 if(!['pt-BR','en','es'].includes(locale))throw Error('Unsupported growth calculator locale');
@@ -69,7 +70,12 @@ const copy={
  }
 } as const;
 const t=copy[locale];
-const contact=locale==='pt-BR'?'/contato/':intlPath(locale,'contact');
+// PT-BR contact understands the reviewed public-only briefing fragment. The
+// chosen simulated traffic/rates are never transferred, logged or persisted;
+// only a fixed public priority hint is passed after the visitor clicks.
+const contact=locale==='pt-BR'
+ ? '/contato/'+encodeCuratedBriefingFragment('','','','contatos')
+ : intlPath(locale,'contact');
 const solutions=locale==='pt-BR'?'/servicos/':intlPath(locale,'services');
 const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:'reference'});
 ---
