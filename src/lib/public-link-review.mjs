@@ -11,6 +11,7 @@ import {comparisonOptions} from '../data/service-comparison.mjs';
 import {encodeReviewedComparisonFragment} from '../data/reviewed-comparison-fragment.mjs';
 import {guideGoals} from './public-service-guide.mjs';
 import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
+import {decodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
 import {isApprovedPublicExternalHref} from './outbound-link-contract.mjs';
 
 const base='http://127.0.0.1:4328';
@@ -85,8 +86,10 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[],approvedPort
         failure(currentPath,index,'internal route missing from sitemap');
       if(url.hash) {
         const fragment=url.hash.slice(1);
-        if(url.pathname==='/contato/' && intents.has(fragment)) {
-          // Intent hash selects the public contact dropdown, not an HTML ID.
+        if(url.pathname==='/contato/' &&
+          (intents.has(fragment)||decodeCuratedBriefingFragment('#'+fragment)!==null)) {
+          // Only reviewed public-only contact states or catalog service intents.
+          // Reject unknown hash data, including private visitor parameters.
         }else if(url.pathname==='/' && fragment==='simular-compra') {
           // Only the exact existing reviewed simulator section in the home.
         }else if(url.pathname==='/servicos/' &&
