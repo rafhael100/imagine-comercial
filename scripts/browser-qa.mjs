@@ -127,9 +127,12 @@ try {
     const funnelContact='/contato/'+encodeCuratedBriefingFragment('','','','contatos');
     assert.equal(await funnel.locator('.funnel-cta-row .cta').getAttribute('href'),funnelContact);
     const contactFromFunnel=await quickContext.newPage();
+    await contactFromFunnel.addInitScript(()=>{window.__initialF334Hash=location.hash;});
     await contactFromFunnel.goto(host+funnelContact,{waitUntil:'networkidle'});
     const contactState=await contactFromFunnel.evaluate(()=>({
+      initialHash:window.__initialF334Hash,
       hash:location.hash,
+      path:location.pathname,
       priority:document.querySelector('#priority-choice')?.value??null,
       service:document.querySelector('#service-choice')?.value??null,
       objective:document.querySelector('#objective-choice')?.value??null,
