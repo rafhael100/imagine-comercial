@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {encodeCuratedBriefingFragment,decodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
 import {
  buildGrowthPotential,GROWTH_SCENARIOS,GROWTH_SECTORS,
  MAX_WEEKLY_VISITS,GROWTH_WEEKS_PER_MONTH
@@ -136,4 +137,16 @@ test('F333: asynchronous clipboard completion cannot restore stale status after 
  assert.match(s,/const revision=estimateRevision;/);
  assert.match(s,/await navigator\.clipboard\.writeText\(message\);\s*if\(revision!==estimateRevision\)return;/);
  assert.match(s,/if\(revision===estimateRevision\)copyStatus\.hidden=false;/);
+});
+
+test('F334: funnel-to-contact link carries only reviewed public briefing priority',()=>{
+ const target=encodeCuratedBriefingFragment('','','','contatos');
+ assert.equal(target,'#briefing:_:_:_:contatos');
+ assert.deepEqual(decodeCuratedBriefingFragment(target),{
+  service:'',objective:'',stage:'',priority:'contatos'
+ });
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/encodeCuratedBriefingFragment\('','','','contatos'\)/);
+ assert.match(s,/: intlPath\(locale,'contact'\)/);
+ assert.doesNotMatch(s,/URLSearchParams|document\.cookie|localStorage|sessionStorage|\bfetch\s*\(/);
 });
