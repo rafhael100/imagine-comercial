@@ -177,7 +177,7 @@ assert.deepEqual(counters,{
  heldMultiProductCart:12,
  heldMultiChannelCart:2,
  heldUnapprovedChatgpt:24,
- priceParityComparisons:40,
+ priceParityComparisons:50,
  pricesMisrepresentedAsCheckout:0
 });
 assert.equal(counters.selections,counters.empty+counters.portalSupportedSinglePreview+
