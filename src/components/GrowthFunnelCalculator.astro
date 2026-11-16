@@ -35,6 +35,7 @@ const copy={
  goalReached:'No cenário {scenario}, a simulação arredondada de {target} clientes/mês começa em cerca de {weekly} visitas/semana ({monthly} visitas/mês). Isso não é promessa de vendas.',
  goalUnreachable:'A meta ilustrativa supera os {max} clientes/mês calculados para o limite de {cap} visitas/semana neste cenário. Não há resultado dentro do limite da calculadora.',
  goalApply:'Aplicar visitas à simulação',
+ compareTitle:'Comparar os três cenários',compareNote:'A mesma quantidade de visitas é aplicada às três hipóteses fictícias, sem representar médias de mercado.',
  },
  en:{
  eyebrow:'EXPLORE YOUR FUNNEL',title:'From visits to opportunities.',
@@ -60,6 +61,7 @@ const copy={
  goalReached:'With the {scenario} scenario, the rounded illustration first reaches {target} customers/month at about {weekly} visits/week ({monthly} visits/month). This does not promise sales.',
  goalUnreachable:'The illustrative target exceeds {max} customers/month at the limit of {cap} visits/week in this scenario. No result exists within calculator limits.',
  goalApply:'Use these visits in the simulator',
+ compareTitle:'Compare the three scenarios',compareNote:'The same traffic volume is applied to all three hypothetical assumptions, not to industry averages.',
  },
  es:{
  eyebrow:'EXPLORA TU EMBUDO',title:'De visitas a oportunidades.',
@@ -85,6 +87,7 @@ const copy={
  goalReached:'En el escenario {scenario}, el ejercicio redondeado alcanza {target} clientes/mes desde aproximadamente {weekly} visitas/semana ({monthly} visitas/mes). No garantiza ventas.',
  goalUnreachable:'La meta ilustrativa supera los {max} clientes/mes para el límite de {cap} visitas/semana en este escenario. No existe un resultado dentro del límite.',
  goalApply:'Usar estas visitas en la simulación',
+ compareTitle:'Comparar los tres escenarios',compareNote:'Se usa el mismo volumen de visitas en las tres hipótesis ficticias; no son promedios del mercado.',
  }
 } as const;
 const t=copy[locale];
@@ -167,6 +170,21 @@ const initialAssumptions=t.assumptions
     <div><span>{t.customers}</span><strong data-growth-customers>{initial.customers}</strong></div>
    </div>
    <p class="funnel-range">{t.range}: <strong data-growth-ranges></strong></p>
+   <details class="funnel-compare" data-growth-compare>
+    <summary>{t.compareTitle}</summary>
+    <p>{t.compareNote}</p>
+    <div class="funnel-compare-scroll" tabindex="0" role="region" aria-label={t.compareTitle}>
+     <table>
+      <caption>{t.compareTitle}</caption>
+      <thead><tr><th scope="col">{t.scenario}</th><th scope="col">{t.leads}</th><th scope="col">{t.customers}</th></tr></thead>
+      <tbody>
+       {Object.entries(t.scenarios).map(([code,name])=><tr data-growth-compare-row={code}>
+        <th scope="row">{name}</th><td data-growth-compare-leads>—</td><td data-growth-compare-customers>—</td>
+       </tr>)}
+      </tbody>
+     </table>
+    </div>
+   </details>
    <p class="funnel-assumptions" data-growth-assumptions>{initialAssumptions}</p>
    <p class="funnel-disclaimer">{t.note}</p>
    <div class="funnel-contact">
@@ -322,6 +340,18 @@ const initialAssumptions=t.assumptions
    label('[data-growth-customers]',fmt(estimate.customers));
    label('[data-growth-scenario-label]',t.scenario[scenarioCodes.indexOf(code)]);
    label('[data-growth-assumptions]',assumptionsText(estimate));
+   // Same explicit estimate, three reviewed arithmetic assumptions. Use
+   // textContent only, never HTML templates, storage or outbound requests.
+   for(const choice of scenarioCodes){
+    const row=root.querySelector('[data-growth-compare-row="'+choice+'"]');
+    const values=estimate.scenarios[choice];
+    if(!row||!values)continue;
+    const leads=row.querySelector('[data-growth-compare-leads]');
+    const customers=row.querySelector('[data-growth-compare-customers]');
+    if(leads)leads.textContent=fmt(values.leads);
+    if(customers)customers.textContent=fmt(values.customers);
+    row.setAttribute('data-current',String(choice===code));
+   }
    label('[data-growth-ranges]',t.range
     .replace('{l}',fmt(estimate.leadsRange[0])).replace('{h}',fmt(estimate.leadsRange[1]))
     .replace('{a}',fmt(estimate.customersRange[0])).replace('{b}',fmt(estimate.customersRange[1])));
@@ -420,6 +450,18 @@ const initialAssumptions=t.assumptions
  .funnel-result-grid span{font-size:.81rem;color:#52604f;font-weight:650}
  .funnel-result-grid strong{font-size:clamp(1.4rem,2.8vw,2.25rem);letter-spacing:-.04em;line-height:1.1}
  .funnel-range{font-size:.85rem;margin:13px 0;color:#3f4b3c}
+.funnel-compare{margin:12px 0 0;border:1px solid #dce4d6;border-radius:10px;padding:10px 12px;background:#f9fbf7}
+ .funnel-compare summary{cursor:pointer;min-height:32px;font-weight:750;color:#31512c;font-size:.84rem}
+ .funnel-compare summary:focus-visible{outline:3px solid #b25b00;outline-offset:2px}
+ .funnel-compare>p{font-size:.78rem;line-height:1.5;color:#4e5d48;margin:7px 0}
+ .funnel-compare-scroll{overflow-x:auto}
+ .funnel-compare-scroll:focus-visible{outline:3px solid #b25b00;outline-offset:2px}
+ .funnel-compare table{border-collapse:collapse;text-align:left;width:100%;min-width:360px;font-size:.79rem}
+ .funnel-compare caption{text-align:left;color:#40543c;margin:8px 0;font-weight:700}
+ .funnel-compare th,.funnel-compare td{padding:10px;border-bottom:1px solid #e4eade}
+ .funnel-compare th[scope="col"]{font-weight:700;color:#394d33}
+ .funnel-compare tr[data-current="true"]{background:#fff2db}
+ .funnel-compare tr[data-current="true"] th{font-weight:850}
  .funnel-assumptions{font-size:.81rem;line-height:1.5;color:#334634;background:#eef3e8;border:1px solid #dce6d6;padding:10px 12px;border-radius:9px;margin:12px 0 0}
  .funnel-disclaimer{font-size:.76rem;line-height:1.55;color:#5a6055;margin:8px 0 0}
  .funnel-contact{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;background:#fffaf2;border-radius:12px;padding:15px;margin-top:20px}

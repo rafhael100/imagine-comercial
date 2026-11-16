@@ -24,7 +24,7 @@ import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mj
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import {encodeReviewedGoalFragment} from '../src/data/reviewed-goal-fragment.mjs';
 import {encodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
-import {planVisitsForCustomerGoal} from '../src/lib/growth-potential-calculator.mjs';
+import {planVisitsForCustomerGoal,buildGrowthPotential} from '../src/lib/growth-potential-calculator.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
 import {assessPrivateBudgetPreview} from '../src/lib/private-budget-preflight.mjs';
@@ -87,6 +87,19 @@ try {
     assert.equal(await funnel.locator('[data-growth-monthly]').textContent(),'400');
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'16');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'3');
+    // F338: the same 100 weekly visits must yield all three reviewed
+    // hypothetical outcomes, regardless of the selected scenario.
+    const comparison=funnel.locator('[data-growth-compare]');
+    await comparison.locator('summary').click();
+    assert.equal(await comparison.locator('tbody tr').count(),3);
+    for(const [name,leads,customers] of [
+      ['conservative','8','1'],['reference','16','3'],['optimistic','24','7']
+    ]){
+      const row=comparison.locator('[data-growth-compare-row="'+name+'"]');
+      assert.equal(await row.locator('[data-growth-compare-leads]').textContent(),leads);
+      assert.equal(await row.locator('[data-growth-compare-customers]').textContent(),customers);
+      assert.equal(await row.getAttribute('data-current'),String(name==='reference'));
+    }
     assert.match(await funnel.locator('[data-growth-assumptions]').textContent(),
       /4% das visitas.*20% dos leads.*4 semanas/,'F335: reference scenario must disclose assumptions');
     assert.ok((await funnel.locator('[data-growth-ranges]').textContent()).includes('8'));
@@ -133,6 +146,8 @@ try {
     await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'24');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'7');
+    assert.equal(await comparison.locator('[data-growth-compare-row="optimistic"]').getAttribute('data-current'),'true');
+    assert.equal(await comparison.locator('[data-growth-compare-row="reference"]').getAttribute('data-current'),'false');
     assert.match(await funnel.locator('[data-growth-assumptions]').textContent(),
       /6% das visitas.*30% dos leads.*4 semanas/,'F335: optimistic scenario rates');
     // F333: the voluntary clipboard summary must disclose its assumptions.
@@ -335,6 +350,16 @@ try {
           await goal.locator('[data-growth-goal-apply]').click();
           assert.equal(await localizedFunnel.locator('[data-growth-weekly]').inputValue(),String(expectedPlan.weeklyVisits));
           assert.equal(await localizedFunnel.locator('[data-growth-customers]').textContent(),String(expectedPlan.customers));
+          // Three-scenario table must use the same weekly volume and rounded math.
+          const localizedCompare=localizedFunnel.locator('[data-growth-compare]');
+          await localizedCompare.locator('summary').click();
+          const allScenarios=buildGrowthPotential({weeklyVisits:expectedPlan.weeklyVisits,scenario:'optimistic'});
+          for(const code of ['conservative','reference','optimistic']){
+            const row=localizedCompare.locator('[data-growth-compare-row="'+code+'"]');
+            assert.equal(await row.locator('[data-growth-compare-leads]').textContent(),String(allScenarios.scenarios[code].leads));
+            assert.equal(await row.locator('[data-growth-compare-customers]').textContent(),String(allScenarios.scenarios[code].customers));
+            assert.equal(await row.getAttribute('data-current'),String(code==='optimistic'));
+          }
           assert.equal(await goal.locator('[data-growth-goal-apply]').isVisible(),false);
           const expectedContact='/'+lang+'/contact/';
           assert.equal(await localizedFunnel.locator('.funnel-cta-row .cta').getAttribute('href'),expectedContact);

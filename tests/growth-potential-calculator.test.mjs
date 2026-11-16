@@ -235,3 +235,29 @@ test('F337: reverse-plan apply is explicit and reuses the same local forward cal
  assert.match(s,/goalPlan=plan;\s*if\(goalApply\)goalApply\.hidden=false;/);
  assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 });
+
+test('F338: scenario comparison is semantic, fully local and shares the same rounded model',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ for(const label of [
+  'Comparar os três cenários','Compare the three scenarios',
+  'Comparar los tres escenarios'
+ ])assert.ok(s.includes(label),label);
+ assert.match(s,/<table>[\s\S]*?<caption>\{t\.compareTitle\}<\/caption>/);
+ assert.match(s,/class="funnel-compare-scroll" tabindex="0" role="region" aria-label=\{t\.compareTitle\}/);
+ assert.match(s,/<th scope="col">\{t\.leads\}<\/th>/);
+ assert.match(s,/<th scope="row">\{name\}<\/th>/);
+ assert.match(s,/data-growth-compare-row=\{code\}/);
+ assert.match(s,/const values=estimate\.scenarios\[choice\];/);
+ assert.match(s,/leads\.textContent=fmt\(values\.leads\)/);
+ assert.match(s,/customers\.textContent=fmt\(values\.customers\)/);
+ assert.match(s,/row\.setAttribute\('data-current',String\(choice===code\)\)/);
+ const sample=buildGrowthPotential({weeklyVisits:100,scenario:'reference'});
+ assert.deepEqual(Object.fromEntries(Object.entries(sample.scenarios).map(([code,x])=>[
+  code,{leads:x.leads,customers:x.customers}
+ ])),{
+  conservative:{leads:8,customers:1},
+  reference:{leads:16,customers:3},
+  optimistic:{leads:24,customers:7}
+ });
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
