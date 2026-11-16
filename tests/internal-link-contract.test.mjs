@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sitePages} from '../src/data/services.mjs';
+import {encodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
 import {auditCuratedInternalLinks as audit}
   from '../src/lib/internal-link-contract.mjs';
 
@@ -47,4 +48,19 @@ test('F143 does not print private link contents to thrown errors',()=>{
   }catch(error){
     assert.doesNotMatch(String(error),/PERSONAL-SECRET-F143/);
   }
+});
+
+test('F334 F143 permits only canonical allowlisted contact briefing fragments',()=>{
+ const approved='/contato/'+encodeCuratedBriefingFragment('','','','contatos');
+ const report=audit(html([approved]),routes);
+ assert.equal(report.checkedLinks,1);
+ for(const invalid of [
+  '/contato/#briefing:~:~:~:arbitrary',
+  '/contato/#briefing:~:~:~:contatos:extra',
+  '/contato/#briefing:%7E:~:~:contatos',
+  '/contato/#briefing:~:~:~:contatos%0A',
+  '/servicos/#briefing:~:~:~:contatos',
+  '/en/contact/#briefing:~:~:~:contatos',
+  '/contato/#briefing:~:~:~:contatos?track=1'
+ ])assert.throws(()=>audit(html([invalid]),routes),undefined,invalid);
 });
