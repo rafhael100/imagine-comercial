@@ -92,10 +92,28 @@ try {
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'8');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'1');
     await funnel.locator('[data-growth-scenario][value=optimistic]').check();
+    assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false,
+      'F332: previous scenario results must disappear before recalculation');
+    assert.equal(await funnel.locator('[data-funnel-leads]').isVisible(),false);
     await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'24');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'7');
+    // F333: the voluntary clipboard summary must disclose its assumptions.
+    // Stub only the browser clipboard, without requests or private information.
+    await quickPage.evaluate(()=>{
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+        writeText:async text=>{globalThis.__funnelCopiedSummary=text;}
+      }});
+    });
+    await funnel.locator('[data-growth-copy]').click();
+    const copiedSummary=await quickPage.evaluate(()=>globalThis.__funnelCopiedSummary);
+    assert.match(copiedSummary,/Cenário: Otimista/);
+    assert.match(copiedSummary,/Clientes potenciais: 7/);
+    assert.equal(await funnel.locator('[data-growth-copied]').isVisible(),true);
     await funnel.locator('[data-growth-weekly]').fill('100001');
+    assert.equal(await funnel.locator('[data-growth-copied]').isVisible(),false,
+      'F332: changing the input must invalidate copied status');
+    assert.equal(await funnel.locator('[data-funnel-visits]').isVisible(),false);
     await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-error]').isVisible(),true);
     assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false);
@@ -213,6 +231,24 @@ try {
           assert.equal(await localizedFunnel.locator('[data-growth-monthly]').textContent(),'400');
           assert.equal(await localizedFunnel.locator('[data-growth-leads]').textContent(),'16');
           assert.equal(await localizedFunnel.locator('[data-growth-customers]').textContent(),'3');
+          await localizedFunnel.locator('[data-growth-sector]').selectOption('retail');
+          assert.equal(await localizedFunnel.locator('[data-growth-results]').isVisible(),false,
+            lang+': changing sector invalidates stale results');
+          await localizedFunnel.locator('[data-growth-scenario][value=optimistic]').check();
+          await localizedFunnel.locator('[data-growth-calculate]').click();
+          assert.equal(await localizedFunnel.locator('[data-growth-leads]').textContent(),'24');
+          assert.equal(await localizedFunnel.locator('[data-growth-customers]').textContent(),'7');
+          await p.evaluate(()=>{
+            Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+              writeText:async text=>{globalThis.__localizedFunnelSummary=text;}
+            }});
+          });
+          await localizedFunnel.locator('[data-growth-copy]').click();
+          const localizedSummary=await p.evaluate(()=>globalThis.__localizedFunnelSummary);
+          assert.ok(localizedSummary.includes(lang==='en'?'Scenario: Optimistic':'Escenario: Optimista'),
+            lang+': voluntary copy must disclose the selected scenario');
+          assert.ok(localizedSummary.includes(lang==='en'?'Potential customers: 7':'Clientes potenciales: 7'),
+            lang+': voluntary copy must contain the current estimate');
           const expectedContact='/'+lang+'/contact/';
           assert.equal(await localizedFunnel.locator('.funnel-cta-row .cta').getAttribute('href'),expectedContact);
           assert.equal(await localizedFunnel.locator('input[type=email],input[type=tel]').count(),0);
