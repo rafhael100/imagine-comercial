@@ -6,6 +6,7 @@
  */
 import assert from 'node:assert/strict';
 import {anchorOpeningTags,requiredAnchorHref} from './html-anchor-reader.mjs';
+import {decodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
 
 const ROOT_ROUTE=/^\/(?:[a-z0-9-]+\/)*$/;
 const SAFE_FRAGMENT=/^[A-Za-z0-9_:-]+$/;
@@ -37,8 +38,18 @@ export function auditCuratedInternalLinks(html,availableRoutes){
       const [pathname,fragment]=href.split('#');
       assert.match(pathname,ROOT_ROUTE,'F143: noncanonical internal URL');
       assert.ok(approved.has(pathname),'F143: internal link points to missing public route');
-      if(fragment!==undefined)assert.match(fragment,SAFE_FRAGMENT,
-        'F143: invalid internal fragment');
+      if(fragment!==undefined){
+        // F334: the established contact-briefing codec uses '~' placeholders.
+        // Accept ONLY canonical reviewed public-only states on the PT contact
+        // route. Every other fragment retains the restrictive F143 grammar.
+        if(fragment.startsWith('briefing:')){
+          assert.ok(pathname==='/contato/'&&
+            decodeCuratedBriefingFragment('#'+fragment)!==null,
+            'F143: unreviewed contact briefing fragment');
+        }else{
+          assert.match(fragment,SAFE_FRAGMENT,'F143: invalid internal fragment');
+        }
+      }
     }else{
       assert.match(href,EXTERNAL,'F143: unsupported or relative link scheme');
     }
