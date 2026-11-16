@@ -14,6 +14,7 @@ import {comparisonOptions} from '../data/service-comparison.mjs';
 import {encodeReviewedComparisonFragment} from '../data/reviewed-comparison-fragment.mjs';
 import {guideGoals} from './public-service-guide.mjs';
 import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
+import {decodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
 
 const reviewedGoalHashes=new Set(guideGoals.map(goal=>
   encodeReviewedGoalFragment(goal.code).slice(1)));
@@ -59,7 +60,13 @@ export function auditCrossPageFragmentTargets(pages){
       assert.equal(parts.length,2,'F148: ambiguous URL fragment');
       const [path,fragment]=parts;
       assert.match(path,ROUTE,'F148: invalid destination path');
-      assert.match(fragment,FRAGMENT,'F148: invalid destination fragment');
+      // F335: the existing public-only contact codec uses '~' only for
+      // empty curated fields. Accept it ONLY after exact codec validation.
+      const reviewedContactBriefing=path==='/contato/'&&
+        fragment.startsWith('briefing:')&&
+        decodeCuratedBriefingFragment('#'+fragment)!==null;
+      assert.ok(FRAGMENT.test(fragment)||reviewedContactBriefing,
+        'F148: invalid destination fragment');
       assert.ok(destinations.has(path),'F148: cross-page route missing');
       if(path===entry.path){
         // F147 independently validates same-page links.
@@ -71,11 +78,11 @@ export function auditCrossPageFragmentTargets(pages){
       const isCuratedComparison=path==='/comparar-solucoes/' &&
         reviewedComparisonHashes.has(fragment);
       const isCuratedGoal=path==='/servicos/'&&reviewedGoalHashes.has(fragment);
-      assert.ok(exists||isCuratedContactIntent||isCuratedComparison||isCuratedGoal,
+      assert.ok(exists||isCuratedContactIntent||reviewedContactBriefing||isCuratedComparison||isCuratedGoal,
         'F148: cross-page fragment is neither a real ID nor approved reviewed intent');
       checked++;
       if(exists)semanticTargets++;
-      else if(isCuratedContactIntent)approvedContactIntents++;
+      else if(isCuratedContactIntent||reviewedContactBriefing)approvedContactIntents++;
       else approvedOtherCuratedIntents++;
     }
   }
