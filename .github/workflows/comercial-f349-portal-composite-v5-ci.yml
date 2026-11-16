@@ -1,0 +1,58 @@
+name: Comercial F349 - PHP Portal V5 composite catalog 48-choice parity lab
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/comercial-f349-portal-composite-v5-ci.yml'
+      - 'ops/review/purchase/test-portal-v5-composite-php-parity.mjs'
+      - 'src/lib/commercial-choice-preview.mjs'
+      - 'src/lib/public-portal-checkout-readiness.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pinned-portal-composite-php:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      APP_ENV: testing
+      PAYMENTS_ENABLED: 'false'
+    steps:
+      - name: Checkout exact Comercial review HEAD
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: comercial
+          persist-credentials: false
+      - name: Checkout immutable Portal composite PHP lab (NO PSP)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-portal
+          ref: e72f86bf93779590a49941a7a7940781be54c7e3
+          path: portal
+          persist-credentials: false
+      - name: Verify pinned Portal composite source and no history drift
+        run: |
+          set -euo pipefail
+          test "$(git -C portal rev-parse HEAD)" = e72f86bf93779590a49941a7a7940781be54c7e3
+      - name: Setup Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+      - name: Check PHP minimum and syntax
+        run: |
+          set -euo pipefail
+          php -r 'if(PHP_VERSION_ID < 80300)exit(1);'
+          php -l portal/apps/portal/app/Homologation/Commerce/CompositeQuotePreview.php
+          node --check comercial/ops/review/purchase/test-portal-v5-composite-php-parity.mjs
+      - name: Execute 48 anonymous PHP quotes plus 18 adversarial rejects
+        run: |
+          set -euo pipefail
+          php portal/apps/portal/tools/test_composite_quote_preview.php
+          node comercial/ops/review/purchase/test-portal-v5-composite-php-parity.mjs portal
+      - name: Confirm all workspaces are unchanged
+        if: always()
+        run: |
+          set -euo pipefail
+          test -z "$(git -C comercial status --porcelain --untracked-files=no)"
+          test -z "$(git -C portal status --porcelain --untracked-files=no)"
+          echo 'F349 PHP composite parity is LAB-ONLY. NO GO, no PSP, no multi-item cart, no customer data.' >> "$GITHUB_STEP_SUMMARY"
