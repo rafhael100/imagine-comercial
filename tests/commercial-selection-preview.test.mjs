@@ -107,3 +107,54 @@ test('F324 selection and public calculator share one approved policy for Google/
  assert.equal(estimate.activationCents,publicEstimate.oneTimeActivationCents);
  assert.equal(estimate.plannedMediaPaidToPlatformsCents,publicEstimate.suggestedMediaCents);
 });
+
+test('F342 refuses hidden fields or accessors in public commercial budget selection',()=>{
+ const good={offer:'onepage'};
+ assert.equal(previewCommercialSelection(good).setupCents,99000);
+ assert.equal(previewCommercialSelection(Object.assign(Object.create(null),good)).setupCents,99000);
+ let reads=0;
+ const accessor={};
+ Object.defineProperty(accessor,'offer',{enumerable:true,
+  get(){reads++;throw Error('PRIVATE-GETTER-DO-NOT-RUN');}});
+ assert.throws(()=>previewCommercialSelection(accessor),/F324: Invalid selection/);
+ assert.equal(reads,0);
+ const hidden={offer:'onepage'};
+ Object.defineProperty(hidden,'customerEmail',{value:'PRIVATE-CUSTOMER@example.invalid'});
+ assert.throws(()=>previewCommercialSelection(hidden),/F324:/);
+ const symbol={offer:'onepage'};
+ symbol[Symbol('tenantToken')]='PRIVATE';
+ assert.throws(()=>previewCommercialSelection(symbol),/F324:/);
+ const inherited=Object.create({offer:'onepage'});
+ assert.throws(()=>previewCommercialSelection(inherited),/F324:/);
+ const performanceAccessor={offer:'performance'};
+ Object.defineProperty(performanceAccessor,'channels',{enumerable:true,
+  get(){reads++;return {google_ads:100000};}});
+ assert.throws(()=>previewCommercialSelection(performanceAccessor),/F324:/);
+ assert.equal(reads,0);
+});
+
+test('F342 rejects nested hidden budget data, accessors and symbol tenant metadata',()=>{
+ let reads=0;
+ const getterChannels={};
+ Object.defineProperty(getterChannels,'google_ads',{enumerable:true,
+  get(){reads++;throw Error('PRIVATE-FINANCIAL-GETTER');}});
+ assert.throws(()=>previewCommercialSelection({
+  offer:'performance',channels:getterChannels
+ }),/F324:/);
+ assert.equal(reads,0);
+ const hidden={google_ads:100000};
+ Object.defineProperty(hidden,'tenantId',{value:'PRIVATE-TENANT'});
+ assert.throws(()=>previewCommercialSelection({offer:'performance',channels:hidden}),/F324:/);
+ const token={meta_ads:70000};
+ token[Symbol('paymentInstruction')]='PRIVATE';
+ assert.throws(()=>previewCommercialSelection({offer:'performance',channels:token}),/F324:/);
+ const inherited=Object.create({google_ads:100000});
+ assert.throws(()=>previewCommercialSelection({offer:'performance',channels:inherited}),/F324:/);
+ const frozen=Object.freeze({google_ads:100000,meta_ads:70000});
+ const valid=previewCommercialSelection(Object.freeze({
+  offer:'performance',channels:frozen
+ }));
+ assert.equal(valid.plannedMediaPaidToPlatformsCents,170000);
+ assert.equal(valid.estimatedMonthlyManagementCents,37000);
+ assert.equal(valid.checkoutAuthorized,false);
+});
