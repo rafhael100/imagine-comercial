@@ -218,3 +218,20 @@ test('F336: invalid reverse goals and unreviewed scenarios fail closed',()=>{
  assert.match(s,/goalOutput\.textContent=fillGoal/);
  assert.doesNotMatch(s,/<form\b|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 });
+
+test('F337: reverse-plan apply is explicit and reuses the same local forward calculation',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ for(const label of [
+  'Aplicar visitas à simulação','Use these visits in the simulator',
+  'Usar estas visitas en la simulación',
+  'data-growth-goal-apply hidden','goalPlan=null;'
+ ])assert.ok(s.includes(label),label);
+ assert.match(s,/goalApply\?\.addEventListener\('click',\(\)=>\{/);
+ assert.match(s,/if\(!goalPlan\|\|!goalInput\|\|goalApply\.hidden\)return/);
+ assert.match(s,/current!==goalPlan\.scenario\|\|Number\(goalInput\.value\)!==goalPlan\.monthlyCustomerGoal/);
+ assert.match(s,/input\.value=String\(weekly\);/);
+ assert.match(s,/input\.dispatchEvent\(new Event\('input',\{bubbles:true\}\)\);/);
+ assert.match(s,/form\.querySelector\('\[data-growth-calculate\]'\)\?\.click\(\)/);
+ assert.match(s,/goalPlan=plan;\s*if\(goalApply\)goalApply\.hidden=false;/);
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
