@@ -1,0 +1,102 @@
+name: Comercial F353 - real Portal PHP composite + PG18 tenant concurrency cross-repo
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/comercial-f353-portal-pg18-interoperability-ci.yml'
+      - 'docs/COMERCIAL-F353-PG18-PORTAL-CROSSREPO-LAB.md'
+      - 'ops/review/purchase/test-portal-v5-composite-php-parity.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pinned-comercial-portal-pg18:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: f350-disposable-admin-only
+          POSTGRES_DB: portal_composite_f350_ci
+        ports:
+          - '127.0.0.1:5432:5432'
+        options: >-
+          --health-cmd "pg_isready -U postgres -d portal_composite_f350_ci"
+          --health-interval 5s
+          --health-timeout 4s
+          --health-retries 12
+    env:
+      APP_ENV: testing
+      PAYMENTS_ENABLED: 'false'
+      PORTAL_F350_DISPOSABLE: LOCAL_127_0_0_1_ONLY
+      PORTAL_F351_DISPOSABLE: LOCAL_SYNTHETIC_WRITER_ONLY
+      PORTAL_F352_DISPOSABLE: SYNTHETIC_CONCURRENT_ONLY
+      PGHOST: '127.0.0.1'
+      PGPORT: '5432'
+      PGDATABASE: portal_composite_f350_ci
+      PGUSER: postgres
+      PGPASSWORD: f350-disposable-admin-only
+    steps:
+      - name: Checkout exact Comercial PR HEAD with no persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: comercial
+          persist-credentials: false
+      - name: Checkout exact Portal F352 concurrency candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-portal
+          ref: 6ac1be6a543218c880ebd411b15c8c3a83dacb81
+          path: portal
+          persist-credentials: false
+      - name: Verify fixed Portal revision and actual isolated PostgreSQL identity
+        run: |
+          set -euo pipefail
+          test "$(git -C portal rev-parse HEAD)" = 6ac1be6a543218c880ebd411b15c8c3a83dacb81
+          test "$PGHOST" = 127.0.0.1
+          test "$PGDATABASE" = portal_composite_f350_ci
+          test "$(psql -X -A -t -v ON_ERROR_STOP=1 -c 'SELECT current_database()')" = portal_composite_f350_ci
+          test "$(psql -X -A -t -v ON_ERROR_STOP=1 -c "SELECT current_setting('server_version_num')::int >= 180000")" = t
+      - name: Setup Node 22 and PHP 8.3
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+      # Use the PHP 8.3+ and PDO_PGSQL already available on Ubuntu 24.04.
+      # F35 permits only reviewed checkout/setup-node/upload-artifact actions;
+      # never weaken the global action SHA allowlist for a single lab test.
+      - name: PHP 8.3+ preflight
+        run: |
+          set -euo pipefail
+          php -r 'if(PHP_VERSION_ID < 80300||!extension_loaded("pdo_pgsql"))exit(1);'
+          php -l portal/apps/portal/labs/composite-cart-f352/test_real_concurrent_idempotency_pg18.php
+          node --check comercial/ops/review/purchase/test-portal-v5-composite-php-parity.mjs
+      - name: Compare all 48 public marketing choices to server-side Portal PHP
+        run: |
+          set -euo pipefail
+          php portal/apps/portal/tools/test_composite_quote_preview.php
+          node comercial/ops/review/purchase/test-portal-v5-composite-php-parity.mjs portal
+      - name: Prepare exact disposable PG18 tenant RLS roles
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -c "CREATE ROLE f350_tenant_a_reader LOGIN PASSWORD 'f350-disposable-a-only' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS"
+          psql -X -v ON_ERROR_STOP=1 -c "CREATE ROLE f350_tenant_b_reader LOGIN PASSWORD 'f350-disposable-b-only' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS"
+          psql -X -v ON_ERROR_STOP=1 -c "GRANT CONNECT ON DATABASE portal_composite_f350_ci TO f350_tenant_a_reader,f350_tenant_b_reader"
+          psql -X -v ON_ERROR_STOP=1 -f portal/apps/portal/labs/composite-cart-f350/tenant_reader_rls_pg18.sql
+          psql -X -v ON_ERROR_STOP=1 -f portal/apps/portal/labs/composite-cart-f351/idempotent_drafts_pg18.sql
+      - name: Verify real cross-tenant isolation and concurrent request replay
+        run: |
+          set -euo pipefail
+          php portal/apps/portal/labs/composite-cart-f352/test_real_concurrent_idempotency_pg18.php
+      - name: Revoke synthetic roles and remove all SQL fixtures
+        if: always()
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -c 'DROP SCHEMA IF EXISTS composite_cart_f350 CASCADE'
+          psql -X -v ON_ERROR_STOP=1 -c 'REVOKE CONNECT ON DATABASE portal_composite_f350_ci FROM f350_tenant_a_reader,f350_tenant_b_reader'
+          psql -X -v ON_ERROR_STOP=1 -c 'DROP ROLE IF EXISTS f350_tenant_a_reader'
+          psql -X -v ON_ERROR_STOP=1 -c 'DROP ROLE IF EXISTS f350_tenant_b_reader'
+          test -z "$(git -C comercial status --porcelain --untracked-files=no)"
+          test -z "$(git -C portal status --porcelain --untracked-files=no)"
+          echo 'F353 is cross-repo DEV only: NO Portal operational login, no PSP, no orders, no production release.' >> "$GITHUB_STEP_SUMMARY"
