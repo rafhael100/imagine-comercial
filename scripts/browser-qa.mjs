@@ -336,14 +336,15 @@ try {
             ? /6% of visits.*30% of leads.*4-week planning month/.test(localizedSummary)
             : /6% de visitas.*30% de leads.*4 semanas/.test(localizedSummary),
             lang+': copied estimate must include hypothetical percentages and 4 weeks');
-          // F340: rate transparency alone is not enough; communicate the
-          // uncertainty range before any optional customer conversation.
+          // F340: the copied snapshot still reflects the original 100
+          // weekly visits; the reverse-goal plan is applied only later.
+          const copiedScenarios=buildGrowthPotential({weeklyVisits:100,scenario:'optimistic'});
           const nf=new Intl.NumberFormat(lang==='en'?'en-US':'pt-BR');
           const expectedRange=lang==='en'
-            ? 'Leads from '+nf.format(allScenarios.leadsRange[0])+' to '+nf.format(allScenarios.leadsRange[1])+
-              '; customers from '+nf.format(allScenarios.customersRange[0])+' to '+nf.format(allScenarios.customersRange[1])
-            : 'Leads de '+nf.format(allScenarios.leadsRange[0])+' a '+nf.format(allScenarios.leadsRange[1])+
-              '; clientes de '+nf.format(allScenarios.customersRange[0])+' a '+nf.format(allScenarios.customersRange[1]);
+            ? 'Leads from '+nf.format(copiedScenarios.leadsRange[0])+' to '+nf.format(copiedScenarios.leadsRange[1])+
+              '; customers from '+nf.format(copiedScenarios.customersRange[0])+' to '+nf.format(copiedScenarios.customersRange[1])
+            : 'Leads de '+nf.format(copiedScenarios.leadsRange[0])+' a '+nf.format(copiedScenarios.leadsRange[1])+
+              '; clientes de '+nf.format(copiedScenarios.customersRange[0])+' a '+nf.format(copiedScenarios.customersRange[1]);
           assert.ok(localizedSummary.includes(expectedRange),lang+': copied summary must include scenario range');
           assert.ok(lang==='en'
             ? /6% of visits.*30% of leads/.test(await localizedFunnel.locator('[data-growth-assumptions]').textContent())
