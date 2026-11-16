@@ -377,6 +377,11 @@ const initialAssumptions=t.assumptions
    const revision=estimateRevision;
    const sectorLabel=sector.selectedOptions[0]?.textContent?.trim()||'';
    const scenarioLabel=form.querySelector('[data-growth-scenario]:checked')?.parentElement?.textContent?.trim()||'';
+   // The recipient also sees the full hypothetical range, so one selected
+   // scenario is not misread as a probable or guaranteed outcome.
+   const scenarioRange=t.range
+    .replace('{l}',fmt(last.leadsRange[0])).replace('{h}',fmt(last.leadsRange[1]))
+    .replace('{a}',fmt(last.customersRange[0])).replace('{b}',fmt(last.customersRange[1]));
    const message=[
     t.sector+': '+sectorLabel,
     t.scenario+': '+scenarioLabel,
@@ -384,6 +389,7 @@ const initialAssumptions=t.assumptions
     t.monthly+': '+fmt(last.monthlyVisits),
     t.leads+': '+fmt(last.leads),
     t.customers+': '+fmt(last.customers),
+    scenarioRange,
     assumptionsText(last),
     t.warning
    ].join('\n');
