@@ -14,7 +14,9 @@ const allowed=Object.freeze([
   new Set(['',...briefingPriorities.map(x=>x.code)])
 ]);
 const prefix='#briefing:';
-// ':~:' is the Chromium text-fragment directive separator. Never embed it\n// in a public navigation fragment, or the browser hides trailing state.\nconst token=value=>value===''?'_':value;
+// ':~:' is the Chromium text-fragment directive separator. Never embed it
+// in a public navigation fragment, or the browser hides trailing state.
+const token=value=>value===''?'_':value;
 
 export function encodeCuratedBriefingFragment(
   service='',objective='',stage='',priority=''
