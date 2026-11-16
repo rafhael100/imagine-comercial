@@ -161,9 +161,11 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
   const fmt=n=>new Intl.NumberFormat(locale==='en'?'en-US':'pt-BR',{maximumFractionDigits:0}).format(n);
   const label=(selector,value)=>{const node=root.querySelector(selector);if(node)node.textContent=value;};
   let last=null;
+  let estimateRevision=0;
   // Results must never describe inputs that have since changed. Require a new
   // explicit calculation before displaying or copying a different scenario.
   const invalidateEstimate=()=>{
+   estimateRevision++;
    last=null;
    output.hidden=true;
    copyStatus.hidden=true;
@@ -194,6 +196,7 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
    try{estimate=buildGrowthPotential({weeklyVisits:weekly,sector:sector.value,scenario:code});}
    catch{error.hidden=false;error.textContent=t.invalid;output.hidden=true;last=null;return;}
    error.hidden=true;
+   estimateRevision++;
    last=estimate;
    output.hidden=false;
    copyStatus.hidden=true;
@@ -219,6 +222,7 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
   // Explicit user click: optional clipboard copy only, no network and no PII.
   root.querySelector('[data-growth-copy]')?.addEventListener('click',async()=>{
    if(!last)return;
+   const revision=estimateRevision;
    const sectorLabel=sector.selectedOptions[0]?.textContent?.trim()||'';
    const scenarioLabel=form.querySelector('[data-growth-scenario]:checked')?.parentElement?.textContent?.trim()||'';
    const message=[
@@ -233,11 +237,13 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
    try{
     if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
     await navigator.clipboard.writeText(message);
+    if(revision!==estimateRevision)return;
     copyStatus.textContent=t.copied;
    }catch{
+    if(revision!==estimateRevision)return;
     copyStatus.textContent=t.fail;
    }
-   copyStatus.hidden=false;
+   if(revision===estimateRevision)copyStatus.hidden=false;
   });
  }
 </script>
