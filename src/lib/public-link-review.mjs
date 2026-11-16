@@ -91,7 +91,7 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[],approvedPort
         }else if(url.pathname==='/contato/' &&
                   decodeCuratedBriefingFragment(url.hash)!==null) {
           // A canonical public-only briefing, never a free-form hash or PII.
-        }else if(url.pathname==='/ && fragment==='simular-compra') {
+        }else if(url.pathname==='/' && fragment==='simular-compra') {
           // Only the exact existing reviewed simulator section in the home.
         }else if(url.pathname==='/servicos/' &&
                   approvedGoalHashes.has(fragment)) {
