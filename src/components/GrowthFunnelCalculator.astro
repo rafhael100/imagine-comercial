@@ -35,7 +35,7 @@ const copy={
  goalReached:'No cenário {scenario}, a simulação arredondada de {target} clientes/mês começa em cerca de {weekly} visitas/semana ({monthly} visitas/mês). Isso não é promessa de vendas.',
  goalUnreachable:'A meta ilustrativa supera os {max} clientes/mês calculados para o limite de {cap} visitas/semana neste cenário. Não há resultado dentro do limite da calculadora.',
  goalApply:'Aplicar visitas à simulação',
- compareTitle:'Comparar os três cenários',compareNote:'A mesma quantidade de visitas é aplicada às três hipóteses fictícias, sem representar médias de mercado.',
+ compareTitle:'Comparar os três cenários',compareNote:'A mesma quantidade de visitas é aplicada às três hipóteses fictícias, sem representar médias de mercado.',compareLeadRate:'Visitas → leads',compareCloseRate:'Leads → clientes',
  },
  en:{
  eyebrow:'EXPLORE YOUR FUNNEL',title:'From visits to opportunities.',
@@ -61,7 +61,7 @@ const copy={
  goalReached:'With the {scenario} scenario, the rounded illustration first reaches {target} customers/month at about {weekly} visits/week ({monthly} visits/month). This does not promise sales.',
  goalUnreachable:'The illustrative target exceeds {max} customers/month at the limit of {cap} visits/week in this scenario. No result exists within calculator limits.',
  goalApply:'Use these visits in the simulator',
- compareTitle:'Compare the three scenarios',compareNote:'The same traffic volume is applied to all three hypothetical assumptions, not to industry averages.',
+ compareTitle:'Compare the three scenarios',compareNote:'The same traffic volume is applied to all three hypothetical assumptions, not to industry averages.',compareLeadRate:'Visits → leads',compareCloseRate:'Leads → customers',
  },
  es:{
  eyebrow:'EXPLORA TU EMBUDO',title:'De visitas a oportunidades.',
@@ -87,7 +87,7 @@ const copy={
  goalReached:'En el escenario {scenario}, el ejercicio redondeado alcanza {target} clientes/mes desde aproximadamente {weekly} visitas/semana ({monthly} visitas/mes). No garantiza ventas.',
  goalUnreachable:'La meta ilustrativa supera los {max} clientes/mes para el límite de {cap} visitas/semana en este escenario. No existe un resultado dentro del límite.',
  goalApply:'Usar estas visitas en la simulación',
- compareTitle:'Comparar los tres escenarios',compareNote:'Se usa el mismo volumen de visitas en las tres hipótesis ficticias; no son promedios del mercado.',
+ compareTitle:'Comparar los tres escenarios',compareNote:'Se usa el mismo volumen de visitas en las tres hipótesis ficticias; no son promedios del mercado.',compareLeadRate:'Visitas → leads',compareCloseRate:'Leads → clientes',
  }
 } as const;
 const t=copy[locale];
@@ -176,10 +176,10 @@ const initialAssumptions=t.assumptions
     <div class="funnel-compare-scroll" tabindex="0" role="region" aria-label={t.compareTitle}>
      <table>
       <caption>{t.compareTitle}</caption>
-      <thead><tr><th scope="col">{t.scenario}</th><th scope="col">{t.leads}</th><th scope="col">{t.customers}</th></tr></thead>
+      <thead><tr><th scope="col">{t.scenario}</th><th scope="col">{t.compareLeadRate}</th><th scope="col">{t.compareCloseRate}</th><th scope="col">{t.leads}</th><th scope="col">{t.customers}</th></tr></thead>
       <tbody>
        {Object.entries(t.scenarios).map(([code,name])=><tr data-growth-compare-row={code}>
-        <th scope="row">{name}</th><td data-growth-compare-leads>—</td><td data-growth-compare-customers>—</td>
+        <th scope="row">{name}</th><td data-growth-compare-lead-rate>—</td><td data-growth-compare-close-rate>—</td><td data-growth-compare-leads>—</td><td data-growth-compare-customers>—</td>
        </tr>)}
       </tbody>
      </table>
@@ -346,6 +346,10 @@ const initialAssumptions=t.assumptions
     const row=root.querySelector('[data-growth-compare-row="'+choice+'"]');
     const values=estimate.scenarios[choice];
     if(!row||!values)continue;
+    const leadRate=row.querySelector('[data-growth-compare-lead-rate]');
+    const closeRate=row.querySelector('[data-growth-compare-close-rate]');
+    if(leadRate)leadRate.textContent=String(values.leadRatePercent)+'%';
+    if(closeRate)closeRate.textContent=String(values.closeRatePercent)+'%';
     const leads=row.querySelector('[data-growth-compare-leads]');
     const customers=row.querySelector('[data-growth-compare-customers]');
     if(leads)leads.textContent=fmt(values.leads);
@@ -456,7 +460,7 @@ const initialAssumptions=t.assumptions
  .funnel-compare>p{font-size:.78rem;line-height:1.5;color:#4e5d48;margin:7px 0}
  .funnel-compare-scroll{overflow-x:auto}
  .funnel-compare-scroll:focus-visible{outline:3px solid #b25b00;outline-offset:2px}
- .funnel-compare table{border-collapse:collapse;text-align:left;width:100%;min-width:360px;font-size:.79rem}
+ .funnel-compare table{border-collapse:collapse;text-align:left;width:100%;min-width:560px;font-size:.79rem}
  .funnel-compare caption{text-align:left;color:#40543c;margin:8px 0;font-weight:700}
  .funnel-compare th,.funnel-compare td{padding:10px;border-bottom:1px solid #e4eade}
  .funnel-compare th[scope="col"]{font-weight:700;color:#394d33}
