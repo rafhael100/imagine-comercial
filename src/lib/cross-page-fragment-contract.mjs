@@ -14,6 +14,7 @@ import {comparisonOptions} from '../data/service-comparison.mjs';
 import {encodeReviewedComparisonFragment} from '../data/reviewed-comparison-fragment.mjs';
 import {guideGoals} from './public-service-guide.mjs';
 import {encodeReviewedGoalFragment} from '../data/reviewed-goal-fragment.mjs';
+import {decodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
 
 const reviewedGoalHashes=new Set(guideGoals.map(goal=>
   encodeReviewedGoalFragment(goal.code).slice(1)));
@@ -59,7 +60,16 @@ export function auditCrossPageFragmentTargets(pages){
       assert.equal(parts.length,2,'F148: ambiguous URL fragment');
       const [path,fragment]=parts;
       assert.match(path,ROUTE,'F148: invalid destination path');
-      assert.match(fragment,FRAGMENT,'F148: invalid destination fragment');
+      const approvedBriefing=path==='/contato/'&&
+        decodeCuratedBriefingFragment('#'+fragment)!==null;
+      // F334: only the reviewed contact codec can carry '~' placeholders.
+      // Reject unknown briefing tokens even when they otherwise match the
+      // historic alphanumeric F148 fragment grammar.
+      if(fragment.startsWith('briefing:')){
+        assert.ok(approvedBriefing,'F148: unreviewed contact briefing fragment');
+      }else{
+        assert.match(fragment,FRAGMENT,'F148: invalid destination fragment');
+      }
       assert.ok(destinations.has(path),'F148: cross-page route missing');
       if(path===entry.path){
         // F147 independently validates same-page links.
@@ -67,7 +77,7 @@ export function auditCrossPageFragmentTargets(pages){
       }
       const exists=destinations.get(path).has(fragment);
       const isCuratedContactIntent=path==='/contato/' &&
-        serviceSlugs.has(fragment);
+        (serviceSlugs.has(fragment)||approvedBriefing);
       const isCuratedComparison=path==='/comparar-solucoes/' &&
         reviewedComparisonHashes.has(fragment);
       const isCuratedGoal=path==='/servicos/'&&reviewedGoalHashes.has(fragment);
