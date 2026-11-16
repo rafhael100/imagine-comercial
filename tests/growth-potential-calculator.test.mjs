@@ -1,0 +1,299 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {encodeCuratedBriefingFragment,decodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
+import {
+ buildGrowthPotential,GROWTH_SCENARIOS,GROWTH_SECTORS,
+ MAX_WEEKLY_VISITS,GROWTH_WEEKS_PER_MONTH,
+ MAX_MONTHLY_CUSTOMER_GOAL,planVisitsForCustomerGoal
+} from '../src/lib/growth-potential-calculator.mjs';
+const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
+
+test('F331: 100 weekly visits => 400 per four-week planning month',()=>{
+ const estimate=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:'reference'});
+ assert.equal(estimate.weeklyVisits,100);
+ assert.equal(estimate.monthlyVisits,400);
+ assert.equal(estimate.leads,16);
+ assert.equal(estimate.customers,3);
+ assert.deepEqual(estimate.leadsRange,[8,24]);
+ assert.deepEqual(estimate.customersRange,[1,7]);
+ assert.deepEqual(estimate.scenarios.conservative,{leadRatePercent:2,closeRatePercent:10,leads:8,customers:1});
+ assert.deepEqual(estimate.scenarios.reference,{leadRatePercent:4,closeRatePercent:20,leads:16,customers:3});
+ assert.deepEqual(estimate.scenarios.optimistic,{leadRatePercent:6,closeRatePercent:30,leads:24,customers:7});
+ assert.equal(GROWTH_WEEKS_PER_MONTH,4);
+ assert.equal(estimate.assumptionOnly,true);
+ assert.equal(estimate.actualPerformanceData,false);
+ assert.equal(estimate.customerDataStored,false);
+ assert.equal(estimate.realResultsGuaranteed,false);
+ assert.ok(Object.isFrozen(estimate));
+ assert.ok(Object.isFrozen(estimate.scenarios));
+ assert.ok(Object.isFrozen(estimate.leadsRange));
+});
+
+test('F331: all segments use the SAME illustrative math, not invented industry benchmarks',()=>{
+ for(const sector of GROWTH_SECTORS){
+  for(const scenario of Object.keys(GROWTH_SCENARIOS)){
+   const expected=buildGrowthPotential({weeklyVisits:250,sector:'services',scenario});
+   const actual=buildGrowthPotential({weeklyVisits:250,sector,scenario});
+   assert.equal(actual.leads,expected.leads);
+   assert.equal(actual.customers,expected.customers);
+   assert.deepEqual(actual.leadsRange,expected.leadsRange);
+   assert.deepEqual(actual.customersRange,expected.customersRange);
+  }
+ }
+});
+
+test('F331: valid zero, smaller and large volumes remain finite and monotone',()=>{
+ for(const scenario of Object.keys(GROWTH_SCENARIOS)){
+  const zero=buildGrowthPotential({weeklyVisits:0,scenario});
+  assert.equal(zero.leads,0);
+  assert.equal(zero.customers,0);
+  let lastLeads=0,lastClients=0;
+  for(const weeklyVisits of [1,10,100,1000,20000,MAX_WEEKLY_VISITS]){
+    const value=buildGrowthPotential({weeklyVisits,scenario});
+    assert.ok(Number.isSafeInteger(value.monthlyVisits));
+    assert.ok(value.leads>=lastLeads);
+    assert.ok(value.customers>=lastClients);
+    assert.ok(value.customers<=value.leads);
+    lastLeads=value.leads;lastClients=value.customers;
+  }
+ }
+});
+
+test('F331: strictly reject malformed or unexpected numeric and sector inputs',()=>{
+ for(const weeklyVisits of [-1,100001,2.5,NaN,Infinity,'100',null,undefined,{},[],Number.MAX_SAFE_INTEGER])
+  assert.throws(()=>buildGrowthPotential({weeklyVisits}));
+ for(const sector of ['finance','__proto__','','SERVICES',null,{},['services']])
+  assert.throws(()=>buildGrowthPotential({weeklyVisits:100,sector}));
+ for(const scenario of ['growth','constructor','__proto__','',null,{}])
+  assert.throws(()=>buildGrowthPotential({weeklyVisits:100,scenario}));
+});
+
+test('F331: only one funnel on each localized home, preserves approved GrowthPillars and choice simulator',()=>{
+ const pt=read('src/pages/index.astro');
+ const intl=read('src/components/InternationalSalesHome.astro');
+ assert.ok(pt.indexOf('<GrowthPillars variant="feature"')<pt.indexOf('<GrowthFunnelCalculator locale="pt-BR" />'));
+ assert.ok(pt.indexOf('<GrowthFunnelCalculator')<pt.indexOf('<QuickServiceRequest />'));
+ assert.equal((pt.match(/<GrowthFunnelCalculator/g)||[]).length,1);
+ assert.ok(intl.indexOf('<GrowthPillars variant="feature"')<intl.indexOf('<GrowthFunnelCalculator locale={locale} />'));
+ assert.equal((intl.match(/<GrowthFunnelCalculator/g)||[]).length,1);
+ assert.match(intl,/<CommercialChoicePreview locale=\{locale\}\/>/);
+});
+
+test('F331: calculator HTML and JS remain anonymous, accessible and non-submitting',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ for(const text of [
+  'data-growth-calculator','data-growth-form','data-growth-results',
+  'data-growth-weekly','data-growth-sector','data-growth-scenario',
+  'data-growth-copy','data-growth-copied','data-funnel-visits',
+  'data-funnel-leads','data-funnel-customers',
+  'aria-live="polite"','aria-atomic="true"','aria-labelledby',
+  "data-growth-calculate","navigator.clipboard.writeText",
+  "event.preventDefault()"
+ ])assert.ok(s.includes(text),text);
+ assert.match(s,/role="alert"/);
+ assert.match(s,/inputmode="numeric"/);
+ assert.match(s,/max="100000"/);
+ assert.doesNotMatch(s,/<form\b/);
+ assert.match(s,/id=\{\x27growth-weekly-\x27\+locale\}/);
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|document\.cookie|innerHTML|\bPOST\b/);
+ assert.doesNotMatch(s,/type="email"|name="email"|name="telefone"|name="cpf"/);
+ for(const marker of [
+  'Exercício matemático, não previsão',
+  'Arithmetic illustration, not a forecast',
+  'Ejercicio matemático, no pronóstico',
+  '4 semanas por mês',
+  '4 weeks per month',
+  '4 semanas por mes',
+  'não são médias de mercado'
+ ])assert.ok(s.includes(marker),marker);
+});
+
+test('F332: editing any funnel assumption invalidates visible and copyable results',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/const invalidateEstimate=\(\)=>\{/);
+ assert.match(s,/input\.addEventListener\('input',invalidateEstimate\)/);
+ assert.match(s,/sector\.addEventListener\('change',invalidateEstimate\)/);
+ assert.match(s,/radio\.addEventListener\('change',invalidateEstimate\)/);
+ assert.match(s,/last=null;\s*output\.hidden=true;\s*copyStatus\.hidden=true;/);
+ assert.match(s,/node\.hidden=true;node\.textContent='';/);
+ assert.match(s,/if\(!last\)return;/);
+});
+
+test('F333: optional copied summary names the selected illustrative scenario in each locale',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/const scenarioLabel=form\.querySelector\('\[data-growth-scenario\]:checked'\)/);
+ assert.match(s,/t\.scenario\+': '\+scenarioLabel/);
+ for(const label of ["scenario:'Cenário'","scenario:'Scenario'","scenario:'Escenario'"])
+  assert.ok(s.includes(label),label);
+ assert.match(s,/if\(!last\)return;/);
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
+
+test('F333: asynchronous clipboard completion cannot restore stale status after recalculation',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/let estimateRevision=0;/);
+ assert.match(s,/const invalidateEstimate=\(\)=>\{/);
+ assert.match(s,/if\(goalOutput\)goalOutput\.hidden=true;[\s\S]{0,140}estimateRevision\+\+;/);
+ assert.match(s,/estimateRevision\+\+;\s*last=estimate;/);
+ assert.match(s,/const revision=estimateRevision;/);
+ assert.match(s,/await navigator\.clipboard\.writeText\(message\);\s*if\(revision!==estimateRevision\)return;/);
+ assert.match(s,/if\(revision===estimateRevision\)copyStatus\.hidden=false;/);
+});
+
+test('F334: funnel-to-contact link carries only reviewed public briefing priority',()=>{
+ const target=encodeCuratedBriefingFragment('','','','contatos');
+ assert.equal(target,'#briefing:_:_:_:contatos');
+ assert.deepEqual(decodeCuratedBriefingFragment(target),{
+  service:'',objective:'',stage:'',priority:'contatos'
+ });
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/encodeCuratedBriefingFragment\('','','','contatos'\)/);
+ assert.match(s,/: intlPath\(locale,'contact'\)/);
+ assert.doesNotMatch(s,/URLSearchParams|document\.cookie|localStorage|sessionStorage|\bfetch\s*\(/);
+});
+
+test('F335: copied and displayed funnel results disclose actual illustrative percentages and planning period',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/data-growth-assumptions-template=\{t\.assumptions\}/);
+ assert.match(s,/data-growth-assumptions>\{initialAssumptions\}/);
+ assert.match(s,/rate=value\.scenarios\[value\.scenario\]/);
+ assert.match(s,/label\('\[data-growth-assumptions\]',assumptionsText\(estimate\)\)/);
+ assert.match(s,/assumptionsText\(last\),\s*t\.warning/);
+ for(const text of [
+  'não médias de mercado: {lead}%',
+  'not industry averages: {lead}%',
+  'no promedios del mercado: {lead}%',
+  '{close}%','4 semanas','4-week planning month'
+ ])assert.ok(s.includes(text),text);
+ const hypothetical=buildGrowthPotential({weeklyVisits:100,scenario:'optimistic'});
+ assert.deepEqual({
+  lead:hypothetical.scenarios.optimistic.leadRatePercent,
+  close:hypothetical.scenarios.optimistic.closeRatePercent
+ },{lead:6,close:30});
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
+
+test('F336: reverse planner finds minimum weekly visits for displayed rounded customer goal',()=>{
+ assert.equal(MAX_MONTHLY_CUSTOMER_GOAL,10000);
+ for(const scenario of Object.keys(GROWTH_SCENARIOS)){
+  for(const monthlyCustomerGoal of [0,1,2,10,100,800,10000]){
+   const plan=planVisitsForCustomerGoal({monthlyCustomerGoal,scenario});
+   assert.equal(plan.scenario,scenario);
+   assert.equal(plan.monthlyCustomerGoal,monthlyCustomerGoal);
+   assert.equal(plan.assumptionOnly,true);
+   assert.equal(plan.realResultsGuaranteed,false);
+   assert.ok(Object.isFrozen(plan));
+   if(!plan.reachable){
+    assert.equal(plan.weeklyCap,MAX_WEEKLY_VISITS);
+    assert.ok(plan.maxIllustratedCustomers<monthlyCustomerGoal);
+    continue;
+   }
+   assert.ok(plan.weeklyVisits>=0&&plan.weeklyVisits<=MAX_WEEKLY_VISITS);
+   const actual=buildGrowthPotential({weeklyVisits:plan.weeklyVisits,scenario});
+   assert.equal(plan.monthlyVisits,actual.monthlyVisits);
+   assert.equal(plan.leads,actual.leads);
+   assert.equal(plan.customers,actual.customers);
+   assert.ok(plan.customers>=monthlyCustomerGoal);
+   if(plan.weeklyVisits>0)assert.ok(
+    buildGrowthPotential({weeklyVisits:plan.weeklyVisits-1,scenario}).customers<monthlyCustomerGoal,
+    scenario+' goal '+monthlyCustomerGoal+': previous integer visit count must not suffice');
+  }
+ }
+ assert.equal(planVisitsForCustomerGoal({monthlyCustomerGoal:0}).weeklyVisits,0);
+ assert.equal(planVisitsForCustomerGoal({monthlyCustomerGoal:10000,scenario:'conservative'}).reachable,false);
+});
+
+test('F336: invalid reverse goals and unreviewed scenarios fail closed',()=>{
+ for(const monthlyCustomerGoal of [-1,10001,0.25,NaN,Infinity,'10',undefined,null,{},[],Number.MAX_SAFE_INTEGER]){
+  assert.throws(()=>planVisitsForCustomerGoal({monthlyCustomerGoal}));
+ }
+ for(const scenario of ['__proto__','constructor','growth','',null,{}]){
+  assert.throws(()=>planVisitsForCustomerGoal({monthlyCustomerGoal:10,scenario}));
+ }
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/id=\{'growth-goal-'\+locale\}/);
+ assert.match(s,/data-growth-goal-calculate/);
+ assert.match(s,/planVisitsForCustomerGoal\(\{monthlyCustomerGoal:requested,scenario:code\}\)/);
+ assert.match(s,/goalOutput\.textContent=fillGoal/);
+ assert.doesNotMatch(s,/<form\b|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
+
+test('F337: reverse-plan apply is explicit and reuses the same local forward calculation',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ for(const label of [
+  'Aplicar visitas à simulação','Use these visits in the simulator',
+  'Usar estas visitas en la simulación',
+  'data-growth-goal-apply hidden','goalPlan=null;'
+ ])assert.ok(s.includes(label),label);
+ assert.match(s,/goalApply\?\.addEventListener\('click',\(\)=>\{/);
+ assert.match(s,/if\(!goalPlan\|\|!goalInput\|\|goalApply\.hidden\)return/);
+ assert.match(s,/current!==goalPlan\.scenario\|\|Number\(goalInput\.value\)!==goalPlan\.monthlyCustomerGoal/);
+ assert.match(s,/input\.value=String\(weekly\);/);
+ assert.match(s,/input\.dispatchEvent\(new Event\('input',\{bubbles:true\}\)\);/);
+ assert.match(s,/form\.querySelector\('\[data-growth-calculate\]'\)\?\.click\(\)/);
+ assert.match(s,/goalPlan=plan;\s*if\(goalApply\)goalApply\.hidden=false;/);
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
+
+test('F338: scenario comparison is semantic, fully local and shares the same rounded model',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ for(const label of [
+  'Comparar os três cenários','Compare the three scenarios',
+  'Comparar los tres escenarios'
+ ])assert.ok(s.includes(label),label);
+ assert.match(s,/<table>[\s\S]*?<caption>\{t\.compareTitle\}<\/caption>/);
+ assert.match(s,/class="funnel-compare-scroll" tabindex="0" role="region" aria-label=\{t\.compareTitle\}/);
+ assert.match(s,/<th scope="col">\{t\.leads\}<\/th>/);
+ assert.match(s,/<th scope="row">\{name\}<\/th>/);
+ assert.match(s,/data-growth-compare-row=\{code\}/);
+ assert.match(s,/const values=estimate\.scenarios\[choice\];/);
+ assert.match(s,/leads\.textContent=fmt\(values\.leads\)/);
+ assert.match(s,/customers\.textContent=fmt\(values\.customers\)/);
+ assert.match(s,/row\.setAttribute\('data-current',String\(choice===code\)\)/);
+ const sample=buildGrowthPotential({weeklyVisits:100,scenario:'reference'});
+ assert.deepEqual(Object.fromEntries(Object.entries(sample.scenarios).map(([code,x])=>[
+  code,{leads:x.leads,customers:x.customers}
+ ])),{
+  conservative:{leads:8,customers:1},
+  reference:{leads:16,customers:3},
+  optimistic:{leads:24,customers:7}
+ });
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
+
+test('F339: every compared scenario discloses the actual hypothetical conversion rates',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ for(const text of [
+  "compareLeadRate:'Visitas → leads'", "compareCloseRate:'Leads → clientes'",
+  "compareLeadRate:'Visits → leads'", "compareCloseRate:'Leads → customers'",
+  "data-growth-compare-lead-rate", "data-growth-compare-close-rate"
+ ])assert.ok(s.includes(text),text);
+ assert.match(s,/leadRate\.textContent=String\(values\.leadRatePercent\)\+'%'/);
+ assert.match(s,/closeRate\.textContent=String\(values\.closeRatePercent\)\+'%'/);
+ const example=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:'reference'});
+ assert.deepEqual(Object.fromEntries(Object.entries(example.scenarios).map(([code,value])=>[
+  code,[value.leadRatePercent,value.closeRatePercent,value.leads,value.customers]
+ ])),{
+  conservative:[2,10,8,1],reference:[4,20,16,3],optimistic:[6,30,24,7]
+ });
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
+
+test('F340: copied funnel estimate includes the full modelled range, not only optimistic numbers',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/const scenarioRange=t\.range/);
+ for(const expression of [
+  "fmt(last.leadsRange[0])","fmt(last.leadsRange[1])",
+  "fmt(last.customersRange[0])","fmt(last.customersRange[1])"
+ ])assert.ok(s.includes(expression),expression);
+ assert.match(s,/t\.customers\+': '\+fmt\(last\.customers\),\s*scenarioRange,\s*assumptionsText\(last\)/);
+ for(const localeRange of [
+  'Leads de {l} a {h}; clientes de {a} a {b}',
+  'Leads from {l} to {h}; customers from {a} to {b}'
+ ])assert.ok(s.includes(localeRange),localeRange);
+ const sample=buildGrowthPotential({weeklyVisits:100,scenario:'optimistic'});
+ assert.deepEqual(sample.leadsRange,[8,24]);
+ assert.deepEqual(sample.customersRange,[1,7]);
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});

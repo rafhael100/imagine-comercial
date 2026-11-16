@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {reviewPublicLinks} from '../src/lib/public-link-review.mjs';
 import {contactWhatsAppUrl,contactEmailUrl,contactChannels} from '../src/data/contact-channels.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
+import {encodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
 
 const review=(links,currentPath='/',ids=['conteudo'])=>reviewPublicLinks(
   links.map(x=>typeof x==='string'?{href:x}:x),
@@ -172,4 +173,18 @@ test('F196 allows exactly five public objective deep links and denies forged inp
     assert.throws(()=>review(['/servicos/#'+frag],'/'),
       /broken or unapproved fragment|unsafe/);
   }
+});
+
+test('F334 F32 accepts only canonical preapproved public contact briefings',()=>{
+ const reviewed='/contato/'+encodeCuratedBriefingFragment('','','','contatos');
+ assert.equal(review([reviewed]).internal,1);
+ assert.equal(review([reviewed],'/servicos/').internal,1);
+ for(const href of [
+  '/contato/#briefing:_:_:_:unknown',
+  '/contato/#briefing:~:~:~:contatos',
+  '/contato/#briefing:_:_:_:contatos:extra',
+  '/contato/#briefing:_:_:_:contatos?token=1',
+  '/servicos/#briefing:_:_:_:contatos',
+  '/contato/#briefing:_:_:_:contatos%0a'
+ ])assert.throws(()=>review([href]),undefined,href);
 });

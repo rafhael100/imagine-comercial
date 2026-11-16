@@ -23,6 +23,8 @@ import {composeReviewedComparisonContact} from '../src/data/comparison-contact.m
 import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import {encodeReviewedGoalFragment} from '../src/data/reviewed-goal-fragment.mjs';
+import {encodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
+import {planVisitsForCustomerGoal,buildGrowthPotential} from '../src/lib/growth-potential-calculator.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
 import {assessPrivateBudgetPreview} from '../src/lib/private-budget-preflight.mjs';
@@ -74,6 +76,135 @@ try {
     assert.equal(await footerMethod.count(),1);
     assert.deepEqual(await footerMethod.locator('[data-growth-stage]').allTextContents(),
       ['Visitas','Leads','Clientes']);
+    // F331: real Chromium proof of anonymous visitor funnel and scenario math.
+    const funnel=quickPage.locator('[data-growth-calculator]');
+    assert.equal(await funnel.count(),1);
+    assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false);
+    assert.equal(await funnel.locator('input[type=email],input[type=tel],input[name=name]').count(),0);
+    assert.equal(await funnel.locator('[data-funnel-visits]').isVisible(),false);
+    await funnel.locator('[data-growth-calculate]').click();
+    assert.equal(await funnel.locator('[data-growth-results]').isVisible(),true);
+    assert.equal(await funnel.locator('[data-growth-monthly]').textContent(),'400');
+    assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'16');
+    assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'3');
+    // F338: the same 100 weekly visits must yield all three reviewed
+    // hypothetical outcomes, regardless of the selected scenario.
+    const comparison=funnel.locator('[data-growth-compare]');
+    await comparison.locator('summary').click();
+    assert.equal(await comparison.locator('tbody tr').count(),3);
+    for(const [name,leads,customers] of [
+      ['conservative','8','1'],['reference','16','3'],['optimistic','24','7']
+    ]){
+      const row=comparison.locator('[data-growth-compare-row="'+name+'"]');
+      assert.equal(await row.locator('[data-growth-compare-leads]').textContent(),leads);
+      assert.equal(await row.locator('[data-growth-compare-customers]').textContent(),customers);
+      const expectedRates={conservative:['2%','10%'],reference:['4%','20%'],optimistic:['6%','30%']}[name];
+      assert.equal(await row.locator('[data-growth-compare-lead-rate]').textContent(),expectedRates[0]);
+      assert.equal(await row.locator('[data-growth-compare-close-rate]').textContent(),expectedRates[1]);
+      assert.equal(await row.getAttribute('data-current'),String(name==='reference'));
+    }
+    assert.match(await funnel.locator('[data-growth-assumptions]').textContent(),
+      /4% das visitas.*20% dos leads.*4 semanas/,'F335: reference scenario must disclose assumptions');
+    assert.ok((await funnel.locator('[data-growth-ranges]').textContent()).includes('8'));
+    assert.ok((await funnel.locator('[data-growth-ranges]').textContent()).includes('24'));
+    // F336: goal-driven planning is anonymous, bounded and derived from
+    // the exact same rounded illustration. It must not navigate or submit.
+    const goalPanel=funnel.locator('[data-growth-goal-panel]');
+    await goalPanel.locator('summary').click();
+    assert.equal(await goalPanel.locator('[data-growth-goal-apply]').isVisible(),false,
+      'F337: apply must be hidden until an explicit reachable goal');
+    await goalPanel.locator('[data-growth-goal]').fill('10');
+    await goalPanel.locator('[data-growth-goal-calculate]').click();
+    assert.equal(await goalPanel.locator('[data-growth-goal-result]').isVisible(),true);
+    assert.match(await goalPanel.locator('[data-growth-goal-result]').textContent(),
+      /10 clientes\/mês.*visitas\/semana/);
+    // F337: applying a goal requires a second explicit click. No lead is sent.
+    const targetPlan=planVisitsForCustomerGoal({monthlyCustomerGoal:10,scenario:'reference'});
+    assert.equal(await goalPanel.locator('[data-growth-goal-apply]').isVisible(),true);
+    await goalPanel.locator('[data-growth-goal-apply]').click();
+    assert.equal(await funnel.locator('[data-growth-weekly]').inputValue(),String(targetPlan.weeklyVisits));
+    assert.equal(await funnel.locator('[data-growth-results]').isVisible(),true);
+    assert.equal(await funnel.locator('[data-growth-customers]').textContent(),String(targetPlan.customers));
+    assert.equal(await goalPanel.locator('[data-growth-goal-apply]').isVisible(),false);
+    await goalPanel.locator('[data-growth-goal]').fill('10001');
+    assert.equal(await goalPanel.locator('[data-growth-goal-result]').isVisible(),false);
+    await goalPanel.locator('[data-growth-goal-calculate]').click();
+    assert.equal(await goalPanel.locator('[data-growth-goal-error]').isVisible(),true);
+    await goalPanel.locator('[data-growth-goal]').fill('10000');
+    await goalPanel.locator('[data-growth-goal-calculate]').click();
+    assert.match(await goalPanel.locator('[data-growth-goal-result]').textContent(),
+      /não há resultado|Não há resultado/);
+    assert.equal(await goalPanel.locator('input[type=email],input[type=tel],form').count(),0);
+    await funnel.locator('[data-growth-weekly]').fill('100');
+    await funnel.locator('[data-growth-scenario][value=conservative]').check();
+    await funnel.locator('[data-growth-calculate]').click();
+    assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'8');
+    assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'1');
+    assert.match(await funnel.locator('[data-growth-assumptions]').textContent(),
+      /2% das visitas.*10% dos leads.*4 semanas/,'F335: conservative scenario rates');
+    await funnel.locator('[data-growth-scenario][value=optimistic]').check();
+    assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false,
+      'F332: previous scenario results must disappear before recalculation');
+    assert.equal(await funnel.locator('[data-funnel-leads]').isVisible(),false);
+    await funnel.locator('[data-growth-calculate]').click();
+    assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'24');
+    assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'7');
+    assert.equal(await comparison.locator('[data-growth-compare-row="optimistic"]').getAttribute('data-current'),'true');
+    assert.equal(await comparison.locator('[data-growth-compare-row="reference"]').getAttribute('data-current'),'false');
+    assert.match(await funnel.locator('[data-growth-assumptions]').textContent(),
+      /6% das visitas.*30% dos leads.*4 semanas/,'F335: optimistic scenario rates');
+    // F333: the voluntary clipboard summary must disclose its assumptions.
+    // Stub only the browser clipboard, without requests or private information.
+    await quickPage.evaluate(()=>{
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+        writeText:async text=>{globalThis.__funnelCopiedSummary=text;}
+      }});
+    });
+    await funnel.locator('[data-growth-copy]').click();
+    const copiedSummary=await quickPage.evaluate(()=>globalThis.__funnelCopiedSummary);
+    assert.match(copiedSummary,/Cenário: Otimista/);
+    assert.match(copiedSummary,/Clientes potenciais: 7/);
+    assert.match(copiedSummary,/Leads de 8 a 24; clientes de 1 a 7/,
+      'F340: the copied estimate must disclose lower and upper model outcomes');
+    assert.match(copiedSummary,/6% das visitas.*30% dos leads.*4 semanas/,
+      'F335: copied summary includes the rates and four-week assumption');
+    assert.equal(await funnel.locator('[data-growth-copied]').isVisible(),true);
+    await funnel.locator('[data-growth-weekly]').fill('100001');
+    assert.equal(await funnel.locator('[data-growth-copied]').isVisible(),false,
+      'F332: changing the input must invalidate copied status');
+    assert.equal(await funnel.locator('[data-funnel-visits]').isVisible(),false);
+    await funnel.locator('[data-growth-calculate]').click();
+    assert.equal(await funnel.locator('[data-growth-error]').isVisible(),true);
+    assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false);
+    await funnel.locator('[data-growth-weekly]').fill('100');
+    await funnel.locator('[data-growth-scenario][value=reference]').check();
+    await funnel.locator('[data-growth-calculate]').click();
+    assert.equal(await funnel.locator('[data-growth-results]').isVisible(),true);
+    // F334: anonymous funnel opt-in carries a fixed public, allowlisted
+    // contact priority. It never serializes weekly visits, sector or estimates.
+    const funnelContact='/contato/'+encodeCuratedBriefingFragment('','','','contatos');
+    assert.equal(await funnel.locator('.funnel-cta-row .cta').getAttribute('href'),funnelContact);
+    const contactFromFunnel=await quickContext.newPage();
+    await contactFromFunnel.addInitScript(()=>{window.__initialF334Hash=location.hash;});
+    await contactFromFunnel.goto(host+funnelContact,{waitUntil:'networkidle'});
+    const contactState=await contactFromFunnel.evaluate(()=>({
+      initialHash:window.__initialF334Hash,
+      hash:location.hash,
+      path:location.pathname,
+      priority:document.querySelector('#priority-choice')?.value??null,
+      service:document.querySelector('#service-choice')?.value??null,
+      objective:document.querySelector('#objective-choice')?.value??null,
+      stage:document.querySelector('#stage-choice')?.value??null
+    }));
+    assert.equal(contactState.initialHash,encodeCuratedBriefingFragment('','','','contatos'),
+      'F334: Chromium must preserve the entire anonymous fragment');
+    assert.equal(contactState.hash,contactState.initialHash,
+      'F334: contact must preserve reviewed public-only hash');
+    assert.equal(contactState.priority,'contatos',
+      'F334: expected reviewed contact priority '+JSON.stringify(contactState));
+    assert.ok((await contactFromFunnel.locator('#message-preview').textContent()).includes('Receber mais contatos'));
+    assert.equal(await contactFromFunnel.locator('form,input[type=email],input[type=tel]').count(),0);
+    await contactFromFunnel.close();
     for(const service of services){
       const card=quickPage.locator('[data-quick-hire="'+service.slug+'"]');
       const link=card.locator('[data-quick-hire-action]');
@@ -175,6 +306,81 @@ try {
           assert.equal(await homeMethod.count(),1);
           assert.deepEqual(await homeMethod.locator('[data-growth-stage]').allTextContents(),
             lang==='en'?['Visits','Leads','Customers']:['Visitas','Leads','Clientes']);
+          const localizedFunnel=p.locator('[data-growth-calculator]');
+          assert.equal(await localizedFunnel.count(),1);
+          assert.equal(await localizedFunnel.locator('[data-growth-results]').isVisible(),false);
+          await localizedFunnel.locator('[data-growth-calculate]').click();
+          assert.equal(await localizedFunnel.locator('[data-growth-results]').isVisible(),true);
+          assert.equal(await localizedFunnel.locator('[data-growth-monthly]').textContent(),'400');
+          assert.equal(await localizedFunnel.locator('[data-growth-leads]').textContent(),'16');
+          assert.equal(await localizedFunnel.locator('[data-growth-customers]').textContent(),'3');
+          await localizedFunnel.locator('[data-growth-sector]').selectOption('retail');
+          assert.equal(await localizedFunnel.locator('[data-growth-results]').isVisible(),false,
+            lang+': changing sector invalidates stale results');
+          await localizedFunnel.locator('[data-growth-scenario][value=optimistic]').check();
+          await localizedFunnel.locator('[data-growth-calculate]').click();
+          assert.equal(await localizedFunnel.locator('[data-growth-leads]').textContent(),'24');
+          assert.equal(await localizedFunnel.locator('[data-growth-customers]').textContent(),'7');
+          await p.evaluate(()=>{
+            Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+              writeText:async text=>{globalThis.__localizedFunnelSummary=text;}
+            }});
+          });
+          await localizedFunnel.locator('[data-growth-copy]').click();
+          const localizedSummary=await p.evaluate(()=>globalThis.__localizedFunnelSummary);
+          assert.ok(localizedSummary.includes(lang==='en'?'Scenario: Optimistic':'Escenario: Optimista'),
+            lang+': voluntary copy must disclose the selected scenario');
+          assert.ok(localizedSummary.includes(lang==='en'?'Potential customers: 7':'Clientes potenciales: 7'),
+            lang+': voluntary copy must contain the current estimate');
+          assert.ok(lang==='en'
+            ? /6% of visits.*30% of leads.*4-week planning month/.test(localizedSummary)
+            : /6% de visitas.*30% de leads.*4 semanas/.test(localizedSummary),
+            lang+': copied estimate must include hypothetical percentages and 4 weeks');
+          // F340: the copied snapshot still reflects the original 100
+          // weekly visits; the reverse-goal plan is applied only later.
+          const copiedScenarios=buildGrowthPotential({weeklyVisits:100,scenario:'optimistic'});
+          const nf=new Intl.NumberFormat(lang==='en'?'en-US':'pt-BR');
+          const expectedRange=lang==='en'
+            ? 'Leads from '+nf.format(copiedScenarios.leadsRange[0])+' to '+nf.format(copiedScenarios.leadsRange[1])+
+              '; customers from '+nf.format(copiedScenarios.customersRange[0])+' to '+nf.format(copiedScenarios.customersRange[1])
+            : 'Leads de '+nf.format(copiedScenarios.leadsRange[0])+' a '+nf.format(copiedScenarios.leadsRange[1])+
+              '; clientes de '+nf.format(copiedScenarios.customersRange[0])+' a '+nf.format(copiedScenarios.customersRange[1]);
+          assert.ok(localizedSummary.includes(expectedRange),lang+': copied summary must include scenario range');
+          assert.ok(lang==='en'
+            ? /6% of visits.*30% of leads/.test(await localizedFunnel.locator('[data-growth-assumptions]').textContent())
+            : /6% de visitas.*30% de leads/.test(await localizedFunnel.locator('[data-growth-assumptions]').textContent()),
+            lang+': displayed assumptions reflect selected scenario');
+          // F336: reverse illustration has no external data, in either locale.
+          const goal=localizedFunnel.locator('[data-growth-goal-panel]');
+          await goal.locator('summary').click();
+          await goal.locator('[data-growth-goal]').fill('10');
+          await goal.locator('[data-growth-goal-calculate]').click();
+          assert.equal(await goal.locator('[data-growth-goal-result]').isVisible(),true);
+          assert.ok(lang==='en'
+            ? (await goal.locator('[data-growth-goal-result]').textContent()).includes('10 customers/month')
+            : (await goal.locator('[data-growth-goal-result]').textContent()).includes('10 clientes/mes'),
+            lang+': reverse goal must show an explicitly hypothetical calculation');
+          const expectedPlan=planVisitsForCustomerGoal({monthlyCustomerGoal:10,scenario:'optimistic'});
+          assert.equal(await goal.locator('[data-growth-goal-apply]').isVisible(),true);
+          await goal.locator('[data-growth-goal-apply]').click();
+          assert.equal(await localizedFunnel.locator('[data-growth-weekly]').inputValue(),String(expectedPlan.weeklyVisits));
+          assert.equal(await localizedFunnel.locator('[data-growth-customers]').textContent(),String(expectedPlan.customers));
+          // Three-scenario table must use the same weekly volume and rounded math.
+          const localizedCompare=localizedFunnel.locator('[data-growth-compare]');
+          await localizedCompare.locator('summary').click();
+          const allScenarios=buildGrowthPotential({weeklyVisits:expectedPlan.weeklyVisits,scenario:'optimistic'});
+          for(const code of ['conservative','reference','optimistic']){
+            const row=localizedCompare.locator('[data-growth-compare-row="'+code+'"]');
+            assert.equal(await row.locator('[data-growth-compare-leads]').textContent(),String(allScenarios.scenarios[code].leads));
+            assert.equal(await row.locator('[data-growth-compare-customers]').textContent(),String(allScenarios.scenarios[code].customers));
+            assert.equal(await row.locator('[data-growth-compare-lead-rate]').textContent(),String(allScenarios.scenarios[code].leadRatePercent)+'%');
+            assert.equal(await row.locator('[data-growth-compare-close-rate]').textContent(),String(allScenarios.scenarios[code].closeRatePercent)+'%');
+            assert.equal(await row.getAttribute('data-current'),String(code==='optimistic'));
+          }
+          assert.equal(await goal.locator('[data-growth-goal-apply]').isVisible(),false);
+          const expectedContact='/'+lang+'/contact/';
+          assert.equal(await localizedFunnel.locator('.funnel-cta-row .cta').getAttribute('href'),expectedContact);
+          assert.equal(await localizedFunnel.locator('input[type=email],input[type=tel]').count(),0);
           // F323: all seven offers remain discoverable; only four dominate the
           // international visual homepage. CTA links must remain allowlisted.
           assert.equal(await p.locator('[data-international-offer]').count(),7,
