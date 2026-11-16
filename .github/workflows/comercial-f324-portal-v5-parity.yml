@@ -6,6 +6,9 @@ on:
       - 'src/lib/media-budget-calculator.mjs'
       - 'tests/commercial-selection-preview.test.mjs'
       - 'ops/review/purchase/test-portal-v5-financial-parity.mjs'
+      - 'ops/review/purchase/test-portal-v5-full-selection-matrix.mjs'
+      - 'src/lib/commercial-choice-preview.mjs'
+      - 'ops/review/purchase/portal-choice-handoff-gate.mjs'
       - '.github/workflows/comercial-f324-portal-v5-parity.yml'
 permissions:
   contents: read
@@ -37,6 +40,8 @@ jobs:
         run: node --test comercial/tests/commercial-selection-preview.test.mjs
       - name: Compare exact PHP Portal V5 server catalog with JS marketing estimate
         run: node comercial/ops/review/purchase/test-portal-v5-financial-parity.mjs portal
+      - name: F347 verify all 48 public combinations against the pinned PHP catalog
+        run: node comercial/ops/review/purchase/test-portal-v5-full-selection-matrix.mjs portal
       - name: No production authorization
         run: |
           echo 'F324 is pricing compatibility only; not a signed quote, payment or contract.' >> "$GITHUB_STEP_SUMMARY"

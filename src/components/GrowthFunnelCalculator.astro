@@ -29,6 +29,7 @@ const copy={
  segmentDisplay:'Segmento',scenarioDisplay:'Cenário',noTransfer:'Nada é enviado ou armazenado ao calcular. O contato é opcional e iniciado por você.',
  optional:'Dados pessoais não são solicitados: o cadastro para receber o plano por e-mail depende da homologação do CRM.',
  explore:'Conhecer soluções',
+ quoteAction:'Simular investimento em site e anúncios',quoteNote:'Orçamento independente do funil: valores e contratação exigem confirmação no Portal.',
  assumptions:'Premissas fictícias, não médias de mercado: {lead}% das visitas viram leads, {close}% dos leads viram clientes; mês de 4 semanas.',
  goalTitle:'Planejar a partir de uma meta',goalIntro:'Simule quantas visitas seriam necessárias para ilustrar uma meta de clientes no cenário escolhido acima. Não é uma previsão.',goalLabel:'Meta hipotética de clientes por mês',goalCalculate:'Calcular visitas para a meta',
  goalInvalid:'Digite um número inteiro entre 0 e 10.000 clientes/mês.',
@@ -55,6 +56,7 @@ const copy={
  segmentDisplay:'Sector',scenarioDisplay:'Scenario',noTransfer:'Nothing is sent or stored when calculating. Contact is optional and initiated by you.',
  optional:'No personal details requested: emailing your plan requires a separate, approved CRM integration.',
  explore:'Explore solutions',
+ quoteAction:'Estimate website and ads costs',quoteNote:'This cost estimate is separate from the funnel; Portal confirmation is required before any purchase.',
  assumptions:'Hypothetical assumptions, not industry averages: {lead}% of visits become leads, {close}% of leads become customers; 4-week planning month.',
  goalTitle:'Plan backwards from a goal',goalIntro:'Illustrate the visits needed for a monthly customer goal under the scenario selected above. This is not a forecast.',goalLabel:'Hypothetical customers per month',goalCalculate:'Estimate required visits',
  goalInvalid:'Enter a whole number from 0 to 10,000 customers/month.',
@@ -81,6 +83,7 @@ const copy={
  segmentDisplay:'Sector',scenarioDisplay:'Escenario',noTransfer:'No se envía ni guarda información al calcular. El contacto es opcional y lo inicias tú.',
  optional:'No se solicitan datos personales: enviar tu plan por correo requiere una integración CRM homologada.',
  explore:'Conocer soluciones',
+ quoteAction:'Estimar costos de sitio y anuncios',quoteNote:'El presupuesto es independiente de este embudo; la contratación requiere confirmación en el Portal.',
  assumptions:'Hipótesis ficticias, no promedios del mercado: {lead}% de visitas generan leads, {close}% de leads se convierten en clientes; mes de 4 semanas.',
  goalTitle:'Planificar desde una meta',goalIntro:'Ilustra cuántas visitas harían falta para una meta mensual de clientes con el escenario seleccionado arriba. No es un pronóstico.',goalLabel:'Clientes hipotéticos por mes',goalCalculate:'Calcular visitas para la meta',
  goalInvalid:'Introduce un entero entre 0 y 10.000 clientes/mes.',
@@ -192,9 +195,11 @@ const initialAssumptions=t.assumptions
     <div class="funnel-cta-row">
      <a class="cta" href={contact}>{t.contact}</a>
      <a class="funnel-explore" href={solutions}>{t.explore}</a>
+     <a class="funnel-quote" href="#simular-compra" data-growth-quote>{t.quoteAction}</a>
      <button type="button" data-growth-copy>{t.copyAction}</button>
     </div>
     <p class="funnel-copied" data-growth-copied role="status" hidden></p>
+    <p class="funnel-quote-note">{t.quoteNote}</p>
    </div>
    <p class="funnel-privacy">{t.optional}</p>
   </div>
@@ -479,7 +484,8 @@ const initialAssumptions=t.assumptions
  .funnel-contact p{margin:0;font-size:.78rem;color:#54564d;line-height:1.4}
  .funnel-cta-row{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px}
  .funnel-cta-row .cta{min-height:44px;display:inline-flex;align-items:center;font-size:.78rem;text-decoration:none}
- .funnel-cta-row button,.funnel-explore{font:inherit;font-size:.78rem;min-height:44px;display:inline-flex;align-items:center;border:0;background:transparent;text-decoration:underline;color:#824000;font-weight:750;cursor:pointer}
+ .funnel-cta-row button,.funnel-explore,.funnel-quote{font:inherit;font-size:.78rem;min-height:44px;display:inline-flex;align-items:center;border:0;background:transparent;text-decoration:underline;color:#824000;font-weight:750;cursor:pointer}
+ .funnel-quote-note{grid-column:1/-1;font-size:.72rem;line-height:1.5;color:#54564d;margin:2px 0 0}
  .funnel-copied,.funnel-privacy{font-size:.75rem;color:#52604d;line-height:1.45;margin:4px 0 0}
  .funnel-privacy{margin-top:12px}
  @media(max-width:860px){.growth-funnel-grid{grid-template-columns:1fr}.funnel-art{min-height:320px}.funnel-contact{grid-template-columns:1fr}.funnel-cta-row{justify-content:flex-start}}

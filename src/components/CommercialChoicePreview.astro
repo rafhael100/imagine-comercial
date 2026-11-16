@@ -4,8 +4,10 @@
  * No forms, tracking, persistence, payment, browser requests or private links.
  */
 import {intlPath} from '../data/i18n.mjs';
-import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
+import {buildCommercialChoicePreview,describeThreeIllustrativeInstallments} from '../lib/commercial-choice-preview.mjs';
 import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
+ import {formatReviewedCommercialEstimate} from '../lib/commercial-estimate-copy.mjs';
+ import {assessPublicPortalReadiness,describePublicPortalReadiness} from '../lib/public-portal-checkout-readiness.mjs';
 interface Props {locale?:'pt-BR'|'en'|'es';}
 const {locale='pt-BR'}=Astro.props;
 if(!['pt-BR','en','es'].includes(locale))throw Error('Unreviewed quote locale');
@@ -20,7 +22,7 @@ const copy=locale==='en'?{
  total:'Setup + activation (3 interest-free installments)',installments:'Website setup in 3 installments',payLater:'Website monthly fee starts 90 days after contracting; advertising management is settled after each full month according to actual spend.',
  cta:'Discuss this selection on WhatsApp',calc:'Try the detailed ads calculator',
  notice:'Estimate only, not an order. Setup and activation together in 3 interest-free installments; any cent difference is included in the last installment.  Clicking WhatsApp opens a message about your chosen services and media tier for your review; nothing is sent automatically. No personal data are collected and public checkout is not active. Final terms require Portal confirmation.',
- empty:'Choose a website or at least one ad channel to continue.'
+ empty:'Choose a website or at least one ad channel to continue.',copyAction:'Copy estimate',copySuccess:'Estimate copied. You decide where to share it.',copyFailure:'Copy unavailable. Review the estimate above.'
 }:locale==='es'?{
  eyebrow:'ANTES DEL REGISTRO',heading:'Prepara tu presupuesto inicial.',intro:'Elige tu sitio web y tus canales de anuncios. Consulta los valores.',
  site:'1 · Tu sitio web',noSite:'Sin sitio',onepage:'Site Onepage',landing:'Landing Page',
@@ -30,7 +32,7 @@ const copy=locale==='en'?{
  total:'Implantación + activaciones (3 cuotas sin intereses)',installments:'Implantación del sitio en 3 cuotas',payLater:'Mensualidad del sitio desde el día 90 tras contratar. La gestión se calcula después de cada mes completo según la inversión real.',
  cta:'Consultar mi selección por WhatsApp',calc:'Abrir calculadora de anuncios',
  notice:'Estimación, no compra. Implantación y activaciones juntas en 3 cuotas sin intereses; ajuste de céntimos en la última cuota.  Al pulsar WhatsApp se prepara un mensaje con los servicios y la inversión elegidos: tú decides enviarlo. Sin envío automático ni captura de datos personales. El checkout público no está activo; las condiciones finales se confirman en el Portal.',
- empty:'Elige un sitio o al menos un canal de anuncios.'
+ empty:'Elige un sitio o al menos un canal de anuncios.',copyAction:'Copiar estimación',copySuccess:'Estimación copiada. Tú decides dónde compartirla.',copyFailure:'No se pudo copiar. Consulta la estimación anterior.'
 }:{
  eyebrow:'ANTES DO CADASTRO',heading:'Monte seu orçamento em poucos cliques.',intro:'Escolha um site e os canais de anúncios. Veja os valores separados.',
  site:'1 · Seu site',noSite:'Sem site',onepage:'Site Onepage',landing:'Landing Page',
@@ -40,16 +42,19 @@ const copy=locale==='en'?{
  total:'Implantação + ativações (3x sem juros)',installments:'Implantação do site em 3 parcelas',payLater:'Mensalidade do site a partir de D+90 da contratação, mesmo sem publicação. Gestão de anúncios apurada após cada mês completo, conforme a mídia real.',
  cta:'Conversar no WhatsApp sobre esta escolha',calc:'Usar calculadora completa de anúncios',
  notice:'Simulação, não contratação: implantação e ativações juntas em 3 parcelas sem juros, com ajuste de centavos na última quando necessário.  ao clicar no WhatsApp, abrimos uma mensagem com os serviços e a faixa de investimento escolhidos para você revisar e decidir se envia. Não há envio automático nem coleta de dados pessoais. O checkout público ainda não está ativo; os valores finais precisam ser confirmados no Portal.',
- empty:'Escolha um site ou pelo menos um canal para avançar.'
+ empty:'Escolha um site ou pelo menos um canal para avançar.',copyAction:'Copiar estimativa',copySuccess:'Estimativa copiada. Você decide onde compartilhar.',copyFailure:'Não foi possível copiar. Consulte os valores exibidos acima.'
 };
 const initial=buildCommercialChoicePreview({site:'onepage',channels:[],tier:'recommended'});
 const initialHref=reviewedQuoteChoiceHref(locale,{site:'onepage',channels:[],tier:'recommended'});
+const initialReadinessSelection={site:'onepage',channels:[],tier:'recommended'};
+const initialPortalReadiness=assessPublicPortalReadiness(initialReadinessSelection);
 const fmt=cents=>{
  const raw=(cents/100).toLocaleString(locale==='en'?'en-US':'pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
  return (locale==='en'?'BRL ':'R$ ')+raw;
 };
 ---
-<section id="simular-compra" class="choice-section" data-choice-preview data-locale={locale} aria-labelledby="choice-heading">
+<section id="simular-compra" class="choice-section" data-choice-preview data-locale={locale}
+ data-copy-success={copy.copySuccess} data-copy-failure={copy.copyFailure} aria-labelledby="choice-heading">
  <div class="choice-title">
   <p class="eyebrow">{copy.eyebrow}</p>
   <h3 id="choice-heading">{copy.heading}</h3>
@@ -88,12 +93,18 @@ const fmt=cents=>{
    <div class="summary-line"><span>{copy.siteSetup}</span><strong data-choice-site-setup>{fmt(initial.siteSetupCents)}</strong></div>
    <p class="choice-installment" data-choice-installment>{copy.installments}: 3 × {fmt(initial.siteInstallmentCents)}</p>
    <div class="summary-line"><span>{copy.adActivation}</span><strong data-choice-activation>{fmt(initial.adActivationCents)}</strong></div>
-   <div class="summary-total"><span>{copy.total}</span><strong data-choice-onetime>3 × {fmt(Math.floor(initial.contractedSetupAndActivationCents/3))}</strong></div>
+   <div class="summary-total"><span>{copy.total}</span><strong data-choice-onetime aria-live="polite">{describeThreeIllustrativeInstallments(initial.contractedSetupAndActivationCents,locale)}</strong></div>
    <div class="summary-line"><span>{copy.siteMonthly}</span><strong data-choice-site-monthly>{fmt(initial.siteMonthlyCents)}</strong></div>
    <div class="summary-line"><span>{copy.adManagement}</span><strong data-choice-management>{fmt(initial.adManagementEstimateCents)}</strong></div>
    <div class="summary-line"><span>{copy.media}</span><strong data-choice-media>{fmt(initial.adMediaCents)}</strong></div>
    <p class="choice-payment-rule">{copy.payLater}</p>
+   <p class="choice-portal-readiness" data-choice-portal-readiness
+      data-code={initialPortalReadiness.code} aria-live="polite">
+      {describePublicPortalReadiness(initialReadinessSelection,locale)}
+   </p>
    <a class="cta choice-action" href={initialHref} data-choice-fallback={contact} target="_blank" rel="noopener noreferrer" data-choice-action>{copy.cta} <span aria-hidden="true">↗</span></a>
+   <button type="button" class="choice-copy" data-choice-copy hidden>{copy.copyAction}</button>
+   <p class="choice-copy-status" data-choice-copy-status role="status" hidden></p>
    <p data-choice-empty hidden class="choice-empty">{copy.empty}</p>
    <a class="choice-calculator" href={calculator}>{copy.calc} <span aria-hidden="true">↗</span></a>
   </aside>
@@ -108,15 +119,20 @@ const fmt=cents=>{
  <a class="cta" href={calculator}>{locale==='en'?'Plan my advertising budget':locale==='es'?'Calcular mi inversión':'Calcular meu investimento'} <span aria-hidden="true">→</span></a>
 </section>
 <script>
- import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
+ import {buildCommercialChoicePreview,describeThreeIllustrativeInstallments} from '../lib/commercial-choice-preview.mjs';
 import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
+ import {formatReviewedCommercialEstimate} from '../lib/commercial-estimate-copy.mjs';
+ import {assessPublicPortalReadiness,describePublicPortalReadiness} from '../lib/public-portal-checkout-readiness.mjs';
  // No form, network, persistence, account creation or external redirect.
  for(const root of document.querySelectorAll('[data-choice-preview]')){
   const locale=root.getAttribute('data-locale')||'pt-BR';
   const format=cents=>(locale==='en'?'BRL ':'R$ ')+(cents/100).toLocaleString(locale==='en'?'en-US':'pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  let site='onepage',channels=[],tier='recommended';
+  let site='onepage',channels=[],tier='recommended',choiceRevision=0;
   const label=(attr,text)=>{const node=root.querySelector('['+attr+']');if(node)node.textContent=text;};
   const render=()=>{
+   choiceRevision++;
+   const copiedStatus=root.querySelector('[data-choice-copy-status]');
+   if(copiedStatus)copiedStatus.hidden=true;
    const estimate=buildCommercialChoicePreview({site,channels,tier});
    const investment=root.querySelector('[data-choice-investment]');
    if(investment)investment.hidden=channels.length===0;
@@ -134,10 +150,16 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
     button.setAttribute('aria-pressed',String(button.getAttribute('data-choice-tier')===tier));
    label('data-choice-site-setup',format(estimate.siteSetupCents));
    label('data-choice-activation',format(estimate.adActivationCents));
-   label('data-choice-onetime','3 × '+format(Math.floor(estimate.contractedSetupAndActivationCents/3)));
+   label('data-choice-onetime',describeThreeIllustrativeInstallments(estimate.contractedSetupAndActivationCents,locale));
    label('data-choice-site-monthly',format(estimate.siteMonthlyCents));
    label('data-choice-management',format(estimate.adManagementEstimateCents));
    label('data-choice-media',format(estimate.adMediaCents));
+   // F348: the cost estimate is not a Portal checkout or cart.
+   // Recompute from the exact public selection; no customer data is passed.
+   const readiness=assessPublicPortalReadiness({site,channels,tier});
+   label('data-choice-portal-readiness',
+    describePublicPortalReadiness({site,channels,tier},locale));
+   root.querySelector('[data-choice-portal-readiness]')?.setAttribute('data-code',readiness.code);
    const installments=root.querySelector('[data-choice-installment]');
    if(installments){
     installments.hidden=estimate.site==='none';
@@ -152,7 +174,26 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
    }
    const empty=root.querySelector('[data-choice-empty]');
    if(empty)empty.hidden=estimate.hasChoice;
+   const copyButton=root.querySelector('[data-choice-copy]');
+   if(copyButton){copyButton.hidden=false;copyButton.disabled=!estimate.hasChoice;}
   };
+  root.querySelector('[data-choice-copy]')?.addEventListener('click',async()=>{
+   const status=root.querySelector('[data-choice-copy-status]');
+   if(!status)return;
+   const version=choiceRevision;
+   try{
+    const summary=formatReviewedCommercialEstimate({site,channels:[...channels],tier},locale);
+    if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
+    await navigator.clipboard.writeText(summary);
+    if(choiceRevision!==version)return;
+    status.textContent=root.getAttribute('data-copy-success')||'';
+    status.hidden=false;
+   }catch{
+    if(choiceRevision!==version)return;
+    status.textContent=root.getAttribute('data-copy-failure')||'';
+    status.hidden=false;
+   }
+  });
   for(const button of root.querySelectorAll('[data-choice-site]'))button.addEventListener('click',()=>{
    const value=button.getAttribute('data-choice-site');
    if(value==='none'||value==='onepage'||value==='landing-pages'){site=value;render();}
@@ -201,13 +242,21 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  .choice-installment{font-size:.74rem;color:#605d57;margin:4px 0 7px}
  .summary-total{display:flex;justify-content:space-between;gap:12px;align-items:baseline;background:#e9f0e9;padding:13px;margin:11px 0;border-radius:10px}
  .summary-total span{font-size:.8rem;font-weight:730;color:#29352a}
- .summary-total strong{font-size:1.16rem;white-space:nowrap}
+ .summary-total strong{font-size:1.16rem;white-space:normal;min-width:0;overflow-wrap:anywhere;text-align:right}
  .choice-payment-rule{font-size:.74rem;color:#62645e;line-height:1.48;margin:14px 0}
+ .choice-portal-readiness{font-size:.78rem;line-height:1.55;margin:10px 0 13px;padding:12px 13px;border:1px solid #e4d9ca;border-radius:10px;background:#fffaf2;color:#4d463b}
+ .choice-portal-readiness[data-code="no_selection"]{background:#f6f6f3}
  .choice-action{display:flex;justify-content:center;align-items:center;gap:8px;min-height:48px;text-decoration:none;font-size:.82rem;line-height:1.3}
  .choice-action[aria-disabled="true"]{pointer-events:none;opacity:.5}
+ .choice-copy{font:inherit;font-size:.8rem;min-height:44px;margin-top:10px;padding:7px 0;color:#884100;text-decoration:underline;font-weight:750;cursor:pointer;background:transparent;border:0}
+ .choice-copy:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+ .choice-copy[hidden]{display:none}
+ .choice-copy[disabled]{opacity:.5;cursor:default}
+ .choice-copy-status{font-size:.76rem;line-height:1.5;margin:3px 0 8px;color:#315642}
+ .choice-copy-status[hidden]{display:none}
  .choice-empty{font-size:.77rem;color:#915000}
  .choice-calculator{display:block;text-align:center;font-size:.8rem;font-weight:700;color:#884100;min-height:44px;padding-top:12px}
  .choice-disclosure{font-size:.75rem;color:#6a6259;line-height:1.5;max-width:1050px;margin:17px 0 0}
  @media(max-width:800px){.choice-layout{grid-template-columns:1fr}}
- @media(max-width:440px){.choice-section{padding:18px 13px}.choice-step{padding:13px}.choice-summary{padding:17px 13px}.choice-options button{font-size:.78rem;padding:10px}.summary-line strong{font-size:.81rem}.summary-total strong{font-size:1.04rem}}
+ @media(max-width:440px){.choice-section{padding:18px 13px}.choice-step{padding:13px}.choice-summary{padding:17px 13px}.choice-options button{font-size:.78rem;padding:10px}.summary-line strong{font-size:.81rem}.summary-total strong{font-size:1.04rem;text-align:left}.summary-total{flex-direction:column;align-items:flex-start}}
 </style>

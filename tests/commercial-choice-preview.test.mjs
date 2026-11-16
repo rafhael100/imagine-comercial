@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {buildCommercialChoicePreview,REVIEWED_SITE_CHOICES,REVIEWED_CHANNEL_CHOICES} from '../src/lib/commercial-choice-preview.mjs';
+import {buildCommercialChoicePreview,REVIEWED_SITE_CHOICES,REVIEWED_CHANNEL_CHOICES,splitThreeIllustrativeInstallments,describeThreeIllustrativeInstallments} from '../src/lib/commercial-choice-preview.mjs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
 test('F324: reviewed website installments and day-90 recurring fees',()=>{
@@ -156,4 +156,54 @@ test('F341: quote channel list must be dense ordinary own-data values, no traps 
  assert.deepEqual(estimate.channels,['google_ads','meta_ads']);
  assert.equal(estimate.adActivationCents,98000);
  assert.equal(estimate.eligibleForPublicCheckout,false);
+});
+
+
+test('F345: all 48 public quote combinations add up to the exact advertised setup + activation',()=>{
+ const names=['google_ads','meta_ads','chatgpt_ads'];
+ let checked=0;
+ for(const site of ['none','onepage','landing-pages'])
+  for(const tier of ['minimum','recommended'])
+   for(let mask=0;mask<8;mask++){
+    const channels=names.filter((_,i)=>mask&(1<<i));
+    const estimate=buildCommercialChoicePreview({site,channels,tier});
+    const parts=splitThreeIllustrativeInstallments(estimate.contractedSetupAndActivationCents);
+    assert.equal(parts.firstCents+parts.secondCents+parts.lastCents,estimate.contractedSetupAndActivationCents);
+    assert.equal(parts.firstCents,parts.secondCents);
+    assert.ok(parts.lastCents-parts.firstCents>=0);
+    assert.ok(parts.lastCents-parts.firstCents<=2);
+    assert.equal(parts.checkoutAuthorized,false);
+    assert.ok(Object.isFrozen(parts));
+    const displayed=describeThreeIllustrativeInstallments(
+      estimate.contractedSetupAndActivationCents,'pt-BR');
+    assert.ok(displayed.includes('R$ '));
+    assert.ok(displayed.startsWith(parts.hasAdjustment?'2 × ':'3 × '));
+    assert.equal(displayed.includes(' + 1 × '),parts.hasAdjustment);
+    checked++;
+   }
+ assert.equal(checked,48);
+});
+
+test('F345: remainder is visible to visitors instead of 3x an understated cent amount',()=>{
+ assert.deepEqual(splitThreeIllustrativeInstallments(148000),{
+  firstCents:49333,secondCents:49333,lastCents:49334,
+  totalCents:148000,hasAdjustment:true,checkoutAuthorized:false
+ });
+ assert.deepEqual(splitThreeIllustrativeInstallments(197000),{
+  firstCents:65666,secondCents:65666,lastCents:65668,
+  totalCents:197000,hasAdjustment:true,checkoutAuthorized:false
+ });
+ assert.equal(describeThreeIllustrativeInstallments(99000,'pt-BR'),'3 × R$ 330,00');
+ assert.equal(describeThreeIllustrativeInstallments(148000,'pt-BR'),'2 × R$ 493,33 + 1 × R$ 493,34');
+ assert.equal(describeThreeIllustrativeInstallments(197000,'pt-BR'),'2 × R$ 656,66 + 1 × R$ 656,68');
+ assert.equal(describeThreeIllustrativeInstallments(148000,'en'),'2 × BRL 493.33 + 1 × BRL 493.34');
+ assert.equal(describeThreeIllustrativeInstallments(148000,'es'),'2 × R$ 493,33 + 1 × R$ 493,34');
+ for(const invalid of [-1,0.1,NaN,Infinity,-Infinity,'100',null,1_000_000_001,Number.MAX_SAFE_INTEGER])
+  assert.throws(()=>splitThreeIllustrativeInstallments(invalid),/Invalid nonbinding amount/);
+ assert.throws(()=>describeThreeIllustrativeInstallments(148000,'fr'),/Unsupported installment display locale/);
+ const component=read('src/components/CommercialChoicePreview.astro');
+ assert.match(component,/data-choice-onetime aria-live="polite"/);
+ assert.match(component,/describeThreeIllustrativeInstallments\(initial\.contractedSetupAndActivationCents,locale\)/);
+ assert.match(component,/describeThreeIllustrativeInstallments\(estimate\.contractedSetupAndActivationCents,locale\)/);
+ assert.doesNotMatch(component,/Math\.floor\(estimate\.contractedSetupAndActivationCents\/3\)/);
 });
