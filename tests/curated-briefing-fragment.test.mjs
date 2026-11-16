@@ -17,7 +17,8 @@ test('F169 640 public briefing combinations round-trip without free text or PII'
     const fragment=encode(service,objective,stage,priority);
     assert.match(fragment,/^#briefing:[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+:[a-z0-9_-]+$/);
     assert.equal(fragment.includes('?'),false);
-    assert.equal(fragment.includes('%'),false);\n    assert.equal(fragment.includes(':~:'),false,'Chromium must not strip public briefing state');
+    assert.equal(fragment.includes('%'),false);
+    assert.equal(fragment.includes(':~:'),false,'Chromium must not strip public briefing state');
     assert.ok(fragment.length<145);
     assert.deepEqual(decode(fragment),{service,objective,stage,priority});
     assert.ok(Object.isFrozen(decode(fragment)));
