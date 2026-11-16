@@ -138,6 +138,10 @@ try {
       objective:document.querySelector('#objective-choice')?.value??null,
       stage:document.querySelector('#stage-choice')?.value??null
     }));
+    assert.equal(contactState.initialHash,encodeCuratedBriefingFragment('','','','contatos'),
+      'F334: Chromium must preserve the entire anonymous fragment');
+    assert.equal(contactState.hash,contactState.initialHash,
+      'F334: contact must preserve reviewed public-only hash');
     assert.equal(contactState.priority,'contatos',
       'F334: expected reviewed contact priority '+JSON.stringify(contactState));
     assert.ok((await contactFromFunnel.locator('#message-preview').textContent()).includes('Receber mais contatos'));
