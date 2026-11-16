@@ -4,7 +4,8 @@ import {readFileSync} from 'node:fs';
 import {encodeCuratedBriefingFragment,decodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
 import {
  buildGrowthPotential,GROWTH_SCENARIOS,GROWTH_SECTORS,
- MAX_WEEKLY_VISITS,GROWTH_WEEKS_PER_MONTH
+ MAX_WEEKLY_VISITS,GROWTH_WEEKS_PER_MONTH,
+ MAX_MONTHLY_CUSTOMER_GOAL,planVisitsForCustomerGoal
 } from '../src/lib/growth-potential-calculator.mjs';
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
@@ -132,7 +133,8 @@ test('F333: optional copied summary names the selected illustrative scenario in 
 test('F333: asynchronous clipboard completion cannot restore stale status after recalculation',()=>{
  const s=read('src/components/GrowthFunnelCalculator.astro');
  assert.match(s,/let estimateRevision=0;/);
- assert.match(s,/const invalidateEstimate=\(\)=>\{\s*estimateRevision\+\+;/);
+ assert.match(s,/const invalidateEstimate=\(\)=>\{/);
+ assert.match(s,/if\(goalOutput\)goalOutput\.hidden=true;[\s\S]{0,140}estimateRevision\+\+;/);
  assert.match(s,/estimateRevision\+\+;\s*last=estimate;/);
  assert.match(s,/const revision=estimateRevision;/);
  assert.match(s,/await navigator\.clipboard\.writeText\(message\);\s*if\(revision!==estimateRevision\)return;/);
@@ -170,4 +172,49 @@ test('F335: copied and displayed funnel results disclose actual illustrative per
   close:hypothetical.scenarios.optimistic.closeRatePercent
  },{lead:6,close:30});
  assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
+
+test('F336: reverse planner finds minimum weekly visits for displayed rounded customer goal',()=>{
+ assert.equal(MAX_MONTHLY_CUSTOMER_GOAL,10000);
+ for(const scenario of Object.keys(GROWTH_SCENARIOS)){
+  for(const monthlyCustomerGoal of [0,1,2,10,100,800,10000]){
+   const plan=planVisitsForCustomerGoal({monthlyCustomerGoal,scenario});
+   assert.equal(plan.scenario,scenario);
+   assert.equal(plan.monthlyCustomerGoal,monthlyCustomerGoal);
+   assert.equal(plan.assumptionOnly,true);
+   assert.equal(plan.realResultsGuaranteed,false);
+   assert.ok(Object.isFrozen(plan));
+   if(!plan.reachable){
+    assert.equal(plan.weeklyCap,MAX_WEEKLY_VISITS);
+    assert.ok(plan.maxIllustratedCustomers<monthlyCustomerGoal);
+    continue;
+   }
+   assert.ok(plan.weeklyVisits>=0&&plan.weeklyVisits<=MAX_WEEKLY_VISITS);
+   const actual=buildGrowthPotential({weeklyVisits:plan.weeklyVisits,scenario});
+   assert.equal(plan.monthlyVisits,actual.monthlyVisits);
+   assert.equal(plan.leads,actual.leads);
+   assert.equal(plan.customers,actual.customers);
+   assert.ok(plan.customers>=monthlyCustomerGoal);
+   if(plan.weeklyVisits>0)assert.ok(
+    buildGrowthPotential({weeklyVisits:plan.weeklyVisits-1,scenario}).customers<monthlyCustomerGoal,
+    scenario+' goal '+monthlyCustomerGoal+': previous integer visit count must not suffice');
+  }
+ }
+ assert.equal(planVisitsForCustomerGoal({monthlyCustomerGoal:0}).weeklyVisits,0);
+ assert.equal(planVisitsForCustomerGoal({monthlyCustomerGoal:10000,scenario:'conservative'}).reachable,false);
+});
+
+test('F336: invalid reverse goals and unreviewed scenarios fail closed',()=>{
+ for(const monthlyCustomerGoal of [-1,10001,0.25,NaN,Infinity,'10',undefined,null,{},[],Number.MAX_SAFE_INTEGER]){
+  assert.throws(()=>planVisitsForCustomerGoal({monthlyCustomerGoal}));
+ }
+ for(const scenario of ['__proto__','constructor','growth','',null,{}]){
+  assert.throws(()=>planVisitsForCustomerGoal({monthlyCustomerGoal:10,scenario}));
+ }
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/id=\{'growth-goal-'\+locale\}/);
+ assert.match(s,/data-growth-goal-calculate/);
+ assert.match(s,/planVisitsForCustomerGoal\(\{monthlyCustomerGoal:requested,scenario:code\}\)/);
+ assert.match(s,/goalOutput\.textContent=fillGoal/);
+ assert.doesNotMatch(s,/<form\b|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 });

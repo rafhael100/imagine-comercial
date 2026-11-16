@@ -15,6 +15,7 @@ export const GROWTH_SECTORS=Object.freeze([
 ]);
 export const GROWTH_WEEKS_PER_MONTH=4;
 export const MAX_WEEKLY_VISITS=100000;
+export const MAX_MONTHLY_CUSTOMER_GOAL=10000;
 const allowed=new Set(GROWTH_SECTORS);
 const own=(object,key)=>Object.prototype.hasOwnProperty.call(object,key);
 
@@ -55,5 +56,39 @@ export function buildGrowthPotential({weeklyVisits,sector='other',scenario='refe
    visitorIdentityCaptured:false,
    customerDataStored:false,
    realResultsGuaranteed:false
+ });
+}
+
+/**
+ * F336: reverse the same hypothetical model to show the smallest whole
+ * weekly traffic volume whose ROUNDED illustration meets the stated goal.
+ * Monotone binary search keeps the existing public traffic ceiling; it is
+ * deliberately not an industry benchmark, acquisition plan or SLA.
+ * No network, PII, storage or external calls.
+ */
+export function planVisitsForCustomerGoal({monthlyCustomerGoal,scenario='reference'}={}){
+ if(!Number.isSafeInteger(monthlyCustomerGoal)||monthlyCustomerGoal<0||
+    monthlyCustomerGoal>MAX_MONTHLY_CUSTOMER_GOAL)
+   throw new RangeError('Monthly customer goal out of reviewed simulation range');
+ if(typeof scenario!=='string'||!own(GROWTH_SCENARIOS,scenario))
+   throw new TypeError('Unreviewed growth scenario');
+ const max=buildGrowthPotential({weeklyVisits:MAX_WEEKLY_VISITS,scenario});
+ if(max.customers<monthlyCustomerGoal)
+   return Object.freeze({reachable:false,scenario,monthlyCustomerGoal,
+    weeklyCap:MAX_WEEKLY_VISITS,maxIllustratedCustomers:max.customers,
+    assumptionOnly:true,realResultsGuaranteed:false});
+ let low=0,high=MAX_WEEKLY_VISITS;
+ while(low<high){
+   const mid=Math.floor((low+high)/2);
+   const estimate=buildGrowthPotential({weeklyVisits:mid,scenario});
+   if(estimate.customers>=monthlyCustomerGoal)high=mid;
+   else low=mid+1;
+ }
+ const estimate=buildGrowthPotential({weeklyVisits:low,scenario});
+ return Object.freeze({
+   reachable:true,scenario,monthlyCustomerGoal,
+   weeklyVisits:low,monthlyVisits:estimate.monthlyVisits,
+   leads:estimate.leads,customers:estimate.customers,
+   assumptionOnly:true,realResultsGuaranteed:false
  });
 }
