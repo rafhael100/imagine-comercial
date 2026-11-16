@@ -19,6 +19,7 @@ import {composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
 import {localizedSalesWhatsAppUrl} from '../src/data/localized-sales-contact.mjs';
 import {reviewedQuoteChoiceHref} from '../src/data/reviewed-quote-choice-href.mjs';
+import {formatReviewedCommercialEstimate} from '../src/lib/commercial-estimate-copy.mjs';
 import {composeReviewedComparisonContact} from '../src/data/comparison-contact.mjs';
 import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
@@ -63,6 +64,7 @@ try {
   // Direct purchase-intent CTAs must never silently send a message or depend on a questionnaire.
   for(const width of [320,768,1440]){
     const quickContext=await browser.newContext({viewport:{width,height:950}});
+    await quickContext.grantPermissions(['clipboard-read','clipboard-write'],{origin:host});
     const quickPage=await quickContext.newPage();
     await quickPage.goto(host+'/',{waitUntil:'networkidle'});
     const cards=quickPage.locator('[data-quick-hire]');
@@ -248,9 +250,20 @@ try {
       'F345: three illustrative installments must sum exactly to R$1.970,00');
     assert.ok(await quickPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
       'F345: split installment summary must not create horizontal overflow on mobile');
+    // F346: user-initiated copy uses the SAME cent-based, reviewed estimate
+    // with no automatic WhatsApp message, form submission or private fields.
+    await preview.locator('[data-choice-copy]').click();
+    await preview.locator('[data-choice-copy-status]').waitFor({state:'visible',timeout});
+    assert.equal(await quickPage.evaluate(()=>navigator.clipboard.readText()),
+      formatReviewedCommercialEstimate({
+        site:'onepage',channels:['google_ads','meta_ads'],tier:'recommended'
+      },'pt-BR'));
+    assert.match(await preview.locator('[data-choice-copy-status]').textContent(),/copiada/);
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('2.500,00'));
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('500,00'));
     await preview.locator('[data-choice-tier="minimum"]').click();
+    assert.equal(await preview.locator('[data-choice-copy-status]').isVisible(),false,
+      'F346: changing the quote invalidates an old clipboard confirmation');
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('370,00'));
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('1.700,00'));
     await preview.locator('[data-choice-site="landing-pages"]').click();
@@ -266,6 +279,8 @@ try {
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
+    assert.equal(await preview.locator('[data-choice-copy]').isDisabled(),true,
+      'F346: an empty quote must not be copied as a real offer');
     assert.equal(await preview.locator('input, form, textarea').count(),0);
     await preview.locator('[data-choice-site="onepage"]').click();
     assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
@@ -289,6 +304,7 @@ try {
   // and translated route parity. Historic PT-only content tests follow below.
   for(const width of [375,1440]){
     const ctx=await browser.newContext({viewport:{width,height:850},javaScriptEnabled:true});
+    await ctx.grantPermissions(['clipboard-read','clipboard-write'],{origin:host});
     const p=await ctx.newPage();
     for(const lang of ['en','es']){
       for(const section of ['','services','compare','how-it-works','faq','about','contact',
@@ -439,6 +455,12 @@ try {
             lang==='en'?'2 × BRL 493.33 + 1 × BRL 493.34':
               '2 × R$ 493,33 + 1 × R$ 493,34',
             'F345: cost breakdown must be exact in '+lang);
+          await estimate.locator('[data-choice-copy]').click();
+          await estimate.locator('[data-choice-copy-status]').waitFor({state:'visible',timeout});
+          assert.equal(await p.evaluate(()=>navigator.clipboard.readText()),
+            formatReviewedCommercialEstimate({
+              site:'onepage',channels:['meta_ads'],tier:'recommended'
+            },lang));
           assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
             'F345: international split installments must remain responsive');
           assert.equal(await estimate.locator('form,input,textarea').count(),0);
