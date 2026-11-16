@@ -28,13 +28,13 @@ for(const site of ['none','onepage','landing-pages'])
 assert.equal(selections.length,48);
 const php=String.raw`
 require $argv[1];
-$engine=new App\\Homologation\\Commerce\\CompositeQuotePreview();
+$engine=new App\Homologation\Commerce\CompositeQuotePreview();
 $selections=json_decode($argv[2],true,512,JSON_THROW_ON_ERROR);
 $out=[];
 foreach ($selections as $selected) {
   try {
     $out[]=['accepted'=>true,'quote'=>$engine->quote($selected)];
-  } catch (\\InvalidArgumentException $e) {
+  } catch (\InvalidArgumentException $e) {
     $out[]=['accepted'=>false];
   }
 }
