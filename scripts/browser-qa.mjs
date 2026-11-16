@@ -98,6 +98,9 @@ try {
       const row=comparison.locator('[data-growth-compare-row="'+name+'"]');
       assert.equal(await row.locator('[data-growth-compare-leads]').textContent(),leads);
       assert.equal(await row.locator('[data-growth-compare-customers]').textContent(),customers);
+      const expectedRates={conservative:['2%','10%'],reference:['4%','20%'],optimistic:['6%','30%']}[name];
+      assert.equal(await row.locator('[data-growth-compare-lead-rate]').textContent(),expectedRates[0]);
+      assert.equal(await row.locator('[data-growth-compare-close-rate]').textContent(),expectedRates[1]);
       assert.equal(await row.getAttribute('data-current'),String(name==='reference'));
     }
     assert.match(await funnel.locator('[data-growth-assumptions]').textContent(),
@@ -358,6 +361,8 @@ try {
             const row=localizedCompare.locator('[data-growth-compare-row="'+code+'"]');
             assert.equal(await row.locator('[data-growth-compare-leads]').textContent(),String(allScenarios.scenarios[code].leads));
             assert.equal(await row.locator('[data-growth-compare-customers]').textContent(),String(allScenarios.scenarios[code].customers));
+            assert.equal(await row.locator('[data-growth-compare-lead-rate]').textContent(),String(allScenarios.scenarios[code].leadRatePercent)+'%');
+            assert.equal(await row.locator('[data-growth-compare-close-rate]').textContent(),String(allScenarios.scenarios[code].closeRatePercent)+'%');
             assert.equal(await row.getAttribute('data-current'),String(code==='optimistic'));
           }
           assert.equal(await goal.locator('[data-growth-goal-apply]').isVisible(),false);
