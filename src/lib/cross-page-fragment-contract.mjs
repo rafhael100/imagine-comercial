@@ -62,7 +62,8 @@ export function auditCrossPageFragmentTargets(pages){
       assert.match(path,ROUTE,'F148: invalid destination path');
       const approvedBriefing=path==='/contato/'&&
         decodeCuratedBriefingFragment('#'+fragment)!==null;
-      // F334: only the reviewed contact codec can carry '~' placeholders.
+      // F334: only the reviewed contact codec can carry optional-state
+      // tokens; browser-safe '_' avoids Chromium ':~:' directives.
       // Reject unknown briefing tokens even when they otherwise match the
       // historic alphanumeric F148 fragment grammar.
       if(fragment.startsWith('briefing:')){
