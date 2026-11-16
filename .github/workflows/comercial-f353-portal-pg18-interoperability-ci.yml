@@ -63,6 +63,12 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '22'
+      - name: Setup PHP 8.3 with PDO PostgreSQL (no payment clients)
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          extensions: pdo,pdo_pgsql
       - name: PHP 8.3+ preflight
         run: |
           set -euo pipefail
