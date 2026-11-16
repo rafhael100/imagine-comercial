@@ -82,7 +82,8 @@ test('F346 rejects forged private properties, unreviewed locale, bad channels an
  const src=readFileSync(new URL('../src/lib/commercial-estimate-copy.mjs',import.meta.url),'utf8');
  assert.doesNotMatch(src,/navigator|XMLHttpRequest|fetch\s*\(|sendBeacon|localStorage|sessionStorage|document\.cookie/);
  const component=readFileSync(new URL('../src/components/CommercialChoicePreview.astro',import.meta.url),'utf8');
- assert.match(component,/data-choice-copy>\{copy\.copyAction\}<\/button>/);
+ assert.match(component,/data-choice-copy hidden>\{copy\.copyAction\}<\/button>/);
+ assert.match(component,/copyButton\.hidden=false;copyButton\.disabled=!estimate\.hasChoice/);
  assert.match(component,/data-choice-copy-status role="status" hidden/);
  assert.match(component,/await navigator\.clipboard\.writeText\(summary\)/);
  assert.match(component,/if\(choiceRevision!==version\)return/);
