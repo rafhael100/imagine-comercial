@@ -27,6 +27,37 @@ export const REVIEWED_CHANNEL_CHOICES=Object.freeze(Object.fromEntries(
 ));
 export const REVIEWED_ESTIMATE_TIERS=Object.freeze(['minimum','recommended']);
 
+/**
+ * F345 — exact three-part *illustrative* schedule in whole BRL cents.
+ * The last installment receives any 1–2-cent remainder. Never convert
+ * a fractional BRL amount to a payable or customer-specific invoice.
+ */
+export function splitThreeIllustrativeInstallments(totalCents){
+ if(!Number.isSafeInteger(totalCents)||totalCents<0||
+    totalCents>1_000_000_000)
+  throw new RangeError('Invalid nonbinding amount in cents');
+ const regular=Math.floor(totalCents/3);
+ const last=totalCents-regular*2;
+ return Object.freeze({
+  firstCents:regular,secondCents:regular,lastCents:last,
+  totalCents,hasAdjustment:last!==regular,
+  checkoutAuthorized:false
+ });
+}
+export function describeThreeIllustrativeInstallments(totalCents,locale='pt-BR'){
+ if(!['pt-BR','en','es'].includes(locale))
+  throw new TypeError('Unsupported installment display locale');
+ const split=splitThreeIllustrativeInstallments(totalCents);
+ const currency=cents=>(locale==='en'?'BRL ':'R$ ')+
+  (cents/100).toLocaleString(locale==='en'?'en-US':'pt-BR',{
+   minimumFractionDigits:2,maximumFractionDigits:2
+  });
+ return split.hasAdjustment
+  ?'2 × '+currency(split.firstCents)+' + 1 × '+currency(split.lastCents)
+  :'3 × '+currency(split.firstCents);
+}
+
+
 // F341: the browser quote estimate is public-only and must not accidentally
 // evaluate hidden PII, accessors or prototype-supplied choices. This is an
 // in-process data contract, NOT a production checkout authorization.

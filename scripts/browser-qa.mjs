@@ -19,6 +19,7 @@ import {composeCuratedBriefingLinks} from '../src/data/briefing-curado.mjs';
 import {contactWhatsAppUrl,contactEmailUrl} from '../src/data/contact-channels.mjs';
 import {localizedSalesWhatsAppUrl} from '../src/data/localized-sales-contact.mjs';
 import {reviewedQuoteChoiceHref} from '../src/data/reviewed-quote-choice-href.mjs';
+import {formatReviewedCommercialEstimate} from '../src/lib/commercial-estimate-copy.mjs';
 import {composeReviewedComparisonContact} from '../src/data/comparison-contact.mjs';
 import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
@@ -63,6 +64,7 @@ try {
   // Direct purchase-intent CTAs must never silently send a message or depend on a questionnaire.
   for(const width of [320,768,1440]){
     const quickContext=await browser.newContext({viewport:{width,height:950}});
+    await quickContext.grantPermissions(['clipboard-read','clipboard-write'],{origin:host});
     const quickPage=await quickContext.newPage();
     await quickPage.goto(host+'/',{waitUntil:'networkidle'});
     const cards=quickPage.locator('[data-quick-hire]');
@@ -80,6 +82,8 @@ try {
     const funnel=quickPage.locator('[data-growth-calculator]');
     assert.equal(await funnel.count(),1);
     assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false);
+    assert.equal(await funnel.locator('[data-growth-quote]').isVisible(),false,
+      'F344: no quote offer before an explicit illustrative funnel calculation');
     assert.equal(await funnel.locator('input[type=email],input[type=tel],input[name=name]').count(),0);
     assert.equal(await funnel.locator('[data-funnel-visits]').isVisible(),false);
     await funnel.locator('[data-growth-calculate]').click();
@@ -87,6 +91,17 @@ try {
     assert.equal(await funnel.locator('[data-growth-monthly]').textContent(),'400');
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'16');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'3');
+    // F344: the only handoff is a local, anonymous anchor to the existing
+    // quote selector. No visits, personal data, price or goal are transferred.
+    const quoteLink=funnel.locator('[data-growth-quote]');
+    assert.equal(await quoteLink.getAttribute('href'),'#simular-compra');
+    assert.equal(await quoteLink.isVisible(),true);
+    await quoteLink.click();
+    assert.equal(new URL(quickPage.url()).hash,'#simular-compra');
+    assert.equal(new URL(quickPage.url()).search,'');
+    assert.equal(await quickPage.locator('#simular-compra[data-choice-preview]').count(),1);
+    assert.equal(await quickPage.locator('#simular-compra [data-choice-site="onepage"]').getAttribute('aria-pressed'),'true');
+    assert.equal(await quickPage.locator('#simular-compra form,#simular-compra input[type=email]').count(),0);
     // F338: the same 100 weekly visits must yield all three reviewed
     // hypothetical outcomes, regardless of the selected scenario.
     const comparison=funnel.locator('[data-growth-compare]');
@@ -225,26 +240,49 @@ try {
     // without login, collecting personal data, submitting an order or contacting a provider.
     const preview=quickPage.locator('[data-choice-preview]');
     assert.equal(await preview.count(),1);
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('330,00'));
+    assert.equal(await preview.locator('[data-choice-onetime]').textContent(),'3 × R$ 330,00');
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
       reviewedQuoteChoiceHref('pt-BR',{site:'onepage',channels:[],tier:'recommended'}));
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('656,66'));
+    assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
+      '2 × R$ 656,66 + 1 × R$ 656,68',
+      'F345: three illustrative installments must sum exactly to R$1.970,00');
+    assert.ok(await quickPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
+      'F345: split installment summary must not create horizontal overflow on mobile');
+    // F346: user-initiated copy uses the SAME cent-based, reviewed estimate
+    // with no automatic WhatsApp message, form submission or private fields.
+    await preview.locator('[data-choice-copy]').click();
+    await preview.locator('[data-choice-copy-status]').waitFor({state:'visible',timeout});
+    // F346: F333 deliberately replaced navigator.clipboard with a strict
+    // write-only test sink earlier on this page; inspect that sink directly.
+    assert.equal(await quickPage.evaluate(()=>globalThis.__funnelCopiedSummary),
+      formatReviewedCommercialEstimate({
+        site:'onepage',channels:['google_ads','meta_ads'],tier:'recommended'
+      },'pt-BR'));
+    assert.match(await preview.locator('[data-choice-copy-status]').textContent(),/copiada/);
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('2.500,00'));
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('500,00'));
     await preview.locator('[data-choice-tier="minimum"]').click();
+    assert.equal(await preview.locator('[data-choice-copy-status]').isVisible(),false,
+      'F346: changing the quote invalidates an old clipboard confirmation');
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('370,00'));
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('1.700,00'));
     await preview.locator('[data-choice-site="landing-pages"]').click();
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('756,66'));
+    assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
+      '2 × R$ 756,66 + 1 × R$ 756,68',
+      'F345: three illustrative installments must sum exactly to R$2.270,00');
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
       reviewedQuoteChoiceHref('pt-BR',{site:'landing-pages',channels:['google_ads','meta_ads'],tier:'minimum'}));
     await preview.locator('[data-choice-site="none"]').click();
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('326,66'));
+    assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
+      '2 × R$ 326,66 + 1 × R$ 326,68',
+      'F345: three channel-only installments sum exactly to R$980,00');
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
+    assert.equal(await preview.locator('[data-choice-copy]').isDisabled(),true,
+      'F346: an empty quote must not be copied as a real offer');
     assert.equal(await preview.locator('input, form, textarea').count(),0);
     await preview.locator('[data-choice-site="onepage"]').click();
     assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
@@ -268,6 +306,7 @@ try {
   // and translated route parity. Historic PT-only content tests follow below.
   for(const width of [375,1440]){
     const ctx=await browser.newContext({viewport:{width,height:850},javaScriptEnabled:true});
+    await ctx.grantPermissions(['clipboard-read','clipboard-write'],{origin:host});
     const p=await ctx.newPage();
     for(const lang of ['en','es']){
       for(const section of ['','services','compare','how-it-works','faq','about','contact',
@@ -314,6 +353,13 @@ try {
           assert.equal(await localizedFunnel.locator('[data-growth-monthly]').textContent(),'400');
           assert.equal(await localizedFunnel.locator('[data-growth-leads]').textContent(),'16');
           assert.equal(await localizedFunnel.locator('[data-growth-customers]').textContent(),'3');
+          const localizedQuote=localizedFunnel.locator('[data-growth-quote]');
+          assert.equal(await localizedQuote.getAttribute('href'),'#simular-compra');
+          await localizedQuote.click();
+          assert.equal(new URL(p.url()).hash,'#simular-compra');
+          assert.equal(new URL(p.url()).search,'');
+          assert.equal(await p.locator('#simular-compra[data-choice-preview]').count(),1);
+          assert.equal(await p.locator('#simular-compra [data-choice-site="onepage"]').getAttribute('aria-pressed'),'true');
           await localizedFunnel.locator('[data-growth-sector]').selectOption('retail');
           assert.equal(await localizedFunnel.locator('[data-growth-results]').isVisible(),false,
             lang+': changing sector invalidates stale results');
@@ -407,8 +453,19 @@ try {
           assert.equal(await estimate.locator('[data-choice-channel="meta_ads"]').getAttribute('aria-pressed'),'true');
           assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
             reviewedQuoteChoiceHref(lang,{site:'onepage',channels:['meta_ads'],tier:'recommended'}));
-          assert.ok((await estimate.locator('[data-choice-onetime]').textContent()).includes(
-            lang==='en'?'493.33':'493,33'));
+          assert.equal(await estimate.locator('[data-choice-onetime]').textContent(),
+            lang==='en'?'2 × BRL 493.33 + 1 × BRL 493.34':
+              '2 × R$ 493,33 + 1 × R$ 493,34',
+            'F345: cost breakdown must be exact in '+lang);
+          await estimate.locator('[data-choice-copy]').click();
+          await estimate.locator('[data-choice-copy-status]').waitFor({state:'visible',timeout});
+          // F335 already installs a write-only clipboard sink for locale QA.
+          assert.equal(await p.evaluate(()=>globalThis.__localizedFunnelSummary),
+            formatReviewedCommercialEstimate({
+              site:'onepage',channels:['meta_ads'],tier:'recommended'
+            },lang));
+          assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
+            'F345: international split installments must remain responsive');
           assert.equal(await estimate.locator('form,input,textarea').count(),0);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-solutions"]').count(),1);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-ads"]').count(),1);
