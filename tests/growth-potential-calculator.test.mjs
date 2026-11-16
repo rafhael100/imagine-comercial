@@ -127,3 +127,13 @@ test('F333: optional copied summary names the selected illustrative scenario in 
  assert.match(s,/if\(!last\)return;/);
  assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 });
+
+test('F333: asynchronous clipboard completion cannot restore stale status after recalculation',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/let estimateRevision=0;/);
+ assert.match(s,/const invalidateEstimate=\(\)=>\{\s*estimateRevision\+\+;/);
+ assert.match(s,/estimateRevision\+\+;\s*last=estimate;/);
+ assert.match(s,/const revision=estimateRevision;/);
+ assert.match(s,/await navigator\.clipboard\.writeText\(message\);\s*if\(revision!==estimateRevision\)return;/);
+ assert.match(s,/if\(revision===estimateRevision\)copyStatus\.hidden=false;/);
+});
