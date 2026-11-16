@@ -133,7 +133,8 @@ test('F333: optional copied summary names the selected illustrative scenario in 
 test('F333: asynchronous clipboard completion cannot restore stale status after recalculation',()=>{
  const s=read('src/components/GrowthFunnelCalculator.astro');
  assert.match(s,/let estimateRevision=0;/);
- assert.match(s,/const invalidateEstimate=\(\)=>\{\s*estimateRevision\+\+;/);
+ assert.match(s,/const invalidateEstimate=\(\)=>\{/);
+ assert.match(s,/if\(goalOutput\)goalOutput\.hidden=true;[\s\S]{0,140}estimateRevision\+\+;/);
  assert.match(s,/estimateRevision\+\+;\s*last=estimate;/);
  assert.match(s,/const revision=estimateRevision;/);
  assert.match(s,/await navigator\.clipboard\.writeText\(message\);\s*if\(revision!==estimateRevision\)return;/);
