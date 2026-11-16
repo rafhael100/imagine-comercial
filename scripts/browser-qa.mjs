@@ -254,7 +254,9 @@ try {
     // with no automatic WhatsApp message, form submission or private fields.
     await preview.locator('[data-choice-copy]').click();
     await preview.locator('[data-choice-copy-status]').waitFor({state:'visible',timeout});
-    assert.equal(await quickPage.evaluate(()=>navigator.clipboard.readText()),
+    // F346: F333 deliberately replaced navigator.clipboard with a strict
+    // write-only test sink earlier on this page; inspect that sink directly.
+    assert.equal(await quickPage.evaluate(()=>globalThis.__funnelCopiedSummary),
       formatReviewedCommercialEstimate({
         site:'onepage',channels:['google_ads','meta_ads'],tier:'recommended'
       },'pt-BR'));
@@ -457,7 +459,8 @@ try {
             'F345: cost breakdown must be exact in '+lang);
           await estimate.locator('[data-choice-copy]').click();
           await estimate.locator('[data-choice-copy-status]').waitFor({state:'visible',timeout});
-          assert.equal(await p.evaluate(()=>navigator.clipboard.readText()),
+          // F335 already installs a write-only clipboard sink for locale QA.
+          assert.equal(await p.evaluate(()=>globalThis.__localizedFunnelSummary),
             formatReviewedCommercialEstimate({
               site:'onepage',channels:['meta_ads'],tier:'recommended'
             },lang));
