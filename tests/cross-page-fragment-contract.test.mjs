@@ -106,7 +106,8 @@ test('F334 F148 counts only codec-approved contact briefing as curated intent',(
  assert.equal(ok.crossPageFragmentsChecked,4);
  assert.equal(ok.approvedContactIntents,3);
  for(const bad of [
-  'briefing:~:~:~:desconhecido',
+  'briefing:_:_:_:desconhecido',
+  'briefing:~:~:~:contatos',
   'briefing:~:~:~:contatos:extra',
   'briefing:%7E:~:~:contatos',
   'briefing:~:~:~:contatos?tracking',
