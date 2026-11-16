@@ -261,3 +261,21 @@ test('F338: scenario comparison is semantic, fully local and shares the same rou
  });
  assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 });
+
+test('F339: every compared scenario discloses the actual hypothetical conversion rates',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ for(const text of [
+  "compareLeadRate:'Visitas → leads'", "compareCloseRate:'Leads → clientes'",
+  "compareLeadRate:'Visits → leads'", "compareCloseRate:'Leads → customers'",
+  "data-growth-compare-lead-rate", "data-growth-compare-close-rate"
+ ])assert.ok(s.includes(text),text);
+ assert.match(s,/leadRate\.textContent=String\(values\.leadRatePercent\)\+'%'/);
+ assert.match(s,/closeRate\.textContent=String\(values\.closeRatePercent\)\+'%'/);
+ const example=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:'reference'});
+ assert.deepEqual(Object.fromEntries(Object.entries(example.scenarios).map(([code,value])=>[
+  code,[value.leadRatePercent,value.closeRatePercent,value.leads,value.customers]
+ ])),{
+  conservative:[2,10,8,1],reference:[4,20,16,3],optimistic:[6,30,24,7]
+ });
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
