@@ -128,9 +128,15 @@ try {
     assert.equal(await funnel.locator('.funnel-cta-row .cta').getAttribute('href'),funnelContact);
     const contactFromFunnel=await quickContext.newPage();
     await contactFromFunnel.goto(host+funnelContact,{waitUntil:'networkidle'});
-    await contactFromFunnel.waitForFunction(()=>
-      document.querySelector('#priority-choice')?.value==='contatos');
-    assert.equal(await contactFromFunnel.locator('#priority-choice').inputValue(),'contatos');
+    const contactState=await contactFromFunnel.evaluate(()=>({
+      hash:location.hash,
+      priority:document.querySelector('#priority-choice')?.value??null,
+      service:document.querySelector('#service-choice')?.value??null,
+      objective:document.querySelector('#objective-choice')?.value??null,
+      stage:document.querySelector('#stage-choice')?.value??null
+    }));
+    assert.equal(contactState.priority,'contatos',
+      'F334: expected reviewed contact priority '+JSON.stringify(contactState));
     assert.ok((await contactFromFunnel.locator('#message-preview').textContent()).includes('Receber mais contatos'));
     assert.equal(await contactFromFunnel.locator('form,input[type=email],input[type=tel]').count(),0);
     await contactFromFunnel.close();
