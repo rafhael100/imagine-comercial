@@ -90,6 +90,24 @@ try {
       /4% das visitas.*20% dos leads.*4 semanas/,'F335: reference scenario must disclose assumptions');
     assert.ok((await funnel.locator('[data-growth-ranges]').textContent()).includes('8'));
     assert.ok((await funnel.locator('[data-growth-ranges]').textContent()).includes('24'));
+    // F336: goal-driven planning is anonymous, bounded and derived from
+    // the exact same rounded illustration. It must not navigate or submit.
+    const goalPanel=funnel.locator('[data-growth-goal-panel]');
+    await goalPanel.locator('summary').click();
+    await goalPanel.locator('[data-growth-goal]').fill('10');
+    await goalPanel.locator('[data-growth-goal-calculate]').click();
+    assert.equal(await goalPanel.locator('[data-growth-goal-result]').isVisible(),true);
+    assert.match(await goalPanel.locator('[data-growth-goal-result]').textContent(),
+      /10 clientes\/mês.*visitas\/semana/);
+    await goalPanel.locator('[data-growth-goal]').fill('10001');
+    assert.equal(await goalPanel.locator('[data-growth-goal-result]').isVisible(),false);
+    await goalPanel.locator('[data-growth-goal-calculate]').click();
+    assert.equal(await goalPanel.locator('[data-growth-goal-error]').isVisible(),true);
+    await goalPanel.locator('[data-growth-goal]').fill('10000');
+    await goalPanel.locator('[data-growth-goal-calculate]').click();
+    assert.match(await goalPanel.locator('[data-growth-goal-result]').textContent(),
+      /não há resultado|Não há resultado/);
+    assert.equal(await goalPanel.locator('input[type=email],input[type=tel],form').count(),0);
     await funnel.locator('[data-growth-scenario][value=conservative]').check();
     await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'8');
@@ -290,6 +308,16 @@ try {
             ? /6% of visits.*30% of leads/.test(await localizedFunnel.locator('[data-growth-assumptions]').textContent())
             : /6% de visitas.*30% de leads/.test(await localizedFunnel.locator('[data-growth-assumptions]').textContent()),
             lang+': displayed assumptions reflect selected scenario');
+          // F336: reverse illustration has no external data, in either locale.
+          const goal=localizedFunnel.locator('[data-growth-goal-panel]');
+          await goal.locator('summary').click();
+          await goal.locator('[data-growth-goal]').fill('10');
+          await goal.locator('[data-growth-goal-calculate]').click();
+          assert.equal(await goal.locator('[data-growth-goal-result]').isVisible(),true);
+          assert.ok(lang==='en'
+            ? (await goal.locator('[data-growth-goal-result]').textContent()).includes('10 customers/month')
+            : (await goal.locator('[data-growth-goal-result]').textContent()).includes('10 clientes/mes'),
+            lang+': reverse goal must show an explicitly hypothetical calculation');
           const expectedContact='/'+lang+'/contact/';
           assert.equal(await localizedFunnel.locator('.funnel-cta-row .cta').getAttribute('href'),expectedContact);
           assert.equal(await localizedFunnel.locator('input[type=email],input[type=tel]').count(),0);
