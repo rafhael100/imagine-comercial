@@ -174,10 +174,11 @@ test('F345: all 48 public quote combinations add up to the exact advertised setu
     assert.ok(parts.lastCents-parts.firstCents<=2);
     assert.equal(parts.checkoutAuthorized,false);
     assert.ok(Object.isFrozen(parts));
-    const expected=parts.hasAdjustment
-      ?'2 × '+parts.firstCents+' + 1 × '+parts.lastCents
-      :'3 × '+parts.firstCents;
-    assert.ok(expected.length>5);
+    const displayed=describeThreeIllustrativeInstallments(
+      estimate.contractedSetupAndActivationCents,'pt-BR');
+    assert.ok(displayed.includes('R$ '));
+    assert.ok(displayed.startsWith(parts.hasAdjustment?'2 × ':'3 × '));
+    assert.equal(displayed.includes(' + 1 × '),parts.hasAdjustment);
     checked++;
    }
  assert.equal(checked,48);
