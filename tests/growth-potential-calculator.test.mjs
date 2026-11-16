@@ -159,7 +159,7 @@ test('F335: copied and displayed funnel results disclose actual illustrative per
  assert.match(s,/label\('\[data-growth-assumptions\]',assumptionsText\(estimate\)\)/);
  assert.match(s,/assumptionsText\(last\),\s*t\.warning/);
  for(const text of [
-  'não são médias de mercado: {lead}%',
+  'não médias de mercado: {lead}%',
   'not industry averages: {lead}%',
   'no promedios del mercado: {lead}%',
   '{close}%','4 semanas','4-week planning month'
