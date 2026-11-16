@@ -201,7 +201,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  .choice-installment{font-size:.74rem;color:#605d57;margin:4px 0 7px}
  .summary-total{display:flex;justify-content:space-between;gap:12px;align-items:baseline;background:#e9f0e9;padding:13px;margin:11px 0;border-radius:10px}
  .summary-total span{font-size:.8rem;font-weight:730;color:#29352a}
- .summary-total strong{font-size:1.16rem;white-space:nowrap}
+ .summary-total strong{font-size:1.16rem;white-space:normal;min-width:0;overflow-wrap:anywhere;text-align:right}
  .choice-payment-rule{font-size:.74rem;color:#62645e;line-height:1.48;margin:14px 0}
  .choice-action{display:flex;justify-content:center;align-items:center;gap:8px;min-height:48px;text-decoration:none;font-size:.82rem;line-height:1.3}
  .choice-action[aria-disabled="true"]{pointer-events:none;opacity:.5}
@@ -209,5 +209,5 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  .choice-calculator{display:block;text-align:center;font-size:.8rem;font-weight:700;color:#884100;min-height:44px;padding-top:12px}
  .choice-disclosure{font-size:.75rem;color:#6a6259;line-height:1.5;max-width:1050px;margin:17px 0 0}
  @media(max-width:800px){.choice-layout{grid-template-columns:1fr}}
- @media(max-width:440px){.choice-section{padding:18px 13px}.choice-step{padding:13px}.choice-summary{padding:17px 13px}.choice-options button{font-size:.78rem;padding:10px}.summary-line strong{font-size:.81rem}.summary-total strong{font-size:1.04rem}}
+ @media(max-width:440px){.choice-section{padding:18px 13px}.choice-step{padding:13px}.choice-summary{padding:17px 13px}.choice-options button{font-size:.78rem;padding:10px}.summary-line strong{font-size:.81rem}.summary-total strong{font-size:1.04rem;text-align:left}.summary-total{flex-direction:column;align-items:flex-start}}
 </style>
