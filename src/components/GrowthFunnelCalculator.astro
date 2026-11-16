@@ -30,6 +30,10 @@ const copy={
  optional:'Dados pessoais não são solicitados: o cadastro para receber o plano por e-mail depende da homologação do CRM.',
  explore:'Conhecer soluções',
  assumptions:'Premissas fictícias, não médias de mercado: {lead}% das visitas viram leads, {close}% dos leads viram clientes; mês de 4 semanas.',
+ goalTitle:'Planejar a partir de uma meta',goalIntro:'Simule quantas visitas seriam necessárias para ilustrar uma meta de clientes no cenário escolhido acima. Não é uma previsão.',goalLabel:'Meta hipotética de clientes por mês',goalCalculate:'Calcular visitas para a meta',
+ goalInvalid:'Digite um número inteiro entre 0 e 10.000 clientes/mês.',
+ goalReached:'No cenário {scenario}, a simulação arredondada de {target} clientes/mês começa em cerca de {weekly} visitas/semana ({monthly} visitas/mês). Isso não é promessa de vendas.',
+ goalUnreachable:'A meta ilustrativa supera os {max} clientes/mês calculados para o limite de {cap} visitas/semana neste cenário. Não há resultado dentro do limite da calculadora.',
  },
  en:{
  eyebrow:'EXPLORE YOUR FUNNEL',title:'From visits to opportunities.',
@@ -50,6 +54,10 @@ const copy={
  optional:'No personal details requested: emailing your plan requires a separate, approved CRM integration.',
  explore:'Explore solutions',
  assumptions:'Hypothetical assumptions, not industry averages: {lead}% of visits become leads, {close}% of leads become customers; 4-week planning month.',
+ goalTitle:'Plan backwards from a goal',goalIntro:'Illustrate the visits needed for a monthly customer goal under the scenario selected above. This is not a forecast.',goalLabel:'Hypothetical customers per month',goalCalculate:'Estimate required visits',
+ goalInvalid:'Enter a whole number from 0 to 10,000 customers/month.',
+ goalReached:'With the {scenario} scenario, the rounded illustration first reaches {target} customers/month at about {weekly} visits/week ({monthly} visits/month). This does not promise sales.',
+ goalUnreachable:'The illustrative target exceeds {max} customers/month at the limit of {cap} visits/week in this scenario. No result exists within calculator limits.',
  },
  es:{
  eyebrow:'EXPLORA TU EMBUDO',title:'De visitas a oportunidades.',
@@ -70,6 +78,10 @@ const copy={
  optional:'No se solicitan datos personales: enviar tu plan por correo requiere una integración CRM homologada.',
  explore:'Conocer soluciones',
  assumptions:'Hipótesis ficticias, no promedios del mercado: {lead}% de visitas generan leads, {close}% de leads se convierten en clientes; mes de 4 semanas.',
+ goalTitle:'Planificar desde una meta',goalIntro:'Ilustra cuántas visitas harían falta para una meta mensual de clientes con el escenario seleccionado arriba. No es un pronóstico.',goalLabel:'Clientes hipotéticos por mes',goalCalculate:'Calcular visitas para la meta',
+ goalInvalid:'Introduce un entero entre 0 y 10.000 clientes/mes.',
+ goalReached:'En el escenario {scenario}, el ejercicio redondeado alcanza {target} clientes/mes desde aproximadamente {weekly} visitas/semana ({monthly} visitas/mes). No garantiza ventas.',
+ goalUnreachable:'La meta ilustrativa supera los {max} clientes/mes para el límite de {cap} visitas/semana en este escenario. No existe un resultado dentro del límite.',
  }
 } as const;
 const t=copy[locale];
@@ -130,6 +142,17 @@ const initialAssumptions=t.assumptions
      <button type="button" data-growth-calculate class="cta funnel-calculate">{t.calculate} <span aria-hidden="true">↗</span></button>
      <details class="funnel-math"><summary>{t.explain}</summary><p>{t.basis}</p><p>{t.sectorNote}</p></details>
     </div>
+    <details class="funnel-goal" data-growth-goal-panel
+      data-goal-invalid={t.goalInvalid} data-goal-reached={t.goalReached} data-goal-unreachable={t.goalUnreachable}>
+      <summary>{t.goalTitle}</summary>
+      <p>{t.goalIntro}</p>
+      <label for={'growth-goal-'+locale}>{t.goalLabel}</label>
+      <input id={'growth-goal-'+locale} type="number" inputmode="numeric"
+       min="0" max="10000" step="1" value="10" data-growth-goal/>
+      <button type="button" data-growth-goal-calculate>{t.goalCalculate}</button>
+      <p class="funnel-error" data-growth-goal-error role="alert" hidden>{t.goalInvalid}</p>
+      <output data-growth-goal-result role="status" aria-live="polite" hidden></output>
+    </details>
    </div>
   </div>
   <div class="funnel-results" data-growth-results hidden aria-live="polite" aria-atomic="true">
@@ -156,7 +179,7 @@ const initialAssumptions=t.assumptions
  </div>
 </section>
 <script>
- import {buildGrowthPotential,GROWTH_SECTORS,MAX_WEEKLY_VISITS} from '../lib/growth-potential-calculator.mjs';
+ import {buildGrowthPotential,GROWTH_SECTORS,MAX_WEEKLY_VISITS,MAX_MONTHLY_CUSTOMER_GOAL,planVisitsForCustomerGoal} from '../lib/growth-potential-calculator.mjs';
  const messages={
   'pt-BR':{scenario:['Conservador','Referência','Otimista'],invalid:'Informe um número inteiro entre 0 e 100.000 visitas por semana.',range:'Leads de {l} a {h}; clientes de {a} a {b}',week:'Visitas semanais',monthly:'Visitas mensais',leads:'Leads possíveis',customers:'Clientes potenciais',sector:'Segmento',scenario:'Cenário',copied:'Resumo copiado. Cole na conversa quando desejar.',fail:'Não foi possível copiar automaticamente. Selecione os valores para compartilhar.',warning:'Simulação matemática, não previsão nem garantia.'},
   en:{scenario:['Conservative','Reference','Optimistic'],invalid:'Enter a whole number between 0 and 100,000 visits per week.',range:'Leads from {l} to {h}; customers from {a} to {b}',week:'Weekly visits',monthly:'Monthly visits',leads:'Possible leads',customers:'Potential customers',sector:'Sector',scenario:'Scenario',copied:'Summary copied. Paste it into your conversation if you wish.',fail:'Could not copy automatically. You can select the figures to share.',warning:'Arithmetic exercise, not a forecast or guarantee.'},
@@ -172,6 +195,13 @@ const initialAssumptions=t.assumptions
   const output=root.querySelector('[data-growth-results]');
   const error=root.querySelector('[data-growth-error]');
   const copyStatus=root.querySelector('[data-growth-copied]');
+  const goalPanel=root.querySelector('[data-growth-goal-panel]');
+  const goalInput=root.querySelector('[data-growth-goal]');
+  const goalError=root.querySelector('[data-growth-goal-error]');
+  const goalOutput=root.querySelector('[data-growth-goal-result]');
+  const goalTemplate=(kind)=>goalPanel?.getAttribute('data-goal-'+kind)||'';
+  const fillGoal=(template,values)=>template.replace(/\{(scenario|target|weekly|monthly|max|cap)\}/g,
+    (_,key)=>String(values[key]??''));
   const assumptionsTemplate=root.getAttribute('data-growth-assumptions-template')||'';
   const assumptionsText=value=>{
    const rate=value.scenarios[value.scenario];
@@ -186,6 +216,8 @@ const initialAssumptions=t.assumptions
   // Results must never describe inputs that have since changed. Require a new
   // explicit calculation before displaying or copying a different scenario.
   const invalidateEstimate=()=>{
+   if(goalOutput)goalOutput.hidden=true;
+   if(goalError)goalError.hidden=true;
    estimateRevision++;
    last=null;
    output.hidden=true;
@@ -200,6 +232,42 @@ const initialAssumptions=t.assumptions
   sector.addEventListener('change',invalidateEstimate);
   for(const radio of form.querySelectorAll('[data-growth-scenario]'))
    radio.addEventListener('change',invalidateEstimate);
+  goalInput?.addEventListener('input',()=>{
+   if(goalOutput)goalOutput.hidden=true;
+   if(goalError)goalError.hidden=true;
+  });
+  goalPanel?.querySelector('[data-growth-goal-calculate]')?.addEventListener('click',()=>{
+   if(!goalInput||!goalOutput||!goalError)return;
+   const raw=goalInput.value;
+   const requested=Number(raw);
+   if(!/^\d{1,5}$/.test(raw)||!Number.isSafeInteger(requested)||
+      requested>MAX_MONTHLY_CUSTOMER_GOAL){
+    goalError.hidden=false;
+    goalError.textContent=goalTemplate('invalid');
+    goalOutput.hidden=true;
+    return;
+   }
+   const code=form.querySelector('[data-growth-scenario]:checked')?.value||'reference';
+   let plan;
+   try{plan=planVisitsForCustomerGoal({monthlyCustomerGoal:requested,scenario:code});}
+   catch{
+    goalError.textContent=goalTemplate('invalid');
+    goalError.hidden=false;
+    goalOutput.hidden=true;
+    return;
+   }
+   goalError.hidden=true;
+   const context={
+    scenario:t.scenario[scenarioCodes.indexOf(code)],
+    target:fmt(requested),
+    weekly:plan.reachable?fmt(plan.weeklyVisits):'',
+    monthly:plan.reachable?fmt(plan.monthlyVisits):'',
+    max:!plan.reachable?fmt(plan.maxIllustratedCustomers):'',
+    cap:fmt(MAX_WEEKLY_VISITS)
+   };
+   goalOutput.textContent=fillGoal(goalTemplate(plan.reachable?'reached':'unreachable'),context);
+   goalOutput.hidden=false;
+  });
   // User enters only anonymous sector/estimated volume. Nothing is saved or sent.
   form?.querySelector('[data-growth-calculate]')?.addEventListener('click',()=>{
    const raw=input.value;
@@ -306,6 +374,15 @@ const initialAssumptions=t.assumptions
  .funnel-math{margin-top:12px;font-size:.78rem;line-height:1.5;color:#565c51}
  .funnel-math summary{font-weight:730;color:#7c420d;cursor:pointer;min-height:30px}
  .funnel-math p{margin:8px 0}
+ .funnel-goal{margin-top:18px;padding:14px;border-radius:12px;border:1px solid #dbe4d5;background:#f5f9f1;font-size:.83rem}
+ .funnel-goal summary{cursor:pointer;font-weight:780;color:#31552c;min-height:28px}
+ .funnel-goal p{line-height:1.5;margin:9px 0}
+ .funnel-goal label{display:block;font-weight:730;margin:10px 0 6px}
+ .funnel-goal input{width:100%;max-width:200px;min-height:44px;background:#fff;border:1px solid #b9c9af;border-radius:9px;padding:8px 10px;font:inherit}
+ .funnel-goal button{display:inline-flex;margin:10px 0;min-height:44px;border:1px solid #386532;border-radius:9px;padding:9px 14px;background:#fff;color:#294f26;font:inherit;font-weight:750;cursor:pointer}
+ .funnel-goal input:focus-visible,.funnel-goal button:focus-visible,.funnel-goal summary:focus-visible{outline:3px solid #b25b00;outline-offset:2px}
+ .funnel-goal output{display:block;padding:10px;background:#fff;border-radius:9px;color:#274324;line-height:1.5}
+ .funnel-goal output[hidden]{display:none}
  .funnel-results{margin-top:16px;background:#fff;border:1px solid #e5e6df;border-radius:18px;padding:clamp(17px,2.5vw,28px)}
  .funnel-results-title h3{font-size:1.15rem;margin:4px 0 15px}
  .funnel-result-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
