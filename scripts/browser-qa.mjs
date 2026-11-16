@@ -246,6 +246,8 @@ try {
     assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
       '2 × R$ 656,66 + 1 × R$ 656,68',
       'F345: three illustrative installments must sum exactly to R$1.970,00');
+    assert.ok(await quickPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
+      'F345: split installment summary must not create horizontal overflow on mobile');
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('2.500,00'));
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('500,00'));
     await preview.locator('[data-choice-tier="minimum"]').click();
@@ -437,6 +439,8 @@ try {
             lang==='en'?'2 × BRL 493.33 + 1 × BRL 493.34':
               '2 × R$ 493,33 + 1 × R$ 493,34',
             'F345: cost breakdown must be exact in '+lang);
+          assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
+            'F345: international split installments must remain responsive');
           assert.equal(await estimate.locator('form,input,textarea').count(),0);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-solutions"]').count(),1);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-ads"]').count(),1);
