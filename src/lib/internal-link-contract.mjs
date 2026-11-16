@@ -39,7 +39,8 @@ export function auditCuratedInternalLinks(html,availableRoutes){
       assert.match(pathname,ROOT_ROUTE,'F143: noncanonical internal URL');
       assert.ok(approved.has(pathname),'F143: internal link points to missing public route');
       if(fragment!==undefined){
-        // F334: the established contact-briefing codec uses '~' placeholders.
+        // F334: accept only exact contact-briefing codec states, including
+        // browser-safe '_' empty tokens. Never accept arbitrary fragments.
         // Accept ONLY canonical reviewed public-only states on the PT contact
         // route. Every other fragment retains the restrictive F143 grammar.
         if(fragment.startsWith('briefing:')){
