@@ -23,6 +23,7 @@ import {composeReviewedComparisonContact} from '../src/data/comparison-contact.m
 import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mjs';
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import {encodeReviewedGoalFragment} from '../src/data/reviewed-goal-fragment.mjs';
+import {encodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
 import {assessPrivateBudgetPreview} from '../src/lib/private-budget-preflight.mjs';
@@ -121,7 +122,18 @@ try {
     await funnel.locator('[data-growth-scenario][value=reference]').check();
     await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-results]').isVisible(),true);
-    assert.equal(await funnel.locator('.funnel-cta-row a[href="/contato/"]').count(),1);
+    // F334: anonymous funnel opt-in carries a fixed public, allowlisted
+    // contact priority. It never serializes weekly visits, sector or estimates.
+    const funnelContact='/contato/'+encodeCuratedBriefingFragment('','','','contatos');
+    assert.equal(await funnel.locator('.funnel-cta-row .cta').getAttribute('href'),funnelContact);
+    const contactFromFunnel=await quickContext.newPage();
+    await contactFromFunnel.goto(host+funnelContact,{waitUntil:'networkidle'});
+    await contactFromFunnel.waitForFunction(()=>
+      document.querySelector('#priority-choice')?.value==='contatos');
+    assert.equal(await contactFromFunnel.locator('#priority-choice').inputValue(),'contatos');
+    assert.ok((await contactFromFunnel.locator('#message-preview').textContent()).includes('Receber mais contatos'));
+    assert.equal(await contactFromFunnel.locator('form,input[type=email],input[type=tel]').count(),0);
+    await contactFromFunnel.close();
     for(const service of services){
       const card=quickPage.locator('[data-quick-hire="'+service.slug+'"]');
       const link=card.locator('[data-quick-hire-action]');
