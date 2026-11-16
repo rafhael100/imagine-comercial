@@ -80,6 +80,8 @@ try {
     const funnel=quickPage.locator('[data-growth-calculator]');
     assert.equal(await funnel.count(),1);
     assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false);
+    assert.equal(await funnel.locator('[data-growth-quote]').isVisible(),false,
+      'F344: no quote offer before an explicit illustrative funnel calculation');
     assert.equal(await funnel.locator('input[type=email],input[type=tel],input[name=name]').count(),0);
     assert.equal(await funnel.locator('[data-funnel-visits]').isVisible(),false);
     await funnel.locator('[data-growth-calculate]').click();
@@ -87,6 +89,17 @@ try {
     assert.equal(await funnel.locator('[data-growth-monthly]').textContent(),'400');
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'16');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'3');
+    // F344: the only handoff is a local, anonymous anchor to the existing
+    // quote selector. No visits, personal data, price or goal are transferred.
+    const quoteLink=funnel.locator('[data-growth-quote]');
+    assert.equal(await quoteLink.getAttribute('href'),'#simular-compra');
+    assert.equal(await quoteLink.isVisible(),true);
+    await quoteLink.click();
+    assert.equal(new URL(quickPage.url()).hash,'#simular-compra');
+    assert.equal(new URL(quickPage.url()).search,'');
+    assert.equal(await quickPage.locator('#simular-compra[data-choice-preview]').count(),1);
+    assert.equal(await quickPage.locator('#simular-compra [data-choice-site="onepage"]').getAttribute('aria-pressed'),'true');
+    assert.equal(await quickPage.locator('#simular-compra form,#simular-compra input[type=email]').count(),0);
     // F338: the same 100 weekly visits must yield all three reviewed
     // hypothetical outcomes, regardless of the selected scenario.
     const comparison=funnel.locator('[data-growth-compare]');
@@ -314,6 +327,13 @@ try {
           assert.equal(await localizedFunnel.locator('[data-growth-monthly]').textContent(),'400');
           assert.equal(await localizedFunnel.locator('[data-growth-leads]').textContent(),'16');
           assert.equal(await localizedFunnel.locator('[data-growth-customers]').textContent(),'3');
+          const localizedQuote=localizedFunnel.locator('[data-growth-quote]');
+          assert.equal(await localizedQuote.getAttribute('href'),'#simular-compra');
+          await localizedQuote.click();
+          assert.equal(new URL(p.url()).hash,'#simular-compra');
+          assert.equal(new URL(p.url()).search,'');
+          assert.equal(await p.locator('#simular-compra[data-choice-preview]').count(),1);
+          assert.equal(await p.locator('#simular-compra [data-choice-site="onepage"]').getAttribute('aria-pressed'),'true');
           await localizedFunnel.locator('[data-growth-sector]').selectOption('retail');
           assert.equal(await localizedFunnel.locator('[data-growth-results]').isVisible(),false,
             lang+': changing sector invalidates stale results');
