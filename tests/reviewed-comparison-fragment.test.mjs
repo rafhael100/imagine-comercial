@@ -65,3 +65,29 @@ test('F205 comparison removes inherited queries and fabricated hashes without br
   assert.match(source,/document\.getElementById\(localId\)/);
   assert.match(source,/window\.location\.pathname\+cleanHash/);
 });
+
+test('F343 rejects sparse or accessor pairs without reading private browser data',()=>{
+ const malformed=['onepage',,];
+ assert.equal(malformed.length,2);
+ assert.throws(()=>encode(malformed),/exactly two different approved/);
+ const disguised=['onepage',,];
+ Object.defineProperty(disguised,'privateCustomerRef',{value:'PRIVATE-EMAIL'});
+ assert.equal(Reflect.ownKeys(disguised).length,3);
+ assert.throws(()=>encode(disguised),/exactly two different approved/);
+ let getterCalls=0;
+ const getters=['onepage','landing-pages'];
+ Object.defineProperty(getters,'1',{enumerable:true,configurable:true,
+  get(){getterCalls++;throw Error('PRIVATE-SIDE-EFFECT');}
+ });
+ assert.throws(()=>encode(getters),/exactly two different approved/);
+ assert.equal(getterCalls,0);
+ const symbol=['onepage','landing-pages'];
+ symbol[Symbol('customerToken')]='private';
+ assert.throws(()=>encode(symbol),/exactly two different approved/);
+ const withExtra=['onepage','landing-pages'];
+ Object.defineProperty(withExtra,'email',{value:'private@example.invalid'});
+ assert.throws(()=>encode(withExtra),/exactly two different approved/);
+ const valid=Object.freeze(['onepage','landing-pages']);
+ assert.equal(decode(encode(valid)).length,2);
+ assert.equal(encode(valid),encode(['landing-pages','onepage']));
+});
