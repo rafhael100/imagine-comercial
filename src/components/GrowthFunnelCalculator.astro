@@ -29,6 +29,7 @@ const copy={
  segmentDisplay:'Segmento',scenarioDisplay:'Cenário',noTransfer:'Nada é enviado ou armazenado ao calcular. O contato é opcional e iniciado por você.',
  optional:'Dados pessoais não são solicitados: o cadastro para receber o plano por e-mail depende da homologação do CRM.',
  explore:'Conhecer soluções',
+ assumptions:'Premissas fictícias, não médias de mercado: {lead}% das visitas viram leads, {close}% dos leads viram clientes; mês de 4 semanas.',
  },
  en:{
  eyebrow:'EXPLORE YOUR FUNNEL',title:'From visits to opportunities.',
@@ -48,6 +49,7 @@ const copy={
  segmentDisplay:'Sector',scenarioDisplay:'Scenario',noTransfer:'Nothing is sent or stored when calculating. Contact is optional and initiated by you.',
  optional:'No personal details requested: emailing your plan requires a separate, approved CRM integration.',
  explore:'Explore solutions',
+ assumptions:'Hypothetical assumptions, not industry averages: {lead}% of visits become leads, {close}% of leads become customers; 4-week planning month.',
  },
  es:{
  eyebrow:'EXPLORA TU EMBUDO',title:'De visitas a oportunidades.',
@@ -67,6 +69,7 @@ const copy={
  segmentDisplay:'Sector',scenarioDisplay:'Escenario',noTransfer:'No se envía ni guarda información al calcular. El contacto es opcional y lo inicias tú.',
  optional:'No se solicitan datos personales: enviar tu plan por correo requiere una integración CRM homologada.',
  explore:'Conocer soluciones',
+ assumptions:'Hipótesis ficticias, no promedios del mercado: {lead}% de visitas generan leads, {close}% de leads se convierten en clientes; mes de 4 semanas.',
  }
 } as const;
 const t=copy[locale];
@@ -78,9 +81,13 @@ const contact=locale==='pt-BR'
  : intlPath(locale,'contact');
 const solutions=locale==='pt-BR'?'/servicos/':intlPath(locale,'services');
 const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:'reference'});
+const initialRates=initial.scenarios.reference;
+const initialAssumptions=t.assumptions
+ .replace('{lead}',String(initialRates.leadRatePercent))
+ .replace('{close}',String(initialRates.closeRatePercent));
 ---
 <section class="growth-funnel-section" id="calculadora-visitas-leads-clientes"
- data-growth-calculator data-growth-locale={locale}
+ data-growth-calculator data-growth-locale={locale} data-growth-assumptions-template={t.assumptions}
  aria-labelledby="growth-funnel-heading">
  <div class="shell">
   <div class="funnel-heading">
@@ -133,6 +140,7 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
     <div><span>{t.customers}</span><strong data-growth-customers>{initial.customers}</strong></div>
    </div>
    <p class="funnel-range">{t.range}: <strong data-growth-ranges></strong></p>
+   <p class="funnel-assumptions" data-growth-assumptions>{initialAssumptions}</p>
    <p class="funnel-disclaimer">{t.note}</p>
    <div class="funnel-contact">
     <div><h4>{t.contactTitle}</h4><p>{t.contactText}</p></div>
@@ -164,6 +172,13 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
   const output=root.querySelector('[data-growth-results]');
   const error=root.querySelector('[data-growth-error]');
   const copyStatus=root.querySelector('[data-growth-copied]');
+  const assumptionsTemplate=root.getAttribute('data-growth-assumptions-template')||'';
+  const assumptionsText=value=>{
+   const rate=value.scenarios[value.scenario];
+   return assumptionsTemplate
+    .replace('{lead}',String(rate.leadRatePercent))
+    .replace('{close}',String(rate.closeRatePercent));
+  };
   const fmt=n=>new Intl.NumberFormat(locale==='en'?'en-US':'pt-BR',{maximumFractionDigits:0}).format(n);
   const label=(selector,value)=>{const node=root.querySelector(selector);if(node)node.textContent=value;};
   let last=null;
@@ -210,6 +225,7 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
    label('[data-growth-leads]',fmt(estimate.leads));
    label('[data-growth-customers]',fmt(estimate.customers));
    label('[data-growth-scenario-label]',t.scenario[scenarioCodes.indexOf(code)]);
+   label('[data-growth-assumptions]',assumptionsText(estimate));
    label('[data-growth-ranges]',t.range
     .replace('{l}',fmt(estimate.leadsRange[0])).replace('{h}',fmt(estimate.leadsRange[1]))
     .replace('{a}',fmt(estimate.customersRange[0])).replace('{b}',fmt(estimate.customersRange[1])));
@@ -238,6 +254,7 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
     t.monthly+': '+fmt(last.monthlyVisits),
     t.leads+': '+fmt(last.leads),
     t.customers+': '+fmt(last.customers),
+    assumptionsText(last),
     t.warning
    ].join('\n');
    try{
@@ -297,6 +314,7 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
  .funnel-result-grid span{font-size:.81rem;color:#52604f;font-weight:650}
  .funnel-result-grid strong{font-size:clamp(1.4rem,2.8vw,2.25rem);letter-spacing:-.04em;line-height:1.1}
  .funnel-range{font-size:.85rem;margin:13px 0;color:#3f4b3c}
+ .funnel-assumptions{font-size:.81rem;line-height:1.5;color:#334634;background:#eef3e8;border:1px solid #dce6d6;padding:10px 12px;border-radius:9px;margin:12px 0 0}
  .funnel-disclaimer{font-size:.76rem;line-height:1.55;color:#5a6055;margin:8px 0 0}
  .funnel-contact{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;background:#fffaf2;border-radius:12px;padding:15px;margin-top:20px}
  .funnel-contact h4{font-size:.97rem;margin:0 0 6px}

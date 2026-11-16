@@ -86,12 +86,16 @@ try {
     assert.equal(await funnel.locator('[data-growth-monthly]').textContent(),'400');
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'16');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'3');
+    assert.match(await funnel.locator('[data-growth-assumptions]').textContent(),
+      /4% das visitas.*20% dos leads.*4 semanas/,'F335: reference scenario must disclose assumptions');
     assert.ok((await funnel.locator('[data-growth-ranges]').textContent()).includes('8'));
     assert.ok((await funnel.locator('[data-growth-ranges]').textContent()).includes('24'));
     await funnel.locator('[data-growth-scenario][value=conservative]').check();
     await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'8');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'1');
+    assert.match(await funnel.locator('[data-growth-assumptions]').textContent(),
+      /2% das visitas.*10% dos leads.*4 semanas/,'F335: conservative scenario rates');
     await funnel.locator('[data-growth-scenario][value=optimistic]').check();
     assert.equal(await funnel.locator('[data-growth-results]').isVisible(),false,
       'F332: previous scenario results must disappear before recalculation');
@@ -99,6 +103,8 @@ try {
     await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'24');
     assert.equal(await funnel.locator('[data-growth-customers]').textContent(),'7');
+    assert.match(await funnel.locator('[data-growth-assumptions]').textContent(),
+      /6% das visitas.*30% dos leads.*4 semanas/,'F335: optimistic scenario rates');
     // F333: the voluntary clipboard summary must disclose its assumptions.
     // Stub only the browser clipboard, without requests or private information.
     await quickPage.evaluate(()=>{
@@ -110,6 +116,8 @@ try {
     const copiedSummary=await quickPage.evaluate(()=>globalThis.__funnelCopiedSummary);
     assert.match(copiedSummary,/Cenário: Otimista/);
     assert.match(copiedSummary,/Clientes potenciais: 7/);
+    assert.match(copiedSummary,/6% das visitas.*30% dos leads.*4 semanas/,
+      'F335: copied summary includes the rates and four-week assumption');
     assert.equal(await funnel.locator('[data-growth-copied]').isVisible(),true);
     await funnel.locator('[data-growth-weekly]').fill('100001');
     assert.equal(await funnel.locator('[data-growth-copied]').isVisible(),false,
@@ -274,6 +282,14 @@ try {
             lang+': voluntary copy must disclose the selected scenario');
           assert.ok(localizedSummary.includes(lang==='en'?'Potential customers: 7':'Clientes potenciales: 7'),
             lang+': voluntary copy must contain the current estimate');
+          assert.ok(lang==='en'
+            ? /6% of visits.*30% of leads.*4-week planning month/.test(localizedSummary)
+            : /6% de visitas.*30% de leads.*4 semanas/.test(localizedSummary),
+            lang+': copied estimate must include hypothetical percentages and 4 weeks');
+          assert.ok(lang==='en'
+            ? /6% of visits.*30% of leads/.test(await localizedFunnel.locator('[data-growth-assumptions]').textContent())
+            : /6% de visitas.*30% de leads/.test(await localizedFunnel.locator('[data-growth-assumptions]').textContent()),
+            lang+': displayed assumptions reflect selected scenario');
           const expectedContact='/'+lang+'/contact/';
           assert.equal(await localizedFunnel.locator('.funnel-cta-row .cta').getAttribute('href'),expectedContact);
           assert.equal(await localizedFunnel.locator('input[type=email],input[type=tel]').count(),0);
