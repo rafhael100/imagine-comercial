@@ -279,3 +279,21 @@ test('F339: every compared scenario discloses the actual hypothetical conversion
  });
  assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
 });
+
+test('F340: copied funnel estimate includes the full modelled range, not only optimistic numbers',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/const scenarioRange=t\.range/);
+ for(const expression of [
+  "fmt(last.leadsRange[0])","fmt(last.leadsRange[1])",
+  "fmt(last.customersRange[0])","fmt(last.customersRange[1])"
+ ])assert.ok(s.includes(expression),expression);
+ assert.match(s,/t\.customers\+': '\+fmt\(last\.customers\),\s*scenarioRange,\s*assumptionsText\(last\)/);
+ for(const localeRange of [
+  'Leads de {l} a {h}; clientes de {a} a {b}',
+  'Leads from {l} to {h}; customers from {a} to {b}'
+ ])assert.ok(s.includes(localeRange),localeRange);
+ const sample=buildGrowthPotential({weeklyVisits:100,scenario:'optimistic'});
+ assert.deepEqual(sample.leadsRange,[8,24]);
+ assert.deepEqual(sample.customersRange,[1,7]);
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
