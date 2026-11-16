@@ -27,21 +27,51 @@ export const REVIEWED_CHANNEL_CHOICES=Object.freeze(Object.fromEntries(
 ));
 export const REVIEWED_ESTIMATE_TIERS=Object.freeze(['minimum','recommended']);
 
+// F341: the browser quote estimate is public-only and must not accidentally
+// evaluate hidden PII, accessors or prototype-supplied choices. This is an
+// in-process data contract, NOT a production checkout authorization.
+const SELECTION_FIELDS=new Set(['site','channels','tier']);
+function reviewedSelectionRecord(value){
+ if(value===null||typeof value!=='object'||Array.isArray(value)||
+    (Object.getPrototypeOf(value)!==Object.prototype&&Object.getPrototypeOf(value)!==null))
+   return false;
+ const keys=Reflect.ownKeys(value);
+ return keys.length===SELECTION_FIELDS.size&&keys.every(key=>{
+  if(typeof key!=='string'||!SELECTION_FIELDS.has(key))return false;
+  const desc=Object.getOwnPropertyDescriptor(value,key);
+  return desc?.enumerable===true&&Object.hasOwn(desc,'value');
+ });
+}
+function reviewedChannelArray(channels){
+ if(!Array.isArray(channels)||Object.getPrototypeOf(channels)!==Array.prototype||
+    channels.length>3||Reflect.ownKeys(channels).length!==channels.length+1)
+   return false;
+ for(let i=0;i<channels.length;i++){
+  const descriptor=Object.getOwnPropertyDescriptor(channels,String(i));
+  if(descriptor?.enumerable!==true||!Object.hasOwn(descriptor,'value')||
+     typeof descriptor.value!=='string'||
+     !Object.hasOwn(REVIEWED_CHANNEL_CHOICES,descriptor.value))
+   return false;
+ }
+ return true;
+}
+
+
 /**
  * @param {{site:string,channels:string[],tier:string}} selection
  * @returns {Readonly<object>} An ephemeral estimate, without private data or side effects.
  */
 export function buildCommercialChoicePreview(selection){
-  if(!selection||typeof selection!=='object'||Array.isArray(selection))
+  if(!reviewedSelectionRecord(selection))
     throw new TypeError('Invalid quote selection');
   const {site,channels,tier}=selection;
   if(typeof site!=='string'||!Object.hasOwn(REVIEWED_SITE_CHOICES,site))
     throw new TypeError('Unreviewed site choice');
-  if(!Array.isArray(channels)||channels.length>3||
-    channels.some(channel=>typeof channel!=='string'||!Object.hasOwn(REVIEWED_CHANNEL_CHOICES,channel))||
+  if(!reviewedChannelArray(channels)||
     new Set(channels).size!==channels.length)
     throw new TypeError('Unreviewed or duplicate advertising channel');
-  if(!REVIEWED_ESTIMATE_TIERS.includes(tier))throw new TypeError('Unreviewed media tier');
+  if(typeof tier!=='string'||!REVIEWED_ESTIMATE_TIERS.includes(tier))
+    throw new TypeError('Unreviewed media tier');
   const sitePricing=REVIEWED_SITE_CHOICES[site];
   const adLines=channels.map(channel=>{
     const policy=REVIEWED_CHANNEL_CHOICES[channel];

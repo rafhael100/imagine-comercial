@@ -101,3 +101,59 @@ test('approved three-channel selector supports all 48 anonymous estimates withou
   assert.equal(q.hasChoice,site!=='none'||channels.length>0);
  }
 });
+
+
+test('F341: anonymous quote rejects hidden PII, inherited choices and accessor side effects',()=>{
+ const base=()=>({site:'onepage',channels:['google_ads'],tier:'recommended'});
+ const extraField={...base(),tenantId:'private-tenant-123'};
+ const nullProto=Object.assign(Object.create(null),base());
+ assert.equal(buildCommercialChoicePreview(nullProto).adActivationCents,49000);
+ assert.throws(()=>buildCommercialChoicePreview(extraField),/Invalid quote selection/);
+ assert.throws(()=>buildCommercialChoicePreview(Object.create(base())),/Invalid quote selection/);
+ const hidden=base();
+ Object.defineProperty(hidden,'privateEmail',{value:'private@example.test'});
+ assert.throws(()=>buildCommercialChoicePreview(hidden),/Invalid quote selection/);
+ const withSymbol=base();
+ withSymbol[Symbol('customer-secret')]='secret';
+ assert.throws(()=>buildCommercialChoicePreview(withSymbol),/Invalid quote selection/);
+ let getterCalls=0;
+ const accessor=base();
+ Object.defineProperty(accessor,'site',{enumerable:true,
+  get(){getterCalls++;throw Error('getter should never execute');}
+ });
+ assert.throws(()=>buildCommercialChoicePreview(accessor),/Invalid quote selection/);
+ assert.equal(getterCalls,0);
+ const setter=base();
+ Object.defineProperty(setter,'tier',{enumerable:true,get(){getterCalls++;return 'minimum';},set(){}});
+ assert.throws(()=>buildCommercialChoicePreview(setter),/Invalid quote selection/);
+ assert.equal(getterCalls,0);
+});
+
+test('F341: quote channel list must be dense ordinary own-data values, no traps or metadata',()=>{
+ const base=channels=>({site:'none',channels,tier:'minimum'});
+ const sparse=new Array(1);
+ assert.throws(()=>buildCommercialChoicePreview(base(sparse)),/advertising channel/);
+ const holes=['google_ads',,'meta_ads'];
+ assert.throws(()=>buildCommercialChoicePreview(base(holes)),/advertising channel/);
+ const accessor=['google_ads'];
+ let getterCalls=0;
+ Object.defineProperty(accessor,'0',{configurable:true,enumerable:true,
+  get(){getterCalls++;throw Error('channel getter should never execute');}
+ });
+ assert.throws(()=>buildCommercialChoicePreview(base(accessor)),/advertising channel/);
+ assert.equal(getterCalls,0);
+ const hidden=['google_ads'];
+ Object.defineProperty(hidden,'email',{value:'private@example.test'});
+ assert.throws(()=>buildCommercialChoicePreview(base(hidden)),/advertising channel/);
+ const withSymbol=['meta_ads'];
+ withSymbol[Symbol('token')]='private';
+ assert.throws(()=>buildCommercialChoicePreview(base(withSymbol)),/advertising channel/);
+ const inherited=Object.assign([],['meta_ads']);
+ Object.setPrototypeOf(inherited,Object.create(Array.prototype));
+ assert.throws(()=>buildCommercialChoicePreview(base(inherited)),/advertising channel/);
+ const valid=Object.freeze(['google_ads','meta_ads']);
+ const estimate=buildCommercialChoicePreview(Object.freeze(base(valid)));
+ assert.deepEqual(estimate.channels,['google_ads','meta_ads']);
+ assert.equal(estimate.adActivationCents,98000);
+ assert.equal(estimate.eligibleForPublicCheckout,false);
+});

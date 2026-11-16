@@ -29,7 +29,14 @@ export const PREVIEW_POLICY = 'imagine-comercial-f324-estimate-only-2026-11-14';
 const fail = reason => { throw new TypeError('F324: '+reason); };
 const plainObject = obj => obj !== null && typeof obj === 'object' &&
   (Object.getPrototypeOf(obj) === Object.prototype || Object.getPrototypeOf(obj) === null);
-const hasOnlyKeys = (value,allowed) => Object.keys(value).every(k=>allowed.includes(k));
+// F342: Object.keys() alone ignores hidden customer data and symbols, while
+// reading an accessor may run caller code. Validate own enumerable data
+// descriptors for every field before reading any value.
+const hasOnlyKeys = (value,allowed) => Reflect.ownKeys(value).every(key=>{
+  if(typeof key!=='string'||!allowed.includes(key))return false;
+  const descriptor=Object.getOwnPropertyDescriptor(value,key);
+  return descriptor?.enumerable===true&&Object.hasOwn(descriptor,'value');
+});
 const amount = (cents,label) => {
   if (!Number.isSafeInteger(cents) || cents < 0 || cents > 100000000) fail('Invalid '+label+' in cents');
   return cents;
