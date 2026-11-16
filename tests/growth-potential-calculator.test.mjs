@@ -150,3 +150,24 @@ test('F334: funnel-to-contact link carries only reviewed public briefing priorit
  assert.match(s,/: intlPath\(locale,'contact'\)/);
  assert.doesNotMatch(s,/URLSearchParams|document\.cookie|localStorage|sessionStorage|\bfetch\s*\(/);
 });
+
+test('F335: copied and displayed funnel results disclose actual illustrative percentages and planning period',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/data-growth-assumptions-template=\{t\.assumptions\}/);
+ assert.match(s,/data-growth-assumptions>\{initialAssumptions\}/);
+ assert.match(s,/rate=value\.scenarios\[value\.scenario\]/);
+ assert.match(s,/label\('\[data-growth-assumptions\]',assumptionsText\(estimate\)\)/);
+ assert.match(s,/assumptionsText\(last\),\s*t\.warning/);
+ for(const text of [
+  'não são médias de mercado: {lead}%',
+  'not industry averages: {lead}%',
+  'no promedios del mercado: {lead}%',
+  '{close}%','4 semanas','4-week planning month'
+ ])assert.ok(s.includes(text),text);
+ const hypothetical=buildGrowthPotential({weeklyVisits:100,scenario:'optimistic'});
+ assert.deepEqual({
+  lead:hypothetical.scenarios.optimistic.leadRatePercent,
+  close:hypothetical.scenarios.optimistic.closeRatePercent
+ },{lead:6,close:30});
+ assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
