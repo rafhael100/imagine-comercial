@@ -24,6 +24,7 @@ import {curatedServiceComparisons} from '../src/data/service-comparison-pairs.mj
 import {guideGoals,guideForGoal} from '../src/lib/public-service-guide.mjs';
 import {encodeReviewedGoalFragment} from '../src/data/reviewed-goal-fragment.mjs';
 import {encodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
+import {planVisitsForCustomerGoal} from '../src/lib/growth-potential-calculator.mjs';
 import { reviewPublicLinks } from '../src/lib/public-link-review.mjs';
 import { resolvePortalLoginLink } from '../src/lib/portal-login-link.mjs';
 import {assessPrivateBudgetPreview} from '../src/lib/private-budget-preflight.mjs';
@@ -99,6 +100,14 @@ try {
     assert.equal(await goalPanel.locator('[data-growth-goal-result]').isVisible(),true);
     assert.match(await goalPanel.locator('[data-growth-goal-result]').textContent(),
       /10 clientes\/mês.*visitas\/semana/);
+    // F337: applying a goal requires a second explicit click. No lead is sent.
+    const targetPlan=planVisitsForCustomerGoal({monthlyCustomerGoal:10,scenario:'reference'});
+    assert.equal(await goalPanel.locator('[data-growth-goal-apply]').isVisible(),true);
+    await goalPanel.locator('[data-growth-goal-apply]').click();
+    assert.equal(await funnel.locator('[data-growth-weekly]').inputValue(),String(targetPlan.weeklyVisits));
+    assert.equal(await funnel.locator('[data-growth-results]').isVisible(),true);
+    assert.equal(await funnel.locator('[data-growth-customers]').textContent(),String(targetPlan.customers));
+    assert.equal(await goalPanel.locator('[data-growth-goal-apply]').isVisible(),false);
     await goalPanel.locator('[data-growth-goal]').fill('10001');
     assert.equal(await goalPanel.locator('[data-growth-goal-result]').isVisible(),false);
     await goalPanel.locator('[data-growth-goal-calculate]').click();
@@ -108,6 +117,7 @@ try {
     assert.match(await goalPanel.locator('[data-growth-goal-result]').textContent(),
       /não há resultado|Não há resultado/);
     assert.equal(await goalPanel.locator('input[type=email],input[type=tel],form').count(),0);
+    await funnel.locator('[data-growth-weekly]').fill('100');
     await funnel.locator('[data-growth-scenario][value=conservative]').check();
     await funnel.locator('[data-growth-calculate]').click();
     assert.equal(await funnel.locator('[data-growth-leads]').textContent(),'8');
@@ -318,6 +328,12 @@ try {
             ? (await goal.locator('[data-growth-goal-result]').textContent()).includes('10 customers/month')
             : (await goal.locator('[data-growth-goal-result]').textContent()).includes('10 clientes/mes'),
             lang+': reverse goal must show an explicitly hypothetical calculation');
+          const expectedPlan=planVisitsForCustomerGoal({monthlyCustomerGoal:10,scenario:'optimistic'});
+          assert.equal(await goal.locator('[data-growth-goal-apply]').isVisible(),true);
+          await goal.locator('[data-growth-goal-apply]').click();
+          assert.equal(await localizedFunnel.locator('[data-growth-weekly]').inputValue(),String(expectedPlan.weeklyVisits));
+          assert.equal(await localizedFunnel.locator('[data-growth-customers]').textContent(),String(expectedPlan.customers));
+          assert.equal(await goal.locator('[data-growth-goal-apply]').isVisible(),false);
           const expectedContact='/'+lang+'/contact/';
           assert.equal(await localizedFunnel.locator('.funnel-cta-row .cta').getAttribute('href'),expectedContact);
           assert.equal(await localizedFunnel.locator('input[type=email],input[type=tel]').count(),0);
