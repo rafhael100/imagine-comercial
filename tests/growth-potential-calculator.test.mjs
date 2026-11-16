@@ -106,3 +106,14 @@ test('F331: calculator HTML and JS remain anonymous, accessible and non-submitti
   'não são médias de mercado'
  ])assert.ok(s.includes(marker),marker);
 });
+
+test('F332: editing any funnel assumption invalidates visible and copyable results',()=>{
+ const s=read('src/components/GrowthFunnelCalculator.astro');
+ assert.match(s,/const invalidateEstimate=\(\)=>\{/);
+ assert.match(s,/input\.addEventListener\('input',invalidateEstimate\)/);
+ assert.match(s,/sector\.addEventListener\('change',invalidateEstimate\)/);
+ assert.match(s,/radio\.addEventListener\('change',invalidateEstimate\)/);
+ assert.match(s,/last=null;\s*output\.hidden=true;\s*copyStatus\.hidden=true;/);
+ assert.match(s,/node\.hidden=true;node\.textContent='';/);
+ assert.match(s,/if\(!last\)return;/);
+});
