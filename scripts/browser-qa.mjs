@@ -95,6 +95,8 @@ try {
     // the exact same rounded illustration. It must not navigate or submit.
     const goalPanel=funnel.locator('[data-growth-goal-panel]');
     await goalPanel.locator('summary').click();
+    assert.equal(await goalPanel.locator('[data-growth-goal-apply]').isVisible(),false,
+      'F337: apply must be hidden until an explicit reachable goal');
     await goalPanel.locator('[data-growth-goal]').fill('10');
     await goalPanel.locator('[data-growth-goal-calculate]').click();
     assert.equal(await goalPanel.locator('[data-growth-goal-result]').isVisible(),true);
