@@ -238,23 +238,31 @@ try {
     // without login, collecting personal data, submitting an order or contacting a provider.
     const preview=quickPage.locator('[data-choice-preview]');
     assert.equal(await preview.count(),1);
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('330,00'));
+    assert.equal(await preview.locator('[data-choice-onetime]').textContent(),'3 × R$ 330,00');
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
       reviewedQuoteChoiceHref('pt-BR',{site:'onepage',channels:[],tier:'recommended'}));
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('656,66'));
+    assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
+      '2 × R$ 656,66 + 1 × R$ 656,68',
+      'F345: three illustrative installments must sum exactly to R$1.970,00');
+    assert.ok(await quickPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
+      'F345: split installment summary must not create horizontal overflow on mobile');
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('2.500,00'));
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('500,00'));
     await preview.locator('[data-choice-tier="minimum"]').click();
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('370,00'));
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('1.700,00'));
     await preview.locator('[data-choice-site="landing-pages"]').click();
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('756,66'));
+    assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
+      '2 × R$ 756,66 + 1 × R$ 756,68',
+      'F345: three illustrative installments must sum exactly to R$2.270,00');
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
       reviewedQuoteChoiceHref('pt-BR',{site:'landing-pages',channels:['google_ads','meta_ads'],tier:'minimum'}));
     await preview.locator('[data-choice-site="none"]').click();
-    assert.ok((await preview.locator('[data-choice-onetime]').textContent()).includes('326,66'));
+    assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
+      '2 × R$ 326,66 + 1 × R$ 326,68',
+      'F345: three channel-only installments sum exactly to R$980,00');
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
@@ -427,8 +435,12 @@ try {
           assert.equal(await estimate.locator('[data-choice-channel="meta_ads"]').getAttribute('aria-pressed'),'true');
           assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
             reviewedQuoteChoiceHref(lang,{site:'onepage',channels:['meta_ads'],tier:'recommended'}));
-          assert.ok((await estimate.locator('[data-choice-onetime]').textContent()).includes(
-            lang==='en'?'493.33':'493,33'));
+          assert.equal(await estimate.locator('[data-choice-onetime]').textContent(),
+            lang==='en'?'2 × BRL 493.33 + 1 × BRL 493.34':
+              '2 × R$ 493,33 + 1 × R$ 493,34',
+            'F345: cost breakdown must be exact in '+lang);
+          assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),
+            'F345: international split installments must remain responsive');
           assert.equal(await estimate.locator('form,input,textarea').count(),0);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-solutions"]').count(),1);
           assert.equal(await p.locator('.intl-shop-hero a[href="#intl-ads"]').count(),1);

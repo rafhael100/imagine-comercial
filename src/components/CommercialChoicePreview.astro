@@ -4,7 +4,7 @@
  * No forms, tracking, persistence, payment, browser requests or private links.
  */
 import {intlPath} from '../data/i18n.mjs';
-import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
+import {buildCommercialChoicePreview,describeThreeIllustrativeInstallments} from '../lib/commercial-choice-preview.mjs';
 import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
 interface Props {locale?:'pt-BR'|'en'|'es';}
 const {locale='pt-BR'}=Astro.props;
@@ -88,7 +88,7 @@ const fmt=cents=>{
    <div class="summary-line"><span>{copy.siteSetup}</span><strong data-choice-site-setup>{fmt(initial.siteSetupCents)}</strong></div>
    <p class="choice-installment" data-choice-installment>{copy.installments}: 3 × {fmt(initial.siteInstallmentCents)}</p>
    <div class="summary-line"><span>{copy.adActivation}</span><strong data-choice-activation>{fmt(initial.adActivationCents)}</strong></div>
-   <div class="summary-total"><span>{copy.total}</span><strong data-choice-onetime>3 × {fmt(Math.floor(initial.contractedSetupAndActivationCents/3))}</strong></div>
+   <div class="summary-total"><span>{copy.total}</span><strong data-choice-onetime aria-live="polite">{describeThreeIllustrativeInstallments(initial.contractedSetupAndActivationCents,locale)}</strong></div>
    <div class="summary-line"><span>{copy.siteMonthly}</span><strong data-choice-site-monthly>{fmt(initial.siteMonthlyCents)}</strong></div>
    <div class="summary-line"><span>{copy.adManagement}</span><strong data-choice-management>{fmt(initial.adManagementEstimateCents)}</strong></div>
    <div class="summary-line"><span>{copy.media}</span><strong data-choice-media>{fmt(initial.adMediaCents)}</strong></div>
@@ -108,7 +108,7 @@ const fmt=cents=>{
  <a class="cta" href={calculator}>{locale==='en'?'Plan my advertising budget':locale==='es'?'Calcular mi inversión':'Calcular meu investimento'} <span aria-hidden="true">→</span></a>
 </section>
 <script>
- import {buildCommercialChoicePreview} from '../lib/commercial-choice-preview.mjs';
+ import {buildCommercialChoicePreview,describeThreeIllustrativeInstallments} from '../lib/commercial-choice-preview.mjs';
 import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  // No form, network, persistence, account creation or external redirect.
  for(const root of document.querySelectorAll('[data-choice-preview]')){
@@ -134,7 +134,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
     button.setAttribute('aria-pressed',String(button.getAttribute('data-choice-tier')===tier));
    label('data-choice-site-setup',format(estimate.siteSetupCents));
    label('data-choice-activation',format(estimate.adActivationCents));
-   label('data-choice-onetime','3 × '+format(Math.floor(estimate.contractedSetupAndActivationCents/3)));
+   label('data-choice-onetime',describeThreeIllustrativeInstallments(estimate.contractedSetupAndActivationCents,locale));
    label('data-choice-site-monthly',format(estimate.siteMonthlyCents));
    label('data-choice-management',format(estimate.adManagementEstimateCents));
    label('data-choice-media',format(estimate.adMediaCents));
@@ -201,7 +201,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  .choice-installment{font-size:.74rem;color:#605d57;margin:4px 0 7px}
  .summary-total{display:flex;justify-content:space-between;gap:12px;align-items:baseline;background:#e9f0e9;padding:13px;margin:11px 0;border-radius:10px}
  .summary-total span{font-size:.8rem;font-weight:730;color:#29352a}
- .summary-total strong{font-size:1.16rem;white-space:nowrap}
+ .summary-total strong{font-size:1.16rem;white-space:normal;min-width:0;overflow-wrap:anywhere;text-align:right}
  .choice-payment-rule{font-size:.74rem;color:#62645e;line-height:1.48;margin:14px 0}
  .choice-action{display:flex;justify-content:center;align-items:center;gap:8px;min-height:48px;text-decoration:none;font-size:.82rem;line-height:1.3}
  .choice-action[aria-disabled="true"]{pointer-events:none;opacity:.5}
@@ -209,5 +209,5 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  .choice-calculator{display:block;text-align:center;font-size:.8rem;font-weight:700;color:#884100;min-height:44px;padding-top:12px}
  .choice-disclosure{font-size:.75rem;color:#6a6259;line-height:1.5;max-width:1050px;margin:17px 0 0}
  @media(max-width:800px){.choice-layout{grid-template-columns:1fr}}
- @media(max-width:440px){.choice-section{padding:18px 13px}.choice-step{padding:13px}.choice-summary{padding:17px 13px}.choice-options button{font-size:.78rem;padding:10px}.summary-line strong{font-size:.81rem}.summary-total strong{font-size:1.04rem}}
+ @media(max-width:440px){.choice-section{padding:18px 13px}.choice-step{padding:13px}.choice-summary{padding:17px 13px}.choice-options button{font-size:.78rem;padding:10px}.summary-line strong{font-size:.81rem}.summary-total strong{font-size:1.04rem;text-align:left}.summary-total{flex-direction:column;align-items:flex-start}}
 </style>
