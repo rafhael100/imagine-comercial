@@ -243,6 +243,7 @@ test('F338: scenario comparison is semantic, fully local and shares the same rou
   'Comparar los tres escenarios'
  ])assert.ok(s.includes(label),label);
  assert.match(s,/<table>[\s\S]*?<caption>\{t\.compareTitle\}<\/caption>/);
+ assert.match(s,/class="funnel-compare-scroll" tabindex="0" role="region" aria-label=\{t\.compareTitle\}/);
  assert.match(s,/<th scope="col">\{t\.leads\}<\/th>/);
  assert.match(s,/<th scope="row">\{name\}<\/th>/);
  assert.match(s,/data-growth-compare-row=\{code\}/);
