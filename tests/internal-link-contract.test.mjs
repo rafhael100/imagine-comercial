@@ -55,7 +55,8 @@ test('F334 F143 permits only canonical allowlisted contact briefing fragments',(
  const report=audit(html([approved]),routes);
  assert.equal(report.checkedLinks,1);
  for(const invalid of [
-  '/contato/#briefing:~:~:~:arbitrary',
+  '/contato/#briefing:_:_:_:arbitrary',
+  '/contato/#briefing:~:~:~:contatos',
   '/contato/#briefing:~:~:~:contatos:extra',
   '/contato/#briefing:%7E:~:~:contatos',
   '/contato/#briefing:~:~:~:contatos%0A',
