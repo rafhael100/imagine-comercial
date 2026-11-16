@@ -4,6 +4,7 @@
  * Não substitui crawler/GSC ou prova de que um destino externo está no ar.
  */
 import {sitePages,services} from '../data/services.mjs';
+import {decodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
 import {resolvePortalLoginLink} from './portal-login-link.mjs';
 import {contactChannels} from '../data/contact-channels.mjs';
 import {commercialFaqSections} from '../data/commercial-faq.mjs';
@@ -87,6 +88,9 @@ export function reviewPublicLinks(links,{currentPath,fragmentIds=[],approvedPort
         const fragment=url.hash.slice(1);
         if(url.pathname==='/contato/' && intents.has(fragment)) {
           // Intent hash selects the public contact dropdown, not an HTML ID.
+        }else if(url.pathname==='/contato/' &&
+                  decodeCuratedBriefingFragment(url.hash)!==null) {
+          // A canonical public-only briefing, never a free-form hash or PII.
         }else if(url.pathname==='/' && fragment==='simular-compra') {
           // Only the exact existing reviewed simulator section in the home.
         }else if(url.pathname==='/servicos/' &&
