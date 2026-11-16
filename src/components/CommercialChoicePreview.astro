@@ -96,7 +96,7 @@ const fmt=cents=>{
    <div class="summary-line"><span>{copy.media}</span><strong data-choice-media>{fmt(initial.adMediaCents)}</strong></div>
    <p class="choice-payment-rule">{copy.payLater}</p>
    <a class="cta choice-action" href={initialHref} data-choice-fallback={contact} target="_blank" rel="noopener noreferrer" data-choice-action>{copy.cta} <span aria-hidden="true">↗</span></a>
-   <button type="button" class="choice-copy" data-choice-copy>{copy.copyAction}</button>
+   <button type="button" class="choice-copy" data-choice-copy hidden>{copy.copyAction}</button>
    <p class="choice-copy-status" data-choice-copy-status role="status" hidden></p>
    <p data-choice-empty hidden class="choice-empty">{copy.empty}</p>
    <a class="choice-calculator" href={calculator}>{copy.calc} <span aria-hidden="true">↗</span></a>
@@ -161,7 +161,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
    const empty=root.querySelector('[data-choice-empty]');
    if(empty)empty.hidden=estimate.hasChoice;
    const copyButton=root.querySelector('[data-choice-copy]');
-   if(copyButton)copyButton.disabled=!estimate.hasChoice;
+   if(copyButton){copyButton.hidden=false;copyButton.disabled=!estimate.hasChoice;}
   };
   root.querySelector('[data-choice-copy]')?.addEventListener('click',async()=>{
    const status=root.querySelector('[data-choice-copy-status]');
@@ -234,6 +234,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  .choice-action[aria-disabled="true"]{pointer-events:none;opacity:.5}
  .choice-copy{font:inherit;font-size:.8rem;min-height:44px;margin-top:10px;padding:7px 0;color:#884100;text-decoration:underline;font-weight:750;cursor:pointer;background:transparent;border:0}
  .choice-copy:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+ .choice-copy[hidden]{display:none}
  .choice-copy[disabled]{opacity:.5;cursor:default}
  .choice-copy-status{font-size:.76rem;line-height:1.5;margin:3px 0 8px;color:#315642}
  .choice-copy-status[hidden]{display:none}
