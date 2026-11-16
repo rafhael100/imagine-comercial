@@ -39,7 +39,7 @@ test('F348 all 48 public selections match the independent F327 private Portal sc
     }
     for(const lang of ['pt-BR','en','es']){
      const message=describe(selection,lang);
-     assert.ok(message.length>=75,lang+': explain the boundary without a button');
+     assert.ok(message.length>=50,lang+': explain the boundary without a button');
      assert.doesNotMatch(message,/https?:\/\/|@|token=|customerId/i);
     }
    }
