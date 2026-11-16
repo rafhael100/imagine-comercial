@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {encodeCuratedBriefingFragment} from '../src/data/curated-briefing-fragment.mjs';
 import {auditCrossPageFragmentTargets as audit}
   from '../src/lib/cross-page-fragment-contract.mjs';
 
@@ -95,4 +96,27 @@ test('F196 compiled site permits only five vetted business-goal fragments',()=>{
     pages[0].html+='<a href="/servicos/#objetivo:'+goal+'">Falha</a>';
     assert.throws(()=>audit(pages),/cross-page fragment/);
   }
+});
+
+test('F334 F148 counts only codec-approved contact briefing as curated intent',()=>{
+ const pages=valid();
+ const validFragment=encodeCuratedBriefingFragment('','','','contatos');
+ pages[0].html+='<a href="/contato/'+validFragment+'">Falar com Imagine</a>';
+ const ok=audit(pages);
+ assert.equal(ok.crossPageFragmentsChecked,4);
+ assert.equal(ok.approvedContactIntents,3);
+ for(const bad of [
+  'briefing:~:~:~:desconhecido',
+  'briefing:~:~:~:contatos:extra',
+  'briefing:%7E:~:~:contatos',
+  'briefing:~:~:~:contatos?tracking',
+  'briefing:~:~:~:Contatos'
+ ]){
+  const altered=valid();
+  altered[0].html+='<a href="/contato/#'+bad+'">Invalido</a>';
+  assert.throws(()=>audit(altered),undefined,bad);
+ }
+ const onWrongRoute=valid();
+ onWrongRoute[0].html+='<a href="/como-funciona/'+validFragment+'">Invalido</a>';
+ assert.throws(()=>audit(onWrongRoute),/unreviewed contact briefing/);
 });
