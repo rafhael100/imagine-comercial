@@ -161,6 +161,22 @@ const initial=buildGrowthPotential({weeklyVisits:100,sector:'services',scenario:
   const fmt=n=>new Intl.NumberFormat(locale==='en'?'en-US':'pt-BR',{maximumFractionDigits:0}).format(n);
   const label=(selector,value)=>{const node=root.querySelector(selector);if(node)node.textContent=value;};
   let last=null;
+  // Results must never describe inputs that have since changed. Require a new
+  // explicit calculation before displaying or copying a different scenario.
+  const invalidateEstimate=()=>{
+   last=null;
+   output.hidden=true;
+   copyStatus.hidden=true;
+   error.hidden=true;
+   for(const name of ['visits','leads','customers']){
+    const node=root.querySelector('[data-funnel-'+name+']');
+    if(node){node.hidden=true;node.textContent='';}
+   }
+  };
+  input.addEventListener('input',invalidateEstimate);
+  sector.addEventListener('change',invalidateEstimate);
+  for(const radio of form.querySelectorAll('[data-growth-scenario]'))
+   radio.addEventListener('change',invalidateEstimate);
   // User enters only anonymous sector/estimated volume. Nothing is saved or sent.
   form?.querySelector('[data-growth-calculate]')?.addEventListener('click',()=>{
    const raw=input.value;
