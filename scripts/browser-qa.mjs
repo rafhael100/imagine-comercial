@@ -241,10 +241,18 @@ try {
     const preview=quickPage.locator('[data-choice-preview]');
     assert.equal(await preview.count(),1);
     assert.equal(await preview.locator('[data-choice-onetime]').textContent(),'3 × R$ 330,00');
+    assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
+      'private_single_preview_only','F348: site alone has only a private Portal preview, no checkout');
+    assert.match(await preview.locator('[data-choice-portal-readiness]').textContent(),
+      /contratação pública ainda não está disponível/);
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
       reviewedQuoteChoiceHref('pt-BR',{site:'onepage',channels:[],tier:'recommended'}));
     await preview.locator('[data-choice-channel="google_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
+      'multi_product_cart_required','F348: site+ads cannot downgrade to a single SKU checkout');
     await preview.locator('[data-choice-channel="meta_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
+      'multi_product_cart_required');
     assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
       '2 × R$ 656,66 + 1 × R$ 656,68',
       'F345: three illustrative installments must sum exactly to R$1.970,00');
@@ -275,12 +283,16 @@ try {
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
       reviewedQuoteChoiceHref('pt-BR',{site:'landing-pages',channels:['google_ads','meta_ads'],tier:'minimum'}));
     await preview.locator('[data-choice-site="none"]').click();
+    assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
+      'multi_channel_cart_required');
     assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
       '2 × R$ 326,66 + 1 × R$ 326,68',
       'F345: three channel-only installments sum exactly to R$980,00');
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
+    assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
+      'no_selection');
     assert.equal(await preview.locator('[data-choice-copy]').isDisabled(),true,
       'F346: an empty quote must not be copied as a real offer');
     assert.equal(await preview.locator('input, form, textarea').count(),0);
@@ -447,9 +459,15 @@ try {
           // F324: localized, privacy-preserving pre-purchase preview.
           const estimate=p.locator('[data-choice-preview]');
           assert.equal(await estimate.count(),1);
+          assert.equal(await estimate.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
+            'private_single_preview_only');
+          assert.match(await estimate.locator('[data-choice-portal-readiness]').textContent(),
+            lang==='en'?/Public checkout is not available/:/No existe checkout público/);
           assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
             reviewedQuoteChoiceHref(lang,{site:'onepage',channels:[],tier:'recommended'}));
           await estimate.locator('[data-choice-channel="meta_ads"]').click();
+          assert.equal(await estimate.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
+            'multi_product_cart_required');
           assert.equal(await estimate.locator('[data-choice-channel="meta_ads"]').getAttribute('aria-pressed'),'true');
           assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
             reviewedQuoteChoiceHref(lang,{site:'onepage',channels:['meta_ads'],tier:'recommended'}));
