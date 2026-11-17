@@ -240,6 +240,8 @@ try {
     // without login, collecting personal data, submitting an order or contacting a provider.
     const preview=quickPage.locator('[data-choice-preview]');
     assert.equal(await preview.count(),1);
+    assert.deepEqual(await preview.locator('[data-choice-selected-items] li').allTextContents(),
+      ['Site · Onepage'],'F354: selected site visible before sign-up');
     assert.equal(await preview.locator('[data-choice-onetime]').textContent(),'3 × R$ 330,00');
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'private_single_preview_only','F348: site alone has only a private Portal preview, no checkout');
@@ -251,6 +253,9 @@ try {
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'multi_product_cart_required','F348: site+ads cannot downgrade to a single SKU checkout');
     await preview.locator('[data-choice-channel="meta_ads"]').click();
+    assert.deepEqual(await preview.locator('[data-choice-selected-items] li').allTextContents(),
+      ['Site · Onepage','Anúncios · Google Ads','Anúncios · Meta Ads'],
+      'F354: site and channels remain visible before registration');
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'multi_product_cart_required');
     assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
@@ -283,6 +288,8 @@ try {
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),
       reviewedQuoteChoiceHref('pt-BR',{site:'landing-pages',channels:['google_ads','meta_ads'],tier:'minimum'}));
     await preview.locator('[data-choice-site="none"]').click();
+    assert.deepEqual(await preview.locator('[data-choice-selected-items] li').allTextContents(),
+      ['Anúncios · Google Ads','Anúncios · Meta Ads']);
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'multi_channel_cart_required');
     assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
@@ -290,6 +297,8 @@ try {
       'F345: three channel-only installments sum exactly to R$980,00');
     await preview.locator('[data-choice-channel="google_ads"]').click();
     await preview.locator('[data-choice-channel="meta_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-selected-items]').isVisible(),false,
+      'F354: no empty cart displayed');
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'no_selection');
@@ -297,6 +306,8 @@ try {
       'F346: an empty quote must not be copied as a real offer');
     assert.equal(await preview.locator('input, form, textarea').count(),0);
     await preview.locator('[data-choice-site="onepage"]').click();
+    assert.deepEqual(await preview.locator('[data-choice-selected-items] li').allTextContents(),
+      ['Site · Onepage']);
     assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
     await preview.locator('[data-choice-channel="google_ads"]').click();
     assert.equal(await preview.locator('[data-choice-investment]').isVisible(),true);
