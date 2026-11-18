@@ -33,11 +33,11 @@ async function loadStaticFiles(staticDir) {
       const path = prefix + entry.name;
       if (entry.isSymbolicLink()) throw new Error('Symlinks are forbidden in laboratory static files.');
       if (entry.isDirectory()) {
-        if (prefix || !['_astro', 'http', 'grounded'].includes(entry.name)) throw new Error('Unexpected laboratory static directory.');
+        if (prefix || !['_astro', 'http', 'grounded', 'journey', 'journey-http'].includes(entry.name)) throw new Error('Unexpected laboratory static directory.');
         await collect(resolve(directory, entry.name), path + '/');
         continue;
       }
-      if (!entry.isFile() || !(path === 'index.html' || path === 'http/index.html' || path === 'grounded/index.html' || /^_astro\/[A-Za-z0-9_.-]+\.(?:js|css)$/.test(path))) {
+      if (!entry.isFile() || !(path === 'index.html' || path === 'http/index.html' || path === 'grounded/index.html' || path === 'journey/index.html' || path === 'journey-http/index.html' || /^_astro\/[A-Za-z0-9_.-]+\.(?:js|css)$/.test(path))) {
         throw new Error('Unexpected laboratory static file.');
       }
       const handle = await open(resolve(directory, entry.name), constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -118,14 +118,20 @@ function readJson(request, expectedLength, timeoutMs) {
 /** Real HTTP exclusively on loopback. Every provider and business effect is simulated. */
 export async function startHttpLab({ enabled, port = 0, staticDir = defaultStaticDir, scenario = 'success',
   timeoutMs = 250, delayMs = 40, maxSessions = 8, sessionTtlMs = 300000, maxEntries = 64,
-  bodyTimeoutMs = 1000, now = Date.now, createProvider, prepareTurn } = {}) {
+  bodyTimeoutMs = 1000, now = Date.now, createProvider, prepareTurn = undefined, prepareTurnFactory } = {}) {
   if (enabled !== '1') throw new Error('IMAGINE_FAISCA_HTTP_LAB=1 is required for the isolated HTTP laboratory.');
   if (!integerIn(port, 0, 65535) || !integerIn(maxSessions, 1, 32) || !integerIn(sessionTtlMs, 50, 3600000) ||
       !integerIn(bodyTimeoutMs, 10, 10000) || typeof staticDir !== 'string' || typeof now !== 'function' ||
       (createProvider !== undefined && typeof createProvider !== 'function') ||
-      (prepareTurn !== undefined && typeof prepareTurn !== 'function')) throw new TypeError('Invalid HTTP laboratory configuration.');
-  // Validate runtime/provider settings before listening or allocating a session.
-  const probe = createConversationRuntime({ provider: createSimulatedProvider({ scenario, delayMs }), timeoutMs, maxEntries, prepareTurn });
+      (prepareTurn !== undefined && typeof prepareTurn !== 'function') ||
+      (prepareTurnFactory !== undefined && typeof prepareTurnFactory !== 'function') ||
+      (prepareTurnFactory !== undefined && prepareTurn !== undefined)) throw new TypeError('Invalid HTTP laboratory configuration.');
+  // Validate the per-session policy factory before listening. Each HTTP session
+  // receives a fresh R07 state closure; a neighboring token cannot share it.
+  const probePrepareTurn = prepareTurnFactory ? prepareTurnFactory('0'.repeat(32)) : (prepareTurn ?? undefined);
+  if (probePrepareTurn !== undefined && typeof probePrepareTurn !== 'function') throw new TypeError('Invalid session conversation policy.');
+  const probe = createConversationRuntime({ provider: createSimulatedProvider({ scenario, delayMs }), timeoutMs, maxEntries,
+    ...(probePrepareTurn ? { prepareTurn: probePrepareTurn } : {}) });
   probe.destroy();
   const clock = () => { const value = now(); if (!Number.isFinite(value) || value < 0) throw new Error('Invalid laboratory clock.'); return value; };
   clock();
@@ -173,7 +179,7 @@ export async function startHttpLab({ enabled, port = 0, staticDir = defaultStati
       if (!['GET', 'HEAD'].includes(request.method)) throw new HttpLabError(405, 'method_not_allowed');
       if (headers.has('content-length') && headers.get('content-length') !== '0') throw new HttpLabError(400, 'invalid_framing');
       const canonical = path === '/' ? '/index.html' : path === '/http/' ? '/http/index.html'
-        : path === '/grounded/' ? '/grounded/index.html' : path;
+        : path === '/grounded/' ? '/grounded/index.html' : path === '/journey/' ? '/journey/index.html' : path === '/journey-http/' ? '/journey-http/index.html' : path;
       const body = files.get(canonical);
       if (!body) throw new HttpLabError(404, 'not_found');
       response.writeHead(200, { ...securityHeaders, 'Content-Length': body.length,
@@ -194,8 +200,11 @@ export async function startHttpLab({ enabled, port = 0, staticDir = defaultStati
       if (!emptyObject(body)) throw new HttpLabError(400, 'invalid_request');
       if (sessions.size >= maxSessions) throw new HttpLabError(429, 'session_capacity');
       const token = randomBytes(32).toString('hex'); const conversationId = randomBytes(16).toString('hex');
+      const sessionPrepareTurn = prepareTurnFactory ? prepareTurnFactory(conversationId) : (prepareTurn ?? undefined);
+      if (sessionPrepareTurn !== undefined && typeof sessionPrepareTurn !== 'function') throw new Error('Invalid session conversation policy.');
       const provider = createProvider ? createProvider() : createSimulatedProvider({ scenario, delayMs });
-      const runtime = createConversationRuntime({ provider, timeoutMs, maxEntries, prepareTurn });
+      const runtime = createConversationRuntime({ provider, timeoutMs, maxEntries,
+        ...(sessionPrepareTurn ? { prepareTurn: sessionPrepareTurn } : {}) });
       sessions.set(sha256(token), { conversationId, runtime, expiresAt: clock() + sessionTtlMs });
       counters.createdSessions++;
       json(response, 201, { schema: HTTP_SESSION_SCHEMA, conversationId, token, expiresInMs: sessionTtlMs, context: HTTP_CONTEXT });

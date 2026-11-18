@@ -199,3 +199,70 @@ Os registros ficam na memória do processo, por até cinco minutos na configura�
 A verificação local de padrões sensíveis é auxiliar e não identifica todo dado pessoal. Use apenas conteúdo fictício. Tokens não vão para URLs, cookies, DOM, logs ou storage; a API recebe o texto permitido no corpo HTTP local. O resumo copiado não é envio à equipe.
 
 O PNG, recorte, cores e estilos permanecem preservados. A animação continua sendo movimento CSS do quadro inteiro; não há modelo 3D articulado. Publicar código em PR draft não ativa o site nem autoriza merge, deploy, despesas ou mudanças na VPS/DNS.
+
+## R07 — conversa comercial com confirmação (somente laboratório)
+
+A R07 acrescenta um modo **opt-in local**: pergunta sobre uma solução gera uma proposta de escolha; somente o botão **Confirmar meu objetivo** altera o resumo. Perguntas comparativas, informações não documentadas e pedidos privados não presumem compra. Não há modelo generativo externo, conta de cliente, envio ao CRM ou operação financeira.
+
+Para testar só a transcrição, sem navegador ou PHP:
+
+```bash
+node ops/faisca/journey/demo.mjs
+node --test tests/faisca-r07-*.test.mjs
+```
+
+Para visualizar o mascote original e a conversa R07 no navegador, gere o laboratório Astro isolado após `npm ci`:
+
+```bash
+IMAGINE_FAISCA_LAB=1 npx astro build --config ops/faisca/lab/astro.config.mjs
+```
+
+A saída da demonstração fica em `ops/faisca/output/astro/journey/index.html`. Sirva-a por HTTP **somente em 127.0.0.1** (não abra diretamente por `file://` e não publique os arquivos). Na CI, a página `/journey/` é servida por um servidor descartável e verificada pelo Chromium com `node ops/faisca/journey/browser-qa.mjs`.
+
+No PowerShell do Windows 11, execute o comando equivalente:
+
+```powershell
+$env:IMAGINE_FAISCA_LAB = "1"
+npx astro build --config ops/faisca/lab/astro.config.mjs
+node ops/faisca/journey/browser-qa.mjs
+Remove-Item Env:IMAGINE_FAISCA_LAB
+```
+
+Os scripts de teste instalam **nada** e usam os pacotes já restaurados por `npm ci`; o Chromium do Playwright deve estar disponível para o QA. O laboratório R07 reaproveita os bytes do PNG, o template, o CSS e o core R02; `publicFaiscaEnabled` permanece `false`. Esta página não está ativa no site público. O adaptador `journey/model-contract.mjs` aceita somente o texto editorial exato da R06: **não está pronto para aceitar prosa livre de um LLM**.
+
+### R07-F — testes de mensagens pendentes e conversas simultâneas
+
+O módulo `ops/faisca/journey/async-lab.mjs` funciona **somente como API local de laboratório em Node**. Ele aproveita a deduplicação e conciliação R03; não adiciona rotas HTTP, não ativa um provedor externo e não altera a interface pública. Para repetir as contraprovas J09–J12:
+
+```bash
+node --test tests/faisca-r07-async.test.mjs
+```
+
+Este teste cobre timeout, consulta manual do turno original, reset, duas conversas com o mesmo identificador de mensagem, travamento até a conciliação e fonte maliciosa. A visualização `/journey/` continua um exemplo local **síncrono** de confirmação de objetivo. Os cenários assíncronos têm testes Node e a experiência completa navegador/HTTP/PHP está coberta separadamente pela página `/journey-http/`. Nenhum passo envia dados à equipe Imagine.
+
+### R07-G — laboratório HTTP com PHP real (18/11/2026)
+
+A página `/journey-http/` testa o mesmo estado de escolhas confirmadas da R07 através de navegador, servidor HTTP loopback e PHP real do Imagine Agents, fixado pelo workflow R06/R07. Ela é independente da página síncrona `/journey/`.
+
+O gate automatizado exige o checkout Agents fixado e PHP CLI real. Depois do build isolado e de `npm ci`, execute com as variáveis do ambiente local:
+
+**Linux/macOS**
+```bash
+export IMAGINE_FAISCA_LAB=1
+export IMAGINE_FAISCA_AGENTS_ROOT=/caminho/para/imagine-ai-agents-fixado
+npx astro build --config ops/faisca/lab/astro.config.mjs
+node ops/faisca/journey/http-browser-qa.mjs
+```
+
+**Windows 11 / PowerShell**
+```powershell
+$env:IMAGINE_FAISCA_LAB = "1"
+$env:IMAGINE_FAISCA_AGENTS_ROOT = "C:\caminho\para\imagine-ai-agents-fixado"
+npx astro build --config ops/faisca/lab/astro.config.mjs
+node ops/faisca/journey/http-browser-qa.mjs
+Remove-Item Env:IMAGINE_FAISCA_LAB
+```
+
+O script abre um servidor descartável exclusivamente em `127.0.0.1`, inicia Chromium, valida o pin do Agents, executa PHP de verdade, encerra servidor/sessões/processos e grava apenas métricas sintéticas em `ops/faisca/reports/Faisca_R07_HTTP_BROWSER_QA.json`. Atrasos são conciliados pela mesma mensagem; reset destrói a sessão; duas sessões independentes podem usar o mesmo ID de mensagem sem compartilhar escolha ou resposta. Nenhuma URL pública, API externa, CRM ou pagamento é chamado.
+
+**Validação concluída:** workflow [44378972555](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972555) aprovou 6/6 cenários R07 com PHP real e pin Agents `36caf2ee3585c3f64a6f1d78552550ae5aaebeb0`. O artefato [14462093314](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972555/artifacts/14462093314) registra `status=passed`, `executedPHP=true`, 5 processos iniciados, 4 concluídos, 1 encerrado intencionalmente no teste de reset, 0 falhas PHP inesperadas e 0 processos pendentes. Isso comprova a ponte **no laboratório**, não liberação de produção nem ativação de IA generativa.

@@ -174,9 +174,9 @@ async function postFromPage(fixture, path, token, body) {
 
 try {
   await collect(staticDir);
-  assert.deepEqual([...assets].filter(path => path.endsWith('.html')).sort(), ['/grounded/index.html', '/http/index.html', '/index.html']);
+  assert.deepEqual([...assets].filter(path => path.endsWith('.html')).sort(), ['/grounded/index.html', '/http/index.html', '/index.html', '/journey-http/index.html', '/journey/index.html']);
   const httpUi = [...assets].filter(path => /\/_astro\/http-ui\.[^/]+\.js$/.test(path));
-  assert.equal(httpUi.length, 1, 'HTTP conversation must have its own deferred module');
+  assert.ok(httpUi.length >= 1, 'The isolated lab must include deferred HTTP UI modules.');
   const html = await readFile(resolve(staticDir, 'http/index.html'), 'utf8');
   assert.ok(!html.includes('Bearer '), 'built HTML cannot embed session credentials');
   phase = 'browser_launch';
@@ -191,14 +191,14 @@ try {
       assert.equal(await a.page.locator('#hero-title').isVisible(), true);
       assert.equal(await a.page.locator('#faisca-master').evaluate(image => image.complete && image.naturalWidth === 1254), true);
       assert.equal(await a.page.locator('#faisca-composer').isVisible(), false);
-      assert.equal(a.requests.some(item => item.path === httpUi[0]), false);
+      assert.equal(a.requests.some(item => httpUi.includes(item.path)), false);
       assert.equal(a.requests.some(item => item.path.startsWith('/__faisca_lab/')), false);
       assert.equal(await a.page.locator('[data-faisca-lab-scenario]').count(), 0, 'provider selection belongs to server configuration');
       await a.activate();
       assert.equal(a.apiCount(endpoints.sessions), 0);
       assert.equal(server.inspect().createdSessions, 0);
       assert.equal(server.inspect().dispatched, 0);
-      assert.equal(a.requests.filter(item => item.path === httpUi[0]).length, 1);
+      assert.equal(a.requests.filter(item => httpUi.includes(item.path)).length, 1, 'The /http/ page must load exactly its own deferred UI module.');
     });
     await check('sensitive input is handled locally before creating any HTTP session', async () => {
       await a.send('Minha senha SYNTHETIC_EXAMPLE');
