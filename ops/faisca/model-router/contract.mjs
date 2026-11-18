@@ -112,7 +112,7 @@ function candidatesFor(ids) {
 }
 
 /**
- * Trusted host only. The provider receives only a filtered user question and
+ * Trusted host only. The provider receives only a preflight-approved user question and
  * a closed set of public editorial candidates. It cannot supply answer text,
  * URLs, tools, actions, CRM fields or contact data.
  */
