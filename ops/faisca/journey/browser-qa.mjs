@@ -118,7 +118,7 @@ try {
     await page.locator('#faisca-reset').click();
     assert.doesNotMatch(await page.locator('#faisca-summary-text').inputValue(), /Landing Page|Site Onepage/);
     assert.equal(await page.locator('#faisca-log .assistant').count(), 1);
-    await choose('summary');
+    await send('resumo');
     assert.match(await last().innerText(), /Objetivo ainda não selecionado/);
   });
   for (const width of [320, 390, 1440]) {
