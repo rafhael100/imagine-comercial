@@ -39,7 +39,14 @@ function plainList(value, max = 8) {
 }
 
 /** Trusted host only: no visitor content, provider credentials, tools or URLs. */
-export function prepareLocalModelRequest({ conversationId, messageId, answerId, locale = 'pt-BR' } = {}) {
+export function prepareLocalModelRequest(options = {}) {
+  // Host configuration is also read as own data only; accessors and injected
+  // provider/tool fields cannot be executed while constructing the request.
+  const config = plainData(options, ['conversationId', 'messageId', 'answerId', 'locale']) ??
+    plainData(options, ['conversationId', 'messageId', 'answerId']);
+  if (!config) return null;
+  const { conversationId, messageId, answerId } = config;
+  const locale = config.locale ?? 'pt-BR';
   if (![conversationId, messageId, answerId].every(value => typeof value === 'string' && ID_PATTERN.test(value)) ||
       locale !== 'pt-BR') return null;
   const answer = getGroundedAnswer(answerId);
