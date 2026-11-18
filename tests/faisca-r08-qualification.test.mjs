@@ -55,6 +55,13 @@ test('R08 each explicit choice updates only its own field and advances one quest
   assert.equal(getNextQualificationQuestion(audience).field, 'materials');
 });
 
+test('R08 cannot set a future qualification field before the previous question is answered', () => {
+  const profile = confirmedProfile('onepage');
+  assert.equal(updateLeadProfile(profile, 'contactConsent', 'granted'), null);
+  assert.equal(updateLeadProfile(profile, 'timeline', 'within_30_days'), null);
+  assert.equal(getNextQualificationQuestion(profile).field, 'objective');
+});
+
 test('R08 visitor may explicitly skip a field without the system inventing an answer', () => {
   let profile = confirmedProfile('onepage');
   profile = updateLeadProfile(profile, 'objective', 'not_specified');
@@ -90,8 +97,12 @@ test('R08 contact consent is never inferred and is asked only after qualificatio
   assert.match(buildHandoffPackage(profile).summary, /Prefere decidir depois/);
 });
 
-test('R08 consent options distinguish grant, refusal and deferment', () => {
-  const profile = confirmedProfile('onepage');
+test('R08 consent options distinguish grant, refusal and deferment after the qualification sequence', () => {
+  let profile = confirmedProfile('onepage');
+  for (const [field, value] of [
+    ['objective', 'not_specified'], ['audience', 'not_specified'],
+    ['materials', 'not_specified'], ['timeline', 'not_specified']
+  ]) profile = updateLeadProfile(profile, field, value);
   assert.equal(updateLeadProfile(profile, 'contactConsent', 'granted').contactConsent, 'granted');
   assert.equal(updateLeadProfile(profile, 'contactConsent', 'declined').contactConsent, 'declined');
   assert.equal(updateLeadProfile(profile, 'contactConsent', 'later').contactConsent, 'later');
