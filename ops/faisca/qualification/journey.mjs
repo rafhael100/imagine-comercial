@@ -44,6 +44,7 @@ function action(id, label) { return Object.freeze({ id, label }); }
 
 function createState(journey, profile, phase) {
   const session = Object.freeze({
+    ...journey,
     version: QUALIFICATION_JOURNEY_VERSION,
     journey, profile, phase
   });
