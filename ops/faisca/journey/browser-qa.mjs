@@ -83,7 +83,7 @@ try {
     assert.equal(await page.locator('#faisca-master').evaluate(img => img.complete && img.naturalWidth === 1254), true);
     await button.click();
     await page.locator('#faisca-composer').waitFor({ state: 'visible' });
-    assert.equal(await page.locator('[data-faisca-root]').getAttribute('data-faisca-mode'), 'r07_local_journey');
+    assert.equal(await page.locator('[data-faisca-root]').getAttribute('data-faisca-mode'), 'r08_local_qualification');
   });
   await check('R07 visible proposal requires confirmation and does not overwrite the current summary', async () => {
     await send('Quero Onepage.');
@@ -130,6 +130,44 @@ try {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
     });
   }
+  await check('R08 qualifies the confirmed Onepage through explicit one-at-a-time choices', async () => {
+    await send('Quero Onepage.');
+    await choose('confirm_goal');
+    assert.match(await last().innerText(), /Qual é o principal resultado/);
+    await choose('r08:objective:present_company');
+    assert.match(await last().innerText(), /Quem você deseja alcançar/);
+    await choose('r08:audience:local_customers');
+    assert.match(await last().innerText(), /Como estão os textos e as imagens/);
+    await choose('r08:materials:ready');
+    assert.match(await last().innerText(), /previsão para iniciar/);
+    await choose('r08:timeline:within_30_days');
+    assert.match(await last().innerText(), /autoriza que a equipe Imagine entre em contato/);
+    await choose('r08:contactConsent:granted');
+    const summary = await page.locator('#faisca-summary-text').inputValue();
+    assert.match(summary, /Site Onepage/);
+    assert.match(summary, /Apresentar a empresa/);
+    assert.match(summary, /Clientes da região/);
+    assert.match(summary, /Textos e imagens disponíveis/);
+    assert.match(summary, /Até 30 dias/);
+    assert.match(summary, /Autorização declarada, ainda não enviada/);
+    assert.match(summary, /RASCUNHO NÃO ENVIADO/);
+    assert.doesNotMatch(summary, /@|\b\d{10,}\b/);
+  });
+  await check('R08 explicit correction resets only dependent answers and requires renewed contact choice', async () => {
+    await choose('r08:edit:audience');
+    assert.match(await last().innerText(), /Quem você deseja alcançar/);
+    await choose('r08:audience:businesses');
+    await choose('r08:materials:need_support');
+    await choose('r08:timeline:flexible');
+    await choose('r08:contactConsent:declined');
+    const summary = await page.locator('#faisca-summary-text').inputValue();
+    assert.match(summary, /Apresentar a empresa/);
+    assert.match(summary, /Outras empresas/);
+    assert.match(summary, /Precisa de apoio com o conteúdo/);
+    assert.match(summary, /Sem prazo definido/);
+    assert.match(summary, /Não concedida/);
+    assert.doesNotMatch(summary, /Autorização declarada/);
+  });
   await check('R07 browser makes no external requests, persistence or script execution errors', async () => {
     assert.deepEqual(blocked, []);
     assert.deepEqual(errors, []);
@@ -143,7 +181,7 @@ try {
   await browser?.close().catch(() => {});
   await new Promise(resolveClose => server ? server.close(resolveClose) : resolveClose());
   await mkdir(reportDir, { recursive: true });
-  await writeFile(resolve(reportDir, 'browser-R07.json'), JSON.stringify({
+  await writeFile(resolve(reportDir, 'browser-R08.json'), JSON.stringify({
     status: fatal ? 'failed' : 'passed', scenarios: outcomes, blockedCount: blocked.length,
     runtimeErrors: errors, externalModelInvocations: 0, visitorData: 'synthetic_only'
   }, null, 2) + '\n');
@@ -152,5 +190,5 @@ if (fatal) {
   console.error(fatal.stack || fatal.message);
   process.exitCode = 1;
 } else {
-  console.log('R07 local journey browser: ' + outcomes.length + '/' + outcomes.length + ' passed.');
+  console.log('R08 local journey browser: ' + outcomes.length + '/' + outcomes.length + ' passed.');
 }
