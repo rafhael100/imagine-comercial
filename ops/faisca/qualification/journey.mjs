@@ -212,7 +212,7 @@ export function respondQualificationJourney(session, rawInput) {
     return Object.freeze({
       session: createState(result.session, null, 'sales'),
       userText: result.userText,
-      reply: makeReply(result.reply.text + '\\n\\nA qualificação estruturada R08 ainda não tem um questionário aprovado para esta solução. Posso continuar com as orientações gerais.',
+      reply: makeReply(result.reply.text + '\n\nA qualificação estruturada R08 ainda não tem um questionário aprovado para esta solução. Posso continuar com as orientações gerais.',
         'r08_service_qualification_unavailable', result.reply.sources, [action('sell', labels.sell)])
     });
   }
