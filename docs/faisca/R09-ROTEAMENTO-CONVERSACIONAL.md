@@ -19,7 +19,11 @@ Preparar uma camada de roteamento conversacional que permita interpretar pergunt
 
 ## Contrato R09-A
 
-Arquivo: `ops/faisca/model-router/contract.mjs`.
+Arquivos: `ops/faisca/model-router/contract.mjs` e `ops/faisca/model-router/demo.mjs`.
+
+Antes de montar a requisição, `retrieveCandidateAnswerIds` faz uma recuperação determinística e limitada sobre os títulos, prefixos, sufixos e trechos do catálogo R06. O resultado contém no máximo cinco IDs de resposta aprovados. A busca lexical serve apenas para reduzir o conjunto de candidatos; não é IA semântica e não prova que a pergunta foi compreendida. Sem correspondência, o roteador não inventa candidato e usa a saída fixa de ausência de suporte.
+
+`routeWithLocalFixture` percorre a sequência completa host → recuperação → requisição fechada → fixture sintética → verificação → texto editorial exato. É apenas uma demonstração offline, não um provedor de IA.
 
 - Requisição `faisca.model-route.request.v1`: IDs opacos, pergunta filtrada, candidatos editoriais e clarificações permitidas.
 - Resposta `faisca.model-route.response.v1`: `routeStatus`, `answerId` e/ou `clarificationId`; nenhum texto livre, URL, ação, ferramenta, preço ou dado de contato.
