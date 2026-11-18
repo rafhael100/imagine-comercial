@@ -18,7 +18,7 @@ const labels = Object.freeze({
   service: Object.freeze({ onepage: 'Site Onepage', 'landing-page': 'Landing Page' }),
   objective: Object.freeze({
     present_company: 'Apresentar a empresa', capture_leads: 'Captar contatos',
-    sell_online: 'Vender online', organize_service: 'Organizar o atendimento',
+    sell_online: 'Apresentar produtos ou serviços online', organize_service: 'Facilitar o primeiro contato com clientes',
     not_specified: 'Não informado'
   }),
   audience: Object.freeze({
@@ -46,8 +46,8 @@ const questionData = Object.freeze({
     options: Object.freeze([
       ['present_company', 'Apresentar minha empresa'],
       ['capture_leads', 'Captar contatos interessados'],
-      ['sell_online', 'Vender produtos ou serviços online'],
-      ['organize_service', 'Organizar o atendimento'],
+      ['sell_online', 'Divulgar produtos ou serviços online'],
+      ['organize_service', 'Facilitar o primeiro contato com clientes'],
       ['not_specified', 'Ainda não defini']
     ])
   }),
