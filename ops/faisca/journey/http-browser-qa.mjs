@@ -266,7 +266,7 @@ try {
       locale: 'pt-BR', input: { type: 'action', id: 'confirm_goal' }
     }, a.token);
     assert.equal(wrongContext.status, 403, 'A session token cannot consult another conversation ID.');
-    await Promise.all([a, b].map(session => browserFetch(page, endpoints.session, 'DELETE', {}, session.data.token)));
+    await Promise.all([a, b].map(session => browserFetch(page, endpoints.session, 'DELETE', {}, session.token)));
     await eventually(() => server.inspect().sessions === 1, 'Both raw test sessions must be deleted while the browser session remains.');
     assert.equal(phpCounts().spawned, before.spawned + 2);
     assert.equal(phpCounts().completed, before.completed + 2);
