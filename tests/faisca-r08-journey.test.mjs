@@ -89,6 +89,7 @@ test('R08-B handoff is generated only after explicit answers and is never sent',
 test('R08-B explicit correction clears dependent values and asks the corrected field again', () => {
   let session = complete(startOnepage());
   const correction = choose(session, 'r08:edit:audience');
+  assert.equal(correction.userText, 'Corrigir público');
   assert.equal(correction.session.profile.objective, 'present_company');
   assert.equal(correction.session.profile.audience, null);
   assert.equal(correction.session.profile.materials, null);
@@ -147,6 +148,7 @@ test('R08-B rejects cloned sessions and never executes action getters', () => {
 test('R08-B service change and restart are explicit and discard the previous qualification', () => {
   const completeSession = complete(startOnepage());
   const changed = choose(completeSession, 'r08:change_service');
+  assert.equal(changed.userText, 'Trocar solução');
   assert.equal(changed.session.profile, null);
   assert.equal(changed.session.phase, 'sales');
   assert.deepEqual(changed.reply.actions.map(item => item.id), ['goal_presence', 'goal_campaign']);
