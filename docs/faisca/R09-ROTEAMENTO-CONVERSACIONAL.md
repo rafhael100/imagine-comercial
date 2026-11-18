@@ -103,3 +103,23 @@ A fixture local reconhece expressões portuguesas explícitas para objetivo, pú
 Uma proposta de troca de serviço agora preserva o perfil atual enquanto aguarda confirmação. Se o visitante cancelar, retoma a qualificação anterior. Se confirmar Onepage/Landing Page, inicia um perfil novo para o serviço confirmado. Serviços sem questionário R08 aprovado continuam sem qualificação inventada.
 
 Esta implementação é determinística e local. Nenhum modelo externo é chamado; a estrutura prepara o ponto de integração futuro, sujeito a aprovação de provedor, privacidade e custos.
+
+## Visão de fluxo
+
+```mermaid
+flowchart TD
+  A[Mensagem do visitante] --> B[Pré-validação local]
+  B -->|Resposta a campo R08| C[Field router: opções fechadas]
+  C -->|Uma opção| D[Perfil R08 enumeração]
+  C -->|Ambígua ou desconhecida| E[Clarificação fixa]
+  B -->|Pergunta comercial| F[R09 answer router]
+  F -->|Clarificar ou sem fonte| E
+  F -->|answerId permitido| G[Resposta candidata R06]
+  G --> H[PHP real do Imagine Agents]
+  H -->|Fonte e texto exatos confirmados| I[Resposta editorial + fontes]
+  H -->|Falha ou incerteza| J[Fallback fixo sem fontes]
+  D --> K[Resumo copiável]
+  K --> L[Sem envio automático ao CRM]
+```
+
+O modelo futuro não escreve a resposta final nem aciona ferramentas. O host controla a conversa e o PHP valida a evidência editorial antes da apresentação.
