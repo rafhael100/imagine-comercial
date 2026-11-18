@@ -113,7 +113,7 @@ try {
   }
   async function startUnknownAction(value = 'confirm_goal') {
     await page.locator('#faisca-quick-actions [data-action-id="' + value + '"]').click();
-    await status.locator('[data-faisca-http-state="unknown"]').waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('[data-faisca-http-status][data-faisca-http-state="unknown"]').waitFor({ state: 'visible', timeout: 10000 });
     assert.equal(await page.locator('#faisca-log').getAttribute('aria-busy'), 'true');
     assert.equal(await page.locator('#faisca-send').isEnabled(), false);
     assert.equal(await reconcileButton.isEnabled(), true);
@@ -160,7 +160,7 @@ try {
     assert.equal(phpCounts().completed, 0, 'The delayed PHP process must still be pending at timeout.');
     const chatBefore = await page.locator('#faisca-log').innerText();
     await reconcileButton.click();
-    await status.locator('[data-faisca-http-state="unknown"]').waitFor({ state: 'visible' });
+    await page.locator('[data-faisca-http-status][data-faisca-http-state="unknown"]').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#faisca-log').innerText(), chatBefore);
     assert.equal(await page.locator('#faisca-summary-text').inputValue(), summaryBefore);
     await eventually(() => phpCounts().completed === 1, 'The actual PHP child must finish before reconciliation.', 5000);
@@ -178,7 +178,7 @@ try {
     const beforeCount = await assistantCount();
     await page.locator('#faisca-input').fill('Como funciona o projeto?');
     await page.locator('#faisca-send').click();
-    await status.locator('[data-faisca-http-state="unknown"]').waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('[data-faisca-http-status][data-faisca-http-state="unknown"]').waitFor({ state: 'visible', timeout: 10000 });
     assert.equal(await assistantCount(), beforeCount);
     assert.equal(phpCounts().spawned, 2);
     await page.locator('#faisca-reset').click();
@@ -267,7 +267,7 @@ try {
     }, a.token);
     assert.equal(wrongContext.status, 403, 'A session token cannot consult another conversation ID.');
     await Promise.all([a, b].map(session => browserFetch(page, endpoints.session, 'DELETE', {}, session.data.token)));
-    await eventually(() => server.inspect().sessions === 0, 'Both raw test sessions must be deleted.');
+    await eventually(() => server.inspect().sessions === 1, 'Both raw test sessions must be deleted while the browser session remains.');
     assert.equal(phpCounts().spawned, before.spawned + 2);
     assert.equal(phpCounts().completed, before.completed + 2);
     executedPHP = true;
