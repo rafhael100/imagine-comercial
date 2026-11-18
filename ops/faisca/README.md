@@ -313,6 +313,8 @@ Nenhum endpoint, token, tabela ou integração CRM foi criado. O handoff permane
 
 ### R09-A — roteador conversacional fundamentado
 
-O contrato provider-neutral está em `ops/faisca/model-router/contract.mjs`. O modelo futuro só poderá selecionar um `answerId` do conjunto editorial R06 fornecido pelo host, pedir uma clarificação fixa ou declarar ausência de suporte. O texto factual final, as fontes e as ações continuam sendo renderizados pelo host; a saída do modelo não contém texto livre, URLs, ferramentas ou ações operacionais.
+O contrato provider-neutral está em `ops/faisca/model-router/contract.mjs`. A recuperação determinística `retrieveCandidateAnswerIds` reduz cada pergunta a até cinco respostas R06 aprovadas. O modelo futuro só poderá selecionar um `answerId` desse conjunto, pedir uma clarificação fixa ou declarar ausência de suporte. O texto factual final, as fontes e as ações continuam sendo renderizados pelo host; a saída do modelo não contém texto livre, URLs, ferramentas ou ações operacionais.
+
+`routeWithLocalFixture` percorre o fluxo completo sem provedor externo; a demonstração reproduzível está em `ops/faisca/model-router/demo.mjs`.
 
 Testes: `node --test tests/faisca-r09-model-router.test.mjs`. A fixture é sintética e local. Não há SDK, chave, endpoint, chamada externa ou custo. Arquitetura e limites: `docs/faisca/R09-ROTEAMENTO-CONVERSACIONAL.md`.
