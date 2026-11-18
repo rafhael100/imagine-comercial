@@ -91,3 +91,32 @@ test('F-LEGACY-CAPTURE errors cannot contain page text, path or credential',asyn
   return true;
  });
 });
+
+test('F-LEGACY-CAPTURE stops at the first candidate authentication failure',async()=>{
+ for(const denied of [401,403,407]){
+  let requests=0;
+  const transport=async()=>{requests++;return new Response('SYNTHETIC_DENIED',{
+   status:denied,headers:{'content-type':'text/plain'}
+  });};
+  await assert.rejects(()=>captureLegacyHttpSnapshot({
+   scope:'AFTER_CANDIDATE',basicAuth:auth,transport
+  }),error=>{
+   assert.match(error.message,/^F-LEGACY-CAPTURE:/);
+   assert.doesNotMatch(error.message,/SYNTHETIC_DENIED|correct-horse|Authorization/);
+   return true;
+  });
+  assert.equal(requests,1,'One auth denial must not trigger 26 more GETs');
+ }
+});
+test('F-LEGACY-CAPTURE retains missing route evidence and public 401 as unproven',async()=>{
+ const candidate=mockTransport({local:true,alterPath:'/en-us/termos-de-uso.html',alterStatus:404});
+ const after=await captureLegacyHttpSnapshot({scope:'AFTER_CANDIDATE',
+  basicAuth:auth,transport:candidate.transport});
+ assert.equal(after.rows.length,27);
+ assert.ok(after.rows.some(row=>row.status===404));
+ let calls=0;
+ const before=await captureLegacyHttpSnapshot({scope:'BEFORE_ORIGINAL',
+  transport:async()=>{calls++;return new Response('SYNTHETIC_ORIGINAL_DENIED',{status:401});}});
+ assert.equal(calls,27);
+ assert.equal(before.rows.every(row=>row.status===401),true);
+});
