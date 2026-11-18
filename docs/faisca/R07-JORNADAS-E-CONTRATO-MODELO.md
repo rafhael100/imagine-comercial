@@ -82,3 +82,19 @@ As novas provas `tests/faisca-r07-async.test.mjs` incluem:
 - Contraprovas: mensagem diferente com o mesmo ID dá `conflict`; uma consulta não redispara; reenvio de uma resposta já conciliada não bloqueia novamente o atendimento; troca de objetivo durante pré-despacho é recusada.
 
 **Limites operacionais:** o ledger é volátil, em um único processo, e o provedor é local/sintético. Não há durabilidade entre reinícios, orçamento, credencial ou garantia financeira de exactly-once. `reconcile` devolve dados ao chamador; nenhuma interface pública é automaticamente atualizada por esse laboratório. Para comprovar a experiência assíncrona R07 completa no navegador é necessário integrar explicitamente o transport/controller e testar o fechamento de sessões antes da liberação.
+
+## R07-G — jornada assíncrona no navegador, HTTP e PHP real
+
+Foi adicionada uma segunda página isolada, `/journey-http/`, distinta da demonstração local síncrona `/journey/`. Ela monta `respondJourney` no navegador, cria uma sessão HTTP e usa uma fábrica confiável `createJourneyPrepareTurn(conversationId)` no servidor. Cada sessão recebe um fechamento de estado R07 independente; o visitante não seleciona a política.
+
+O runtime HTTP reutiliza o motor R03 de deduplicação/consulta e a ponte R06 de PHP com pin imutável. As ações `confirm_goal` e `cancel_goal` foram adicionadas ao contrato fechado de mensagens; propostas, cancelamentos, perguntas sem suporte e resumo são respostas locais sem despacho PHP. A confirmação de uma escolha suportada é a que pode seguir à validação de fonte pelo PHP real. A validação do navegador exige que o resumo só avance após uma resposta confirmada/conciliada.
+
+**Novo gate planejado em CI:** `ops/faisca/journey/http-browser-qa.mjs`, executado no workflow R06/R07 que já baixa o commit exato do Imagine AI Agents e exige PHP CLI real. Os cenários cobrem:
+- proposta sem chamada PHP, seguida de confirmação e resposta com fontes R06;
+- timeout, consulta prematura, espera pela conclusão real do processo e consulta posterior sem novo despacho;
+- reset durante PHP pendente, encerramento da sessão HTTP e descarte de resposta antiga;
+- nova sessão após reset com objetivo diferente;
+- duas sessões HTTP com o mesmo `messageId`, confirmando respostas e fontes diferentes, além de recusa de token cruzado;
+- responsividade e axe em 320, 390 e 1440 px, sem tráfego externo ou armazenamento no navegador.
+
+O código e o workflow foram adicionados nesta branch. **Não declarar R07-G aprovada até a CI da SHA final terminar verde e o relatório `Faisca_R07_HTTP_BROWSER_QA.json` registrar `status=passed` e `executedPHP=true`.** A prova é somente laboratorial, com conteúdo sintético e processo PHP local; não equivale a um serviço de produção, não usa LLM externo e não envia dados ao CRM.
