@@ -1,20 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createLeadProfile, validateLeadProfile, updateLeadProfile, getNextQualificationQuestion,
+  createLeadProfileFromJourney, validateLeadProfile, updateLeadProfile, getNextQualificationQuestion,
   isQualificationComplete, buildHandoffPackage, LEAD_PROFILE_SCHEMA, LEAD_HANDOFF_SCHEMA
 } from '../ops/faisca/qualification/profile.mjs';
+import { createJourney, respondJourney } from '../ops/faisca/journey/state.mjs';
 
-test('R08 profile can only begin from a service already confirmed in R07', () => {
-  assert.equal(createLeadProfile('onepage').service, 'onepage');
-  assert.equal(createLeadProfile('landing-page').service, 'landing-page');
-  for (const value of [null, 'crm', 'Onepage', 'unknown', { service: 'onepage' }]) {
-    assert.equal(createLeadProfile(value), null);
-  }
+function confirmedJourney(service) {
+  const message = service === 'onepage' ? 'Quero apresentar minha empresa.' : 'Preciso captar contatos para uma oferta.';
+  const proposal = respondJourney(createJourney(), { type: 'text', text: message });
+  assert.equal(proposal.reply.intent, 'journey_confirmation_needed');
+  const confirmed = respondJourney(proposal.session, { type: 'action', id: 'confirm_goal' });
+  return confirmed.session;
+}
+function profile(service = 'onepage') { return createLeadProfileFromJourney(confirmedJourney(service)); }
+
+test('R08 profile can only begin from a service explicitly confirmed in a trusted R07 session', () => {
+  const unconfirmed = createJourney();
+  const proposed = respondJourney(unconfirmed, { type: 'text', text: 'Quero apresentar minha empresa.' });
+  assert.equal(createLeadProfileFromJourney(unconfirmed), null);
+  assert.equal(createLeadProfileFromJourney(proposed.session), null);
+  assert.equal(profile('onepage').service, 'onepage');
+  assert.equal(profile('landing-page').service, 'landing-page');
+  assert.equal(createLeadProfileFromJourney({ ...confirmedJourney('onepage') }), null);
 });
 
 test('R08 initial profile has no inferred answers and asks one qualification question at a time', () => {
-  const profile = createLeadProfile('onepage');
+  const profile = profile('onepage');
   assert.equal(profile.schema, LEAD_PROFILE_SCHEMA);
   assert.equal(profile.objective, null);
   assert.equal(profile.audience, null);
@@ -28,7 +40,7 @@ test('R08 initial profile has no inferred answers and asks one qualification que
 });
 
 test('R08 each explicit choice updates only its own field and advances one question', () => {
-  const first = createLeadProfile('landing-page');
+  const first = profile('landing-page');
   const objective = updateLeadProfile(first, 'objective', 'capture_leads');
   assert.equal(objective.objective, 'capture_leads');
   assert.equal(objective.audience, null);
@@ -40,7 +52,7 @@ test('R08 each explicit choice updates only its own field and advances one quest
 });
 
 test('R08 visitor may explicitly skip a field without the system inventing an answer', () => {
-  let profile = createLeadProfile('onepage');
+  let profile = profile('onepage');
   profile = updateLeadProfile(profile, 'objective', 'not_specified');
   profile = updateLeadProfile(profile, 'audience', 'not_specified');
   assert.equal(profile.objective, 'not_specified');
@@ -52,7 +64,7 @@ test('R08 visitor may explicitly skip a field without the system inventing an an
 });
 
 test('R08 only closed enum values are accepted; arbitrary text and unknown fields are refused', () => {
-  const profile = createLeadProfile('onepage');
+  const profile = profile('onepage');
   assert.equal(updateLeadProfile(profile, 'objective', 'Quero vender muito'), null);
   assert.equal(updateLeadProfile(profile, 'email', 'visitor@example.invalid'), null);
   assert.equal(updateLeadProfile(profile, 'phone', '5511999999999'), null);
@@ -61,7 +73,7 @@ test('R08 only closed enum values are accepted; arbitrary text and unknown field
 });
 
 test('R08 contact consent is never inferred and is asked only after qualification fields', () => {
-  let profile = createLeadProfile('landing-page');
+  let profile = profile('landing-page');
   profile = updateLeadProfile(profile, 'objective', 'capture_leads');
   profile = updateLeadProfile(profile, 'audience', 'online_consumers');
   profile = updateLeadProfile(profile, 'materials', 'ready');
@@ -75,7 +87,7 @@ test('R08 contact consent is never inferred and is asked only after qualificatio
 });
 
 test('R08 consent options distinguish grant, refusal and deferment', () => {
-  const profile = createLeadProfile('onepage');
+  const profile = profile('onepage');
   assert.equal(updateLeadProfile(profile, 'contactConsent', 'granted').contactConsent, 'granted');
   assert.equal(updateLeadProfile(profile, 'contactConsent', 'declined').contactConsent, 'declined');
   assert.equal(updateLeadProfile(profile, 'contactConsent', 'later').contactConsent, 'later');
@@ -83,7 +95,7 @@ test('R08 consent options distinguish grant, refusal and deferment', () => {
 });
 
 test('R08 handoff is copy-only and never claims that the team received the lead', () => {
-  let profile = createLeadProfile('onepage');
+  let profile = profile('onepage');
   profile = updateLeadProfile(profile, 'objective', 'present_company');
   profile = updateLeadProfile(profile, 'audience', 'local_customers');
   profile = updateLeadProfile(profile, 'materials', 'need_support');
@@ -100,7 +112,7 @@ test('R08 handoff is copy-only and never claims that the team received the lead'
 });
 
 test('R08 strict profile validator rejects extra fields and accessors without executing them', () => {
-  const profile = createLeadProfile('onepage');
+  const profile = profile('onepage');
   assert.equal(validateLeadProfile(profile).service, 'onepage');
   assert.equal(validateLeadProfile({ ...profile, email: 'visitor@example.invalid' }), null);
   let reads = 0;
@@ -111,7 +123,7 @@ test('R08 strict profile validator rejects extra fields and accessors without ex
 });
 
 test('R08 updates are immutable and cannot change the confirmed service', () => {
-  const profile = createLeadProfile('landing-page');
+  const profile = profile('landing-page');
   const changed = updateLeadProfile(profile, 'objective', 'sell_online');
   assert.equal(changed.service, 'landing-page');
   assert.equal(profile.service, 'landing-page');
@@ -120,7 +132,7 @@ test('R08 updates are immutable and cannot change the confirmed service', () => 
 });
 
 test('R08 summary contains only closed, explicitly supplied values and no scoring', () => {
-  let profile = createLeadProfile('onepage');
+  let profile = profile('onepage');
   profile = updateLeadProfile(profile, 'objective', 'organize_service');
   const handoff = buildHandoffPackage(profile);
   assert.match(handoff.summary, /Objetivo: Organizar o atendimento/);
@@ -129,7 +141,7 @@ test('R08 summary contains only closed, explicitly supplied values and no scorin
 });
 
 test('R08 qualification can be completed with explicit choices and no personal contact data', () => {
-  let profile = createLeadProfile('landing-page');
+  let profile = profile('landing-page');
   for (const [field, value] of [
     ['objective', 'capture_leads'], ['audience', 'businesses'],
     ['materials', 'ready'], ['timeline', 'within_90_days'],
