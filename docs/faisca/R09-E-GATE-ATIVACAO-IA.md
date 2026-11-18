@@ -21,7 +21,9 @@ O roteador R09 já tem:
 - API hospedada ou modelo self-hosted;
 - região de processamento e suboperadores;
 - disponibilidade, limites de taxa e SLA;
-- compatibilidade com saída estruturada estrita.
+- compatibilidade com saída estruturada estrita;
+- conjunto de avaliação em português, precisão por intenção, matriz de confusão, taxa de abstenção e revisão de respostas fora de foco dentro do conjunto permitido;
+- regra de clarificação quando a recuperação tiver empate ou baixa evidência; a confiança declarada pelo modelo não é prova.
 
 Nenhum fornecedor é presumido. A escolha depende de custo, privacidade, latência e qualidade em português.
 
