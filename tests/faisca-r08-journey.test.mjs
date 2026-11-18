@@ -78,7 +78,7 @@ test('R08-B changing the confirmed service clears the old profile before asking 
 test('R08-B does not invent a qualification questionnaire for an unapproved ads service', () => {
   const first = choose(send(createQualificationJourney(), 'Preciso captar contatos para uma oferta.'), 'confirm_goal');
   assert.equal(first.session.profile.service, 'landing-page');
-  const proposal = send(first.session, 'E Google Ads?');
+  const proposal = choose(first.session, 'goal_ads');
   assert.equal(proposal.reply.intent, 'journey_confirmation_needed');
   const confirmed = choose(proposal.session, 'confirm_goal');
   assert.equal(confirmed.session.profile, null);
@@ -92,7 +92,7 @@ test('R08-B handoff is generated only after explicit answers and is never sent',
   assert.match(getQualificationSummary(session), /RESUMO DE ATENDIMENTO — RASCUNHO NÃO ENVIADO/);
   assert.match(getQualificationSummary(session), /Site Onepage/);
   assert.match(getQualificationSummary(session), /Apresentar a empresa/);
-  assert.match(getQualificationSummary(session), /Sim, autorizou (nenhum contato foi enviado)/);
+  assert.match(getQualificationSummary(session), /Sim, autorizou \\(nenhum contato foi enviado\\)/);
   assert.match(getQualificationSummary(session), /Nenhum dado de contato foi coletado/);
   assert.doesNotMatch(getQualificationSummary(session), /@|[0-9]{10,}/);
 });
@@ -121,7 +121,7 @@ test('R08-B summary action and copy model do not claim delivery', () => {
   const summary = choose(session, 'r08:summary');
   assert.equal(summary.reply.intent, 'r08_qualification_question');
   assert.match(summary.reply.text, /RASCUNHO NÃO ENVIADO/);
-  assert.match(getQualificationSummary(summary.session), /Nenhum contato foi coletado/);
+  assert.match(getQualificationSummary(summary.session), /Nenhum dado de contato foi coletado/);
 });
 
 test('R08-B viewing a partial handoff keeps the next question and its choices available', () => {
