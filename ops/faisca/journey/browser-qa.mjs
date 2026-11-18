@@ -149,7 +149,7 @@ try {
     assert.match(summary, /Clientes da região/);
     assert.match(summary, /Textos e imagens disponíveis/);
     assert.match(summary, /Até 30 dias/);
-    assert.match(summary, /Sim, autorizou (nenhum contato foi enviado)/);
+    assert.ok(summary.includes('Sim, autorizou (nenhum contato foi enviado)'));
     assert.match(summary, /RASCUNHO NÃO ENVIADO/);
     assert.doesNotMatch(summary, /@|[0-9]{10,}/);
   });
