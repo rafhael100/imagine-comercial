@@ -75,8 +75,10 @@ test('R08-B changing the confirmed service clears the old profile before asking 
   assert.equal(confirmed.session.profile.objective, null);
 });
 
-test('R08-B does not invent a qualification questionnaire for unsupported service categories', () => {
-  const proposal = choose(createQualificationJourney(), 'goal_ads');
+test('R08-B does not invent a qualification questionnaire for an unapproved ads service', () => {
+  const first = choose(send(createQualificationJourney(), 'Quero apresentar minha empresa.'), 'confirm_goal');
+  assert.equal(first.session.profile.service, 'onepage');
+  const proposal = send(first.session, 'E Google Ads?');
   assert.equal(proposal.reply.intent, 'journey_confirmation_needed');
   const confirmed = choose(proposal.session, 'confirm_goal');
   assert.equal(confirmed.session.profile, null);
