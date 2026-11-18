@@ -70,8 +70,13 @@ test('R08 preserves the current qualification until a proposed service change is
   assert.equal(change.reply.intent, 'journey_confirmation_needed');
   assert.equal(change.session.phase, 'service_change_pending');
   assert.equal(change.session.profile.objective, 'present_company');
+  const pendingSummary = choose(change.session, 'r08:summary');
+  assert.match(pendingSummary.reply.text, /Site Onepage/);
+  assert.match(pendingSummary.reply.text, /troca de solução está pendente/);
+  assert.ok(pendingSummary.reply.actions.some(item => item.id === 'confirm_goal'));
+  assert.ok(pendingSummary.reply.actions.some(item => item.id === 'cancel_goal'));
 
-  const cancelled = choose(change.session, 'cancel_goal');
+  const cancelled = choose(pendingSummary.session, 'cancel_goal');
   assert.equal(cancelled.session.phase, 'qualification');
   assert.equal(cancelled.session.profile.service, 'onepage');
   assert.equal(cancelled.session.profile.objective, 'present_company');
