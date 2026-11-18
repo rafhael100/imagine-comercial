@@ -186,7 +186,7 @@ test('R08 pending service change preserves the old profile and remains a local H
 
     outcome = await send('r08_change_propose_02',
       { type: 'text', text: 'Na verdade prefiro Landing Page.' });
-    assert.equal(outcome.reply.intent, 'r08_service_change_pending');
+    assert.equal(outcome.reply.intent, 'journey_confirmation_needed');
     assert.match(outcome.reply.text, /troca de solução está pendente/);
     assert.equal(outcome.delivery, 'guided_fallback');
     assert.equal(providerCalls, 1);
