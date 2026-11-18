@@ -317,4 +317,4 @@ O contrato provider-neutral está em `ops/faisca/model-router/contract.mjs`. A r
 
 `routeWithLocalFixture` percorre o fluxo completo sem provedor externo; a demonstração reproduzível está em `ops/faisca/model-router/demo.mjs`.
 
-Testes: `node --test tests/faisca-r09-model-router.test.mjs`. A fixture é sintética e local. Não há SDK, chave, endpoint, chamada externa ou custo. Arquitetura e limites: `docs/faisca/R09-ROTEAMENTO-CONVERSACIONAL.md`.
+Testes: `node --test tests/faisca-r09-*.test.mjs`. Demonstração: `node ops/faisca/model-router/demo.mjs`. A fixture é sintética e local. Não há SDK, chave, endpoint, chamada externa ou custo. Arquitetura e limites: `docs/faisca/R09-ROTEAMENTO-CONVERSACIONAL.md`.
