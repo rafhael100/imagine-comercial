@@ -122,3 +122,11 @@ export function respondJourney(session, input) {
     ? session.coreSession : inner.session;
   return conclude(session, safeCore, session.pendingGoal, inner);
 }
+
+/** Return a supported service only from a live, explicitly confirmed R07 session. */
+export function getConfirmedService(session) {
+  if (!trusted.has(session) || !Array.isArray(session.coreSession.selection) ||
+      session.coreSession.selection.length !== 1) return null;
+  const [selected] = session.coreSession.selection;
+  return ['onepage', 'landing-page'].includes(selected) ? selected : null;
+}
