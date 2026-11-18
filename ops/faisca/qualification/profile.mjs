@@ -134,7 +134,8 @@ export function createLeadProfileFromJourney(journeySession) {
 /** Accept only a closed option for the named field; arbitrary visitor text is not stored. */
 export function updateLeadProfile(profile, field, value) {
   const safe = validateLeadProfile(profile);
-  if (!safe || !fields.includes(field) || !values[field].has(value)) return null;
+  const next = safe ? getNextQualificationQuestion(safe) : null;
+  if (!safe || !next || next.field !== field || !values[field].has(value)) return null;
   return Object.freeze({ ...safe, [field]: value });
 }
 
