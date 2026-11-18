@@ -163,13 +163,22 @@ export function respondQualificationJourney(session, rawInput) {
       const parts = input.id.split(':');
       if (parts.length === 3) {
         const [, field, value] = parts;
+        const currentQuestion = getNextQualificationQuestion(session.profile);
+        const selectedOption = currentQuestion?.field === field
+          ? currentQuestion.options.find(option => option.value === value) : null;
         const updated = updateLeadProfile(session.profile, field, value);
-        if (updated) return questionReply(session, updated, '', [], labels[field] + ': ' + value);
+        if (updated) return questionReply(session, updated, '', [], selectedOption?.label ?? 'Escolha registrada');
       }
       return questionReply(session, session.profile, 'Escolha uma das opções da pergunta atual.');
     }
+  }
 
-    if (input.type === 'text' || (input.type === 'action' && input.id === 'summary')) {
+  if (input.type === 'action' && input.id === 'sell') {
+    return serviceChoiceReply(session);
+  }
+
+  if (session.phase === 'qualification' || session.phase === 'complete') {
+    if (input.type === 'text' || input.type === 'action') {
       const result = respondJourney(session.journey, input);
       if (result.session.pendingGoal !== null) {
         return Object.freeze({
@@ -178,16 +187,12 @@ export function respondQualificationJourney(session, rawInput) {
           reply: result.reply
         });
       }
-      if (result.reply.intent === 'journey_summary' || result.reply.intent === 'grounding_navigation') {
+      if (result.reply.intent === 'journey_summary') {
         return summaryReply(createState(result.session, session.profile, session.phase), result.userText);
       }
       return questionReply(createState(result.session, session.profile, session.phase),
         session.profile, result.reply.text, result.reply.sources, result.userText);
     }
-  }
-
-  if (input.type === 'action' && input.id === 'sell') {
-    return serviceChoiceReply(session);
   }
 
   const result = respondJourney(session.journey, input);
