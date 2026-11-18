@@ -181,6 +181,21 @@ export function verifyModelRouteResponse(request, candidate) {
   return rejected;
 }
 
+/** Run the complete host -> fixture -> verifier path without an external model. */
+export function routeWithLocalFixture({ conversationId, messageId, userText, scenario = 'success' } = {}) {
+  const candidateAnswerIds = retrieveCandidateAnswerIds(userText);
+  const request = prepareModelRouteRequest({
+    conversationId, messageId, userText, candidateAnswerIds,
+    allowedClarificationIds: clarificationIds
+  });
+  if (!request) return Object.freeze({ accepted: false, reason: 'request_refused', routeStatus: 'refused',
+    text: 'Não foi possível encaminhar essa mensagem para a demonstração. Não envie dados pessoais ou de acesso.',
+    sources: Object.freeze([]), actions: Object.freeze([]), candidateAnswerIds });
+  const raw = localModelRouteFixture(request, scenario);
+  const verified = verifyModelRouteResponse(request, raw);
+  return Object.freeze({ ...verified, candidateAnswerIds });
+}
+
 /** Synthetic fixture only. No API call, network, model credential or external cost. */
 export function localModelRouteFixture(request, scenario = 'success') {
   if (!trustedRequests.has(request)) return Object.freeze({ error: 'invalid_request' });
