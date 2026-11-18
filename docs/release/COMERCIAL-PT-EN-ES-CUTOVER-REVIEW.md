@@ -8,7 +8,7 @@ Não há credenciais, chaves privadas, dados pessoais ou comandos de deploy nest
 - **63 páginas públicas indexáveis** (21 PT, 21 EN, 21 ES, incluindo a calculadora e o serviço ChatGPT Ads em cada idioma), além de **404** personalizada, nas rotas estáticas explícitas do Astro. A página 404 **não** é contabilizada como página pública do sitemap.
 - As bandeiras Brasil, EUA e Espanha são links HTML sem JavaScript e mantêm a página equivalente, inclusive cinco guias completos por idioma.
 - `html lang`, canonical, `hreflang` recíproco, `x-default`, JSON-LD, OpenGraph, sitemap, acessibilidade e navegação por teclado/telemóvel são verificados pela CI.
-- O auditor SEO F102 está fixado à SHA exata `88af29b660f911c67e59b9d93f4730fa4cc9473d`; nenhuma dependência flutuante.
+- O auditor SEO está fixado à SHA exata `2f77051e04266a9ae64bbdb48d7cd951a00d455e` ([Engine #323](https://github.com/rafhael100/imagine-seo-engine/pull/323)), incluindo a seleção de variantes do Googlebot e a leitura de declarações HTML. A [integração documentada](../SEO-ACTIVE-HTML-ROBOTS-INTEGRATION.md) também verifica regressões em cópias do Astro compilado; nenhuma dependência flutuante.
 - A calculadora de anúncios em PT, EN e ES gera estimativas localmente e impressão/PDF pelo próprio navegador, sem cadastrar visitantes ou disparar anúncios. A integração de interesse com o CRM é somente sintética e não representa captação real de leads.
 - Os fluxos de orçamento e checkout privado têm testes separados; o pacote **não** deve ativar PSP, CRM público, formulário de captação ou permitir provisionamento.
 - A CI gera o artefato `imagine-comercial-trilingual-static-PREVIEW-ONLY` com **apenas o diretório `dist/`** e `imagine-comercial-release-REVIEW-ONLY` com o inventário SHA-256. Os artefatos não são uma assinatura aprovada, uma autorização de deploy ou evidência de execução em VPS.
@@ -34,5 +34,14 @@ Não há credenciais, chaves privadas, dados pessoais ou comandos de deploy nest
 ## O que impede publicar agora
 
 O inventário de lançamento `node scripts/report-launch-blockers.mjs --target=production` permanece em `NOT_AUTHORIZED`. A branch `main` do Comercial ainda não foi promovida com a pilha de PRs, o site legado e suas rotas não estão homologados para substituição, e não há comprovação de inspeção HTTP da instalação privada, da assinatura independentemente aceita dos bytes e da reversão real na infraestrutura. Essa lacuna não é resolvida por afirmar que a CI passou.
+
+Esse inventário é estático: `F42_STATIC_GATES_NOT_RUNTIME_VERIFICATION` não
+consulta a conta GSC nem os arquivos privados de observação. Seus campos
+fixados em `false` não demonstram ausência de evidência já coletada. Antes de
+repetir consultas ou capturas, conferir e reutilizar o pacote privado existente,
+incluindo o snapshot `BEFORE_ORIGINAL` das 27 rotas quando disponível. Somente
+uma observação da candidata operacional pode fornecer `AFTER_CANDIDATE`;
+nenhum build estático, snapshot original ou ensaio com legado sintético o
+substitui. Conferir os resultados da CI no mesmo SHA escolhido para o pacote.
 
 **Regra de segurança:** PRs em DRAFT, sem merge/deploy, enquanto as condições externas acima estiverem faltando. Um artefato de preview pronto não constitui autorização para publicação automática.
