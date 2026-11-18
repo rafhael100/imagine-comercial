@@ -16,6 +16,9 @@ const clarificationCopy = Object.freeze({
 });
 export const ROUTER_CLARIFICATION_IDS = Object.freeze(Object.keys(clarificationCopy));
 const clarificationIds = ROUTER_CLARIFICATION_IDS;
+export function getFixedRouteClarification(id) {
+  return typeof id === 'string' && Object.hasOwn(clarificationCopy, id) ? clarificationCopy[id] : null;
+}
 const stopWords = new Set(['a', 'as', 'ao', 'aos', 'com', 'da', 'das', 'de', 'do', 'dos',
   'e', 'em', 'essa', 'esse', 'esta', 'este', 'eu', 'me', 'minha', 'meu', 'na', 'nas',
   'no', 'nos', 'o', 'os', 'para', 'por', 'qual', 'quais', 'que', 'se', 'sua', 'seu',
