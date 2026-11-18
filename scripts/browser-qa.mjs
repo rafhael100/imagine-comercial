@@ -492,7 +492,18 @@ try {
             lang==='en'?/Public checkout is not available/:/No existe checkout público/);
           assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
             reviewedQuoteChoiceHref(lang,{site:'onepage',channels:[],tier:'recommended'}));
+          assert.equal(await estimate.locator('[data-choice-channel-breakdown]').isVisible(),false,
+            lang+': no advertising costs before a channel is selected');
           await estimate.locator('[data-choice-channel="meta_ads"]').click();
+          assert.equal(await estimate.locator('[data-choice-channel-costs] li').count(),1,
+            lang+': per-channel disclosure remains visible in the translated preview');
+          const line=await estimate.locator('[data-choice-channel-costs] li').first().textContent();
+          assert.ok(lang==='en'
+            ? /Meta Ads.*BRL 1,000\.00.*BRL 200\.00.*BRL 490\.00/.test(line)
+            : /Meta Ads.*R\$ 1\.000,00.*R\$ 200,00.*R\$ 490,00/.test(line),
+            lang+': media goes to the platform, estimated management and activation remain distinct');
+          assert.ok(line.includes(lang==='en'?'Platform media/month':'Publicidad en plataformas/mes'),
+            lang+': public quote explicitly identifies the media recipient');
           assert.equal(await estimate.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
             'multi_product_cart_required');
           assert.equal(await estimate.locator('[data-choice-channel="meta_ads"]').getAttribute('aria-pressed'),'true');
