@@ -46,6 +46,8 @@ test('R07 J09: timeout needs explicit reconciliation of the same dispatch, witho
   const before = lab.inspect().summary;
   const req = request(context, message);
   const first = lab.send(req);
+  assert.equal(lab.local({ type: 'text', text: 'Quero Landing Page.' }).status, 'busy',
+    'even the asynchronous fingerprint preflight must block changing the goal');
   await until(() => d.calls.length === 1);
   const unknown = await first;
   assert.equal(unknown.status, 'unknown');
