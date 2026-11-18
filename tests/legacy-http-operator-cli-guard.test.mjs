@@ -66,6 +66,11 @@ function captureWithSyntheticFetch({mode='--original',timeout,extra={},existing=
    calls.push({url,method:init.method,redirect:init.redirect,
     credentials:init.credentials,headers:init.headers,
     timeoutMs:timeouts.get(init.signal)});
+   if(init.method==='HEAD'){
+    return new Response(null,{status:401,headers:{
+     'www-authenticate':'Basic realm="Imagine private review"'
+    }});
+   }
    return new Response('SYNTHETIC_TIMEOUT_HTML',{
     status:200,headers:{'content-type':'text/html; charset=UTF-8'}
    });
@@ -100,12 +105,17 @@ function assertSyntheticCapture(result,mode,timeoutMs){
   'PRIVATE REVIEW ONLY, no redirects or deploy.\n');
  const local=mode==='--candidate-local';
  const origin=local?'http://127.0.0.1:4321':'https://www.imaginecomunicacao.com.br';
- assert.deepEqual(result.calls,legacyUrls.map(({from})=>({
+ const expected=legacyUrls.map(({from})=>({
   url:origin+from,method:'GET',redirect:'manual',credentials:'omit',
   headers:{Accept:'text/html',...(local?{
    Authorization:'Basic '+Buffer.from('reviewer:'+syntheticPassword).toString('base64')
   }:{})},timeoutMs
- })));
+ }));
+ if(local)expected.unshift({
+  url:origin+'/',method:'HEAD',redirect:'manual',credentials:'omit',
+  headers:{Accept:'text/html'},timeoutMs
+ });
+ assert.deepEqual(result.calls,expected);
  const snapshot=JSON.parse(result.output);
  assert.equal(snapshot.scope,local?'AFTER_CANDIDATE':'BEFORE_ORIGINAL');
  assert.deepEqual(snapshot.rows.map(row=>row.path),legacyUrls.map(row=>row.from));

@@ -51,6 +51,23 @@ export async function captureLegacyHttpSnapshot({
  const local=scope==='AFTER_CANDIDATE';
  const origin=local?candidateOrigin:originalOrigin;
  const rows=[];
+ if(local){
+  // Before sending credentials, confirm that the expected loopback staging
+  // challenges an anonymous HEAD. This is a privacy preflight, not server
+  // provenance or an authorization to publish.
+  let challenge;
+  try{
+   challenge=await transport(candidateOrigin+'/',{
+    method:'HEAD',redirect:'manual',credentials:'omit',
+    headers:{Accept:'text/html'},signal:AbortSignal.timeout(timeoutMs)
+   });
+  }catch{throw Error('F-LEGACY-CAPTURE: staging gate unavailable');}
+  if(!(challenge instanceof Response)||challenge.redirected||
+     challenge.status!==401||
+     challenge.headers.get('www-authenticate')!=='Basic realm="Imagine private review"')
+   throw Error('F-LEGACY-CAPTURE: expected private challenge missing');
+  await challenge.body?.cancel();
+ }
  for(const {from:path} of legacyUrls){
   let response;
   try{

@@ -12,11 +12,18 @@ function mockTransport({local=false,alterPath=null,alterStatus=null}={}){
   calls.push({url,method:init.method,redirect:init.redirect,headers:init.headers});
   const valid=(local?candidateOrigin:originalOrigin);
   assert.ok(url.startsWith(valid+'/'),url);
-  assert.equal(init.method,'GET');
   assert.equal(init.redirect,'manual');
   assert.equal(init.credentials,'omit');
-  assert.equal(init.headers.Authorization,local?auth:undefined);
+  const preflight=local&&init.method==='HEAD';
+  assert.equal(init.method,preflight?'HEAD':'GET');
+  assert.equal(init.headers.Authorization,local&&!preflight?auth:undefined);
   const path=url.slice(valid.length);
+  if(preflight){
+   assert.equal(path,'/','Challenge uses the fixed loopback home only');
+   return new Response(null,{status:401,headers:{
+    'www-authenticate':'Basic realm="Imagine private review"'
+   }});
+  }
   assert.ok(legacyUrls.some(x=>x.from===path),path);
   if(path===alterPath&&alterStatus===404)
    return new Response('missing',{status:404,headers:{'content-type':'text/html'}});
@@ -34,7 +41,9 @@ test('F-LEGACY-CAPTURE collect 27 fixed-domain pages without storing body or fol
   scope:'AFTER_CANDIDATE',basicAuth:auth,transport:afterMock.transport
  });
  assert.equal(calls.length,27);
- assert.equal(afterMock.calls.length,27);
+ assert.equal(afterMock.calls.length,28);
+ assert.equal(afterMock.calls[0].method,'HEAD');
+ assert.equal(afterMock.calls[0].headers.Authorization,undefined);
  assert.deepEqual(before.rows.map(x=>x.path),legacyUrls.map(x=>x.from));
  assert.equal(before.rows[0].mime,'text/html');
  assert.match(before.rows[0].bodySha256,/^[a-f0-9]{64}$/);
@@ -95,9 +104,19 @@ test('F-LEGACY-CAPTURE errors cannot contain page text, path or credential',asyn
 test('F-LEGACY-CAPTURE stops at the first candidate authentication failure',async()=>{
  for(const denied of [401,403,407]){
   let requests=0;
-  const transport=async()=>{requests++;return new Response('SYNTHETIC_DENIED',{
-   status:denied,headers:{'content-type':'text/plain'}
-  });};
+  const transport=async (_url,init)=>{
+   requests++;
+   if(init.method==='HEAD'){
+    assert.equal(init.headers.Authorization,undefined);
+    return new Response(null,{status:401,headers:{
+     'www-authenticate':'Basic realm="Imagine private review"'
+    }});
+   }
+   assert.equal(init.headers.Authorization,auth);
+   return new Response('SYNTHETIC_DENIED',{
+    status:denied,headers:{'content-type':'text/plain'}
+   });
+  };
   await assert.rejects(()=>captureLegacyHttpSnapshot({
    scope:'AFTER_CANDIDATE',basicAuth:auth,transport
   }),error=>{
@@ -105,7 +124,7 @@ test('F-LEGACY-CAPTURE stops at the first candidate authentication failure',asyn
    assert.doesNotMatch(error.message,/SYNTHETIC_DENIED|correct-horse|Authorization/);
    return true;
   });
-  assert.equal(requests,1,'One auth denial must not trigger 26 more GETs');
+  assert.equal(requests,2,'HEAD challenge plus one denied GET; no further GETs');
  }
 });
 test('F-LEGACY-CAPTURE retains missing route evidence and public 401 as unproven',async()=>{
@@ -119,4 +138,51 @@ test('F-LEGACY-CAPTURE retains missing route evidence and public 401 as unproven
   transport:async()=>{calls++;return new Response('SYNTHETIC_ORIGINAL_DENIED',{status:401});}});
  assert.equal(calls,27);
  assert.equal(before.rows.every(row=>row.status===401),true);
+});
+
+test('F310 candidate refuses an unprotected or unexpected localhost gate before credentials',async()=>{
+ const cases=[
+  {status:200,header:'',label:'open public-looking page'},
+  {status:302,header:'',label:'redirect instead of private challenge'},
+  {status:403,header:'',label:'denied without Basic challenge'},
+  {status:407,header:'',label:'proxy authentication instead of staging'},
+  {status:401,header:'',label:'401 with no challenge'},
+  {status:401,header:'Basic realm="Unknown application"',label:'wrong realm'},
+  {status:401,header:'Basic realm="Imagine private review", Basic realm="extra"',label:'ambiguous challenges'}
+ ];
+ for(const {status,header,label} of cases){
+  const calls=[];
+  const transport=async (url,init)=>{
+   calls.push({url,init});
+   assert.equal(init.method,'HEAD',label);
+   assert.equal(init.headers.Authorization,undefined,label);
+   return new Response(status===200?'SYNTHETIC_OPEN':null,{
+    status,headers:header?{'www-authenticate':header}:{}
+   });
+  };
+  await assert.rejects(()=>captureLegacyHttpSnapshot({
+   scope:'AFTER_CANDIDATE',basicAuth:auth,transport
+  }),/F-LEGACY-CAPTURE:/,label);
+  assert.equal(calls.length,1,label+': no credential-bearing GET permitted');
+  assert.equal(calls[0].url,candidateOrigin+'/',label);
+ }
+});
+test('F310 anonymous staging HEAD challenge precedes first authenticated GET',async()=>{
+ const seen=[];
+ const transport=async (url,init)=>{
+  seen.push({url,method:init.method,headers:init.headers});
+  if(init.method==='HEAD')
+   return new Response(null,{status:401,headers:{
+    'www-authenticate':'Basic realm="Imagine private review"'
+   }});
+  return new Response('SYNTHETIC_CONTENT',{status:200,headers:{'content-type':'text/html'}});
+ };
+ const snapshot=await captureLegacyHttpSnapshot({
+  scope:'AFTER_CANDIDATE',basicAuth:auth,transport
+ });
+ assert.equal(snapshot.rows.length,27);
+ assert.equal(seen.length,28);
+ assert.equal(seen[0].url,candidateOrigin+'/');
+ assert.equal(seen[0].headers.Authorization,undefined);
+ assert.ok(seen.slice(1).every(x=>x.method==='GET'&&x.headers.Authorization===auth));
 });
