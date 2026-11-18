@@ -136,6 +136,7 @@ test('R07 J14: copying or asking for a human never claims that the summary was s
   const human = act(chosen.session, 'human');
   assert.equal(human.reply.intent, 'grounding_navigation');
   const summary = act(human.session, 'summary');
+  assert.equal(summary.reply.intent, 'journey_summary');
   assert.match(summary.reply.text, /não foi enviado à equipe/i);
   assert.match(getJourneySummary(summary.session), /Site Onepage/);
   assert.deepEqual(summary.reply.sources, []);
