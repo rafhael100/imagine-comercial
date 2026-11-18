@@ -59,10 +59,10 @@ export function mountFaisca(root, config = {}) {
   }
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw new TypeError('Invalid Faísca configuration.');
   const descriptors = Object.getOwnPropertyDescriptors(config);
-  if (Reflect.ownKeys(descriptors).some(key => !['replyDelayMs', 'replyAdapter', 'prepareTurn'].includes(key) || !Object.hasOwn(descriptors[key], 'value'))) {
+  if (Reflect.ownKeys(descriptors).some(key => !['replyDelayMs', 'replyAdapter', 'prepareTurn', 'sessionPolicy'].includes(key) || !Object.hasOwn(descriptors[key], 'value'))) {
     throw new TypeError('Only local reply timing and a trusted laboratory adapter can be configured.');
   }
-  const replyDelayMs = descriptors.replyDelayMs?.value ?? 220;
+  // Optional, checked-in R07 local policy; public and legacy demos retain the original session.\n  const sessionPolicy = descriptors.sessionPolicy?.value ?? null;\n  if (sessionPolicy !== null) {\n    if (!sessionPolicy || typeof sessionPolicy !== 'object' || Array.isArray(sessionPolicy) ||\n        ![Object.prototype, null].includes(Object.getPrototypeOf(sessionPolicy))) throw new TypeError('Invalid local session policy.');\n    const fields = Object.getOwnPropertyDescriptors(sessionPolicy);\n    if (Reflect.ownKeys(fields).length !== 2 ||\n        ['create', 'summary'].some(key => !fields[key] || !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function')) {\n      throw new TypeError('Incomplete local session policy.');\n    }\n  }\n  const createSessionForView = sessionPolicy?.create ?? createSession;\n  const getSummaryForView = sessionPolicy?.summary ?? getSummary;\n  const replyDelayMs = descriptors.replyDelayMs?.value ?? 220;
   const prepareTurn = descriptors.prepareTurn?.value ?? respond;
   if (typeof prepareTurn !== 'function') throw new TypeError('Invalid trusted turn policy.');
   if (!Number.isInteger(replyDelayMs) || replyDelayMs < 0 || replyDelayMs > 2000) throw new TypeError('Invalid replyDelayMs.');
@@ -101,7 +101,7 @@ export function mountFaisca(root, config = {}) {
     .map(name => [name, root.getAttribute(name)]));
   const cleanups = [];
   let alive = true;
-  let session = createSession();
+  let session = createSessionForView();
   let generation = 0;
   let summaryRevision = 0;
   let timer = null;
@@ -160,7 +160,7 @@ export function mountFaisca(root, config = {}) {
 
   function refreshSummary() {
     summaryRevision += 1;
-    const text = getSummary(session);
+    const text = getSummaryForView(session);
     summaryText.value = typeof text === 'string' ? text : '';
     const hasSelection = Array.isArray(session.selection) && session.selection.length > 0;
     const hasContext = hasSelection || session.goal !== null || session.supportTopic !== null;
@@ -279,7 +279,7 @@ export function mountFaisca(root, config = {}) {
     try { replyAdapter?.reset(); } catch { /* Local guidance must stay usable. */ }
     delete root.dataset.faiscaStatus;
     delete root.dataset.faiscaDelivery;
-    session = createSession();
+    session = createSessionForView();
     log.replaceChildren();
     input.value = '';
     byId('faisca-count').textContent = '0/800';
@@ -388,7 +388,7 @@ export function mountFaisca(root, config = {}) {
     turn({ type: 'text', text: input.value });
   });
   on(byId('faisca-copy'), 'click', async () => {
-    const text = getSummary(session);
+    const text = getSummaryForView(session);
     const status = byId('faisca-copy-status');
     const ownGeneration = generation;
     const ownSummaryRevision = summaryRevision;
