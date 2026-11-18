@@ -309,6 +309,10 @@ try {
     assert.deepEqual(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length, cookie: document.cookie })),
       { local: 0, session: 0, cookie: '' });
     assert.equal(executedPHP, true, 'R08 HTTP/PHP gate requires observed real PHP execution.');
+    assert.equal(phpCounts().pending, 0, 'No PHP child may remain pending.');
+    assert.equal(phpCounts().failed, expectedResetTerminations, 'Only the intentionally reset PHP child may be terminated.');
+    assert.equal(server.inspect().sessions, 0);
+    assert.equal(server.inspect().inflight, 0);
   });
 
 } catch (error) {
