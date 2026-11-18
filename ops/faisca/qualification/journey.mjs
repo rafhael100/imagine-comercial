@@ -102,6 +102,9 @@ function questionReply(session, profile, prefix = '', sources = [], userText = '
 
 function summaryReply(session, userText = labels.summary) {
   const handoff = buildHandoffPackage(session.profile);
+  if (!isQualificationComplete(session.profile)) {
+    return questionReply(session, session.profile, handoff.summary, [], userText);
+  }
   const actions = session.phase === 'complete'
     ? [
       action('r08:edit:objective', 'Corrigir objetivo'),
