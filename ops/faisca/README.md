@@ -310,3 +310,9 @@ A evidência é sintética e restrita a loopback. Não há LLM externo, CRM, env
 A especificação preventiva está em `docs/faisca/R08-E-PLANEJAMENTO-CRM.md`. Ela separa a qualificação atual de qualquer coleta de contato e exige identidade de tenant resolvida no servidor, aviso de privacidade, consentimento granular por canal, revisão humana, idempotência, S2S, auditoria, revogação e exclusão antes de habilitar qualquer escrita.
 
 Nenhum endpoint, token, tabela ou integração CRM foi criado. O handoff permanece `copy_only`.
+
+### R09-A — roteador conversacional fundamentado
+
+O contrato provider-neutral está em `ops/faisca/model-router/contract.mjs`. O modelo futuro só poderá selecionar um `answerId` do conjunto editorial R06 fornecido pelo host, pedir uma clarificação fixa ou declarar ausência de suporte. O texto factual final, as fontes e as ações continuam sendo renderizados pelo host; a saída do modelo não contém texto livre, URLs, ferramentas ou ações operacionais.
+
+Testes: `node --test tests/faisca-r09-model-router.test.mjs`. A fixture é sintética e local. Não há SDK, chave, endpoint, chamada externa ou custo. Arquitetura e limites: `docs/faisca/R09-ROTEAMENTO-CONVERSACIONAL.md`.
