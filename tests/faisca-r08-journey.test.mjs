@@ -107,7 +107,7 @@ test('R08-B explicit correction clears dependent values and asks the corrected f
 test('R08-B summary action and copy model do not claim delivery', () => {
   const session = choose(startOnepage(), 'r08:objective:present_company').session;
   const summary = choose(session, 'r08:summary');
-  assert.equal(summary.reply.intent, 'r08_qualification_summary');
+  assert.equal(summary.reply.intent, 'r08_qualification_question');
   assert.match(summary.reply.text, /RASCUNHO NÃO ENVIADO/);
   assert.match(getQualificationSummary(summary.session), /Nenhum contato foi coletado/);
 });
