@@ -79,7 +79,7 @@ const questionData = Object.freeze({
     ])
   }),
   contactConsent: Object.freeze({
-    prompt: 'Você autoriza que a equipe Imagine entre em contato futuramente sobre esta necessidade?',
+    prompt: 'Você autoriza que a equipe Imagine entre em contato futuramente sobre esta necessidade? Nenhum telefone ou e-mail será solicitado nesta etapa.',
     options: Object.freeze([
       ['granted', 'Sim, autorizo'],
       ['declined', 'Não autorizo'],
