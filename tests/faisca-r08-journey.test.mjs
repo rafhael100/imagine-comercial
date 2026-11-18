@@ -82,7 +82,7 @@ test('R08-B handoff is generated only after explicit answers and is never sent',
   assert.match(getQualificationSummary(session), /Site Onepage/);
   assert.match(getQualificationSummary(session), /Apresentar a empresa/);
   assert.match(getQualificationSummary(session), /Autorização declarada, ainda não enviada/);
-  assert.match(getQualificationSummary(session), /Nenhum contato foi coletado, enviado ou armazenado/);
+  assert.match(getQualificationSummary(session), /Nenhum dado de contato foi coletado/);
   assert.doesNotMatch(getQualificationSummary(session), /@|[0-9]{10,}/);
 });
 
