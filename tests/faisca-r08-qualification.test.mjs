@@ -142,6 +142,7 @@ test('R08 strict profile validator rejects extra fields and accessors without ex
 test('R08 updates are immutable and cannot change the confirmed service', () => {
   const profile = confirmedProfile('landing-page');
   const changed = updateLeadProfile(profile, 'objective', 'sell_online');
+  assert.equal(updateLeadProfile(profile, 'service', 'onepage'), null, 'service is immutable after R07 confirmation');
   assert.equal(changed.service, 'landing-page');
   assert.equal(profile.service, 'landing-page');
   assert.equal(Object.isFrozen(profile), true);
