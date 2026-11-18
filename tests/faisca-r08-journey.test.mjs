@@ -64,15 +64,59 @@ test('R08-B questions during qualification are answered by R07 without losing th
   assert.deepEqual(answer.reply.sources, []);
 });
 
-test('R08-B changing the confirmed service clears the old profile before asking again', () => {
+test('R08 preserves the current qualification until a proposed service change is confirmed', () => {
   let session = choose(startOnepage(), 'r08:objective:present_company').session;
   const change = send(session, 'Na verdade prefiro Landing Page.');
   assert.equal(change.reply.intent, 'journey_confirmation_needed');
-  assert.equal(change.session.phase, 'sales');
-  assert.equal(change.session.profile, null);
-  const confirmed = choose(change.session, 'confirm_goal');
+  assert.equal(change.session.phase, 'service_change_pending');
+  assert.equal(change.session.profile.objective, 'present_company');
+
+  const cancelled = choose(change.session, 'cancel_goal');
+  assert.equal(cancelled.session.phase, 'qualification');
+  assert.equal(cancelled.session.profile.service, 'onepage');
+  assert.equal(cancelled.session.profile.objective, 'present_company');
+
+  const proposalAgain = send(cancelled.session, 'Na verdade prefiro Landing Page.');
+  const confirmed = choose(proposalAgain.session, 'confirm_goal');
   assert.equal(confirmed.session.profile.service, 'landing-page');
   assert.equal(confirmed.session.profile.objective, null);
+  assert.equal(confirmed.session.phase, 'qualification');
+});
+
+test('R09 accepts natural-language answers to closed R08 qualification questions', () => {
+  let session = startOnepage();
+  let answer = send(session, 'Quero captar leads interessados.');
+  assert.equal(answer.session.profile.objective, 'capture_leads');
+  assert.equal(answer.session.phase, 'qualification');
+  assert.match(answer.reply.text, /Quem você deseja alcançar/);
+
+  answer = send(answer.session, 'Quero alcançar outras empresas.');
+  assert.equal(answer.session.profile.audience, 'businesses');
+  assert.match(answer.reply.text, /Como estão os textos e as imagens/);
+
+  answer = send(answer.session, 'Já tenho textos e imagens.');
+  assert.equal(answer.session.profile.materials, 'ready');
+  assert.match(answer.reply.text, /previsão para iniciar/);
+
+  answer = send(answer.session, 'Quero iniciar nos próximos 30 dias.');
+  assert.equal(answer.session.profile.timeline, 'within_30_days');
+  assert.match(answer.reply.text, /autoriza que a equipe Imagine entre em contato/);
+
+  answer = send(answer.session, 'Sim, autorizo.');
+  assert.equal(answer.session.profile.contactConsent, 'granted');
+  assert.equal(answer.session.phase, 'complete');
+  assert.match(getQualificationSummary(answer.session), /Captar contatos/);
+  assert.match(getQualificationSummary(answer.session), /Outras empresas/);
+});
+
+test('R09 ambiguous free-text qualification does not guess or store a value', () => {
+  const session = startOnepage();
+  const answer = send(session, 'Quero alcançar outras empresas e consumidores online.');
+  assert.equal(answer.session.profile.audience, null);
+  assert.equal(answer.session.phase, 'qualification');
+  assert.match(answer.reply.text, /mais de uma interpretação possível/);
+  assert.ok(answer.reply.actions.some(item => item.id === 'r08:audience:businesses'));
+  assert.ok(answer.reply.actions.some(item => item.id === 'r08:audience:online_consumers'));
 });
 
 test('R08-B does not invent a qualification questionnaire for an unapproved ads service', () => {
