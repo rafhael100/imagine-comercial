@@ -321,3 +321,6 @@ Testes: `node --test tests/faisca-r09-*.test.mjs`. Demonstração: `node ops/fai
 
 
 O runtime R09 em `ops/faisca/model-router/runtime.mjs` aceita apenas provider sintético e acrescenta deduplicação, bloqueio de concorrência por conversa, timeout, conciliação explícita e reset. Testes em `tests/faisca-r09-runtime.test.mjs` cobrem replay, conflito, timeout, resposta tardia, falha do provedor, privacidade e isolamento. O runtime não faz chamadas externas e mantém `externalModelInvocations=0`.
+
+
+O pipeline `ops/faisca/model-router/grounded-pipeline.mjs` conecta a seleção R09 ao verificador de fontes R06/PHP. O texto e as fontes só são liberados após validação pelo PHP fixado; seleções de serviço viram esclarecimento fixo, e falhas de grounding não exibem fontes não confirmadas. O gate `ops/faisca/model-router/check-grounded-pipeline.mjs` executa essa integração com PHP CLI real e fixture local de roteamento.
