@@ -22,7 +22,7 @@
 | [R05 PHP Agents 44378972484](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972484) | **SUCCESS** | regressão da ponte R05 com PHP real |
 | [R06 + R07 PHP 44378972555](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972555) | **SUCCESS** | R06: 7/7 interop PHP e 8/8 browser; R07: 6/6 browser/HTTP/PHP |
 | [PostgreSQL descartável 44378972464](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972464) | **SUCCESS** | laboratório PostgreSQL existente |
-| [Comercial/SEO/build 44378972491](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972491) | **Em execução na última conferência** | auditoria geral do repositório; não é gate exclusivo do Faísca |
+| [Comercial/SEO/build 44378972491](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972491) | **SUCCESS** | 1.239 testes Comerciais + 1.057 testes SEO, zero falhas; QA de 63 rotas móveis e 9 desktop |
 
 ### Relatório browser → HTTP → PHP real
 
