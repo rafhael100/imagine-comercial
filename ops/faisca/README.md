@@ -239,3 +239,30 @@ node --test tests/faisca-r07-async.test.mjs
 ```
 
 Este teste cobre timeout, consulta manual do turno original, reset, duas conversas com o mesmo identificador de mensagem, travamento até a conciliação e fonte maliciosa. A visualização `/journey/` continua um exemplo local **síncrono** de confirmação de objetivo; os cenários assíncronos são atualmente comprovados pela suíte Node, não por uma página pública interativa. O próximo gate é confirmar o mesmo comportamento com navegador, HTTP e PHP real no modo de sessão R07. Nenhum passo envia dados à equipe Imagine.
+
+### R07-G — laboratório HTTP com PHP real (18/11/2026)
+
+A página `/journey-http/` testa o mesmo estado de escolhas confirmadas da R07 através de navegador, servidor HTTP loopback e PHP real do Imagine Agents, fixado pelo workflow R06/R07. Ela é independente da página síncrona `/journey/`.
+
+O gate automatizado exige o checkout Agents fixado e PHP CLI real. Depois do build isolado e de `npm ci`, execute com as variáveis do ambiente local:
+
+**Linux/macOS**
+```bash
+export IMAGINE_FAISCA_LAB=1
+export IMAGINE_FAISCA_AGENTS_ROOT=/caminho/para/imagine-ai-agents-fixado
+npx astro build --config ops/faisca/lab/astro.config.mjs
+node ops/faisca/journey/http-browser-qa.mjs
+```
+
+**Windows 11 / PowerShell**
+```powershell
+$env:IMAGINE_FAISCA_LAB = "1"
+$env:IMAGINE_FAISCA_AGENTS_ROOT = "C:\caminho\para\imagine-ai-agents-fixado"
+npx astro build --config ops/faisca/lab/astro.config.mjs
+node ops/faisca/journey/http-browser-qa.mjs
+Remove-Item Env:IMAGINE_FAISCA_LAB
+```
+
+O script abre um servidor descartável exclusivamente em `127.0.0.1`, inicia Chromium, valida o pin do Agents, executa PHP de verdade, encerra servidor/sessões/processos e grava apenas métricas sintéticas em `ops/faisca/reports/Faisca_R07_HTTP_BROWSER_QA.json`. Atrasos são conciliados pela mesma mensagem; reset destrói a sessão; duas sessões independentes podem usar o mesmo ID de mensagem sem compartilhar escolha ou resposta. Nenhuma URL pública, API externa, CRM ou pagamento é chamado.
+
+A CI executa este gate no workflow `Faísca R06 - grounded commercial passages with real PHP`, depois das regressões R06. Uma aprovação desse workflow será evidência da ponte **no laboratório**, não liberação de produção nem ativação de IA generativa.
