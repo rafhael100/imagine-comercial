@@ -71,7 +71,7 @@ test('R08 HTTP grounded FAQ retains the R08 profile while the PHP candidate stay
   assert.ok(result.reply.text.includes(getGroundedAnswer('process').text));
   assert.match(result.reply.text, /RASCUNHO NÃO ENVIADO/);
   assert.match(getQualificationSummary(result.session), /Landing Page/);
-  assert.match(getQualificationSummary(result.session), /Não autorizou/);
+  assert.match(getQualificationSummary(result.session), /Não concedida/);
 });
 
 test('R08 HTTP runtime dispatches only the exact R07 provider candidate and keeps R08 presentation', async () => {
