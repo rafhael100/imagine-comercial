@@ -56,12 +56,19 @@ test('R07 J09: timeout needs explicit reconciliation of the same dispatch, witho
   assert.equal(lab.inspect().summary, before);
   d.calls[0].resolve(d.calls[0].candidate);
   await until(() => lab.inspect().pending === 0);
+  assert.equal(lab.inspect().awaitingReconciliation, 1,
+    'the completed provider does not implicitly present the pending answer');
+  assert.equal(lab.local({ type: 'text', text: 'Quero Landing Page.' }).status, 'busy');
+  assert.equal((await lab.send(request(context, 'r07_message_J09_0003'))).status, 'busy');
+  assert.equal(lab.inspect().summary, before);
   const accepted = await lab.reconcile(req);
   assert.equal(accepted.status, 'answered');
   assert.equal(accepted.delivery, 'simulated');
   assert.ok(accepted.reply.sources.length > 0);
   assert.equal(await lab.reconcile(req), accepted, 'repeated lookup sees the same terminal result');
   assert.equal(await lab.send(req), unknown, 'lookup never rewrites the first send receipt');
+  assert.equal(lab.inspect().awaitingReconciliation, 0,
+    'replay after consultation cannot re-lock a resolved conversation');
   assert.equal(d.calls.length, 1, 'one provider invocation only');
   assert.equal(lab.inspect().summary, before, 'no invented goal or order after recovery');
 });
