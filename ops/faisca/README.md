@@ -290,3 +290,17 @@ node ops/faisca/journey/browser-qa.mjs
 ```
 
 O teste percorre Onepage → objetivo → público → materiais → previsão → autorização futura de contato, corrige o público e confirma que a autorização anterior volta a ficar não definida. A suíte completa de Node também inclui `tests/faisca-r08-qualification.test.mjs`. Não há envio de contato, armazenamento, scoring ou LLM externo.
+
+### R08-D — HTTP por sessão e respostas PHP reais
+
+A rota de laboratório `/journey-http-r08/` mantém o estado de qualificação R08 no servidor, isolado por sessão HTTP. Escolhas de qualificação e consentimento são locais; perguntas respondidas pela base editorial R07 são encaminhadas ao PHP real do Imagine Agents e retornam com as fontes validadas. O contrato HTTP mantém ações R08 fechadas e o browser não escolhe política, sessão ou provedor.
+
+O gate automatizado é `ops/faisca/qualification/http-browser-qa.mjs`, executado no workflow R06/R08. Ele exige checkout Agents fixado, PHP CLI real e Chromium. Testa a qualificação, uma resposta editorial com PHP, timeout e conciliação, correção, duas sessões simultâneas com o mesmo ID de mensagem, recusa de token cruzado, reset e encerramento dos processos.
+
+Para reproduzir localmente, depois do build do laboratório e com o Agents fixado:
+
+```bash
+node ops/faisca/qualification/http-browser-qa.mjs
+```
+
+A evidência é sintética e restrita a loopback. Não há LLM externo, CRM, envio de lead, pagamento ou deploy.
