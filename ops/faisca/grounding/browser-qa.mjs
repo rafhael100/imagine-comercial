@@ -194,7 +194,7 @@ try {
   await verified.close();
   phase = 'read_build';
   await collect(staticDir);
-  assert.deepEqual([...assets].filter(path => path.endsWith('.html')).sort(), ['/grounded/index.html', '/http/index.html', '/index.html', '/journey/index.html', '/journey-http/index.html'],
+  assert.deepEqual([...assets].filter(path => path.endsWith('.html')).sort(), ['/grounded/index.html', '/http/index.html', '/index.html', '/journey-http/index.html', '/journey/index.html'],
     'The isolated laboratory contains the five reviewed R03/R04/R06/R07 pages.');
   const deferredModules = [...assets].filter(path => /\/_astro\/grounded-ui\.[^/]+\.js$/.test(path));
   assert.equal(deferredModules.length, 1, 'The grounded conversation must have one deferred UI module.');
