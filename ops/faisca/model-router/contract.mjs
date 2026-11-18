@@ -50,7 +50,9 @@ export function retrieveCandidateAnswerIds(userText, maxCandidates = 5) {
     const corpusTokens = new Set(tokens(corpus));
     let score = [...queryTokens].reduce((total, token) => total + (corpusTokens.has(token) ? 1 : 0), 0);
     for (const phrase of answerBoosts[answer.id] ?? []) {
-      if (normalized.includes(normalizeText(phrase))) score += 4;
+      if (normalized.includes(normalizeText(phrase))) score +=
+        (answer.id === 'pricing' && phrase === 'quanto custa') ||
+        (answer.id === 'process' && phrase === 'como funciona') ? 8 : 4;
     }
     return { id: answer.id, score, index };
   }).filter(item => item.score > 0);
