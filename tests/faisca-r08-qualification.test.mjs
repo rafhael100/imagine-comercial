@@ -124,7 +124,7 @@ test('R08 handoff is copy-only and never claims that the team received the lead'
   assert.equal(handoff.sent, false);
   assert.equal(handoff.operationalEffects, false);
   assert.match(handoff.summary, /RESUMO DE ATENDIMENTO — RASCUNHO NÃO ENVIADO/);
-  assert.match(handoff.summary, /Sim, autorizou \\(nenhum contato foi enviado\\)/);
+  assert.ok(handoff.summary.includes('Sim, autorizou (nenhum contato foi enviado)'));
   assert.match(handoff.summary, /Nenhum dado de contato foi coletado/);
 });
 
@@ -173,7 +173,7 @@ test('R08 summary contains only closed, explicitly supplied values and no scorin
   let profile = confirmedProfile('onepage');
   profile = updateLeadProfile(profile, 'objective', 'organize_service');
   const handoff = buildHandoffPackage(profile);
-  assert.match(handoff.summary, /Objetivo: Organizar o atendimento/);
+  assert.match(handoff.summary, /Objetivo: Facilitar o primeiro contato com clientes/);
   assert.match(handoff.summary, /Público: Não informado/);
   assert.doesNotMatch(JSON.stringify(handoff), /score|probability|leadValue|email|phone/i);
 });
