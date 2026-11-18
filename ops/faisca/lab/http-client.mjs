@@ -157,15 +157,20 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
   function send(input) {
     if (!live || blocked) return Promise.resolve(localOutcome('closed'));
     if (pending) return Promise.resolve(localOutcome('busy'));
-    // Reuse the exact R03 input policy before any network request, including
-    // session creation. This remains a conservative heuristic, not complete DLP.
-    const preflight = respond(createSession(), input);
-    if (blockedIntents.has(preflight.reply.intent)) return Promise.resolve(Object.freeze({
-      status: 'answered', delivery: 'guided_fallback', accepted: true, reason: preflight.reply.intent,
-      reply: preflight.reply, mode: 'simulated_lab', operationalEffects: false }));
+    // Validate the closed wire input first. R07's two confirmation actions are
+    // intentionally unknown to the legacy R03 preflight and must reach the
+    // trusted R07 host policy instead of being misclassified as invalid_input.
     const safe = validateConversationRequest({ schema: CONVERSATION_SCHEMA, conversationId: 'preflight',
       messageId: 'preflight', locale: 'pt-BR', input });
     if (!safe) return Promise.resolve(localOutcome('transport_rejected'));
+    // Reuse the R03 sensitive/unsupported-input check before creating a server
+    // session. This remains a conservative heuristic, not complete DLP.
+    const preflight = respond(createSession(), safe.input);
+    const r07LocalAction = safe.input.type === 'action' &&
+      ['confirm_goal', 'cancel_goal'].includes(safe.input.id);
+    if (blockedIntents.has(preflight.reply.intent) && !r07LocalAction) return Promise.resolve(Object.freeze({
+      status: 'answered', delivery: 'guided_fallback', accepted: true, reason: preflight.reply.intent,
+      reply: preflight.reply, mode: 'simulated_lab', operationalEffects: false }));
     let resolve;
     const promise = new Promise(yes => { resolve = yes; });
     let prepared = null;
