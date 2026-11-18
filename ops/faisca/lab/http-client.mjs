@@ -166,9 +166,9 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
     // empty placeholder preserves its local refusal behavior without getters.
     const preflightInput = safe?.input ?? Object.freeze({ type: 'text', text: '' });
     const preflight = respond(createSession(), preflightInput);
-    const r07LocalAction = safe?.input.type === 'action' &&
-      ['confirm_goal', 'cancel_goal'].includes(safe.input.id);
-    if (blockedIntents.has(preflight.reply.intent) && !r07LocalAction) return Promise.resolve(Object.freeze({
+    const trustedLocalAction = safe?.input.type === 'action' &&
+      (['confirm_goal', 'cancel_goal'].includes(safe.input.id) || safe.input.id.startsWith('r08:'));
+    if (blockedIntents.has(preflight.reply.intent) && !trustedLocalAction) return Promise.resolve(Object.freeze({
       status: 'answered', delivery: 'guided_fallback', accepted: true, reason: preflight.reply.intent,
       reply: preflight.reply, mode: 'simulated_lab', operationalEffects: false }));
     if (!safe) return Promise.resolve(localOutcome('transport_rejected'));
