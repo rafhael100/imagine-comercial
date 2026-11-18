@@ -18,6 +18,7 @@ const reports = resolve(root, '../reports');
 const endpoints = HTTP_PATHS;
 const results = [], unexpected = [], runtimeErrors = [];
 let configuration, bridge, server, browser, context, fatal, executedPHP = false;
+let expectedResetTerminations = 0;
 
 async function collect(directory, base = directory, files = new Set()) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -184,6 +185,7 @@ try {
     await page.locator('#faisca-reset').click();
     await eventually(() => server.inspect().sessions === 0, 'Reset must release the server-issued session.');
     await eventually(() => phpCounts().pending === 0, 'Reset must terminate/drain the owned real PHP child.');
+    expectedResetTerminations++;
     await eventually(() => server.inspect().inflight === 0, 'Reset must drain the HTTP handler.');
     assert.equal(await assistantCount(), 1);
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Objetivo ainda não selecionado/);
@@ -287,6 +289,8 @@ try {
     assert.deepEqual(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length, cookie: document.cookie })),
       { local: 0, session: 0, cookie: '' });
     assert.equal(executedPHP, true, 'This gate requires observed PHP CLI execution.');
+    assert.equal(phpCounts().failed, expectedResetTerminations,
+      'The only PHP process termination must be the one intentionally caused by R07 reset.');
   });
 
 } catch (error) {
@@ -308,6 +312,8 @@ try {
     knowledgeDigest: configuration?.pin.knowledgeDigest ?? null,
     scope: 'Synthetic Chromium -> loopback HTTP -> server-scoped R07 journey -> pinned PHP Agents; no external model or operational effects',
     php: bridge ? bridgeCounts(bridge) : null,
+    expectedResetTerminations,
+    unexpectedPHPFailures: bridge ? Math.max(0, bridgeCounts(bridge).failed - expectedResetTerminations) : null,
     server: server ? server.inspect() : null,
     results, unexpected, runtimeErrors, fatal
   }, null, 2) + '\n');
