@@ -229,3 +229,13 @@ Remove-Item Env:IMAGINE_FAISCA_LAB
 ```
 
 Os scripts de teste instalam **nada** e usam os pacotes já restaurados por `npm ci`; o Chromium do Playwright deve estar disponível para o QA. O laboratório R07 reaproveita os bytes do PNG, o template, o CSS e o core R02; `publicFaiscaEnabled` permanece `false`. Esta página não está ativa no site público. O adaptador `journey/model-contract.mjs` aceita somente o texto editorial exato da R06: **não está pronto para aceitar prosa livre de um LLM**.
+
+### R07-F — testes de mensagens pendentes e conversas simultâneas
+
+O módulo `ops/faisca/journey/async-lab.mjs` funciona **somente como API local de laboratório em Node**. Ele aproveita a deduplicação e conciliação R03; não adiciona rotas HTTP, não ativa um provedor externo e não altera a interface pública. Para repetir as contraprovas J09–J12:
+
+```bash
+node --test tests/faisca-r07-async.test.mjs
+```
+
+Este teste cobre timeout, consulta manual do turno original, reset, duas conversas com o mesmo identificador de mensagem, travamento até a conciliação e fonte maliciosa. A visualização `/journey/` continua um exemplo local **síncrono** de confirmação de objetivo; os cenários assíncronos são atualmente comprovados pela suíte Node, não por uma página pública interativa. O próximo gate é confirmar o mesmo comportamento com navegador, HTTP e PHP real no modo de sessão R07. Nenhum passo envia dados à equipe Imagine.
