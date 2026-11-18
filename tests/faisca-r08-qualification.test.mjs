@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createLeadProfileFromJourney, validateLeadProfile, updateLeadProfile, getNextQualificationQuestion,
+  createLeadProfileFromJourney, validateLeadProfile, updateLeadProfile, reviseLeadProfile, getNextQualificationQuestion,
   isQualificationComplete, buildHandoffPackage, LEAD_PROFILE_SCHEMA, LEAD_HANDOFF_SCHEMA
 } from '../ops/faisca/qualification/profile.mjs';
 import { createJourney, respondJourney } from '../ops/faisca/journey/state.mjs';
@@ -149,6 +149,24 @@ test('R08 updates are immutable and cannot change the confirmed service', () => 
   assert.equal(profile.service, 'landing-page');
   assert.equal(Object.isFrozen(profile), true);
   assert.equal(Object.isFrozen(changed), true);
+});
+
+test('R08 explicit correction clears only the selected field and dependent later answers', () => {
+  let profile = confirmedProfile('onepage');
+  for (const [field, value] of [
+    ['objective', 'present_company'], ['audience', 'local_customers'],
+    ['materials', 'ready'], ['timeline', 'within_30_days'],
+    ['contactConsent', 'granted']
+  ]) profile = updateLeadProfile(profile, field, value);
+  const corrected = reviseLeadProfile(profile, 'audience');
+  assert.equal(corrected.objective, 'present_company');
+  assert.equal(corrected.audience, null);
+  assert.equal(corrected.materials, null);
+  assert.equal(corrected.timeline, null);
+  assert.equal(corrected.contactConsent, 'not_asked');
+  assert.equal(getNextQualificationQuestion(corrected).field, 'audience');
+  assert.equal(profile.audience, 'local_customers', 'the previous profile remains immutable');
+  assert.equal(reviseLeadProfile(profile, 'service'), null);
 });
 
 test('R08 summary contains only closed, explicitly supplied values and no scoring', () => {
