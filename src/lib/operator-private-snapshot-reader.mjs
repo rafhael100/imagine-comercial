@@ -8,6 +8,22 @@ import {closeSync,constants,fstatSync,openSync,readSync,statSync} from 'node:fs'
 import {dirname,isAbsolute} from 'node:path';
 import {TextDecoder} from 'node:util';
 
+/**
+ * Check the already-canonical physical destination parent before creating
+ * or reading an operator snapshot. Never auto-fix unsafe permissions.
+ * Reusable by capture and comparison to enforce one source of truth.
+ */
+export function requireOperatorPrivateDirectory(path){
+ const fail=()=>{throw Error('F310: private operator snapshot unavailable');};
+ try{
+  if(typeof path!=='string'||!isAbsolute(path)||path.includes('\0')||
+     typeof process.getuid!=='function')fail();
+  const dir=statSync(dirname(path));
+  if(!dir.isDirectory()||dir.uid!==process.getuid()||
+     (dir.mode&0o077)!==0)fail();
+ }catch{fail();}
+}
+
 export function readOperatorPrivateSnapshot(path,maxBytes=100*1024){
  const fail=()=>{throw Error('F310: private operator snapshot unavailable');};
  let fd;
@@ -15,9 +31,8 @@ export function readOperatorPrivateSnapshot(path,maxBytes=100*1024){
   if(typeof path!=='string'||!isAbsolute(path)||path.includes('\0')||
      !Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>100*1024||
      typeof process.getuid!=='function')fail();
+  requireOperatorPrivateDirectory(path);
   const uid=process.getuid();
-  const dir=statSync(dirname(path));
-  if(!dir.isDirectory()||dir.uid!==uid||(dir.mode&0o077)!==0)fail();
   fd=openSync(path,constants.O_RDONLY|constants.O_NOFOLLOW);
   const st=fstatSync(fd);
   if(!st.isFile()||st.uid!==uid||(st.mode&0o777)!==0o600||

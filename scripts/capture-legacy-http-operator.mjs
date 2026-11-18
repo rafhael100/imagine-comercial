@@ -8,6 +8,7 @@ import {openSync,writeSync,closeSync,constants} from 'node:fs';
 import {isAbsolute} from 'node:path';
 import {captureLegacyHttpSnapshot} from '../src/lib/legacy-http-snapshot-capture.mjs';
 import {resolveExternalPrivateFilePath} from '../src/lib/external-private-file-path.mjs';
+import {requireOperatorPrivateDirectory} from '../src/lib/operator-private-snapshot-reader.mjs';
 
 try{
  const [mode,target]=process.argv.slice(2);
@@ -26,6 +27,8 @@ try{
    String(timeoutMs)!==timeoutText)
    throw Error('F-LEGACY-CAPTURE: invalid operator timeout');
  const privateTarget=resolveExternalPrivateFilePath(target);
+ // Reject unsafe output parents BEFORE sending any GET or credential.
+ requireOperatorPrivateDirectory(privateTarget);
  const password=process.env.IMAGINE_STAGING_REVIEW_PASSWORD;
  const auth=local&&typeof password==='string'?
    'Basic '+Buffer.from('reviewer:'+password).toString('base64'):undefined;
