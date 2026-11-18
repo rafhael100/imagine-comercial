@@ -53,3 +53,17 @@ Fixture local determinística: respostas de sucesso, falta de suporte, extrapola
 ## Gate de saída
 
 Somente considerar R07 concluída quando J01–J14 estiverem verdes com evidência, adaptador e fixtures implementados, regressões R03–R06 aprovadas, pin Agents verificado, PHP real comprovado na CI, e nenhum arquivo público/mascote modificado. O presente documento estabelece critérios; **não afirma que o gate foi cumprido**.
+
+## Execução incremental nesta branch
+
+**Código já implementado para revisão (não homologação final):**
+
+- `ops/faisca/journey/state.mjs`: sessão volátil R07 independente; o visitante confirma ou descarta uma proposta de objetivo antes de alterar o resumo. Comparações e assuntos privados não substituem a escolha sem confirmação.
+- `tests/faisca-r07-journey.test.mjs`: testes das jornadas comerciais J01–J08, J13–J14 e segurança do estado local, usando `groundedRespond` e as fontes R06 reais.
+- `ops/faisca/journey/model-contract.mjs`: envelope `faisca.model.request.v1` e `response.v1`, fixtures locais e verificador **estritamente editorial**. Uma frase inédita não é semanticamente certificada: nesta implementação, é recusada se diferir do texto exato R06.
+- `tests/faisca-r07-model-contract.test.mjs`: provas de IDs, versões, citações, fonte fora de assunto, preço inventado, instrução maliciosa, ações não permitidas e acesso indevido aos campos do host.
+- `ops/faisca/journey/demo.mjs`: demonstração reprodutível no terminal, sem rede; `tests/faisca-r07-demo.test.mjs` prova transcrição e resumo fiel.
+
+**Como experimentar a nova camada:** `node ops/faisca/journey/demo.mjs`. Testes: `node --test tests/faisca-r07-*.test.mjs`. Esses comandos não instalam nada nem iniciam um serviço remoto.
+
+**Pendente na R07:** J09–J11 com nova integração de ponta a ponta (os transportes anteriores já têm regressões próprias); injeção nas próprias fontes R07 além da fixture de saída; demonstração navegável `/journey/`; revisão independente final com evidências de todas as SHAs. `publicFaiscaEnabled=false` permanece vigente. Não existe provedor generativo conectado. O contrato novo não habilita geração livre de texto, CRM ou pós-venda autenticado. Este registro não constitui um PASS do gate de saída.
