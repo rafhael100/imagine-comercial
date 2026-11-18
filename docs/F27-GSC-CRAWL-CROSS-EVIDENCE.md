@@ -13,7 +13,36 @@ A F26 permite importar as páginas do GSC. Isso não identifica sozinho uma pág
 - Comando de validação fictícia (CI): `node scripts/review-seo-two-sources.mjs --synthetic`.
 - Comando exclusivamente local com exportações autorizadas: `node scripts/review-seo-two-sources.mjs --gsc /privado/Pages.csv --crawl /privado/Internal.csv`.
 
-**Não subir arquivos reais para GitHub, CI ou outra ferramenta pública.** Relatórios são gravados em `artifacts/seo-two-source-review/`, pasta ignorada pelo Git e com os parâmetros de query/fragmento omitidos.
+**Não subir arquivos reais para GitHub, CI ou outra ferramenta pública.** O modo
+`--synthetic` conserva seus dois relatórios em `artifacts/seo-two-source-review/`,
+com dados inventados. O modo privado `--gsc ... --crawl ...` não cria arquivos
+nem diretórios: imprime somente contagens agregadas e sinalizadores de revisão.
+
+## Fronteira privada do CLI
+
+A revisão de 17/11/2026 aplicou ao cruzamento a mesma fronteira já existente
+nos importadores individuais F224/F242. Antes, o CLI F27 ainda aceitava entradas
+privadas em GitHub Actions, seguia symlinks, decodificava UTF-8 com substituição
+e persistia detalhes das páginas em relatórios derivados.
+
+Agora, o modo privado é recusado sob `GITHUB_ACTIONS=true` antes de abrir
+qualquer entrada. Ambos os CSV usam `readApprovedFile`: descritor
+`O_NOFOLLOW`, arquivo regular, limite de 2 MiB por fonte e UTF-8 estrito. Erros
+de argumentos, arquivos e conteúdo retornam código 2 com uma mensagem genérica,
+sem caminhos, URLs, métricas, tokens de query ou conteúdo do arquivo. O modo
+sintético continua disponível na CI com as fixtures fixas do repositório.
+Esse modo pressupõe execução no checkout confiável: os caminhos das fixtures
+continuam relativos ao diretório de trabalho, conforme o contrato anterior.
+
+A cobertura inclui execução real do CLI em diretórios temporários externos,
+usando somente CSV inventado: recusa em CI, arquivo ausente, symlink, tamanho
+excessivo, UTF-8 inválido, argumentos e conteúdo inválidos; comparação privada
+válida sem artefatos; e preservação dos dois relatórios sintéticos. A biblioteca
+de comparação mantém seus resultados e regras existentes.
+
+Uma execução privada aprovada informa correspondências e diferenças por
+contagem. A análise detalhada, quando necessária, continua restrita ao processo
+e ambiente privados autorizados; o CLI não exporta a lista de páginas.
 
 ## Evidência produzida
 
