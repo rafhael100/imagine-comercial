@@ -130,7 +130,7 @@ export function createGroundedModelPipeline({
         actions: routeResult.route?.actions ?? Object.freeze([]) })
     });
     const answerId = routeResult.route.answerId;
-    if (!groundedAnswerIds.has(answerId)) return hostClarification('service_choice');
+    if (!groundedAnswerIds.has(answerId)) return hostClarification(clarificationFor(answerId));
     const groundingRequest = requestForGrounding(input, answerId);
     let groundingResult = await grounder.reconcile(groundingRequest);
     if (groundingResult.status === 'not_found') groundingResult = await grounder.send(groundingRequest);
