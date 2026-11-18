@@ -12,6 +12,18 @@ const qualificationFields = Object.freeze({
   timeline: Object.freeze(['within_30_days', 'within_90_days', 'flexible', 'not_specified']),
   contactConsent: Object.freeze(['granted', 'declined', 'later'])
 });
+const qualificationActionLabels = Object.freeze({
+  objective: Object.freeze({ present_company: 'Apresentar minha empresa', capture_leads: 'Captar contatos interessados',
+    sell_online: 'Divulgar produtos ou serviços online', organize_service: 'Facilitar o primeiro contato com clientes',
+    not_specified: 'Ainda não defini' }),
+  audience: Object.freeze({ local_customers: 'Clientes da minha região', businesses: 'Outras empresas',
+    online_consumers: 'Consumidores online', existing_clients: 'Clientes atuais', not_specified: 'Ainda não defini' }),
+  materials: Object.freeze({ ready: 'Já tenho os materiais', need_support: 'Preciso de ajuda com o conteúdo',
+    not_specified: 'Ainda não sei' }),
+  timeline: Object.freeze({ within_30_days: 'Nos próximos 30 dias', within_90_days: 'Nos próximos 90 dias',
+    flexible: 'Sem prazo definido', not_specified: 'Prefiro não informar' }),
+  contactConsent: Object.freeze({ granted: 'Sim, autorizo', declined: 'Não autorizo', later: 'Prefiro decidir depois' })
+});
 const qualificationActions = Object.freeze({
   'r08:summary': 'Ver resumo parcial',
   'r08:change_service': 'Trocar solução',
@@ -22,7 +34,7 @@ const qualificationActions = Object.freeze({
   'r08:edit:timeline': 'Corrigir previsão',
   'r08:edit:contactConsent': 'Corrigir autorização',
   ...Object.fromEntries(Object.entries(qualificationFields).flatMap(([field, values]) =>
-    values.map(value => ['r08:' + field + ':' + value, value])))
+    values.map(value => ['r08:' + field + ':' + value, qualificationActionLabels[field][value]])))
 });
 const actions = Object.freeze({ ...getActionCatalog(),
   confirm_goal: 'Confirmar meu objetivo', cancel_goal: 'Não, quero avaliar outra opção',
