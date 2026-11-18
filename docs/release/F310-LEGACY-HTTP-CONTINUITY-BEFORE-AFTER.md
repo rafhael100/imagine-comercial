@@ -107,6 +107,10 @@ O comparador F310 agora usa um leitor **exclusivo para evidências privadas**, s
 
 Arquivos existentes com outra permissão não são ajustados automaticamente: o responsável deve verificar procedência e armazenamento antes de corrigir as permissões fora do repositório. Nenhum caminho, hash, conteúdo ou motivo detalhado da rejeição é impresso. Isso não autentica a origem da resposta HTTP nem autoriza publicação. A captura continua com criação exclusiva `0600`; não há POST, deploy ou alteração de DNS.
 
+## Rejeição antecipada de autenticação de staging (18/11/2026)
+
+Se qualquer rota da candidata local devolver **401, 403 ou 407**, o coletor encerra na primeira resposta negada e **não cria** arquivo `AFTER_CANDIDATE`. Essa recusa indica que o acesso não foi comprovado, não que as 27 páginas foram observadas. Uma URL local 404 continua registrada para a comparação de continuidade, pois pode representar perda real de rota. A coleta pública do original mantém seus códigos HTTP como observação, sem credenciais. Nenhum status negado permite homologação ou contorno da autenticação.
+
 ## Limites
 
 ### Caminhos privados independentes do diretório de execução

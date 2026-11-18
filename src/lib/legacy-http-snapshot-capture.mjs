@@ -66,6 +66,13 @@ export async function captureLegacyHttpSnapshot({
   if(!(response instanceof Response)||response.redirected)
    throw Error('F-LEGACY-CAPTURE: unsafe HTTP response');
   const status=response.status;
+  // Explicit authentication or proxy rejection does not constitute an
+  // observed candidate page. Stop without producing a misleading snapshot.
+  // Genuine 404 and redirect responses remain continuity evidence.
+  if(local&&[401,403,407].includes(status)){
+   await response.body?.cancel();
+   throw Error('F-LEGACY-CAPTURE: staging authentication rejected');
+  }
   let mime=null,bodySha256=null,bytes=0,redirectTo=null;
   if(status===200){
    mime=response.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
