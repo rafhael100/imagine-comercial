@@ -5,12 +5,21 @@ export const FIELD_REQUEST_SCHEMA = 'faisca.model-field.request.v1';
 export const FIELD_RESPONSE_SCHEMA = 'faisca.model-field.response.v1';
 const trustedRequests = new WeakSet();
 const ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
-function localFingerprint(value) {
+function invocationIdFor(value) {
+  try {
+    const cryptoApi = globalThis.crypto;
+    if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID().replaceAll('-', '');
+    if (typeof cryptoApi?.getRandomValues === 'function') {
+      const bytes = new Uint8Array(16);
+      cryptoApi.getRandomValues(bytes);
+      return [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+  } catch { /* Use a local correlation fallback in restricted test contexts. */ }
   let hash = 2166136261;
   for (let index = 0; index < value.length; index++) {
     hash = Math.imul(hash ^ value.charCodeAt(index), 16777619) >>> 0;
   }
-  return hash.toString(16).padStart(8, '0');
+  return hash.toString(16).padStart(8, '0').repeat(4);
 }
 
 function plainData(value, expected) {
@@ -88,7 +97,7 @@ export function prepareFieldRouteRequest(options = {}) {
   if (['sensitive_input', 'unsupported_instruction', 'too_long', 'invalid_input', 'invalid_session'].includes(preflight.reply.intent)) return null;
   const request = Object.freeze({
     schema: FIELD_REQUEST_SCHEMA,
-    invocationId: localFingerprint([data.conversationId, data.messageId, data.field, data.userText].join(':')),
+    invocationId: invocationIdFor([data.conversationId, data.messageId, data.field, data.userText].join(':')),
     conversationId: data.conversationId, messageId: data.messageId,
     locale: 'pt-BR', field: data.field, userText: data.userText,
     allowedOptions: Object.freeze(optionsForField.map(option => Object.freeze({ ...option }))),
