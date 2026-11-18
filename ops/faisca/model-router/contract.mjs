@@ -32,7 +32,7 @@ const answerBoosts = Object.freeze({
   process: Object.freeze(['como funciona', 'processo', 'etapas', 'passo a passo'])
 });
 function normalizeText(value) {
-  return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+  return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 function tokens(value) {
   return normalizeText(value).match(/[a-z0-9]+/g)?.filter(token => token.length > 1 && !stopWords.has(token)) ?? [];
