@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateConversationRequest, CONVERSATION_SCHEMA } from '../ops/faisca/conversation-contract.mjs';
+import { createHttpResult, validateHttpResult } from '../ops/faisca/http-contract.mjs';
 import { createQualificationPrepareTurn } from '../ops/faisca/qualification/http-runtime.mjs';
 import { getQualificationSummary } from '../ops/faisca/qualification/journey.mjs';
 import { getGroundedAnswer } from '../ops/faisca/grounding/guide.mjs';
@@ -115,6 +116,42 @@ test('R08 HTTP runtime dispatches only the exact R07 provider candidate and keep
     assert.match(faq.reply.text, /Quem você deseja alcançar/);
     assert.equal(faq.reply.sources.length, getGroundedAnswer('process').sources.length);
     assert.equal(dispatched, 2);
+  } finally { runtime.destroy(); }
+});
+
+test('R09 natural-language qualification reply is a valid closed HTTP result with no PHP dispatch', async () => {
+  let providerCalls = 0;
+  const runtime = createConversationRuntime({
+    provider: {
+      kind: 'simulated',
+      respond(_request, { candidate }) { providerCalls++; return candidate; }
+    },
+    prepareTurn: createQualificationPrepareTurn('c'.repeat(32)),
+    timeoutMs: 500
+  });
+  const send = async (messageId, input) => {
+    const envelope = request(input, messageId, 'c'.repeat(32));
+    const outcome = await runtime.send(envelope);
+    const wire = createHttpResult(envelope, outcome);
+    assert.ok(validateHttpResult(wire, envelope));
+    return outcome;
+  };
+  try {
+    const proposal = await send('r09_http_proposal_0001',
+      { type: 'text', text: 'Quero apresentar minha empresa.' });
+    assert.equal(proposal.reply.intent, 'journey_confirmation_needed');
+    assert.equal(providerCalls, 0);
+
+    const confirmed = await send('r09_http_confirm_0001', { type: 'action', id: 'confirm_goal' });
+    assert.equal(confirmed.reply.intent, 'r08_qualification_question');
+    assert.equal(providerCalls, 1);
+
+    const freeText = await send('r09_http_field_0001',
+      { type: 'text', text: 'Quero captar leads interessados.' });
+    assert.equal(freeText.reply.intent, 'r08_qualification_question');
+    assert.match(freeText.reply.text, /Quem você deseja alcançar/);
+    assert.equal(freeText.delivery, 'guided_fallback');
+    assert.equal(providerCalls, 1, 'Closed field classification must not dispatch PHP.');
   } finally { runtime.destroy(); }
 });
 
