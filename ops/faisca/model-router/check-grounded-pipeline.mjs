@@ -41,7 +41,7 @@ try {
     assert.equal(response.delivery, 'php_grounded');
     assert.equal(response.route.answerId, 'process');
     assert.equal(response.reply.text, getGroundedAnswer('process').text);
-    assert.deepEqual(response.reply.sources, getGroundedAnswer('process').sources);
+    assert.deepEqual(response.reply.sources, getGroundedAnswer('process').sources.map(({ id, title }) => ({ id, title })));
     assert.equal(response.externalModelInvocations, 0);
     executedPHP = true;
   });
