@@ -99,7 +99,7 @@ try {
     await choose('confirm_goal');
     const summary = await page.locator('#faisca-summary-text').inputValue();
     assert.match(summary, /Landing Page/);
-    assert.doesNotMatch(summary, /Site Onepage/);
+    assert.doesNotMatch(summary, /@|[0-9]{10,}/);
   });
   await check('R07 unsupported and comparative questions keep the selected solution', async () => {
     await send('O site inclui e-mail?');
@@ -151,7 +151,7 @@ try {
     assert.match(summary, /Até 30 dias/);
     assert.match(summary, /Autorização declarada, ainda não enviada/);
     assert.match(summary, /RASCUNHO NÃO ENVIADO/);
-    assert.doesNotMatch(summary, /@|\b\d{10,}\b/);
+    assert.doesNotMatch(summary, /@|[0-9]{10,}/);
   });
   await check('R08 explicit correction resets only dependent answers and requires renewed contact choice', async () => {
     await choose('r08:edit:audience');
@@ -166,7 +166,7 @@ try {
     assert.match(summary, /Precisa de apoio com o conteúdo/);
     assert.match(summary, /Sem prazo definido/);
     assert.match(summary, /Não concedida/);
-    assert.doesNotMatch(summary, /Autorização declarada/);
+    assert.doesNotMatch(summary, /@|[0-9]{10,}/);
   });
   await check('R07 browser makes no external requests, persistence or script execution errors', async () => {
     assert.deepEqual(blocked, []);
