@@ -16,7 +16,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const staticDir = resolve(root, '../output/astro');
 const reports = resolve(root, '../reports');
 const endpoints = HTTP_PATHS;
-const results = [], unexpected = [], runtimeErrors = [];
+const results = [], unexpected = [], runtimeErrors = [], httpFailures = [];
 let configuration, bridge, server, browser, context, fatal, executedPHP = false;
 let expectedResetTerminations = 0;
 
@@ -78,6 +78,14 @@ try {
   });
   const page = await context.newPage();
   page.on('pageerror', error => runtimeErrors.push(error.message));
+  page.on('response', async response => {
+    const path = new URL(response.url()).pathname;
+    if (Object.values(HTTP_PATHS).includes(path) && response.status() >= 400) {
+      let body = null;
+      try { body = await response.json(); } catch { /* Keep only the status if the body is not JSON. */ }
+      httpFailures.push({ path, status: response.status(), body });
+    }
+  });
   await page.goto(server.origin + '/journey-http-r08/', { waitUntil: 'load' });
   const rootElement = page.locator('[data-faisca-root]');
   const status = page.locator('[data-faisca-http-status]');
@@ -340,9 +348,10 @@ try {
     server: server ? server.inspect() : null,
     expectedResetTerminations,
     unexpectedPHPFailures: bridge ? Math.max(0, bridgeCounts(bridge).failed - expectedResetTerminations) : null,
-    results, unexpected, runtimeErrors, fatal
+    results, unexpected, runtimeErrors, httpFailures, fatal
   }, null, 2) + '\n');
   console.log('R08 HTTP/PHP browser: ' + results.filter(item => item.status === 'pass').length + '/' + results.length +
     ' passed; executedPHP=' + executedPHP + '.');
+  if (httpFailures.length) console.error('R08 HTTP error responses: ' + JSON.stringify(httpFailures));
   if (fatal) console.error(fatal.phase + ': ' + fatal.code + ': ' + fatal.message);
 }
