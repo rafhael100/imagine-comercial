@@ -20,7 +20,7 @@ const notices = Object.freeze({
 const notForwarded = new Set(['sensitive_input', 'unsupported_instruction', 'invalid_input', 'too_long', 'invalid_session',
   'grounding_navigation', 'grounding_boundary', 'grounding_unsupported', 'grounding_ambiguous',
   'journey_confirmation_needed', 'journey_cancelled', 'journey_no_pending',
-  'journey_confirmation_refused', 'journey_invalid']);
+  'journey_confirmation_refused', 'journey_invalid', 'journey_summary']);
 const readSignalAborted = Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted').get;
 const addSignalListener = EventTarget.prototype.addEventListener;
 const removeSignalListener = EventTarget.prototype.removeEventListener;
