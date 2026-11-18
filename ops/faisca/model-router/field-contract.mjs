@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { createSession, respond } from '../core.mjs';
 import { getQualificationFieldOptions } from '../qualification/profile.mjs';
 
@@ -6,7 +5,13 @@ export const FIELD_REQUEST_SCHEMA = 'faisca.model-field.request.v1';
 export const FIELD_RESPONSE_SCHEMA = 'faisca.model-field.response.v1';
 const trustedRequests = new WeakSet();
 const ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
-const sha = value => createHash('sha256').update(value).digest('hex');
+function localFingerprint(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) {
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619) >>> 0;
+  }
+  return hash.toString(16).padStart(8, '0');
+}
 
 function plainData(value, expected) {
   try {
@@ -83,7 +88,7 @@ export function prepareFieldRouteRequest(options = {}) {
   if (['sensitive_input', 'unsupported_instruction', 'too_long', 'invalid_input', 'invalid_session'].includes(preflight.reply.intent)) return null;
   const request = Object.freeze({
     schema: FIELD_REQUEST_SCHEMA,
-    invocationId: sha([data.conversationId, data.messageId, data.field, data.userText].join(':')),
+    invocationId: localFingerprint([data.conversationId, data.messageId, data.field, data.userText].join(':')),
     conversationId: data.conversationId, messageId: data.messageId,
     locale: 'pt-BR', field: data.field, userText: data.userText,
     allowedOptions: Object.freeze(optionsForField.map(option => Object.freeze({ ...option }))),
