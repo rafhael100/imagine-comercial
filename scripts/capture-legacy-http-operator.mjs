@@ -18,11 +18,19 @@ try{
    target.includes('\0')||!target.endsWith('.json')||
    resolve(target).startsWith(resolve('.')+sep))
    throw Error('F-LEGACY-CAPTURE: operator-only external file required');
+ const timeoutText=process.env.IMAGINE_LEGACY_HTTP_TIMEOUT_MS??'7000';
+ const timeoutMs=Number(timeoutText);
+ // Canonical decimal only: no whitespace, sign, exponent or leading zero.
+ // Validate before any HTTP; retain the library's 1000..10000ms bounds.
+ if(!Number.isSafeInteger(timeoutMs)||timeoutMs<1000||timeoutMs>10000||
+   String(timeoutMs)!==timeoutText)
+   throw Error('F-LEGACY-CAPTURE: invalid operator timeout');
  const password=process.env.IMAGINE_STAGING_REVIEW_PASSWORD;
  const auth=local&&typeof password==='string'?
    'Basic '+Buffer.from('reviewer:'+password).toString('base64'):undefined;
  const snapshot=await captureLegacyHttpSnapshot({
   scope:local?'AFTER_CANDIDATE':'BEFORE_ORIGINAL',
+  timeoutMs,
   ...(local?{basicAuth:auth}:{})
  });
  const file=Buffer.from(JSON.stringify(snapshot,null,2)+'\n','utf8');
