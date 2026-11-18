@@ -58,6 +58,24 @@ test('R09 pipeline never commits service-selection candidates; it asks a fixed c
   } finally { pipeline.destroy(); }
 });
 
+test('R09 ads service candidates ask for a business goal instead of silently selecting a channel', async () => {
+  let groundedCalls = 0;
+  const pipeline = createGroundedModelPipeline({
+    routeProvider: createLocalModelRouteProvider(),
+    groundedProvider: exactGroundedProvider(() => groundedCalls++)
+  });
+  try {
+    const response = await pipeline.send(input('r09_pipeline_ads_01', 'Quero anunciar no Instagram.'));
+    assert.equal(response.status, 'answered');
+    assert.equal(response.delivery, 'fixed_clarification');
+    assert.equal(response.route.answerId, null);
+    assert.equal(response.route.clarificationId, 'goal_clarification');
+    assert.match(response.reply.text, /principal resultado/);
+    assert.deepEqual(response.reply.sources, []);
+    assert.equal(groundedCalls, 0);
+  } finally { pipeline.destroy(); }
+});
+
 test('R09 pipeline returns unsupported locally and never asks PHP to validate absent sources', async () => {
   let groundedCalls = 0;
   const pipeline = createGroundedModelPipeline({
