@@ -19,6 +19,7 @@ test('R09 field router uses only the closed qualification option catalog', () =>
     const prepared = request(field, 'Resposta de teste.');
     assert.equal(prepared.schema, FIELD_REQUEST_SCHEMA);
     assert.equal(prepared.field, field);
+    assert.match(prepared.invocationId, /^[a-f0-9]{32}$/);
     assert.deepEqual(prepared.allowedOptions, options);
     assert.equal('profile' in prepared, false);
     assert.equal('contact' in prepared, false);
