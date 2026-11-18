@@ -190,7 +190,7 @@ export function buildHandoffPackage(profile) {
     'Materiais: ' + (safe.materials ? labels.materials[safe.materials] : 'Não informado'),
     'Previsão declarada: ' + (safe.timeline ? labels.timeline[safe.timeline] : 'Não informado'),
     'Autorização para contato futuro: ' + labels.contactConsent[safe.contactConsent],
-    'Nenhum contato foi coletado, enviado ou armazenado. Este resumo deve ser revisado antes de qualquer encaminhamento.'
+    'Nenhum dado de contato foi coletado. Este resumo não foi enviado à equipe nem ao CRM; copie-o se desejar compartilhar.'
   ].join('\n');
   return Object.freeze({
     schema: LEAD_HANDOFF_SCHEMA, profile: safe, summary,
