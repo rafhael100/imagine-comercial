@@ -18,6 +18,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
   let journey = createJourney();
   let closed = false;
   let epoch = 0;
+  const awaitingReconciliation = new Set();
   let runtime;
 
   function newRuntime() {
@@ -38,7 +39,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
   runtime = newRuntime();
 
   function local(input) {
-    if (closed || runtime.inspect().pending) return Object.freeze({ status: closed ? 'closed' : 'busy' });
+    if (closed || runtime.inspect().pending || awaitingReconciliation.size) return Object.freeze({ status: closed ? 'closed' : 'busy' });
     const result = respondJourney(journey, input);
     // This local route is exclusively for proposing or confirming a goal.
     // Other requests must use the correlated, deduplicated async route.
@@ -60,20 +61,32 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     if (closed) return Object.freeze({ status: 'closed' });
     const safe = checked(request);
     if (!safe) return Object.freeze({ status: 'invalid_request' });
+    if (awaitingReconciliation.size && !awaitingReconciliation.has(safe.messageId)) {
+      return Object.freeze({ status: 'busy', reason: 'awaiting_reconciliation' });
+    }
     // Pure preview only. No pre-dispatch selection, no provider call for
     // proposals, and no action with an unsupported model response.
     const preview = respondJourney(journey, safe.input);
     if (!findGroundedAnswer(preview.reply)) {
       return Object.freeze({ status: 'local_only', reason: preview.reply.intent });
     }
-    return runtime.send(safe);
+    const ownEpoch = epoch;
+    const receipt = await runtime.send(safe);
+    if (ownEpoch === epoch && !closed && receipt.status === 'unknown') {
+      awaitingReconciliation.add(safe.messageId);
+    }
+    return receipt;
   }
 
   async function reconcile(request) {
     if (closed) return Object.freeze({ status: 'closed' });
     const safe = checked(request);
     if (!safe) return Object.freeze({ status: 'invalid_request' });
-    return runtime.reconcile(safe);
+    const ownEpoch = epoch;
+    const receipt = await runtime.reconcile(safe);
+    if (ownEpoch === epoch && !closed && receipt.status !== 'unknown' &&
+        awaitingReconciliation.has(safe.messageId)) awaitingReconciliation.delete(safe.messageId);
+    return receipt;
   }
 
   function reset() {
@@ -82,6 +95,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     old.destroy();
     journey = createJourney();
     epoch++;
+    awaitingReconciliation.clear();
     runtime = newRuntime();
     return true;
   }
@@ -90,6 +104,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     if (closed) return;
     closed = true;
     runtime.destroy();
+    awaitingReconciliation.clear();
     journey = createJourney();
   }
 
@@ -98,6 +113,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     return Object.freeze({
       mode: 'r07_async_synthetic_lab', generation: epoch, closed,
       dispatched: engine.dispatched, pending: engine.pending, unknown: engine.unknown,
+      awaitingReconciliation: awaitingReconciliation.size,
       summary: closed ? null : getJourneySummary(journey),
       confirmedSelections: Object.freeze(closed ? [] : [...journey.coreSession.selection]),
       pendingGoal: closed ? null : journey.pendingGoal
