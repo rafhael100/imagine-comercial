@@ -112,6 +112,16 @@ test('R08-B summary action and copy model do not claim delivery', () => {
   assert.match(getQualificationSummary(summary.session), /Nenhum contato foi coletado/);
 });
 
+test('R08-B viewing a partial handoff keeps the next question and its choices available', () => {
+  const session = choose(startOnepage(), 'r08:objective:present_company').session;
+  const summary = choose(session, 'r08:summary');
+  assert.match(summary.reply.text, /RESUMO DE ATENDIMENTO/);
+  assert.match(summary.reply.text, /Quem você deseja alcançar/);
+  assert.ok(summary.reply.actions.some(item => item.id === 'r08:audience:businesses'));
+  assert.equal(summary.session.profile.objective, 'present_company');
+  assert.equal(summary.session.profile.audience, null);
+});
+
 test('R08-B separate conversations have independent profiles and confirmed services', () => {
   const a = startOnepage();
   const b0 = send(createQualificationJourney(), 'Preciso captar contatos para uma oferta.');
