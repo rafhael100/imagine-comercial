@@ -191,6 +191,11 @@ test('R08 pending service change preserves the old profile and remains a local H
     assert.equal(outcome.delivery, 'guided_fallback');
     assert.equal(providerCalls, 1);
 
+    outcome = await send('r08_change_pending_text_01',
+      { type: 'text', text: 'Quanto custa a Landing Page?' });
+    assert.equal(outcome.reply.intent, 'r08_service_change_pending');
+    assert.equal(providerCalls, 1);
+
     outcome = await send('r08_change_cancel_02', { type: 'action', id: 'cancel_goal' });
     assert.equal(outcome.reply.intent, 'r08_qualification_question');
     assert.match(outcome.reply.text, /Quem você deseja alcançar/);
