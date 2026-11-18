@@ -189,6 +189,14 @@ try {
     assert.match(summary, /Nenhum dado de contato foi coletado/);
     assert.doesNotMatch(summary, /@|[0-9]{10,}/);
     assert.equal(phpCounts().spawned, 1, 'R08 choices and consent must not create PHP work.');
+
+    await choose('r08:edit:contactConsent');
+    assert.match(await lastAnswer().innerText(), /autoriza que a equipe Imagine entre em contato/);
+    await sendText('Não autorizo contato.');
+    const declinedSummary = await page.locator('#faisca-summary-text').inputValue();
+    assert.match(declinedSummary, /Não concedida/);
+    assert.doesNotMatch(declinedSummary, /Sim, autorizou/);
+    assert.equal(phpCounts().spawned, 1, 'Negative consent correction remains local.');
     executedPHP = true;
   });
 
