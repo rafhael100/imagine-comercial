@@ -127,7 +127,7 @@ try {
     await choose('sell'); await choose('goal_presence'); await choose('materials_help');
     assert.match(await summaryText(), /Site Onepage/);
     assert.match(await summaryText(), /organizar textos e imagens/);
-    assert.match(await summaryText(), /nenhum dado foi enviado/);
+    assert.match(await summaryText(), /não foi enviado à equipe/);
     await say('Qual é o investimento?');
     assert.doesNotMatch(await replyText(), /R\$\s*\d/);
     assert.match(await replyText(), /Portal|escopo|proposta/i);

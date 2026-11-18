@@ -87,7 +87,7 @@ function summaryFor(session) {
   if (session.supportTopic) lines.push('Assunto de atendimento: ' + SUPPORT_TOPICS[session.supportTopic] + '.');
   if (!session.goal && !session.supportTopic) lines.push('Objetivo ainda não selecionado.');
   lines.push('Escopo, disponibilidade, valores e prazos: a confirmar pela equipe e no Portal.');
-  lines.push('Este resumo não é uma proposta, pedido ou chamado; nenhum dado foi enviado.');
+  lines.push('Este resumo não é uma proposta, pedido ou chamado e não foi enviado à equipe.');
   return lines.join('\n');
 }
 
@@ -129,7 +129,7 @@ function reply(text, intent, actionIds, sourceIds = [], state = 'TALK') {
 }
 
 export function getWelcome() {
-  return reply('Oi! Eu sou o Faísca, assistente virtual da Imagine. Vamos encontrar o melhor caminho para o seu negócio? Escolha uma opção ou escreva sua dúvida. Esta é uma demonstração guiada, com respostas locais e sem envio de dados.',
+  return reply('Oi! Eu sou o Faísca, assistente virtual da Imagine. Vamos encontrar o melhor caminho para o seu negócio? Escolha uma opção ou escreva sua dúvida. Esta é uma demonstração guiada, sem conexão a uma IA externa.',
     'welcome', ['sell', 'faq', 'after_sales', 'human'], ['proposal']);
 }
 
@@ -268,7 +268,7 @@ function handleAction(session, id, userText) {
     response = reply(messages[topic], id, ['summary', 'human', 'after_sales', 'home'], ['faq', 'proposal']);
   } else if (id === 'human') {
     patch.journey = 'human';
-    response = reply('Posso ajudar você a levar uma conversa mais objetiva à equipe. Gere e copie o resumo abaixo e use o canal oficial já confirmado pela Imagine. Nesta demonstração não há atendente conectado, envio de mensagem, agendamento ou cadastro de lead.', id,
+    response = reply('Posso ajudar você a levar uma conversa mais objetiva à equipe. Gere e copie o resumo abaixo e use o canal oficial já confirmado pela Imagine. Nesta demonstração não há atendente conectado, envio de mensagem à equipe, agendamento ou cadastro de lead.', id,
       ['summary', 'sell', 'after_sales', 'home'], ['proposal']);
   } else if (id === 'summary') {
     response = reply(getSummary(session), id, ['human', 'sell', 'after_sales', 'home'], ['proposal']);
@@ -295,7 +295,7 @@ export function respond(session, input) {
   if (!text) return invalid(safeSession, 'invalid_input', 'Escreva sua dúvida ou escolha uma opção para começarmos.');
   if ([...text].length > MAX_TEXT_CHARACTERS) return invalid(safeSession, 'too_long', 'Sua mensagem ficou longa. Resuma sua dúvida em até 800 caracteres.');
   if (hasSensitiveData(text)) return invalid(safeSession, 'sensitive_input',
-    'Identifiquei um possível dado pessoal ou de acesso e ocultei sua mensagem nesta prévia. Envie apenas o assunto da dúvida, sem e-mail, telefone, documentos, senhas ou códigos. Nenhum dado foi enviado.',
+    'Identifiquei um possível dado pessoal ou de acesso e ocultei sua mensagem nesta prévia. Envie apenas o assunto da dúvida, sem e-mail, telefone, documentos, senhas ou códigos. A mensagem não foi encaminhada ao provedor nem à equipe.',
     '[Mensagem com possível dado pessoal ou credencial ocultada]');
   const normalized = normalize(text);
   if (/ignore.{0,35}(instruc|regra)|system prompt|modo administrador|sou (?:o )?administrador|execute.{0,30}(sql|script|comando)|revele.{0,30}(prompt|senha|chave)/.test(normalized)) {
