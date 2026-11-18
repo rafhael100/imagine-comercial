@@ -79,6 +79,16 @@ test('R07 model rejects an accessor, extra own property, executable field or mut
   assert.equal(verifyLocalModelOutput(request, { ...original, citationIds: [...original.citationIds].reverse() }).accepted, false);
 });
 
+test('R07 model host refuses injected providers and does not read accessors', () => {
+  let calls = 0;
+  const data = { conversationId: 'c', messageId: 'm', answerId: 'pricing',
+    get locale() { calls++; return 'pt-BR'; } };
+  assert.equal(prepareLocalModelRequest(data), null);
+  assert.equal(calls, 0);
+  assert.equal(prepareLocalModelRequest({ conversationId: 'c', messageId: 'm',
+    answerId: 'pricing', provider: 'external' }), null);
+});
+
 test('R07 model response has no path that authorizes an external operation', () => {
   const request = prepare('pricing');
   const approved = resolveLocalModelOutput(request, localModelFixture(request));
