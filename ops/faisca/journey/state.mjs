@@ -125,8 +125,7 @@ export function respondJourney(session, input) {
 
 /** Return a supported service only from a live, explicitly confirmed R07 session. */
 export function getConfirmedService(session) {
-  if (!trusted.has(session) || session.pendingGoal !== null || !Array.isArray(session.coreSession.selection) ||
-      session.coreSession.selection.length !== 1) return null;
-  const [selected] = session.coreSession.selection;
-  return ['onepage', 'landing-page'].includes(selected) ? selected : null;
+  if (!trusted.has(session) || session.pendingGoal !== null || !Array.isArray(session.coreSession.selection)) return null;
+  const services = session.coreSession.selection.filter(value => ['onepage', 'landing-page'].includes(value));
+  return services.length === 1 ? services[0] : null;
 }
