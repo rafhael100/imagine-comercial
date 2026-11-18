@@ -110,7 +110,7 @@ test('R09 accepts natural-language answers to closed R08 qualification questions
 });
 
 test('R09 ambiguous free-text qualification does not guess or store a value', () => {
-  const session = startOnepage();
+  const session = choose(startOnepage(), 'r08:objective:present_company').session;
   const answer = send(session, 'Quero alcançar outras empresas e consumidores online.');
   assert.equal(answer.session.profile.audience, null);
   assert.equal(answer.session.phase, 'qualification');
