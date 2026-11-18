@@ -272,7 +272,7 @@ O script abre um servidor descartável exclusivamente em `127.0.0.1`, inicia Chr
 A R08 começa com o schema de dados, sem ativar a coleta na interface. Para validar o perfil e o resumo copiável:
 
 ```bash
-node --test tests/faisca-r08-qualification.test.mjs
+node --test tests/faisca-r08-*.test.mjs
 ```
 
 O perfil exige uma solução já confirmada na R07 e aceita somente escolhas enumeradas para objetivo, público, materiais, previsão e autorização futura de contato. Não existe campo para nome, telefone, e-mail, credencial ou texto livre. O pacote de encaminhamento é apenas um rascunho copiável, com `sent=false`; nada é enviado ou armazenado. A autorização de contato começa em `not_asked` e não é tratada como consentimento legal genérico.
