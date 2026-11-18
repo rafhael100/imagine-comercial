@@ -18,6 +18,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
   let journey = createJourney();
   let closed = false;
   let epoch = 0;
+  let inFlightSends = 0;
   const awaitingReconciliation = new Set();
   const reconciledMessages = new Set();
   let runtime;
@@ -40,7 +41,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
   runtime = newRuntime();
 
   function local(input) {
-    if (closed || runtime.inspect().pending || awaitingReconciliation.size) return Object.freeze({ status: closed ? 'closed' : 'busy' });
+    if (closed || inFlightSends || runtime.inspect().pending || awaitingReconciliation.size) return Object.freeze({ status: closed ? 'closed' : 'busy' });
     const result = respondJourney(journey, input);
     // This local route is exclusively for proposing or confirming a goal.
     // Other requests must use the correlated, deduplicated async route.
@@ -72,12 +73,17 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
       return Object.freeze({ status: 'local_only', reason: preview.reply.intent });
     }
     const ownEpoch = epoch;
-    const receipt = await runtime.send(safe);
-    if (ownEpoch === epoch && !closed && receipt.status === 'unknown' &&
-        !reconciledMessages.has(safe.messageId)) {
-      awaitingReconciliation.add(safe.messageId);
+    inFlightSends++;
+    try {
+      const receipt = await runtime.send(safe);
+      if (ownEpoch === epoch && !closed && receipt.status === 'unknown' &&
+          !reconciledMessages.has(safe.messageId)) {
+        awaitingReconciliation.add(safe.messageId);
+      }
+      return receipt;
+    } finally {
+      if (ownEpoch === epoch) inFlightSends--;
     }
-    return receipt;
   }
 
   async function reconcile(request) {
@@ -102,6 +108,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     epoch++;
     awaitingReconciliation.clear();
     reconciledMessages.clear();
+    inFlightSends = 0;
     runtime = newRuntime();
     return true;
   }
@@ -112,6 +119,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     runtime.destroy();
     awaitingReconciliation.clear();
     reconciledMessages.clear();
+    inFlightSends = 0;
     journey = createJourney();
   }
 
