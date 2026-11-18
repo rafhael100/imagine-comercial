@@ -207,6 +207,15 @@ export function respondQualificationJourney(session, rawInput) {
     if (profile) return questionReply(createState(result.session, profile, 'qualification'),
       profile, result.reply.text, result.reply.sources, result.userText);
   }
+  if (['goal_sales', 'goal_ads', 'channel_google', 'channel_meta'].includes(result.reply.intent) &&
+      result.session.pendingGoal === null) {
+    return Object.freeze({
+      session: createState(result.session, null, 'sales'),
+      userText: result.userText,
+      reply: makeReply(result.reply.text + '\\n\\nA qualificação estruturada R08 ainda não tem um questionário aprovado para esta solução. Posso continuar com as orientações gerais.',
+        'r08_service_qualification_unavailable', result.reply.sources, [action('sell', labels.sell)])
+    });
+  }
   return Object.freeze({
     session: createState(result.session, null, 'sales'),
     userText: result.userText,
