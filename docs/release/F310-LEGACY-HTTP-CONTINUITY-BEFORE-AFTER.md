@@ -76,6 +76,31 @@ credenciais em código, prompt de chat, commit ou terminal compartilhado.
    a origem nem substitui aprovação editorial/LGPD, GSC real, backups,
    roteamento, TLS, teste de rollback e liberação do responsável.
 
+## Timeout opcional por GET (17/11/2026)
+
+Sem `IMAGINE_LEGACY_HTTP_TIMEOUT_MS`, cada GET mantém o prazo padrão de
+**7000 ms**. O operador pode definir um inteiro decimal canônico entre
+**1000 e 10000 ms**, inclusive, tanto em `--original` quanto em
+`--candidate-local`. Valores vazios, com espaços, sinal, zeros iniciais,
+casas decimais, notação exponencial ou fora desse intervalo são recusados
+antes de qualquer requisição ou gravação de snapshot, com o erro genérico
+HOLD existente.
+
+Exemplo para observar o original com o teto de 10 segundos por GET,
+respeitando o ambiente e o diretório privado descritos acima:
+
+```bash
+IMAGINE_LEGACY_HTTP_REVIEW=1 IMAGINE_LEGACY_HTTP_TIMEOUT_MS=10000 \
+  node scripts/capture-legacy-http-operator.mjs --original /CAMINHO_PRIVADO/legacy-before.json
+```
+
+O prazo se aplica a cada uma das 27 requisições sequenciais. A captura
+continua sem novas tentativas automáticas; uma falha interrompe a coleta
+sem gravar snapshot parcial. Ajustar o prazo não comprova conectividade
+nem cobertura completa das rotas. Origens fixas, opt-in, bloqueio de CI,
+GET sem cookies ou redirects automáticos e criação exclusiva `0600`
+permanecem obrigatórios.
+
 ## Limites
 
 A observação da origem pública é um retrato do momento, não um backup dos
