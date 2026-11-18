@@ -76,7 +76,7 @@ test('R08-B changing the confirmed service clears the old profile before asking 
 });
 
 test('R08-B does not invent a qualification questionnaire for an unapproved ads service', () => {
-  const first = choose(send(createQualificationJourney(), 'Preciso captar contatos para uma oferta.'), 'confirm_goal');
+  const first = choose(choose(createQualificationJourney(), 'goal_campaign').session, 'confirm_goal');
   assert.equal(first.session.profile.service, 'landing-page');
   const proposal = choose(first.session, 'goal_ads');
   assert.equal(proposal.reply.intent, 'journey_confirmation_needed');
@@ -92,7 +92,7 @@ test('R08-B handoff is generated only after explicit answers and is never sent',
   assert.match(getQualificationSummary(session), /RESUMO DE ATENDIMENTO — RASCUNHO NÃO ENVIADO/);
   assert.match(getQualificationSummary(session), /Site Onepage/);
   assert.match(getQualificationSummary(session), /Apresentar a empresa/);
-  assert.match(getQualificationSummary(session), /Sim, autorizou \\(nenhum contato foi enviado\\)/);
+  assert.ok(getQualificationSummary(session).includes('Sim, autorizou (nenhum contato foi enviado)'));
   assert.match(getQualificationSummary(session), /Nenhum dado de contato foi coletado/);
   assert.doesNotMatch(getQualificationSummary(session), /@|[0-9]{10,}/);
 });
