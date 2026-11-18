@@ -208,7 +208,7 @@ try {
     assert.match(summary, /Outras empresas/);
     assert.match(summary, /Precisa de apoio com o conteúdo/);
     assert.match(summary, /Sem prazo definido/);
-    assert.match(summary, /Não autorizou/);
+    assert.match(summary, /Não concedida/);
     assert.doesNotMatch(summary, /Sim, autorizou/);
     assert.equal(phpCounts().spawned, 2);
   });
