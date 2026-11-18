@@ -8,17 +8,22 @@ const localReasons = new Set(['grounding_navigation', 'grounding_boundary',
   'r08_qualification_summary', 'r08_invalid_input', 'r08_restart', 'r08_service_qualification_unavailable']);
 const unknownReasons = new Set(['timeout_after_dispatch', 'cancelled_after_dispatch', 'provider_unknown', 'pending']);
 
-/** A valid source ID alone cannot authorize different prose in the browser. */
-export function validateGroundedHttpResult(value, request, preparedReply) {
+/** The R07 PHP candidate is validated independently from trusted R08 presentation. */
+export function validateGroundedHttpResult(value, request, preparedReply, providerReply = null) {
   let expected;
   if (value.status === 'answered') {
-    const local = localReasons.has(preparedReply.intent);
-    expected = createConversationOutcome('answered', { reply: preparedReply, accepted: true,
+    const local = !providerReply && localReasons.has(preparedReply.intent);
+    const reply = providerReply
+      ? Object.freeze({ ...preparedReply, sources: providerReply.sources })
+      : preparedReply;
+    expected = createConversationOutcome('answered', { reply, accepted: true,
       delivery: local ? 'guided_fallback' : 'simulated', reason: local ? preparedReply.intent : 'answered' });
   } else if (['unavailable', 'provider_limit', 'invalid_response'].includes(value.status) && value.accepted) {
-    expected = createConversationOutcome(value.status, { reply: preparedReply, accepted: true, delivery: 'guided_fallback' });
+    const reply = providerReply ? Object.freeze({ ...preparedReply, sources: Object.freeze([]) }) : preparedReply;
+    expected = createConversationOutcome(value.status, { reply, accepted: true, delivery: 'guided_fallback' });
   } else if (value.status === 'unknown' && unknownReasons.has(value.reason)) {
-    expected = createConversationOutcome('unknown', { reply: preparedReply, accepted: true, delivery: 'unknown', reason: value.reason });
+    const reply = providerReply ? Object.freeze({ ...preparedReply, sources: Object.freeze([]) }) : preparedReply;
+    expected = createConversationOutcome('unknown', { reply, accepted: true, delivery: 'unknown', reason: value.reason });
   } else if (['busy', 'conflict', 'limit', 'cancelled', 'closed', 'not_found'].includes(value.status)) {
     expected = createConversationOutcome(value.status);
   } else return false;
