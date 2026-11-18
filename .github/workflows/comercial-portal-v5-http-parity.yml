@@ -1,0 +1,130 @@
+name: Comercial - V5 four CTA HTTP, owned quotes and PostgreSQL
+on:
+  pull_request:
+    paths:
+      - 'src/components/QuickServiceRequest.astro'
+      - 'src/lib/commercial-choice-preview.mjs'
+      - 'src/lib/commercial-selection-preview.mjs'
+      - 'ops/review/purchase/private-portal-handoff-policy.mjs'
+      - 'ops/review/purchase/test-crossrepo-v5-browser-http.py'
+      - 'ops/review/purchase/test-crossrepo-v5-owned-quotes.sql'
+      - '.github/workflows/comercial-portal-v5-http-parity.yml'
+permissions:
+  contents: read
+jobs:
+  v5-owned-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact Comercial candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: comercial
+          persist-credentials: false
+      - name: Checkout V5 Portal with corrected account-entry context
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: rafhael100/imagine-portal
+          ref: 82deeb0062f80f1cf979a2c0105d394c2b1adc23
+          path: portal
+          persist-credentials: false
+      - name: Use reviewed Node 22 runtime
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Check immutable source and approved V5 catalog
+        run: |
+          set -euo pipefail
+          test "$(git -C portal rev-parse HEAD)" = 82deeb0062f80f1cf979a2c0105d394c2b1adc23
+          php -r 'if(PHP_VERSION_ID < 80300) exit(1);'
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          data=Path('portal/apps/portal/app/Homologation/Commerce/approved-catalog.json').read_bytes()
+          assert hashlib.sha256(data).hexdigest()=='75aab147df8d937f6f0630c92eec8b4783dc345e308292abe7706bcb31a905fa'
+          compile(Path('comercial/ops/review/purchase/test-crossrepo-v5-browser-http.py').read_text(),'<v5-browser>','exec')
+          PY
+          node comercial/ops/review/purchase/test-portal-v5-financial-parity.mjs portal
+          node comercial/ops/review/purchase/test-portal-v5-full-selection-matrix.mjs portal
+      - name: Build real private Astro candidate with locked dependencies
+        working-directory: comercial
+        env:
+          IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW: '1'
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node ops/review/purchase/test-native-astro-preview.mjs dist private
+      - name: Build the pinned Portal runtime without PSP credentials
+        working-directory: portal
+        run: |
+          set -euo pipefail
+          docker build -f infra/development/portal-auth/Dockerfile -t imagine-portal-private-auth:local .
+          cd apps/portal/ops/private-purchase
+          docker compose build application
+      - name: Initialize native V5 schema before serving HTTP
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          sudo --preserve-env=GITHUB_ACTIONS python3 prepare.py
+          docker compose -f compose.yaml -f compose.ci.yaml config --quiet
+          docker compose -f compose.yaml -f compose.ci.yaml up -d --wait database
+          for file in customer-schema.sql customer-work-schema.sql customer-offer-schema.sql \
+            sandbox-payment-schema.sql sandbox-future-schema.sql sandbox-webhook-schema.sql \
+            performance-settlement-schema.sql; do
+            docker compose exec -T database psql -X -v ON_ERROR_STOP=1 \
+              -U postgres -d portal_purchase_rehearsal < "$file"
+          done
+          docker compose -f compose.yaml -f compose.ci.yaml up -d application gateway
+          python3 - <<'PY'
+          import time,urllib.request
+          for attempt in range(60):
+              try:
+                  assert urllib.request.urlopen('http://127.0.0.1:18083/_rehearsal/purchase',timeout=2).status==200
+                  break
+              except Exception: time.sleep(1)
+          else: raise SystemExit('Isolated V5 Portal not ready')
+          PY
+          test "$(docker inspect imagine-purchase-preview-database-1 --format '{{len .HostConfig.PortBindings}}')" = 0
+          test "$(docker inspect imagine-purchase-preview-application-1 --format '{{len .HostConfig.PortBindings}}')" = 0
+          test "$(docker network inspect imagine-purchase-preview_private --format '{{.Internal}}')" = true
+          test "$(docker inspect imagine-purchase-preview-gateway-1 --format '{{(index (index .HostConfig.PortBindings "8080/tcp") 0).HostIp}}')" = 127.0.0.1
+          docker compose exec -T application php private-preview-route-gate.test.php
+          docker compose exec -T application php tools/test_commerce.php
+      - name: Navigate four actual CTAs through registration and login into V5 orders
+        env:
+          IMAGINE_CROSSREPO_V5_LOOPBACK: '1'
+        run: |
+          set -euo pipefail
+          (cd comercial && bash scripts/install-chromium-ci.sh)
+          python3 -m venv "$RUNNER_TEMP/crossrepo-v5-browser"
+          "$RUNNER_TEMP/crossrepo-v5-browser/bin/pip" install playwright==1.56.0
+          python3 -m http.server 18084 --bind 127.0.0.1 --directory comercial/dist \
+            > "$RUNNER_TEMP/comercial-v5-http.log" 2>&1 &
+          site_pid=$!
+          trap 'kill "$site_pid" 2>/dev/null || true; wait "$site_pid" 2>/dev/null || true' EXIT
+          python3 - <<'PY'
+          import time,urllib.request
+          for attempt in range(30):
+              try:
+                  assert urllib.request.urlopen('http://127.0.0.1:18084/',timeout=2).status==200
+                  break
+              except Exception: time.sleep(0.2)
+          else: raise SystemExit('Astro loopback not ready')
+          PY
+          "$RUNNER_TEMP/crossrepo-v5-browser/bin/python" \
+            comercial/ops/review/purchase/test-crossrepo-v5-browser-http.py
+      - name: Verify exact approved snapshots, signed owner isolation and no payment intents
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 \
+            -U postgres -d portal_purchase_rehearsal \
+            < ../../../../../comercial/ops/review/purchase/test-crossrepo-v5-owned-quotes.sql
+          echo 'PASS V5: four actual CTAs, five owned synthetic orders, approved catalog snapshots, zero PSP intents.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Original signer, legacy HTTP and offline V5 pins remain unchanged. NO DEPLOY / NO REAL CHARGE.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove only disposable CI stack
+        if: always()
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: docker compose -f compose.yaml -f compose.ci.yaml down --volumes
