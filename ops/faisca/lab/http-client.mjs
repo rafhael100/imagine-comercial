@@ -49,16 +49,17 @@ async function readJson(response) {
 /** Trusted host configuration only; no endpoint, provider or authority from visitor data. */
 export function createHttpConversationClient({ origin = globalThis.location?.origin,
   fetchImpl = (url, options) => globalThis.fetch(url, options), timeoutMs = 2500, onState = () => {},
-  prepareTurn = null, validatePreparedResult = null } = {}) {
+  prepareTurn = null, validatePreparedResult = null, createGuideSession = createSession } = {}) {
   origin = checkedOrigin(origin);
   if (typeof fetchImpl !== 'function' || typeof onState !== 'function' ||
       !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 10000 ||
       !((prepareTurn === null && validatePreparedResult === null) ||
-        (typeof prepareTurn === 'function' && typeof validatePreparedResult === 'function'))) {
+        (typeof prepareTurn === 'function' && typeof validatePreparedResult === 'function')) ||
+      typeof createGuideSession !== 'function') {
     throw new TypeError('Invalid laboratory HTTP client.');
   }
   let live = true, generation = 0, session = null, pending = null, blocked = false;
-  let guideSession = createSession();
+  let guideSession = createGuideSession();
   const controllers = new Set();
   const current = entry => live && entry.generation === generation && pending === entry;
   const emit = (status, text = '', canReconcile = false) => {
@@ -227,7 +228,7 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
     pending = null;
     const old = session;
     session = null;
-    guideSession = createSession();
+    guideSession = createGuideSession();
     blocked = false;
     releaseRemote(old);
     emit(closing ? 'closed' : 'idle');
