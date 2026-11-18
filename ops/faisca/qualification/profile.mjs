@@ -133,7 +133,8 @@ export function updateLeadProfile(profile, field, value) {
 export function getNextQualificationQuestion(profile) {
   const safe = validateLeadProfile(profile);
   if (!safe) return null;
-  const field = fields.find(name => safe[name] === null);
+  const field = fields.find(name => name === 'contactConsent'
+    ? safe[name] === 'not_asked' : safe[name] === null);
   if (!field) return null;
   const question = questionData[field];
   return Object.freeze({
