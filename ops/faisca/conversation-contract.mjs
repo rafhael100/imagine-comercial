@@ -1,12 +1,16 @@
 import { KNOWLEDGE } from './knowledge.mjs';
 import { getActionCatalog } from './core.mjs';
+import { getGroundingSources } from './grounding/catalog.mjs';
 
 // An in-memory laboratory wire contract, not authentication or an HTTP API.
 export const CONVERSATION_SCHEMA = 'faisca.conversation.v1';
 export const RESPONSE_SCHEMA = 'faisca.response.v1';
 const actions = getActionCatalog();
-const sources = new Map(Object.values(KNOWLEDGE.sources).map(source => [source.id,
-  Object.freeze({ id: source.id, title: source.title, version: KNOWLEDGE.version })]));
+const sources = new Map([
+  ...Object.values(KNOWLEDGE.sources).map(source => [source.id,
+    Object.freeze({ id: source.id, title: source.title, version: KNOWLEDGE.version })]),
+  ...getGroundingSources().map(source => [source.id, source])
+]);
 const opaqueId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{8,96}$/.test(value);
 const textLength = (value, max) => typeof value === 'string' && value.length <= max * 2 &&
   [...value].length <= max && value.trim().length > 0;
@@ -77,7 +81,7 @@ export function createConversationResponse(request, reply) {
   return Object.freeze({ schema: RESPONSE_SCHEMA, conversationId: request.conversationId,
     messageId: request.messageId, locale: 'pt-BR', knowledgeVersion: KNOWLEDGE.version,
     text: reply.text,
-    sources: Object.freeze(reply.sources.map(source => Object.freeze({ id: source.id, version: KNOWLEDGE.version }))),
+    sources: Object.freeze(reply.sources.map(source => Object.freeze({ id: source.id, version: sources.get(source.id)?.version }))),
     actions: Object.freeze(reply.actions.map(action => Object.freeze({ id: action.id }))) });
 }
 
@@ -92,7 +96,7 @@ export function validateConversationResponse(value, requestValue) {
   const safeSources = list(data.sources, 4, value => {
     const source = record(value, ['id', 'version']);
     return source && typeof source.id === 'string' && sources.has(source.id) &&
-      source.version === KNOWLEDGE.version ? source : null;
+      source.version === sources.get(source.id).version ? source : null;
   });
   const safeActions = list(data.actions, 6, value => {
     const action = record(value, ['id']);

@@ -17,7 +17,8 @@ const notices = Object.freeze({
   closed: 'Esta conversa de laboratório foi encerrada.',
   not_found: 'Não há registro desta mensagem para conciliar.'
 });
-const notForwarded = new Set(['sensitive_input', 'unsupported_instruction', 'invalid_input', 'too_long', 'invalid_session']);
+const notForwarded = new Set(['sensitive_input', 'unsupported_instruction', 'invalid_input', 'too_long', 'invalid_session',
+  'grounding_navigation', 'grounding_boundary', 'grounding_unsupported', 'grounding_ambiguous']);
 const readSignalAborted = Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted').get;
 const addSignalListener = EventTarget.prototype.addEventListener;
 const removeSignalListener = EventTarget.prototype.removeEventListener;
@@ -38,18 +39,20 @@ function readSignalOptions(options) {
   } catch { return null; }
 }
 
-function outcome(status, { reply = getWelcome(), accepted = false, delivery = 'none', reason = status } = {}) {
+export function createConversationOutcome(status, { reply = getWelcome(), accepted = false, delivery = 'none', reason = status } = {}) {
   const prefix = notices[status];
   const safeReply = prefix ? Object.freeze({ ...reply, text: prefix + (accepted ? '\n\n' + reply.text : ''),
     state: status === 'unknown' || status === 'busy' ? 'WAIT' : 'ERROR', intent: status }) : reply;
   return Object.freeze({ status, delivery, accepted, reason, reply: safeReply,
     mode: 'simulated_lab', operationalEffects: false });
 }
+const outcome = createConversationOutcome;
 
-export function createConversationRuntime({ provider, timeoutMs = 250, maxEntries = 64 } = {}) {
+export function createConversationRuntime({ provider, timeoutMs = 250, maxEntries = 64, prepareTurn = respond } = {}) {
   if (!provider || provider.kind !== 'simulated' || typeof provider.respond !== 'function' ||
       !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 10000 ||
-      !Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 256) throw new TypeError('Invalid laboratory conversation runtime.');
+      !Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 256 ||
+      typeof prepareTurn !== 'function') throw new TypeError('Invalid laboratory conversation runtime.');
   const entries = new Map();
   const conversations = new Map();
   let live = true;
@@ -98,7 +101,9 @@ export function createConversationRuntime({ provider, timeoutMs = 250, maxEntrie
     if (entries.size >= maxEntries) return outcome('limit');
     const state = conversations.get(request.conversationId) || { session: createSession(), active: null };
     if (state.active?.pending) return outcome('busy');
-    const guideResult = respond(state.session, request.input);
+    // A checked-in host policy prepares the candidate; visitor messages never
+    // select the policy, corpus or provider. The R03 default remains unchanged.
+    const guideResult = prepareTurn(state.session, request.input);
     state.session = guideResult.session;
     conversations.set(request.conversationId, state);
     let resolve;

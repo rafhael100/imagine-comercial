@@ -48,11 +48,17 @@ async function readJson(response) {
 
 /** Trusted host configuration only; no endpoint, provider or authority from visitor data. */
 export function createHttpConversationClient({ origin = globalThis.location?.origin,
-  fetchImpl = (url, options) => globalThis.fetch(url, options), timeoutMs = 2500, onState = () => {} } = {}) {
+  fetchImpl = (url, options) => globalThis.fetch(url, options), timeoutMs = 2500, onState = () => {},
+  prepareTurn = null, validatePreparedResult = null } = {}) {
   origin = checkedOrigin(origin);
   if (typeof fetchImpl !== 'function' || typeof onState !== 'function' ||
-      !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 10000) throw new TypeError('Invalid laboratory HTTP client.');
+      !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 10000 ||
+      !((prepareTurn === null && validatePreparedResult === null) ||
+        (typeof prepareTurn === 'function' && typeof validatePreparedResult === 'function'))) {
+    throw new TypeError('Invalid laboratory HTTP client.');
+  }
   let live = true, generation = 0, session = null, pending = null, blocked = false;
+  let guideSession = createSession();
   const controllers = new Set();
   const current = entry => live && entry.generation === generation && pending === entry;
   const emit = (status, text = '', canReconcile = false) => {
@@ -80,9 +86,21 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
 
   function settle(entry, outcome) {
     if (!current(entry)) return;
+    if (outcome.accepted === true && entry.prepared) guideSession = entry.prepared.session;
     pending = null;
     emit(outcome.status);
     entry.resolve(outcome);
+  }
+
+  function validateResult(body, entry) {
+    const valid = validateHttpResult(body, entry.request);
+    if (!valid) return null;
+    if (validatePreparedResult) {
+      try {
+        if (validatePreparedResult(valid, entry.request, entry.prepared.reply) !== true) return null;
+      } catch { return null; }
+    }
+    return valid;
   }
 
   function uncertain(entry, status, text) {
@@ -115,7 +133,7 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
     try {
       const result = await request(HTTP_PATHS.messages, entry.request, entry.session.token);
       if (!current(entry)) return;
-      const valid = result.status === 200 ? validateHttpResult(result.body, entry.request) : null;
+      const valid = result.status === 200 ? validateResult(result.body, entry) : null;
       if (valid) {
         if (valid.status === 'unknown') uncertain(entry, 'unknown', valid.response.text);
         else settle(entry, httpResultToOutcome(valid));
@@ -149,7 +167,13 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
     if (!safe) return Promise.resolve(localOutcome('transport_rejected'));
     let resolve;
     const promise = new Promise(yes => { resolve = yes; });
-    const entry = { generation, input: safe.input, request: null, session: null, resolve, uncertain: false, reconciling: false };
+    let prepared = null;
+    if (prepareTurn) {
+      try { prepared = prepareTurn(guideSession, safe.input); }
+      catch { return Promise.resolve(localOutcome('transport_rejected')); }
+      if (!prepared?.reply || !prepared?.session) return Promise.resolve(localOutcome('transport_rejected'));
+    }
+    const entry = { generation, input: safe.input, request: null, session: null, prepared, resolve, uncertain: false, reconciling: false };
     pending = entry;
     emit('connecting');
     void dispatch(entry).catch(() => {
@@ -167,7 +191,7 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
     try {
       const result = await request(HTTP_PATHS.reconcile, entry.request, entry.session.token);
       if (!current(entry)) return null;
-      const valid = result.status === 200 ? validateHttpResult(result.body, entry.request) : null;
+      const valid = result.status === 200 ? validateResult(result.body, entry) : null;
       if (valid) {
         if (['unknown', 'not_found'].includes(valid.status)) {
           uncertain(entry, 'unknown', valid.status === 'not_found'
@@ -203,6 +227,7 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
     pending = null;
     const old = session;
     session = null;
+    guideSession = createSession();
     blocked = false;
     releaseRemote(old);
     emit(closing ? 'closed' : 'idle');
