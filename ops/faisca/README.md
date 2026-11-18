@@ -199,3 +199,33 @@ Os registros ficam na memória do processo, por até cinco minutos na configura�
 A verificação local de padrões sensíveis é auxiliar e não identifica todo dado pessoal. Use apenas conteúdo fictício. Tokens não vão para URLs, cookies, DOM, logs ou storage; a API recebe o texto permitido no corpo HTTP local. O resumo copiado não é envio à equipe.
 
 O PNG, recorte, cores e estilos permanecem preservados. A animação continua sendo movimento CSS do quadro inteiro; não há modelo 3D articulado. Publicar código em PR draft não ativa o site nem autoriza merge, deploy, despesas ou mudanças na VPS/DNS.
+
+## R07 — conversa comercial com confirmação (somente laboratório)
+
+A R07 acrescenta um modo **opt-in local**: pergunta sobre uma solução gera uma proposta de escolha; somente o botão **Confirmar meu objetivo** altera o resumo. Perguntas comparativas, informações não documentadas e pedidos privados não presumem compra. Não há modelo generativo externo, conta de cliente, envio ao CRM ou operação financeira.
+
+Para testar só a transcrição, sem navegador ou PHP:
+
+```bash
+node ops/faisca/journey/demo.mjs
+node --test tests/faisca-r07-*.test.mjs
+```
+
+Para visualizar o mascote original e a conversa R07 no navegador, gere o laboratório Astro isolado após `npm ci`:
+
+```bash
+IMAGINE_FAISCA_LAB=1 npx astro build --config ops/faisca/lab/astro.config.mjs
+```
+
+A saída da demonstração fica em `ops/faisca/output/astro/journey/index.html`. Sirva-a por HTTP **somente em 127.0.0.1** (não abra diretamente por `file://` e não publique os arquivos). Na CI, a página `/journey/` é servida por um servidor descartável e verificada pelo Chromium com `node ops/faisca/journey/browser-qa.mjs`.
+
+No PowerShell do Windows 11, execute o comando equivalente:
+
+```powershell
+$env:IMAGINE_FAISCA_LAB = "1"
+npx astro build --config ops/faisca/lab/astro.config.mjs
+node ops/faisca/journey/browser-qa.mjs
+Remove-Item Env:IMAGINE_FAISCA_LAB
+```
+
+Os scripts de teste instalam **nada** e usam os pacotes já restaurados por `npm ci`; o Chromium do Playwright deve estar disponível para o QA. O laboratório R07 reaproveita os bytes do PNG, o template, o CSS e o core R02; `publicFaiscaEnabled` permanece `false`. Esta página não está ativa no site público. O adaptador `journey/model-contract.mjs` aceita somente o texto editorial exato da R06: **não está pronto para aceitar prosa livre de um LLM**.
