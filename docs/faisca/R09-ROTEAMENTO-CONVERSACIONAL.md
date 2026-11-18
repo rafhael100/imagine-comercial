@@ -39,7 +39,7 @@ node --test tests/faisca-r09-*.test.mjs
 node ops/faisca/model-router/demo.mjs
 ```
 
-Os testes cobrem pré-validação, candidatos fechados, respostas fundamentadas, clarificação, falta de suporte, injeção de instruções, saída com texto inventado, ações de CRM e requisições clonadas.
+Os testes cobrem recuperação lexical em português com acentos, pré-validação, candidatos fechados, respostas fundamentadas, clarificação, falta de suporte, injeção de instruções, saída com texto inventado, ações de CRM, requisições clonadas e repetibilidade da demonstração offline.
 
 ## Decisão necessária antes de IA real
 
