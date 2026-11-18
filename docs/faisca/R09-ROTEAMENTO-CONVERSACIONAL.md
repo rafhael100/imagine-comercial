@@ -55,3 +55,24 @@ A conexão de um provedor LLM exige escolha explícita de provedor/modelo, orça
 - Não publicar, fazer deploy ou alterar o site público.
 
 **R09-A é apenas a fronteira local de roteamento.** A IA generativa real permanece desativada até aprovação específica.
+
+## R09-B — runtime local, idempotência e conciliação
+
+Arquivo: `ops/faisca/model-router/runtime.mjs`.
+
+O runtime aceita exclusivamente `provider.kind='simulated'`; qualquer provedor externo é recusado. Ele reutiliza os mesmos princípios de segurança já aplicados ao runtime de conversa:
+- chave por `conversationId + messageId`;
+- mesmo ID e mesmo conteúdo reutilizam a operação; conteúdo diferente com o mesmo ID recebe conflito;
+- somente uma rota não resolvida por conversa;
+- ausência de candidatos editoriais responde localmente, sem despacho;
+- timeout retorna `unknown`, não reenvia e bloqueia nova mensagem até conciliação;
+- resultado tardio só aparece por `reconcile`;
+- `destroy` encerra o runtime e descarta respostas tardias.
+
+A implementação é volátil e de processo único. Não representa persistência, garantia distribuída de exactly-once, reserva de orçamento ou integração com um provedor real. O contador `externalModelInvocations` permanece zero.
+
+Reprodução:
+```bash
+node --test tests/faisca-r09-*.test.mjs
+node ops/faisca/model-router/demo.mjs
+```
