@@ -17,10 +17,10 @@ const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE
 </style>
 <faisca-journey-lab>
   <section class="journey-controls" aria-label="Demonstração R07">
-    <h1>Faísca · Conversa comercial com escolhas confirmadas</h1>
+    <h1>Faísca · Atendimento e qualificação comercial</h1>
     <p>Esta página é um laboratório local. As respostas usam conteúdo editorial revisado; nenhuma IA externa, CRM ou atendente está conectado. Não informe dados pessoais.</p>
     <button type="button" data-journey-start hidden>Ativar conversa R07</button>
-    <p role="status" data-journey-status>Ative a conversa para testar escolhas, correções e o resumo.</p>
+    <p role="status" data-journey-status>Ative a conversa para testar a escolha da solução, a qualificação e o resumo copiável.</p>
   </section>
   <div data-faisca-root data-lab-preview set:html={view.markup} />
 </faisca-journey-lab>
@@ -44,7 +44,7 @@ const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE
           if (!this.isConnected || generation !== this.#generation) return;
           this.#app = mountJourney(this.querySelector('[data-faisca-root]'));
           button.hidden = true;
-          status.textContent = 'Conversa local ativada. Confirme uma solução antes de incluí-la no resumo.';
+          status.textContent = 'Conversa local ativada. Confirme a solução e responda às perguntas de qualificação; nada será enviado à equipe.';
         } catch {
           if (!this.isConnected || generation !== this.#generation) return;
           status.textContent = 'A conversa local não pôde ser iniciada. Tente novamente.';
