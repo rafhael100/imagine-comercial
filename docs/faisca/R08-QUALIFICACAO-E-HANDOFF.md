@@ -66,3 +66,20 @@ node ops/faisca/journey/browser-qa.mjs
 ## Segurança e publicação
 
 Sem LLM externo, coleta de contato, CRM, e-mail, pagamentos, scoring, persistência, deploy, DNS, VPS ou custos. Mascote, CSS e identidade visual aprovados permanecem sem alterações. `publicFaiscaEnabled=false`.
+
+## R08-D — sessão HTTP e respostas PHP reais
+
+Foi adicionada a rota de laboratório `/journey-http-r08/`, separada da rota R07 `/journey-http/`. Cada sessão recebe uma máquina R08 confiável no servidor. O browser mantém uma cópia de apresentação para renderização e conciliação, mas não escolhe a política nem o provedor.
+
+A fronteira HTTP aceita somente IDs de ação R08 enumerados no contrato. Perguntas de qualificação e respostas de consentimento permanecem locais e não iniciam processos PHP. Quando uma resposta depende de um trecho editorial R07, o controlador entrega um candidato R07 exato separado do texto de apresentação R08. O PHP valida somente o candidato editorial; depois o servidor associa as fontes validadas ao texto e às opções R08 preparados pelo código confiável. Se PHP demora, a resposta fica incerta e exige conciliação da mesma mensagem; reset encerra a sessão e descarta a resposta tardia.
+
+O gate `ops/faisca/qualification/http-browser-qa.mjs` cobre:
+- proposta e confirmação da solução, com a confirmação editorial validada pelo PHP real;
+- cinco perguntas de qualificação sem chamadas PHP;
+- resposta a “Como funciona o projeto?” com trecho R06 validado e estado R08 preservado;
+- correção de campo e renovação da autorização futura;
+- duas sessões simultâneas, mesmo ID de mensagem, serviços e fontes independentes;
+- recusa de token cruzado, reset, conciliação, WCAG em três larguras e ausência de tráfego externo/persistência;
+- encerramento de processos e sessões no final.
+
+A rota permanece somente no laboratório loopback e com `noindex`. Nenhum contato pessoal é coletado, nenhuma informação vai ao CRM e nada é publicado em produção.
