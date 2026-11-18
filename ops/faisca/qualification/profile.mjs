@@ -35,7 +35,7 @@ const labels = Object.freeze({
     flexible: 'Sem prazo definido', not_specified: 'Não informado'
   }),
   contactConsent: Object.freeze({
-    not_asked: 'Ainda não perguntada', granted: 'Autorização declarada, ainda não enviada',
+    not_asked: 'Ainda não perguntada', granted: 'Sim, autorizou (nenhum contato foi enviado)',
     declined: 'Não concedida', later: 'Prefere decidir depois'
   })
 });
