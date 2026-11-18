@@ -1,4 +1,5 @@
 import { createJourney, getJourneySummary, respondJourney } from '../journey/state.mjs';
+import { routeFieldWithLocalFixture } from '../model-router/field-contract.mjs';
 import {
   createLeadProfileFromJourney, updateLeadProfile, reviseLeadProfile,
   getNextQualificationQuestion, isQualificationComplete, buildHandoffPackage
