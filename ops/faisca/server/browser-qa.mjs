@@ -174,7 +174,7 @@ async function postFromPage(fixture, path, token, body) {
 
 try {
   await collect(staticDir);
-  assert.deepEqual([...assets].filter(path => path.endsWith('.html')).sort(), ['/grounded/index.html', '/http/index.html', '/index.html', '/journey/index.html']);
+  assert.deepEqual([...assets].filter(path => path.endsWith('.html')).sort(), ['/grounded/index.html', '/http/index.html', '/index.html', '/journey-http/index.html', '/journey/index.html']);
   const httpUi = [...assets].filter(path => /\/_astro\/http-ui\.[^/]+\.js$/.test(path));
   assert.equal(httpUi.length, 1, 'HTTP conversation must have its own deferred module');
   const html = await readFile(resolve(staticDir, 'http/index.html'), 'utf8');
