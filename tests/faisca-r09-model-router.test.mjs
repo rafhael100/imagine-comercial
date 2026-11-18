@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   prepareModelRouteRequest, verifyModelRouteResponse, localModelRouteFixture,
+  retrieveCandidateAnswerIds, routeWithLocalFixture,
   ROUTER_REQUEST_SCHEMA, ROUTER_RESPONSE_SCHEMA
 } from '../ops/faisca/model-router/contract.mjs';
 import { getGroundedAnswer } from '../ops/faisca/grounding/guide.mjs';
@@ -16,6 +17,52 @@ function makeRequest(changes = {}) {
     ...changes
   });
 }
+
+test('R09 retrieval ranks Portuguese questions against the approved editorial catalog', () => {
+  assert.equal(retrieveCandidateAnswerIds('Quanto custa uma Landing Page?')[0], 'pricing');
+  assert.equal(retrieveCandidateAnswerIds('Como funciona o projeto?')[0], 'process');
+  assert.equal(retrieveCandidateAnswerIds('Qual a diferença entre Onepage e Landing Page?')[0], 'compare_sites');
+  assert.equal(retrieveCandidateAnswerIds('Quero apresentar minha empresa.')[0], 'goal_presence');
+  assert.equal(retrieveCandidateAnswerIds('Quero captar contatos para uma oferta.')[0], 'goal_campaign');
+  assert.equal(retrieveCandidateAnswerIds('Quero anunciar no Instagram.')[0], 'channel_meta');
+  assert.ok(retrieveCandidateAnswerIds('Quero apresentar meu site e falar de anúncios.').length <= 5);
+  assert.deepEqual(retrieveCandidateAnswerIds('Qual é a cor favorita do mascote?'), []);
+});
+
+test('R09 complete local route returns only exact catalog copy or fixed refusal', () => {
+  const route = routeWithLocalFixture({
+    conversationId: 'r09_demo_conversation_01',
+    messageId: 'r09_demo_message_0001',
+    userText: 'Quanto custa uma Landing Page?'
+  });
+  assert.equal(route.accepted, true);
+  assert.equal(route.routeStatus, 'grounded');
+  assert.equal(route.answerId, 'pricing');
+  assert.equal(route.text, getGroundedAnswer('pricing').text);
+  assert.deepEqual(route.sources, getGroundedAnswer('pricing').sources);
+  assert.equal(route.provenance, 'r06_verified_editorial');
+
+  const unsupported = routeWithLocalFixture({
+    conversationId: 'r09_demo_conversation_02',
+    messageId: 'r09_demo_message_0002',
+    userText: 'Qual é a cor favorita do mascote?'
+  });
+  assert.equal(unsupported.accepted, true);
+  assert.equal(unsupported.routeStatus, 'unsupported');
+  assert.deepEqual(unsupported.sources, []);
+});
+
+test('R09 complete route refuses personal contact data before any provider fixture is invoked', () => {
+  const result = routeWithLocalFixture({
+    conversationId: 'r09_demo_conversation_03',
+    messageId: 'r09_demo_message_0003',
+    userText: 'Meu telefone é +55 85 99999-9999 e quero uma Landing Page.'
+  });
+  assert.equal(result.accepted, false);
+  assert.equal(result.routeStatus, 'refused');
+  assert.deepEqual(result.sources, []);
+  assert.doesNotMatch(result.text, /99999/);
+});
 
 test('R09 request is built only by trusted host with closed public editorial candidates', () => {
   const request = makeRequest();
