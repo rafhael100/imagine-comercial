@@ -156,7 +156,7 @@ try {
     await startUnknownAction('confirm_goal');
     const summaryBefore = await page.locator('#faisca-summary-text').inputValue();
     assert.match(summaryBefore, /Objetivo ainda não selecionado/);
-    assert.equal(phpCounts().spawned, 1, 'Confirmation must invoke the pinned PHP process.');
+    await eventually(() => phpCounts().spawned === 1, 'The confirmation must spawn the pinned PHP CLI.');
     assert.equal(phpCounts().completed, 0, 'The delayed PHP process must still be pending at timeout.');
     const chatBefore = await page.locator('#faisca-log').innerText();
     await reconcileButton.click();
@@ -180,7 +180,7 @@ try {
     await page.locator('#faisca-send').click();
     await page.locator('[data-faisca-http-status][data-faisca-http-state="unknown"]').waitFor({ state: 'visible', timeout: 10000 });
     assert.equal(await assistantCount(), beforeCount);
-    assert.equal(phpCounts().spawned, 2);
+    await eventually(() => phpCounts().spawned === 2, 'The second turn must start a real PHP process before reset.');
     await page.locator('#faisca-reset').click();
     await eventually(() => server.inspect().sessions === 0, 'Reset must release the server-issued session.');
     await eventually(() => phpCounts().pending === 0, 'Reset must terminate/drain the owned real PHP child.');
@@ -200,7 +200,7 @@ try {
     assert.match(await lastAnswer().innerText(), /Confirme a escolha/);
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Objetivo ainda não selecionado/);
     await startUnknownAction('confirm_goal');
-    assert.equal(phpCounts().spawned, 3);
+    await eventually(() => phpCounts().spawned === 3, 'The replacement session must spawn a fresh PHP process.');
     await eventually(() => phpCounts().completed === 2, 'The new session PHP child must complete.', 5000);
     await consult();
     await assertGrounded('goal_campaign');
@@ -240,7 +240,7 @@ try {
       }, b.token)
     ]);
     assert.equal(confirmA.data.status, 'unknown'); assert.equal(confirmB.data.status, 'unknown');
-    assert.equal(phpCounts().spawned, before.spawned + 2);
+    await eventually(() => phpCounts().spawned === before.spawned + 2, 'Both sessions must spawn independent PHP children.');
     await eventually(() => phpCounts().completed === before.completed + 2,
       'Both isolated PHP children must complete independently.', 5000);
     const [answerA, answerB] = await Promise.all([
