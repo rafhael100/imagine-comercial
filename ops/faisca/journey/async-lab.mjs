@@ -92,7 +92,10 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     if (!safe) return Object.freeze({ status: 'invalid_request' });
     const ownEpoch = epoch;
     const receipt = await runtime.reconcile(safe);
-    if (ownEpoch === epoch && !closed && receipt.status !== 'unknown' &&
+    // A conflict or malformed lookup must NEVER unlock the original unknown
+    // turn. Only a verified terminal outcome of this same request can do so.
+    if (ownEpoch === epoch && !closed &&
+        ['answered', 'unavailable', 'provider_limit', 'invalid_response'].includes(receipt.status) &&
         awaitingReconciliation.has(safe.messageId)) {
       awaitingReconciliation.delete(safe.messageId);
       reconciledMessages.add(safe.messageId);
