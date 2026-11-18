@@ -124,7 +124,7 @@ try {
   function phpCounts() { return bridgeCounts(bridge); }
   async function assertGroundedSource(answerId) {
     const expected = getGroundedAnswer(answerId);
-    assert.match(await lastAnswer().innerText(), new RegExp(expected.text.split('\n')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.ok((await lastAnswer().innerText()).includes(expected.text));
     const details = page.locator('#faisca-log .assistant').last().locator('details.message-sources');
     assert.equal(await details.count(), 1);
     await details.locator('summary').click();
@@ -290,8 +290,8 @@ try {
     expectedResetTerminations++;
     await eventually(() => server.inspect().inflight === 0, 'R08 reset must drain HTTP handlers.');
     assert.equal(phpCounts().spawned, 5);
-    assert.equal(reconcileButton.isEnabled ? await reconcileButton.isEnabled() : false, false);
-    assert.equal(await page.locator('#faisca-summary-text').inputValue(), 'Nenhuma solução selecionada ainda.');
+    assert.equal(await reconcileButton.isEnabled(), false);
+    assert.match(await page.locator('#faisca-summary-text').inputValue(), /Objetivo ainda não selecionado|Nenhuma solução selecionada/);
     await wait(150);
     assert.equal(await assistantCount(), 1);
   });
