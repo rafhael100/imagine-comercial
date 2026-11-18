@@ -4,6 +4,7 @@ import { validateConversationRequest, CONVERSATION_SCHEMA } from '../ops/faisca/
 import { createQualificationPrepareTurn } from '../ops/faisca/qualification/http-runtime.mjs';
 import { getQualificationSummary } from '../ops/faisca/qualification/journey.mjs';
 import { getGroundedAnswer } from '../ops/faisca/grounding/guide.mjs';
+import { createConversationRuntime } from '../ops/faisca/conversation-runtime.mjs';
 
 function request(input, messageId = 'r08_http_message_0001', conversationId = 'a'.repeat(32)) {
   return validateConversationRequest({
@@ -71,6 +72,50 @@ test('R08 HTTP grounded FAQ retains the R08 profile while the PHP candidate stay
   assert.match(result.reply.text, /RASCUNHO NÃO ENVIADO/);
   assert.match(getQualificationSummary(result.session), /Landing Page/);
   assert.match(getQualificationSummary(result.session), /Não autorizou/);
+});
+
+test('R08 HTTP runtime dispatches only the exact R07 provider candidate and keeps R08 presentation', async () => {
+  let dispatched = 0;
+  const provider = {
+    kind: 'simulated',
+    async respond(_request, { candidate }) { dispatched++; return candidate; }
+  };
+  const conversationId = 'c'.repeat(32);
+  const runtime = createConversationRuntime({
+    provider, prepareTurn: createQualificationPrepareTurn(conversationId), timeoutMs: 500
+  });
+  const send = (messageId, input) => runtime.send({
+    schema: CONVERSATION_SCHEMA, conversationId, messageId, locale: 'pt-BR', input
+  });
+  try {
+    const proposal = await send('r08_runtime_proposal_01', { type: 'text', text: 'Quero apresentar minha empresa.' });
+    assert.equal(proposal.status, 'answered');
+    assert.equal(proposal.delivery, 'guided_fallback');
+    assert.equal(dispatched, 0);
+
+    const confirmation = await send('r08_runtime_confirm_01', { type: 'action', id: 'confirm_goal' });
+    assert.equal(confirmation.status, 'answered');
+    assert.equal(confirmation.delivery, 'simulated');
+    assert.equal(confirmation.reply.intent, 'r08_qualification_question');
+    assert.match(confirmation.reply.text, /Qual é o principal resultado/);
+    assert.equal(confirmation.reply.sources.length, getGroundedAnswer('goal_presence').sources.length);
+    assert.equal(dispatched, 1);
+
+    const objective = await send('r08_runtime_objective_01', { type: 'action', id: 'r08:objective:present_company' });
+    assert.equal(objective.status, 'answered');
+    assert.equal(objective.delivery, 'guided_fallback');
+    assert.match(objective.reply.text, /Quem você deseja alcançar/);
+    assert.equal(dispatched, 1);
+
+    const faq = await send('r08_runtime_faq_0001', { type: 'text', text: 'Como funciona o projeto?' });
+    assert.equal(faq.status, 'answered');
+    assert.equal(faq.delivery, 'simulated');
+    assert.equal(faq.reply.intent, 'r08_qualification_question');
+    assert.ok(faq.reply.text.includes(getGroundedAnswer('process').text));
+    assert.match(faq.reply.text, /Quem você deseja alcançar/);
+    assert.equal(faq.reply.sources.length, getGroundedAnswer('process').sources.length);
+    assert.equal(dispatched, 2);
+  } finally { runtime.destroy(); }
 });
 
 test('R08 HTTP factories isolate confirmed services and profile state between sessions', () => {
