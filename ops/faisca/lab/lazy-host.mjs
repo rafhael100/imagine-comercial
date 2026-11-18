@@ -2,12 +2,14 @@
 // A loading promise does not survive disconnect or gain business capabilities.
 const hosts = new WeakMap();
 
-export function bindLabHost(host, loadModule = () => import('../ui.mjs')) {
+export function bindLabHost(host, loadModule = () => import('./conversation-ui.mjs')) {
   const previous = hosts.get(host);
   if (previous) return previous;
   const root = host.querySelector('[data-faisca-root]');
   const start = host.querySelector('[data-faisca-lab-start]');
   const feedback = host.querySelector('[data-faisca-lab-status]');
+  const scenario = host.querySelector('[data-faisca-lab-scenario]');
+  const scenarioControl = host.querySelector('[data-faisca-lab-scenarios]');
   if (!root || !start || !feedback || typeof loadModule !== 'function') throw new TypeError('Incomplete laboratory host.');
   let live = true;
   let loading = false;
@@ -24,13 +26,17 @@ export function bindLabHost(host, loadModule = () => import('../ui.mjs')) {
       const module = await loadModule();
       if (!live || ownVersion !== version || !host.isConnected) return;
       if (typeof module?.mountFaisca !== 'function') throw new TypeError('Conversation module unavailable.');
-      instance = module.mountFaisca(root);
+      const selectedScenario = scenario?.value ?? 'success';
+      if (!['success', 'unavailable', 'limit', 'timeout', 'malformed'].includes(selectedScenario)) {
+        throw new TypeError('Invalid laboratory scenario.');
+      }
+      instance = module.mountFaisca(root, { scenario: selectedScenario });
       if (!instance || typeof instance.open !== 'function' || typeof instance.destroy !== 'function') {
         throw new TypeError('Incomplete conversation lifecycle API.');
       }
       instance.open();
       start.hidden = true;
-      feedback.textContent = 'Demonstração ativa. As respostas continuam locais.';
+      feedback.textContent = 'Demonstração ativa com provedor simulado. As respostas são locais; nenhuma IA externa está conectada.';
     } catch {
       if (!live || ownVersion !== version || !host.isConnected) return;
       try { if (typeof instance?.destroy === 'function') instance.destroy(); } catch { /* Keep retry usable. */ }
@@ -45,15 +51,28 @@ export function bindLabHost(host, loadModule = () => import('../ui.mjs')) {
     }
   }
 
+  function changeScenario() {
+    if (!live) return;
+    version += 1;
+    loading = false;
+    try { instance?.destroy(); } catch { /* Preserve a usable activation control. */ }
+    instance = null;
+    start.disabled = false;
+    start.hidden = false;
+    feedback.textContent = 'Cenário alterado. Ative uma nova conversa de laboratório.';
+  }
+
   function destroy() {
     if (!live) return;
     live = false;
     version += 1;
     start.removeEventListener('click', activate);
+    scenario?.removeEventListener('change', changeScenario);
     try { if (typeof instance?.destroy === 'function') instance.destroy(); } catch { /* Teardown must still release the host. */ }
     instance = null;
     start.disabled = false;
     start.hidden = true;
+    if (scenarioControl) scenarioControl.hidden = true;
     feedback.textContent = '';
     hosts.delete(host);
   }
@@ -61,6 +80,8 @@ export function bindLabHost(host, loadModule = () => import('../ui.mjs')) {
   const api = Object.freeze({ activate, destroy });
   hosts.set(host, api);
   start.addEventListener('click', activate);
+  scenario?.addEventListener('change', changeScenario);
+  if (scenarioControl) scenarioControl.hidden = false;
   start.hidden = false;
   return api;
 }

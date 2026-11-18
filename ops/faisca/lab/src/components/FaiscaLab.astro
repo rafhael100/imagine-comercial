@@ -11,9 +11,22 @@ const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE
   .lab-activation button { font: inherit; font-weight: 700; color: #fff; background: #222a27; padding: .75rem 1rem; border: 0; border-radius: .75rem; cursor: pointer; }
   .lab-activation button:focus-visible { outline: 3px solid #9a4d00; outline-offset: 3px; }
   .lab-activation p { margin: 0; color: #49514d; }
+  .lab-activation label { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+  .lab-activation select { max-width: 100%; font: inherit; color: #222a27; background: #fff; padding: .5rem; border: 1px solid #64716a; border-radius: .5rem; }
+  .lab-activation [hidden] { display: none; }
 </style>
 <faisca-lab>
   <div class="lab-activation">
+    <label data-faisca-lab-scenarios hidden>
+      Cenário de teste
+      <select data-faisca-lab-scenario>
+        <option value="success">Atendimento normal</option>
+        <option value="unavailable">Provedor indisponível</option>
+        <option value="limit">Limite atingido</option>
+        <option value="timeout">Resposta demorada</option>
+        <option value="malformed">Resposta inválida</option>
+      </select>
+    </label>
     <button type="button" data-faisca-lab-start hidden>Ativar conversa de laboratório</button>
     <p data-faisca-lab-status role="status">A conversa será carregada quando você ativar.</p>
   </div>

@@ -135,6 +135,9 @@ export function getWelcome() {
 
 export function getCapabilities() { return CAPABILITIES; }
 
+// Read-only interface actions for the isolated conversation contract. No tools.
+export function getActionCatalog() { return ACTIONS; }
+
 export function getSummary(session) {
   const safe = readSession(session);
   return safe ? safe.summary : createSession().summary;

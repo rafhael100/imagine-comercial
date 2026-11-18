@@ -62,7 +62,7 @@ export async function renderDemo({ assetPath, sourceRoot = root } = {}) {
   html = html.replace(/<head>/i, '<head>\n<meta http-equiv="Content-Security-Policy" content="' + policy + '">');
   if (/__FAISCA_[A-Z_]+__/.test(html)) throw new Error('Unresolved build placeholder.');
   return { html, bytes: Buffer.byteLength(html), sha256: sha256(html), image_sha256: manifest.sha256,
-    mode: 'guided_demo', release: 'R02', source_branch: null, base_sha: 'd38a4fc353bdfa277c47df4a46872fcd1c96f2d1' };
+    mode: 'guided_demo', release: 'R03', source_branch: null, base_sha: 'c833c12ff34aaeba56549ae5dc41763a6a909b2a' };
 }
 
 export async function buildDemo({ out = resolve(root, 'output', 'Faisca_Demonstracao.html'), assetPath } = {}) {
