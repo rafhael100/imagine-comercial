@@ -304,3 +304,9 @@ node ops/faisca/qualification/http-browser-qa.mjs
 ```
 
 A evidência é sintética e restrita a loopback. Não há LLM externo, CRM, envio de lead, pagamento ou deploy.
+
+### R08-E — contrato futuro do CRM (documentação, sem escrita)
+
+A especificação preventiva está em `docs/faisca/R08-E-PLANEJAMENTO-CRM.md`. Ela separa a qualificação atual de qualquer coleta de contato e exige identidade de tenant resolvida no servidor, aviso de privacidade, consentimento granular por canal, revisão humana, idempotência, S2S, auditoria, revogação e exclusão antes de habilitar qualquer escrita.
+
+Nenhum endpoint, token, tabela ou integração CRM foi criado. O handoff permanece `copy_only`.
