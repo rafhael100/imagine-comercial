@@ -19,6 +19,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
   let closed = false;
   let epoch = 0;
   const awaitingReconciliation = new Set();
+  const reconciledMessages = new Set();
   let runtime;
 
   function newRuntime() {
@@ -72,7 +73,8 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     }
     const ownEpoch = epoch;
     const receipt = await runtime.send(safe);
-    if (ownEpoch === epoch && !closed && receipt.status === 'unknown') {
+    if (ownEpoch === epoch && !closed && receipt.status === 'unknown' &&
+        !reconciledMessages.has(safe.messageId)) {
       awaitingReconciliation.add(safe.messageId);
     }
     return receipt;
@@ -85,7 +87,10 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     const ownEpoch = epoch;
     const receipt = await runtime.reconcile(safe);
     if (ownEpoch === epoch && !closed && receipt.status !== 'unknown' &&
-        awaitingReconciliation.has(safe.messageId)) awaitingReconciliation.delete(safe.messageId);
+        awaitingReconciliation.has(safe.messageId)) {
+      awaitingReconciliation.delete(safe.messageId);
+      reconciledMessages.add(safe.messageId);
+    }
     return receipt;
   }
 
@@ -96,6 +101,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     journey = createJourney();
     epoch++;
     awaitingReconciliation.clear();
+    reconciledMessages.clear();
     runtime = newRuntime();
     return true;
   }
@@ -105,6 +111,7 @@ export function createAsyncJourneyLab({ conversationId, timeoutMs = 25,
     closed = true;
     runtime.destroy();
     awaitingReconciliation.clear();
+    reconciledMessages.clear();
     journey = createJourney();
   }
 
