@@ -5,7 +5,8 @@ import { getGroundingSources } from './grounding/catalog.mjs';
 // An in-memory laboratory wire contract, not authentication or an HTTP API.
 export const CONVERSATION_SCHEMA = 'faisca.conversation.v1';
 export const RESPONSE_SCHEMA = 'faisca.response.v1';
-const actions = getActionCatalog();
+const actions = Object.freeze({ ...getActionCatalog(),
+  confirm_goal: 'Confirmar meu objetivo', cancel_goal: 'Não, quero avaliar outra opção' });
 const sources = new Map([
   ...Object.values(KNOWLEDGE.sources).map(source => [source.id,
     Object.freeze({ id: source.id, title: source.title, version: KNOWLEDGE.version })]),
