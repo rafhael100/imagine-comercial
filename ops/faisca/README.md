@@ -278,3 +278,15 @@ node --test tests/faisca-r08-qualification.test.mjs
 O perfil exige uma solução já confirmada na R07 e aceita somente escolhas enumeradas para objetivo, público, materiais, previsão e autorização futura de contato. Não existe campo para nome, telefone, e-mail, credencial ou texto livre. O pacote de encaminhamento é apenas um rascunho copiável, com `sent=false`; nada é enviado ou armazenado. A autorização de contato começa em `not_asked` e não é tratada como consentimento legal genérico.
 
 Escopo e sequência: `docs/faisca/R08-QUALIFICACAO-E-HANDOFF.md`. A integração à conversa começa na R08-B após a revisão da PR filha #466.
+
+### R08-B — qualificação progressiva no laboratório
+
+A rota local `/journey/` agora usa a máquina R08 sobre o estado confirmado da R07. Ela apresenta uma pergunta por vez, aceita apenas opções fechadas e permite corrigir uma resposta, limpando as respostas dependentes. O painel de resumo continua sendo somente copiável; nenhuma equipe ou CRM recebe dados.
+
+Após compilar o laboratório Astro conforme a seção R07, execute a regressão de navegador:
+
+```bash
+node ops/faisca/journey/browser-qa.mjs
+```
+
+O teste percorre Onepage → objetivo → público → materiais → previsão → autorização futura de contato, corrige o público e confirma que a autorização anterior volta a ficar não definida. A suíte completa de Node também inclui `tests/faisca-r08-qualification.test.mjs`. Não há envio de contato, armazenamento, scoring ou LLM externo.
