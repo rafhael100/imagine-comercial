@@ -26,7 +26,7 @@ test('selling journey produces a useful curated summary and does not mutate prio
   assert.equal(materials.session.materials, 'help');
   assert.match(summary.reply.text, /Site Onepage/);
   assert.match(summary.reply.text, /orientação para organizar/);
-  assert.match(summary.reply.text, /nenhum dado foi enviado/);
+  assert.match(summary.reply.text, /não foi enviado à equipe/);
   assert.equal(summary.reply.text, getSummary(materials.session));
   assert.ok(Object.isFrozen(materials.session));
   assert.ok(Object.isFrozen(materials.session.selection));

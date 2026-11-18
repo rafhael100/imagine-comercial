@@ -1,45 +1,38 @@
-# Codex — estado R03 e próxima fronteira de servidor R04
+# Codex — estado R04 e próxima ponte com Imagine Agents
 
-17/11/2026, America/Sao_Paulo. Projeto Faísca, prioridade Imagine Comercial. Preservar o modelo visual aprovado. Atividade: [Comercial #444](https://github.com/rafhael100/imagine-comercial/issues/444).
+17/11/2026, America/Sao_Paulo. Projeto Faísca, prioridade Imagine Comercial. Atividade: [#444](https://github.com/rafhael100/imagine-comercial/issues/444). Preservar integralmente a imagem aprovada.
 
-## Estado atual que deve ser reaproveitado
+## Trabalho concluído que deve ser reaproveitado
 
-A R02 foi publicada na [PR #452](https://github.com/rafhael100/imagine-comercial/pull/452), SHA `c833c12ff34aaeba56549ae5dc41763a6a909b2a`. Seus três workflows terminaram aprovados, incluindo os testes de navegador que antes estavam bloqueados localmente.
+- [R02 #452](https://github.com/rafhael100/imagine-comercial/pull/452), SHA `c833c12ff34aaeba56549ae5dc41763a6a909b2a`: mascote, demo guiada, ciclo de vida, Astro e acessibilidade.
+- [R03 #453](https://github.com/rafhael100/imagine-comercial/pull/453), SHA `7baf105b3601774b62c3492340e552300caf5e5b`: contrato fechado, simulador, deduplicação, resposta incerta e conciliação. Os três workflows dessa SHA foram aprovados.
+- **R04 desta branch**, `feat/faisca-r04-loopback-conversation-2026-11-17`: HTTP real em loopback, sessão/contexto emitidos pelo servidor, vínculo da conversa, limites, expiração, cliente sem persistência e consulta manual sem redispatch. Reutiliza o runtime R03 no servidor.
 
-A R03 desta branch implementa:
+Leia `CONTRATO-HTTP-R04.md`, `VALIDACAO-R04.md` e `ops/faisca/README.md`. A R04 não conecta PHP Agents ou modelo externo. Não repetir HTTP como pendente nem reconstruir a UI. A versão editorial atual é `faisca-editorial-2`, com textos compatíveis com os três modos de transporte.
 
-- schemas fechados de entrada e resposta, com correlação e fontes versionadas;
-- runtime volátil com SHA-256 canônico, deduplicação, conflito, capacidade fixa, cancelamento e conciliação;
-- cinco cenários de provedor simulado e ancoragem integral ao candidato editorial;
-- integração assíncrona no laboratório Astro, reset/desmontagem e fallback;
-- testes de contrato, runtime, carregamento, navegador, acessibilidade e isolamento público.
+## Próximo recorte R05: ponte explícita com Agents
 
-Leia `CONTRATO-CONVERSA-R03.md` e `VALIDACAO-R03.md` antes de iniciar. Não reconstruir o widget, regenerar o mascote ou repetir R03 como pendente. A demonstração standalone permanece guiada. A conversa de laboratório não chama IA externa.
+Exercitar uma fronteira real entre o chat e um componente Agents, ainda com conteúdo sintético e provedor sem custo. Antes de implementar, revalidar HEADs, contratos e instruções nos dois repositórios, evitando frente concorrente.
 
-## Próximo recorte: fronteira de servidor em laboratório
+1. Definir ingresso de conversa pública no Agents, separado de sessão autenticada de cliente. ID/token de laboratório não concede tenant, ferramentas ou acesso ao Portal.
+2. Mapear o contrato Faísca para um adaptador revisável no Agents, reaproveitando contratos/coordenadores quando compatíveis. Não apresentar import nominal, fixture ou envelope inerte como integração executada.
+3. Exercitar ciclo entre processos com fixture sintética, correlação e versão de contexto/fonte conferidas nos dois lados. Manter provedor determinístico enquanto política de grounding, retenção, orçamento e identidade não estiver definida.
+4. Preservar reserva, despacho, incerteza e conciliação existentes. Testar perda de resposta, versão incompatível, revogação, conflito e indisponibilidade sem reenvio automático; explicar quais registros ainda são voláteis.
+5. Definir fontes comerciais e FAQ permitidas. Preços, descontos, contratos, checkout e situação do cliente continuam sob autoridade do Portal e fontes homologadas.
+6. Documentar a passagem futura para modelo real: fonte oficial, custo/limite de uso, dados, retenção, observabilidade e indisponibilidade. Não introduzir chamadas pagas ou dados reais como prova de laboratório.
+7. Publicar implementação, contratos e evidências em branches isoladas e PRs draft, preservando dependências. Validar na SHA efetivamente recebida pelos workflows.
 
-O próximo objetivo é exercitar o transporte e o contexto confiável que futuramente receberão o chat. Faça primeiro um ensaio isolado, preservando o contrato R03 e os limites operacionais.
+## Referências revalidadas na R04
 
-1. Revalidar HEADs e instruções no Comercial e no Agents. Criar branch própria a partir da dependência correspondente, sem combinar frentes automaticamente.
-2. Revisar o ponto de adaptação de `AiSuggestionProvider`, o contexto versionado e a governança existentes no Agents. O receiver da Central recebe eventos CRM privados; não o transformar em endpoint de browser.
-3. Especificar a sessão pública de conversa separada de uma sessão de cliente autenticado. Empresa, usuário, serviço e permissões devem ser determinados pelo servidor quando houver contexto autenticado. IDs do visitante nunca concedem acesso.
-4. Exercitar request/response por transporte de laboratório em loopback, usando somente fixtures sintéticas e provedor simulado. A configuração do servidor define fontes, ações, timeouts e limites.
-5. Reutilizar mecanismos de reserva/idempotência do Agents quando aplicáveis; testar concorrência e resposta incerta sem repetir chamadas. Os registros em memória do browser não são a solução persistente.
-6. Testar origem/escopo recusados, schema inválido, correlação errada, cancelamento, timeout, reconciliação, limite e indisponibilidade. Comparar o resultado com o fallback do Comercial.
-7. Antes de sugerir conexão a modelo real, documentar fonte oficial, política de resposta, custo, retenção, operação e observabilidade. Não retirar a ancoragem do simulador para converter a demonstração em IA operacional.
-8. Entregar código, testes, revisão independente e PR draft com evidências na SHA exata. Atualizar o relatório do que foi implementado, validado e efetivamente integrado.
-
-## Referências de reuso já consultadas
-
-| Linha | HEAD examinado |
+| Frente | HEAD examinado |
 |---|---|
 | [Agents P65 #471](https://github.com/rafhael100/imagine-ai-agents/pull/471) | `740abafc813dbde70f5a2ad6e138402ed7945276` |
 | [Central #472](https://github.com/rafhael100/imagine-ai-agents/pull/472) | `8e7f1f21a2927bde3e337edaace0e1e6dffdc29a` |
 
-`AiSuggestionProvider` fornece sugestões sem autoridade. `SupervisedCoordinator` separa sugestão e efeito. `MockKnowledgeRetriever` e `MockContextEnvelope` revalidam fonte/contexto. `MockUsageLedger` é volátil. Laboratórios PostgreSQL mantêm seus guards e não devem ser executados em ambiente persistente.
+`AiSuggestionProvider` fornece sugestões, sem API de conversa. `MockSyntheticHttpEnvelope` é inerte. O receiver Central é privado/mTLS para eventos CRM, separado do browser. Laboratórios PostgreSQL conservam guards de CI descartável: não aplicar migrações em banco persistente ou simular variáveis de CI para execução local.
 
-## Validação e preservação
+## Preservação e autorização
 
-Preservar PNG/hash, template do mascote, estilos aprovados, jornadas e fontes editoriais existentes. Manter laboratório fora de `src/pages`, `public`, sitemap e dist público. Não afrouxar F31/F32, allowlists, pins de CI ou proteções para encaixar a integração.
+Hash aprovado do PNG: `1ede4d88a38e238523c6db7351f22654ffa40b9f8ee2260ea31b162763d8c87d`. Preservar imagem, recorte, cores, template base, estilos e jornadas. Manter laboratório fora de `src/pages`, `public`, sitemap e dist público. Não afrouxar F31/F32, allowlists, pins de Actions ou gates de operação.
 
-A continuidade de desenvolvimento e a publicação de código/documentação em branches de revisão estão autorizadas. A autorização não converte a PR em merge/deploy e não introduz despesas, dados reais ou operação na VPS/DNS. Avançar nas tarefas de laboratório já possíveis e registrar impedimentos concretos quando encontrados.
+A continuidade de desenvolvimento e publicação de código/documentação em branches de revisão está autorizada. Avançar no trabalho de laboratório sem pedir novamente essa aprovação. Merge, deploy, VPS/DNS, gastos, dados reais e comunicação externa não decorrem de CI verde. Registrar impedimentos concretos, sem converter trabalho autorizado em nova rodada de confirmação.

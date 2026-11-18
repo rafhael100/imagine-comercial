@@ -5,7 +5,7 @@
  * This file deliberately has no imports so the preview can be bundled locally.
  */
 export const KNOWLEDGE = Object.freeze({
-  version: 'faisca-editorial-1',
+  version: 'faisca-editorial-2',
   sourceRevision: '209bd893e741e7fd8d824d8e184471a86ee267ab',
   reviewStatus: 'pending_operational_editorial_review',
   sources: {
@@ -62,7 +62,7 @@ export const KNOWLEDGE = Object.freeze({
     results: 'Uma página ou campanha não garante vendas nem posições no Google. Oferta, público, concorrência, investimento e o atendimento comercial influenciam o resultado. Podemos definir o objetivo e os indicadores a acompanhar.',
     scope: 'Entregas, revisões, prazos e condições de continuidade devem ser definidos na proposta antes do aceite. Uma solicitação fora do escopo precisa ser avaliada, sem promessa automática de inclusão.',
     media: 'Investimento nas plataformas de anúncios e remuneração da gestão são itens distintos. A escolha dos canais e as responsabilidades de pagamento devem estar claras na proposta.',
-    privacy: 'Não envie senhas, códigos de acesso, documentos ou informações de pagamento aqui. Esta prévia mantém a conversa apenas na memória da página e não envia dados ao CRM, ao Portal ou a um serviço de IA.'
+    privacy: 'Não envie senhas, códigos de acesso, documentos ou informações de pagamento aqui. Esta prévia não grava a conversa no armazenamento do navegador e não envia dados ao CRM, ao Portal ou a um serviço de IA. A indicação do laboratório informa se as mensagens ficam nesta página ou passam pelo servidor local.'
   },
   processStages: [
     'Entender seu objetivo e público.',

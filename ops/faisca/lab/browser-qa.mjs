@@ -31,7 +31,8 @@ try {
   }
   await collect(output);
   assert.ok(files.has('/index.html'), 'build the isolated Astro laboratory first');
-  assert.equal([...files.keys()].filter(path => path.endsWith('.html')).length, 1);
+  assert.deepEqual([...files.keys()].filter(path => path.endsWith('.html')).sort(),
+    ['/http/index.html', '/index.html'], 'the build contains exactly the two reviewed laboratory pages');
   const uiFiles = [...files.keys()].filter(path => /\/_astro\/conversation-ui\.[^/]+\.js$/.test(path));
   assert.equal(uiFiles.length, 1, 'conversation has a separate lazy-loaded module');
   phase = 'server_start';
@@ -133,7 +134,7 @@ try {
     const summary = await page.locator('#faisca-summary-text').inputValue();
     assert.match(summary, /Site Onepage/);
     assert.match(summary, /textos e imagens já disponíveis/);
-    assert.match(summary, /nenhum dado foi enviado/i);
+    assert.match(summary, /não foi enviado à equipe/i);
   });
   for (const [value, expectedStatus, explanation] of [
     ['unavailable', 'unavailable', /indisponível/i],
