@@ -101,6 +101,12 @@ nem cobertura completa das rotas. Origens fixas, opt-in, bloqueio de CI,
 GET sem cookies ou redirects automáticos e criação exclusiva `0600`
 permanecem obrigatórios.
 
+## Segurança obrigatória da leitura dos snapshots (18/11/2026)
+
+O comparador F310 agora usa um leitor **exclusivo para evidências privadas**, sem alterar o leitor genérico de builds públicos. Em sistemas POSIX, cada snapshot deve pertencer ao operador, ser arquivo regular com permissão **0600**, estar em diretório físico controlado pelo mesmo operador sem acesso de grupo/outros (**0700** é recomendado) e possuir apenas um vínculo físico (hardlinks não são aceitos). O comparador abre um único descritor com `O_NOFOLLOW`, valida permissões, proprietário e vínculos **após abrir**, impõe teto de 100 KiB e exige UTF-8 íntegro. Em plataformas sem semântica POSIX verificável, termina em HOLD; faça a comparação no operador Linux autorizado.
+
+Arquivos existentes com outra permissão não são ajustados automaticamente: o responsável deve verificar procedência e armazenamento antes de corrigir as permissões fora do repositório. Nenhum caminho, hash, conteúdo ou motivo detalhado da rejeição é impresso. Isso não autentica a origem da resposta HTTP nem autoriza publicação. A captura continua com criação exclusiva `0600`; não há POST, deploy ou alteração de DNS.
+
 ## Limites
 
 ### Caminhos privados independentes do diretório de execução
