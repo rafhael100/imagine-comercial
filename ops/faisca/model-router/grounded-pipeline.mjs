@@ -9,6 +9,12 @@ const groundedAnswerIds = new Set([
   'compare_sites', 'channel_compare', 'pricing', 'results', 'scope', 'process'
 ]);
 const safeFallback = 'Não consegui confirmar uma resposta editorial agora. Posso reformular sua dúvida ou pedir que a equipe confirme esse assunto.';
+function clarificationFor(answerId) {
+  if (['goal_presence', 'goal_campaign'].includes(answerId)) return 'service_choice';
+  if (['channel_google', 'channel_meta'].includes(answerId)) return 'goal_clarification';
+  if (answerId === 'materials_help') return 'audience_clarification';
+  return 'support_unknown';
+}
 
 function readInput(value) {
   try {
@@ -106,7 +112,7 @@ export function createGroundedModelPipeline({
         actions: routeResult.route?.actions ?? Object.freeze([]) })
     });
     const answerId = routeResult.route.answerId;
-    if (!groundedAnswerIds.has(answerId)) return hostClarification('service_choice');
+    if (!groundedAnswerIds.has(answerId)) return hostClarification(clarificationFor(answerId));
     const groundingRequest = requestForGrounding(input, answerId);
     const groundingResult = await grounder.send(groundingRequest);
     return combine(routeResult, groundingResult);
