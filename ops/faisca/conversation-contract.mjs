@@ -27,6 +27,7 @@ const qualificationActionLabels = Object.freeze({
 const qualificationActions = Object.freeze({
   'r08:summary': 'Ver resumo parcial',
   'r08:change_service': 'Trocar solução',
+  'r08:keep_service': 'Manter a solução atual',
   'r08:restart': 'Reiniciar atendimento',
   'r08:edit:objective': 'Corrigir objetivo',
   'r08:edit:audience': 'Corrigir público',
