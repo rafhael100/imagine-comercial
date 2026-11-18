@@ -324,3 +324,6 @@ O runtime R09 em `ops/faisca/model-router/runtime.mjs` aceita apenas provider si
 
 
 O pipeline `ops/faisca/model-router/grounded-pipeline.mjs` conecta a seleção R09 ao verificador de fontes R06/PHP. O texto e as fontes só são liberados após validação pelo PHP fixado; seleções de serviço viram esclarecimento fixo, e falhas de grounding não exibem fontes não confirmadas. O gate `ops/faisca/model-router/check-grounded-pipeline.mjs` executa essa integração com PHP CLI real e fixture local de roteamento.
+
+
+A camada R09 também prepara a interpretação de respostas livres da qualificação: `ops/faisca/model-router/field-contract.mjs` classifica apenas entre opções fechadas e retorna `matched/ambiguous/unknown`, sem texto livre. A fixture local é integrada à jornada R08 para aceitar respostas em português; ambiguidade reapresenta as opções, e a troca de serviço só descarta o perfil anterior depois da confirmação. Testes em `tests/faisca-r09-field-router.test.mjs` e nos cenários R08 de `tests/faisca-r08-journey.test.mjs`.
