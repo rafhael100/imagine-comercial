@@ -13,7 +13,7 @@ test('F310 candidate CLI denies the first synthetic 401 without creating AFTER e
  const preload=[
   "import {writeFileSync} from 'node:fs';",
   "let calls=0;",
-  "globalThis.fetch=async()=>{calls++;return new Response('SYNTHETIC_DENIED',{status:401});};",
+  "globalThis.fetch=async(_url,init)=>{calls++;if(init.method==='HEAD')return new Response(null,{status:401,headers:{'www-authenticate':'Basic realm=\\\"Imagine private review\\\"'}});return new Response('SYNTHETIC_DENIED',{status:401});};",
   "process.on('exit',()=>writeFileSync("+JSON.stringify(trace)+",String(calls),{mode:0o600}));"
  ].join('\n');
  try{
@@ -31,6 +31,6 @@ test('F310 candidate CLI denies the first synthetic 401 without creating AFTER e
   assert.equal(result.stdout,'');
   assert.equal(result.stderr,'F-LEGACY-CAPTURE: operator evidence collection unavailable (HOLD)\n');
   assert.equal(existsSync(target),false);
-  assert.equal(readFileSync(trace,'utf8'),'1');
+  assert.equal(readFileSync(trace,'utf8'),'2');
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
