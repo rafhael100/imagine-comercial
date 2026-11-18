@@ -52,7 +52,7 @@ try {
     assert.equal(response.delivery, 'php_grounded');
     assert.equal(response.route.answerId, 'pricing');
     assert.equal(response.reply.text, getGroundedAnswer('pricing').text);
-    assert.deepEqual(response.reply.sources, getGroundedAnswer('pricing').sources);
+    assert.deepEqual(response.reply.sources, getGroundedAnswer('pricing').sources.map(({ id, title }) => ({ id, title })));
   });
 
   await check('R09 comparison question is grounded without changing a service selection', async () => {
