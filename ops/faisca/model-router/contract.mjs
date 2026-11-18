@@ -15,6 +15,48 @@ const clarificationCopy = Object.freeze({
   support_unknown: 'Não encontrei uma informação confirmada para responder com segurança. Posso reformular a dúvida ou preparar um resumo para a equipe.'
 });
 const clarificationIds = Object.freeze(Object.keys(clarificationCopy));
+const stopWords = new Set(['a', 'as', 'ao', 'aos', 'com', 'da', 'das', 'de', 'do', 'dos',
+  'e', 'em', 'essa', 'esse', 'esta', 'este', 'eu', 'me', 'minha', 'meu', 'na', 'nas',
+  'no', 'nos', 'o', 'os', 'para', 'por', 'qual', 'quais', 'que', 'se', 'sua', 'seu',
+  'um', 'uma', 'voce', 'voces', 'quero', 'preciso', 'gostaria']);
+const answerBoosts = Object.freeze({
+  goal_presence: Object.freeze(['onepage', 'apresentar minha empresa', 'apresentar a empresa']),
+  goal_campaign: Object.freeze(['landing page', 'captar contatos', 'captar leads', 'oferta específica']),
+  compare_sites: Object.freeze(['diferença', 'comparar', 'comparação', 'onepage e landing page']),
+  channel_google: Object.freeze(['google ads', 'anúncios no google']),
+  channel_meta: Object.freeze(['meta ads', 'instagram', 'facebook']),
+  pricing: Object.freeze(['quanto custa', 'preço', 'valor', 'investimento']),
+  results: Object.freeze(['resultados', 'resultado garantido', 'garantia de vendas']),
+  scope: Object.freeze(['escopo', 'revisões', 'alterações', 'o que está incluso']),
+  materials_help: Object.freeze(['materiais', 'textos e imagens', 'conteúdo']),
+  process: Object.freeze(['como funciona', 'processo', 'etapas', 'passo a passo'])
+});
+function normalizeText(value) {
+  return value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+}
+function tokens(value) {
+  return normalizeText(value).match(/[a-z0-9]+/g)?.filter(token => token.length > 1 && !stopWords.has(token)) ?? [];
+}
+
+/** Deterministic retrieval only; the model can select only these host-approved candidates. */
+export function retrieveCandidateAnswerIds(userText, maxCandidates = 5) {
+  if (typeof userText !== 'string' || userText.length < 1 || userText.length > 800 ||
+      !Number.isInteger(maxCandidates) || maxCandidates < 1 || maxCandidates > 5) return Object.freeze([]);
+  const normalized = normalizeText(userText);
+  const queryTokens = new Set(tokens(userText));
+  const ranked = CATALOG.answers.map((answer, index) => {
+    const passages = answer.passageIds.map(id => CATALOG.passages.find(item => item.id === id));
+    const corpus = [answer.id, answer.prefix, answer.suffix, ...passages.map(item => item?.text ?? '')].join(' ');
+    const corpusTokens = new Set(tokens(corpus));
+    let score = [...queryTokens].reduce((total, token) => total + (corpusTokens.has(token) ? 1 : 0), 0);
+    for (const phrase of answerBoosts[answer.id] ?? []) {
+      if (normalized.includes(normalizeText(phrase))) score += 4;
+    }
+    return { id: answer.id, score, index };
+  }).filter(item => item.score > 0);
+  ranked.sort((a, b) => b.score - a.score || a.index - b.index);
+  return Object.freeze(ranked.slice(0, maxCandidates).map(item => item.id));
+}
 const blockedIntents = new Set(['sensitive_input', 'unsupported_instruction', 'too_long', 'invalid_input', 'invalid_session']);
 
 function plainData(value, expected) {
