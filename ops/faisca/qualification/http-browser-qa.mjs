@@ -323,6 +323,7 @@ try {
       assert.deepEqual(audit.violations.map(item => item.id), [], 'R08 HTTP accessibility at ' + width + 'px');
     }
     assert.deepEqual(unexpected, []);
+    assert.deepEqual(httpFailures, [], 'No HTTP API request may be rejected during the R08 flow.');
     assert.deepEqual(runtimeErrors, []);
     assert.deepEqual(await context.cookies(), []);
     assert.deepEqual(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length, cookie: document.cookie })),
