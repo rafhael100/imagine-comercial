@@ -1,3 +1,5 @@
+import { getConfirmedService } from '../journey/state.mjs';
+
 const VERSION = 'faisca-lead-profile-r08-1';
 export const LEAD_PROFILE_SCHEMA = 'faisca.lead-profile.v1';
 export const LEAD_HANDOFF_SCHEMA = 'faisca.lead-handoff.v1';
@@ -113,14 +115,20 @@ export function validateLeadProfile(value) {
   return Object.freeze({ ...data });
 }
 
-/** A confirmed R07 service is required; no service is inferred from text. */
-export function createLeadProfile(confirmedService) {
+/** Internal constructor; callers must derive the service from a trusted R07 session. */
+function createLeadProfile(confirmedService) {
   if (!serviceValues.has(confirmedService)) return null;
   return Object.freeze({
     schema: LEAD_PROFILE_SCHEMA, version: VERSION, service: confirmedService,
     objective: null, audience: null, materials: null, timeline: null,
     contactConsent: 'not_asked'
   });
+}
+
+/** Only a trusted, explicitly confirmed R07 selection can start qualification. */
+export function createLeadProfileFromJourney(journeySession) {
+  const confirmedService = getConfirmedService(journeySession);
+  return confirmedService ? createLeadProfile(confirmedService) : null;
 }
 
 /** Accept only a closed option for the named field; arbitrary visitor text is not stored. */
