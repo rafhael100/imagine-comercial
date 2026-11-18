@@ -5,9 +5,11 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {resolve,join} from "node:path";
-assert.equal(process.argv.length,4,"Usage: test-native-astro-preview.mjs <dist> <public|private>");
+assert.ok([4,5].includes(process.argv.length),"Usage: test-native-astro-preview.mjs <dist> <public|private> [onepage-selector]");
 const dir=resolve(process.argv[2]), phase=process.argv[3];
 assert.ok(["public","private"].includes(phase));
+const selectorEnabled=process.argv[4]==="onepage-selector";
+assert.ok(process.argv.length===4||(selectorEnabled&&phase==="private"));
 const html=readFileSync(join(dir,"index.html"),"utf8");
 const base="https://portal-dev.imaginecomunica.com.br/_preview/portal/shop?product=";
 const expected={
@@ -47,4 +49,18 @@ if(phase==="public"){
   assert.ok(!html.includes("asaas-access-token")&&!html.includes("access_token:"));
 }
 assert.ok(html.includes('class="hero hero-main"'),"Approved hero must remain present");
+const selectorActions=[...html.matchAll(/<a\b[^>]*\bdata-choice-action(?:="[^"]*")?[^>]*>[\s\S]*?<\/a>/g)];
+assert.equal(selectorActions.length,1,"The primary selector must have one server-rendered action");
+const selector=selectorActions[0][0];
+if(selectorEnabled){
+ assert.ok(selector.includes('href="'+expected.onepage+'"'),"No-JavaScript Onepage handoff must match the reviewed URL");
+ assert.ok(!selector.includes('target="'),"Private Onepage selector must remain in the same tab");
+ assert.ok(selector.includes('rel="noreferrer nofollow"'));
+ assert.ok(selector.includes('Continuar Onepage no Portal de teste'));
+ assert.ok(html.includes('data-choice-onepage-preview="'+expected.onepage+'"'));
+}else{
+ assert.ok(!html.includes('data-choice-onepage-preview'),"No capability may be emitted without the selector opt-in");
+ assert.ok(/href="https:\/\/wa\.me\//.test(selector),"Default selector must retain WhatsApp");
+ assert.ok(selector.includes('target="_blank"')&&selector.includes('rel="noopener noreferrer"'));
+}
 console.log("PASS native Astro "+phase+" CTAs; no traffic or publication");

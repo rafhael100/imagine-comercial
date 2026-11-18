@@ -3,9 +3,13 @@ on:
   pull_request:
     paths:
       - 'src/components/QuickServiceRequest.astro'
+      - 'src/components/CommercialChoicePreview.astro'
       - 'src/lib/commercial-choice-preview.mjs'
       - 'src/lib/commercial-selection-preview.mjs'
       - 'ops/review/purchase/private-portal-handoff-policy.mjs'
+      - 'ops/review/purchase/portal-choice-handoff-gate.mjs'
+      - 'ops/review/purchase/test-native-astro-preview.mjs'
+      - 'tests/portal-choice-handoff-gate.test.mjs'
       - 'ops/review/purchase/test-crossrepo-v5-browser-http.py'
       - 'ops/review/purchase/test-crossrepo-v5-owned-quotes.sql'
       - '.github/workflows/comercial-portal-v5-http-parity.yml'
@@ -51,11 +55,12 @@ jobs:
         working-directory: comercial
         env:
           IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW: '1'
+          IMAGINE_PORTAL_CHOICE_HANDOFF_PREVIEW: '1'
         run: |
           set -euo pipefail
           npm ci --no-audit --no-fund
           npm run build
-          node ops/review/purchase/test-native-astro-preview.mjs dist private
+          node ops/review/purchase/test-native-astro-preview.mjs dist private onepage-selector
       - name: Build the pinned Portal runtime without PSP credentials
         working-directory: portal
         run: |
