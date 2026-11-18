@@ -70,12 +70,15 @@ export function getQualificationSummary(session) {
 }
 
 function serviceChoiceReply(session, text = 'Qual solução você deseja avaliar?', userText = labels.changeService) {
+  const hasProfile = Boolean(session.profile);
   return Object.freeze({
-    session: createState(session.journey, null, 'sales'),
+    session: createState(session.journey, session.profile,
+      hasProfile ? 'service_reselect' : 'sales', hasProfile ? session.phase : null),
     userText,
     reply: makeReply(text, 'r08_service_choice', [], [
       action('goal_presence', 'Site Onepage'),
-      action('goal_campaign', 'Landing Page')
+      action('goal_campaign', 'Landing Page'),
+      ...(hasProfile ? [action('r08:keep_service', 'Manter a solução atual')] : [])
     ])
   });
 }
@@ -157,6 +160,24 @@ export function respondQualificationJourney(session, rawInput) {
   if (input.type === 'action' && input.id === 'r08:restart') return freshReply();
   if (input.type === 'action' && input.id === 'r08:change_service') {
     return serviceChoiceReply(session, 'Sem problema. Vamos rever a solução antes de continuar a qualificação.');
+  }
+  if (session.phase === 'service_reselect') {
+    if (input.type === 'action' && input.id === 'r08:keep_service') {
+      const restoredPhase = session.previousPhase === 'complete' ? 'complete' : 'qualification';
+      return questionReply(createState(session.journey, session.profile, restoredPhase),
+        session.profile, 'Tudo bem. Vamos manter a solução atual.', [], 'Manter a solução atual');
+    }
+    if (input.type === 'action' && ['goal_presence', 'goal_campaign'].includes(input.id)) {
+      const result = respondJourney(session.journey, input);
+      if (result.session.pendingGoal !== null) {
+        return Object.freeze({
+          session: createState(result.session, session.profile, 'service_change_pending', session.previousPhase ?? 'qualification'),
+          userText: result.userText,
+          reply: result.reply
+        });
+      }
+    }
+    return serviceChoiceReply(session, 'Escolha a nova solução ou mantenha a atual.');
   }
   if (session.phase === 'service_change_pending') {
     if (input.type === 'action' && input.id === 'confirm_goal') {
