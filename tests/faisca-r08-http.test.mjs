@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { validateConversationRequest, CONVERSATION_SCHEMA } from '../ops/faisca/conversation-contract.mjs';
 import { createQualificationPrepareTurn } from '../ops/faisca/qualification/http-runtime.mjs';
 import { getQualificationSummary } from '../ops/faisca/qualification/journey.mjs';
+import { getGroundedAnswer } from '../ops/faisca/grounding/guide.mjs';
 
 function request(input, messageId = 'r08_http_message_0001', conversationId = 'a'.repeat(32)) {
   return validateConversationRequest({
@@ -66,7 +67,7 @@ test('R08 HTTP grounded FAQ retains the R08 profile while the PHP candidate stay
   result = prepare(session, { type: 'text', text: 'Como funciona o projeto?' });
   assert.equal(result.reply.intent, 'r08_qualification_complete');
   assert.equal(result.providerReply.intent, 'process');
-  assert.match(result.reply.text, /Como funciona o projeto/);
+  assert.ok(result.reply.text.includes(getGroundedAnswer('process').text));
   assert.match(result.reply.text, /RASCUNHO NÃO ENVIADO/);
   assert.match(getQualificationSummary(result.session), /Landing Page/);
   assert.match(getQualificationSummary(result.session), /Não autorizou/);
