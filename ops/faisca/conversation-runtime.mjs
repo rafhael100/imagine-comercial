@@ -138,6 +138,10 @@ export function createConversationRuntime({ provider, timeoutMs = 250, maxEntrie
       if (!live) return;
       let code;
       try { code = Object.getOwnPropertyDescriptor(error, 'code')?.value; } catch { /* Unknown rejection stays generic. */ }
+      // A started process with no trustworthy result is still unresolved.
+      // Keep its reservation and block redispatch until reset/expiry; a closed
+      // pipe or hard deadline does not establish what happened after dispatch.
+      if (code === 'provider_unknown') { markUnknown(entry, 'provider_unknown'); return; }
       const status = code === 'provider_limit' ? 'provider_limit' : 'unavailable';
       settle(entry, outcome(status, { reply: entry.guide, accepted: true, delivery: 'guided_fallback' }));
     });

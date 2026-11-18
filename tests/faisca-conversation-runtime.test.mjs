@@ -154,6 +154,26 @@ test('late invalid response is rejected during reconciliation and releases the c
   assert.equal(provider.count(), 1);
 });
 
+test('a lost provider result preserves the unknown reservation and cannot become a retry or known failure', async t => {
+  for (const timeoutFirst of [false, true]) {
+    const provider = deferredProvider();
+    const runtime = createConversationRuntime({ provider, timeoutMs: timeoutFirst ? 5 : 1000 }); t.after(() => runtime.destroy());
+    const pending = runtime.send(request()); await until(() => provider.count() === 1);
+    let initial;
+    if (timeoutFirst) initial = await pending;
+    provider.work[0].reject(Object.assign(new Error('PRIVATE_SYNTHETIC_DETAIL'), { code: 'provider_unknown' }));
+    const unknown = initial || await pending;
+    assert.equal(unknown.status, 'unknown'); assert.equal(unknown.delivery, 'unknown');
+    assert.equal(unknown.reason, timeoutFirst ? 'timeout_after_dispatch' : 'provider_unknown');
+    await delay(0);
+    assert.equal(await runtime.send(request()), unknown);
+    assert.equal((await runtime.reconcile(request())).status, 'unknown');
+    assert.equal((await runtime.send(request({ messageId: 'message_synthetic_0002' }))).status, 'busy');
+    assert.equal(runtime.inspect().pending, 1); assert.equal(provider.count(), 1);
+    assert.doesNotMatch(unknown.reply.text, /PRIVATE_SYNTHETIC_DETAIL/);
+  }
+});
+
 test('known provider failures return honest local guidance and preserve guided context', async t => {
   for (const [scenario, expected] of [['unavailable', 'unavailable'], ['limit', 'provider_limit'], ['malformed', 'invalid_response']]) {
     const provider = createSimulatedProvider({ scenario, delayMs: 0 }); const runtime = createConversationRuntime({ provider }); t.after(() => runtime.destroy());

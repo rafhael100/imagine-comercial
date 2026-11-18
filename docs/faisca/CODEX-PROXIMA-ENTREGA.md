@@ -1,38 +1,46 @@
-# Codex — estado R04 e próxima ponte com Imagine Agents
+# Codex — estado R05 e próxima etapa do Faísca
 
-17/11/2026, America/Sao_Paulo. Projeto Faísca, prioridade Imagine Comercial. Atividade: [#444](https://github.com/rafhael100/imagine-comercial/issues/444). Preservar integralmente a imagem aprovada.
+18/11/2026, America/Sao_Paulo. Projeto Faísca, prioridade Imagine Comercial. Atividade: [#444](https://github.com/rafhael100/imagine-comercial/issues/444). Preservar integralmente a imagem aprovada.
 
-## Trabalho concluído que deve ser reaproveitado
+## Base já entregue e reutilizada
 
-- [R02 #452](https://github.com/rafhael100/imagine-comercial/pull/452), SHA `c833c12ff34aaeba56549ae5dc41763a6a909b2a`: mascote, demo guiada, ciclo de vida, Astro e acessibilidade.
-- [R03 #453](https://github.com/rafhael100/imagine-comercial/pull/453), SHA `7baf105b3601774b62c3492340e552300caf5e5b`: contrato fechado, simulador, deduplicação, resposta incerta e conciliação. Os três workflows dessa SHA foram aprovados.
-- **R04 desta branch**, `feat/faisca-r04-loopback-conversation-2026-11-17`: HTTP real em loopback, sessão/contexto emitidos pelo servidor, vínculo da conversa, limites, expiração, cliente sem persistência e consulta manual sem redispatch. Reutiliza o runtime R03 no servidor.
-
-Leia `CONTRATO-HTTP-R04.md`, `VALIDACAO-R04.md` e `ops/faisca/README.md`. A R04 não conecta PHP Agents ou modelo externo. Não repetir HTTP como pendente nem reconstruir a UI. A versão editorial atual é `faisca-editorial-2`, com textos compatíveis com os três modos de transporte.
-
-## Próximo recorte R05: ponte explícita com Agents
-
-Exercitar uma fronteira real entre o chat e um componente Agents, ainda com conteúdo sintético e provedor sem custo. Antes de implementar, revalidar HEADs, contratos e instruções nos dois repositórios, evitando frente concorrente.
-
-1. Definir ingresso de conversa pública no Agents, separado de sessão autenticada de cliente. ID/token de laboratório não concede tenant, ferramentas ou acesso ao Portal.
-2. Mapear o contrato Faísca para um adaptador revisável no Agents, reaproveitando contratos/coordenadores quando compatíveis. Não apresentar import nominal, fixture ou envelope inerte como integração executada.
-3. Exercitar ciclo entre processos com fixture sintética, correlação e versão de contexto/fonte conferidas nos dois lados. Manter provedor determinístico enquanto política de grounding, retenção, orçamento e identidade não estiver definida.
-4. Preservar reserva, despacho, incerteza e conciliação existentes. Testar perda de resposta, versão incompatível, revogação, conflito e indisponibilidade sem reenvio automático; explicar quais registros ainda são voláteis.
-5. Definir fontes comerciais e FAQ permitidas. Preços, descontos, contratos, checkout e situação do cliente continuam sob autoridade do Portal e fontes homologadas.
-6. Documentar a passagem futura para modelo real: fonte oficial, custo/limite de uso, dados, retenção, observabilidade e indisponibilidade. Não introduzir chamadas pagas ou dados reais como prova de laboratório.
-7. Publicar implementação, contratos e evidências em branches isoladas e PRs draft, preservando dependências. Validar na SHA efetivamente recebida pelos workflows.
-
-## Referências revalidadas na R04
-
-| Frente | HEAD examinado |
+| Etapa | Entrega |
 |---|---|
-| [Agents P65 #471](https://github.com/rafhael100/imagine-ai-agents/pull/471) | `740abafc813dbde70f5a2ad6e138402ed7945276` |
-| [Central #472](https://github.com/rafhael100/imagine-ai-agents/pull/472) | `8e7f1f21a2927bde3e337edaace0e1e6dffdc29a` |
+| [R02 #452](https://github.com/rafhael100/imagine-comercial/pull/452) | PNG aprovado, demo guiada, ciclo de vida, Astro e acessibilidade; SHA `c833c12ff34aaeba56549ae5dc41763a6a909b2a` |
+| [R03 #453](https://github.com/rafhael100/imagine-comercial/pull/453) | Contrato fechado, simulador, deduplicação, incerteza e conciliação; SHA `7baf105b3601774b62c3492340e552300caf5e5b` |
+| [R04 #456](https://github.com/rafhael100/imagine-comercial/pull/456) | HTTP loopback real, sessão/contexto emitidos pelo servidor, limites, expiração e cliente sem persistência; SHA `5cc938e72f3ec1df7f61dbd68be97d68bc79f569` |
+| R05 desta branch | Processo PHP Agents real, pin entre repositórios, recibo sintético validado, revalidação de contexto na entrega e preservação de resultado incerto |
 
-`AiSuggestionProvider` fornece sugestões, sem API de conversa. `MockSyntheticHttpEnvelope` é inerte. O receiver Central é privado/mTLS para eventos CRM, separado do browser. Laboratórios PostgreSQL conservam guards de CI descartável: não aplicar migrações em banco persistente ou simular variáveis de CI para execução local.
+Leia `CONTRATO-AGENTS-R05.md`, `VALIDACAO-R05.md` e `ops/faisca/README.md`. A R05 tem entrada própria `ops/faisca/agents/serve.mjs`, porta padrão 4331, sobre o servidor HTTP R04. A base editorial permanece `faisca-editorial-2`.
+
+## O que a R05 comprova
+
+O Node inicia um PHP de invocação única. O PHP chama as classes originais `MockKnowledgeRetriever`, `MockContextEnvelope`, `SupervisedCoordinator` e `MockAiSuggestionProvider`, com contexto Faísca sintético fixo e gateway que recusa efeitos. O consumidor exige correlação, versão, hashes, sugestão exata e contadores derivados da execução. Fontes/grant são revalidados antes de entregar. A CI específica exige PHP real e navegador real, sem skip ou substituto JavaScript.
+
+O PHP recebe identificadores, hashes e referências curadas; o texto final continua vindo do Comercial. A passagem recuperada no PHP é uma fixture agregada das referências admitidas. Não apresentar esse digest como recuperação do documento comercial completo, geração por LLM, autenticação de cliente ou execução de uma ação no CRM.
+
+O pin completo está em `ops/faisca/agents/pin.json`, incluindo a SHA Agents e os hashes dos 19 arquivos necessários. A candidata Agents deriva da P67 [#476](https://github.com/rafhael100/imagine-ai-agents/pull/476), SHA `0c722eee6bd53a7ee46c4ba68ab70200fc191b78`. O runtime R03 continua sendo o único ledger; consulta não redispara PHP. Um processo encerrado sem recibo válido permanece incerto até descarte da sessão, sem recuperação entre reinícios.
+
+## Próximo recorte R06: conhecimento comercial verificável
+
+Avançar da validação de referências para uma recuperação limitada de **trechos comerciais efetivamente usados** na resposta, ainda em laboratório e com provedor determinístico. O objetivo é demonstrar a relação entre pergunta, trecho aprovado, resposta e fonte antes de introduzir geração externa.
+
+1. Revalidar HEADs e instruções nos dois repositórios e localizar frentes concorrentes. Não presumir que as candidatas R02–R05 foram integradas.
+2. Usar as fontes públicas e jornadas já curadas; definir trechos, identificação, versão, validade e limites de tamanho. Preservar o tratamento de conteúdo recuperado como dado sem autoridade para instruir ferramentas.
+3. Adaptar a passagem de conhecimento à fronteira Agents com contrato próprio e testes de correspondência. Não relaxar silenciosamente os limites de 256 bytes do contrato original de sugestão ou os limites do retriever existente.
+4. Criar um conjunto pequeno e revisável de perguntas reais do domínio, usando dados fictícios, para medir resposta com suporte, ausência de fonte, ambiguidade, contradição e recusa. A resposta deve indicar quando o catálogo não sustenta uma conclusão.
+5. Preservar a UI, o ledger, a conciliação e os contratos já exercitados. Validar revogação e alteração da fonte entre seleção e entrega; uma resposta tardia não herda automaticamente a autoridade anterior.
+6. Documentar separadamente o contrato de um futuro modelo: entrada permitida, saída estruturada, grounding, limites de uso, retenção e comportamento indisponível. Integração paga, conta de provedor e dados reais exigem escopo concreto próprio; não são necessários para concluir este laboratório.
+7. Publicar código, contrato e evidências em PRs de rascunho vinculados. Vincular resultados às SHAs efetivamente executadas.
+
+## Frentes paralelas que não devem ser misturadas
+
+Na preparação R05, o Comercial tinha [#454](https://github.com/rafhael100/imagine-comercial/pull/454) e [#455](https://github.com/rafhael100/imagine-comercial/pull/455) em uma linha separada de segurança e pin SEO. A Central tinha [#475](https://github.com/rafhael100/imagine-ai-agents/pull/475) em linha própria. Essas frentes foram observadas, não incorporadas à candidata Faísca.
+
+O receiver Central permanece privado/mTLS para eventos CRM; `MockSyntheticHttpEnvelope` é inerte. Nenhum desses contratos substitui a entrada pública de conversa. Laboratórios PostgreSQL conservam seus guards de CI descartável.
 
 ## Preservação e autorização
 
-Hash aprovado do PNG: `1ede4d88a38e238523c6db7351f22654ffa40b9f8ee2260ea31b162763d8c87d`. Preservar imagem, recorte, cores, template base, estilos e jornadas. Manter laboratório fora de `src/pages`, `public`, sitemap e dist público. Não afrouxar F31/F32, allowlists, pins de Actions ou gates de operação.
+SHA-256 aprovado do PNG: `1ede4d88a38e238523c6db7351f22654ffa40b9f8ee2260ea31b162763d8c87d`. Preservar imagem, recorte, cores, template base, estilos e jornadas. Manter laboratório fora de `src/pages`, `public`, sitemap e dist público. Não afrouxar F31/F32, allowlists, pins de Actions ou gates existentes.
 
-A continuidade de desenvolvimento e publicação de código/documentação em branches de revisão está autorizada. Avançar no trabalho de laboratório sem pedir novamente essa aprovação. Merge, deploy, VPS/DNS, gastos, dados reais e comunicação externa não decorrem de CI verde. Registrar impedimentos concretos, sem converter trabalho autorizado em nova rodada de confirmação.
+A continuidade de desenvolvimento e publicação de código/documentação em branches de revisão está autorizada. Avançar nesse trabalho sem repetir o pedido de aprovação. Merge, deploy, VPS/DNS, gastos, dados reais e comunicação externa não decorrem de CI verde. Registrar impedimentos concretos e evidências de execução; não confundir código publicado para revisão com funcionalidade ativada em produção.
