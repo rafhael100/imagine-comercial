@@ -35,7 +35,8 @@ O contrato reduz a liberdade do modelo de propósito: ele pode ajudar a entender
 ## Testes
 
 ```bash
-node --test tests/faisca-r09-model-router.test.mjs
+node --test tests/faisca-r09-*.test.mjs
+node ops/faisca/model-router/demo.mjs
 ```
 
 Os testes cobrem pré-validação, candidatos fechados, respostas fundamentadas, clarificação, falta de suporte, injeção de instruções, saída com texto inventado, ações de CRM e requisições clonadas.
