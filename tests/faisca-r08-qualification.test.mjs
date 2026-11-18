@@ -22,6 +22,10 @@ test('R08 profile can only begin from a service explicitly confirmed in a truste
   assert.equal(createLeadProfileFromJourney(proposed.session), null);
   assert.equal(confirmedProfile('onepage').service, 'onepage');
   assert.equal(confirmedProfile('landing-page').service, 'landing-page');
+  const previouslyConfirmed = confirmedJourney('onepage');
+  const replacementPending = respondJourney(previouslyConfirmed, { type: 'text', text: 'Preciso captar contatos para uma oferta.' });
+  assert.equal(createLeadProfileFromJourney(replacementPending.session), null,
+    'a pending replacement service must be confirmed before qualification can start');
   assert.equal(createLeadProfileFromJourney({ ...confirmedJourney('onepage') }), null);
 });
 
