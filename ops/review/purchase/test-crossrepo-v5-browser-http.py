@@ -90,6 +90,18 @@ def from_commercial(page, slug):
     VISITED.add(slug)
 
 
+def submit_account(page, label):
+    # A click only waits for navigation commit. Capture the real redirected
+    # document and wait for its DOM before inspecting the server-rendered form.
+    # This observes the auth result; it never navigates to reconstruct context.
+    with page.expect_response(lambda response: response.request.is_navigation_request()
+                              and response.request.method == "GET"
+                              and response.request.frame == page.main_frame) as arrived:
+        page.get_by_role("button", name=label, exact=True).click()
+    check(arrived.value.status == 200, "Account entry must return a successful document")
+    page.wait_for_load_state("domcontentloaded")
+
+
 def signup(page):
     check(page.url.rstrip("/") == PORTAL, "Anonymous CTA must reach login")
     page.get_by_role("link", name="Criar minha conta de teste", exact=True).click()
@@ -103,7 +115,7 @@ def signup(page):
         "password_confirmation": PASSWORD,
     }.items():
         page.locator(f'[name="{name}"]').fill(value)
-    page.get_by_role("button", name="Criar conta e continuar", exact=True).click()
+    submit_account(page, "Criar conta e continuar")
     return username
 
 
@@ -111,7 +123,7 @@ def login(page, username):
     check(page.url.rstrip("/") == PORTAL, "Login must start on the real Portal login page")
     page.locator('[name="username"]').fill(username)
     page.locator('[name="password"]').fill(PASSWORD)
-    page.get_by_role("button", name="Entrar", exact=True).click()
+    submit_account(page, "Entrar")
 
 
 def logout(page):
@@ -125,6 +137,7 @@ def selection(page, slug, channel=None):
     # Reconstructing the lost channel here would hide the original regression.
     check(page.url == PORTAL_LOOPBACK + EXPECTED[slug],
           "Product and visual channel must survive the actual auth handoff")
+    page.wait_for_load_state("domcontentloaded")
     form = page.locator(f'form[action="{PORTAL}/shop/orders"]')
     check(form.count() == 1, "Exactly one selected product form is expected")
     product = "performance" if channel else slug
