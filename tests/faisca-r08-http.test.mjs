@@ -203,6 +203,43 @@ test('R08 pending service change preserves the old profile and remains a local H
   } finally { runtime.destroy(); }
 });
 
+test('R08 HTTP service switch menu can retain the current service without losing its profile', async () => {
+  let providerCalls = 0;
+  const runtime = createConversationRuntime({
+    provider: {
+      kind: 'simulated',
+      respond(_request, { candidate }) { providerCalls++; return candidate; }
+    },
+    prepareTurn: createQualificationPrepareTurn('e'.repeat(32)),
+    timeoutMs: 500
+  });
+  const send = async (messageId, input) => {
+    const envelope = request(input, messageId, 'e'.repeat(32));
+    const outcome = await runtime.send(envelope);
+    assert.ok(validateHttpResult(createHttpResult(envelope, outcome), envelope));
+    return outcome;
+  };
+  try {
+    await send('r08_keep_proposal_01', { type: 'text', text: 'Quero apresentar minha empresa.' });
+    await send('r08_keep_confirm_01', { type: 'action', id: 'confirm_goal' });
+    await send('r08_keep_objective_01', { type: 'action', id: 'r08:objective:present_company' });
+    await send('r08_keep_audience_01', { type: 'action', id: 'r08:audience:businesses' });
+    await send('r08_keep_materials_01', { type: 'action', id: 'r08:materials:ready' });
+    await send('r08_keep_timeline_01', { type: 'action', id: 'r08:timeline:flexible' });
+    const complete = await send('r08_keep_consent_01', { type: 'action', id: 'r08:contactConsent:declined' });
+    assert.equal(complete.reply.intent, 'r08_qualification_complete');
+    const menu = await send('r08_keep_menu_01', { type: 'action', id: 'r08:change_service' });
+    assert.equal(menu.reply.intent, 'r08_service_choice');
+    assert.ok(menu.reply.actions.some(item => item.id === 'r08:keep_service'));
+    const kept = await send('r08_keep_current_01', { type: 'action', id: 'r08:keep_service' });
+    assert.equal(kept.reply.intent, 'r08_qualification_complete');
+    assert.match(kept.reply.text, /Site Onepage/);
+    assert.match(kept.reply.text, /Outras empresas/);
+    assert.match(kept.reply.text, /Não concedida/);
+    assert.equal(providerCalls, 1);
+  } finally { runtime.destroy(); }
+});
+
 test('R08 HTTP factories isolate confirmed services and profile state between sessions', () => {
   const prepareA = createQualificationPrepareTurn('a'.repeat(32));
   const prepareB = createQualificationPrepareTurn('b'.repeat(32));
