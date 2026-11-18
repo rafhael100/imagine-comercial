@@ -37,7 +37,9 @@ function readSpecialAction(input) {
 }
 
 function createState(coreSession, pendingGoal, turnIndex) {
-  const session = Object.freeze({ version: JOURNEY_VERSION, coreSession, pendingGoal, turnIndex });
+  // Expose only the existing public selection fields for the shared visual shell.
+  // The authoritative R07 session remains the opaque coreSession reference.
+  const session = Object.freeze({ ...coreSession, version: JOURNEY_VERSION, coreSession, pendingGoal, turnIndex });
   trusted.add(session);
   return session;
 }
