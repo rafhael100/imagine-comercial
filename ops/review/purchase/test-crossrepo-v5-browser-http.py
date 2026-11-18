@@ -90,6 +90,62 @@ def from_commercial(page, slug):
     VISITED.add(slug)
 
 
+def from_onepage_selector(page):
+    check(page.goto(COMMERCIAL, wait_until="domcontentloaded").status == 200,
+          "The real selector page must load")
+    selector = page.locator("[data-choice-preview]")
+    check(selector.count() == 1, "One compiled selector must own the handoff")
+    action = selector.locator("[data-choice-action]")
+
+    def onepage_link():
+        check(action.get_attribute("href") == PORTAL_ORIGIN + EXPECTED["onepage"],
+              "Only Onepage without advertising may enter its exact private URL")
+        check(action.get_attribute("target") is None
+              and set((action.get_attribute("rel") or "").split()) == {"noreferrer", "nofollow"},
+              "The private selector must keep same-tab, non-referring navigation")
+        check("Continuar Onepage no Portal de teste" in action.inner_text(),
+              "The action must describe the test Portal, not WhatsApp")
+
+    def contact_link():
+        check((action.get_attribute("href") or "").startswith("https://wa.me/"),
+              "Unsupported selections must retain their existing contact option")
+        check(action.get_attribute("target") == "_blank"
+              and set((action.get_attribute("rel") or "").split()) == {"noopener", "noreferrer"},
+              "Contact fallback must restore its original target and rel")
+        check("Conversar no WhatsApp sobre esta escolha" in action.inner_text(),
+              "Contact fallback must restore its matching label")
+
+    onepage_link()
+    for channel in ("google_ads", "meta_ads", "chatgpt_ads"):
+        selector.locator(f'[data-choice-channel="{channel}"]').click()
+        contact_link()
+        selector.locator(f'[data-choice-channel="{channel}"]').click()
+        onepage_link()
+    selector.locator('[data-choice-site="landing-pages"]').click()
+    contact_link()
+    selector.locator('[data-choice-site="none"]').click()
+    check(action.get_attribute("aria-disabled") == "true"
+          and action.get_attribute("href") == "/contato/",
+          "Empty selection must not retain the private handoff")
+    selector.locator('[data-choice-channel="google_ads"]').click()
+    contact_link()
+    selector.locator('[data-choice-channel="google_ads"]').click()
+    selector.locator('[data-choice-site="onepage"]').click()
+    selector.locator('[data-choice-channel="google_ads"]').click()
+    selector.locator('[data-choice-tier="minimum"]').click()
+    contact_link()
+    selector.locator('[data-choice-channel="google_ads"]').click()
+    onepage_link()
+    original = urlsplit(action.get_attribute("href"))
+    check(original.query == "product=onepage" and not original.fragment,
+          "No estimate, tier, identity or payment fields may travel to the Portal")
+    action.evaluate("(element, url) => element.setAttribute('href', url)",
+                    PORTAL_LOOPBACK + original.path + "?" + original.query)
+    action.click()
+    check(page.url.rstrip("/") == PORTAL,
+          "Anonymous Onepage selector must reach the actual account-entry page")
+
+
 def submit_account(page, label):
     # A click only waits for navigation commit. Capture the real redirected
     # document and wait for its DOM before inspecting the server-rendered form.
@@ -279,9 +335,19 @@ def main():
         context.route("**/*", loopback_only)
         page = context.new_page()
         try:
-            # New customer: Google channel must survive the real signup flow.
-            from_commercial(page, "gestao-google-ads")
+            # Start with the real primary selector, then authenticate in Portal.
+            # No JS-only state, price or customer field is appended to the URL.
+            from_onepage_selector(page)
             owner_a = signup(page)
+            selection(page, "onepage")
+            onepage = create(page)
+            site(page, "R$ 990,00", "R$ 330,00")
+            page.reload()
+            site(page, "R$ 990,00", "R$ 330,00")
+
+            # The four original card CTAs remain independently exercised.
+            # Google registration is still tested for owner B below.
+            from_commercial(page, "gestao-google-ads")
             form = selection(page, "gestao-google-ads", "google_ads")
             payload = submission(form)
             check(local_request(page, "POST", PORTAL + "/shop/orders", {**payload, "google_media": "700"}).status == 422,
@@ -309,7 +375,8 @@ def main():
 
             from_commercial(page, "onepage")
             selection(page, "onepage")
-            onepage = create(page)
+            check(page.goto(onepage, wait_until="domcontentloaded").status == 200,
+                  "The same buyer must reopen the selector-created Onepage order")
             site(page, "R$ 990,00", "R$ 330,00")
             page.reload()
             site(page, "R$ 990,00", "R$ 330,00")

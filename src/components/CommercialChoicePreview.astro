@@ -1,7 +1,8 @@
 ---
 /**
  * F324 — anonymous selection and estimate, not a cart or live checkout.
- * No forms, tracking, persistence, payment, browser requests or private links.
+ * No forms, tracking, persistence, payment or automatic browser requests.
+ * Onepage may enter the existing Portal preview only in the opted-in CI build.
  */
 import {intlPath} from '../data/i18n.mjs';
 import {buildCommercialChoicePreview,describeThreeIllustrativeInstallments} from '../lib/commercial-choice-preview.mjs';
@@ -10,6 +11,7 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  import {assessPublicPortalReadiness,describePublicPortalReadiness} from '../lib/public-portal-checkout-readiness.mjs';
 import {describeSelectedQuoteServices} from '../lib/public-quote-item-labels.mjs';
 import {describeSelectedAdvertisingCosts} from '../lib/public-quote-channel-breakdown.mjs';
+import {reviewedCiOnlyOnepageSelectorHref} from '../../ops/review/purchase/portal-choice-handoff-gate.mjs';
 interface Props {locale?:'pt-BR'|'en'|'es';}
 const {locale='pt-BR'}=Astro.props;
 if(!['pt-BR','en','es'].includes(locale))throw Error('Unreviewed quote locale');
@@ -48,7 +50,12 @@ const copy=locale==='en'?{
 };
 const initial=buildCommercialChoicePreview({site:'onepage',channels:[],tier:'recommended'});
 const initialServices=describeSelectedQuoteServices({site:'onepage',channels:[],tier:'recommended'},locale);
-const initialHref=reviewedQuoteChoiceHref(locale,{site:'onepage',channels:[],tier:'recommended'});
+// Build-owned capability; the ops policy and private origin are never imported
+// by the browser script. Normal builds do not emit a private destination.
+const onepagePreviewHref=reviewedCiOnlyOnepageSelectorHref();
+const onepagePreviewLabel=locale==='en'?'Continue with Onepage in the test Portal':locale==='es'?'Continuar con Onepage en el Portal de prueba':'Continuar Onepage no Portal de teste';
+const onepagePreviewNotice=locale==='en'?'Private Onepage preview: continue to the test Portal to register or sign in and review server-calculated terms. No real purchase or payment is authorized. Other selections keep the WhatsApp contact option.':locale==='es'?'Vista privada de Onepage: continúa al Portal de prueba para registrarte o acceder y revisar las condiciones calculadas por el servidor. No autoriza compras ni pagos reales. Las demás selecciones mantienen el contacto por WhatsApp.':'Prévia privada de Onepage: continue no Portal de teste para criar uma conta ou entrar e conferir as condições calculadas pelo servidor. Nenhuma contratação ou pagamento real é autorizado. As demais escolhas mantêm o contato por WhatsApp.';
+const initialHref=onepagePreviewHref||reviewedQuoteChoiceHref(locale,{site:'onepage',channels:[],tier:'recommended'});
 const initialReadinessSelection={site:'onepage',channels:[],tier:'recommended'};
 const initialPortalReadiness=assessPublicPortalReadiness(initialReadinessSelection);
 const fmt=cents=>{
@@ -57,6 +64,9 @@ const fmt=cents=>{
 };
 ---
 <section id="simular-compra" class="choice-section" data-choice-preview data-locale={locale}
+ data-choice-onepage-preview={onepagePreviewHref||undefined}
+ data-choice-onepage-label={onepagePreviewHref?onepagePreviewLabel:undefined}
+ data-choice-contact-label={onepagePreviewHref?copy.cta:undefined}
  data-copy-success={copy.copySuccess} data-copy-failure={copy.copyFailure} aria-labelledby="choice-heading">
  <div class="choice-title">
   <p class="eyebrow">{copy.eyebrow}</p>
@@ -111,14 +121,14 @@ const fmt=cents=>{
       data-code={initialPortalReadiness.code} aria-live="polite">
       {describePublicPortalReadiness(initialReadinessSelection,locale)}
    </p>
-   <a class="cta choice-action" href={initialHref} data-choice-fallback={contact} target="_blank" rel="noopener noreferrer" data-choice-action>{copy.cta} <span aria-hidden="true">↗</span></a>
+   <a class="cta choice-action" href={initialHref} data-choice-fallback={contact} target={onepagePreviewHref?undefined:'_blank'} rel={onepagePreviewHref?'noreferrer nofollow':'noopener noreferrer'} data-choice-action>{onepagePreviewHref?onepagePreviewLabel:copy.cta} <span aria-hidden="true">↗</span></a>
    <button type="button" class="choice-copy" data-choice-copy hidden>{copy.copyAction}</button>
    <p class="choice-copy-status" data-choice-copy-status role="status" hidden></p>
    <p data-choice-empty hidden class="choice-empty">{copy.empty}</p>
    <a class="choice-calculator" href={calculator}>{copy.calc} <span aria-hidden="true">↗</span></a>
   </aside>
  </div>
- <p class="choice-disclosure">{copy.notice}</p>
+ <p class="choice-disclosure">{onepagePreviewHref?onepagePreviewNotice:copy.notice}</p>
 </section>
 <section class="calculator-promo" aria-labelledby="calculator-promo-title">
  <div><p class="eyebrow">{locale==='en'?'PLAN BEFORE YOU ADVERTISE':locale==='es'?'PLANIFICA ANTES DE ANUNCIAR':'PLANEJE ANTES DE ANUNCIAR'}</p>
@@ -134,9 +144,12 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  import {assessPublicPortalReadiness,describePublicPortalReadiness} from '../lib/public-portal-checkout-readiness.mjs';
 import {describeSelectedQuoteServices} from '../lib/public-quote-item-labels.mjs';
 import {describeSelectedAdvertisingCosts} from '../lib/public-quote-channel-breakdown.mjs';
- // No form, network, persistence, account creation or external redirect.
+ // No form, network, persistence, account creation or automatic redirect.
  for(const root of document.querySelectorAll('[data-choice-preview]')){
   const locale=root.getAttribute('data-locale')||'pt-BR';
+  const onepagePreviewHref=root.getAttribute('data-choice-onepage-preview');
+  const onepagePreviewLabel=root.getAttribute('data-choice-onepage-label');
+  const contactLabel=root.getAttribute('data-choice-contact-label');
   const format=cents=>(locale==='en'?'BRL ':'R$ ')+(cents/100).toLocaleString(locale==='en'?'en-US':'pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   const channelTerms=locale==='en'?{media:'Platform media/month',management:'Estimated management/month',activation:'One-time activation'}:locale==='es'?{media:'Publicidad en plataformas/mes',management:'Gestión estimada/mes',activation:'Activación única'}:{media:'Mídia nas plataformas/mês',management:'Gestão estimada/mês',activation:'Ativação única'};
   let site='onepage',channels=[],tier='recommended',choiceRevision=0;
@@ -206,7 +219,18 @@ import {describeSelectedAdvertisingCosts} from '../lib/public-quote-channel-brea
    }
    const action=root.querySelector('[data-choice-action]');
    if(action){
-    action.setAttribute('href',estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):action.getAttribute('data-choice-fallback'));
+    const privateOnepage=Boolean(onepagePreviewHref&&onepagePreviewLabel&&contactLabel&&site==='onepage'&&channels.length===0);
+    action.setAttribute('href',privateOnepage?onepagePreviewHref:estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):action.getAttribute('data-choice-fallback'));
+    if(onepagePreviewHref){
+     // The capability is a fixed reviewed link, never derived from form data.
+     // Preserve the public link/label unless this private build opted in.
+     if(privateOnepage)action.removeAttribute('target');
+     else action.setAttribute('target','_blank');
+     action.setAttribute('rel',privateOnepage?'noreferrer nofollow':'noopener noreferrer');
+     action.replaceChildren(document.createTextNode((privateOnepage?onepagePreviewLabel:contactLabel)+' '));
+     const arrow=document.createElement('span');
+     arrow.setAttribute('aria-hidden','true');arrow.textContent='↗';action.appendChild(arrow);
+    }
     action.setAttribute('aria-disabled',String(!estimate.hasChoice));
     action.tabIndex=estimate.hasChoice?0:-1;
    }
