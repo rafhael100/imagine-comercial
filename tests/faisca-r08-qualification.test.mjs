@@ -125,7 +125,7 @@ test('R08 handoff is copy-only and never claims that the team received the lead'
   assert.equal(handoff.operationalEffects, false);
   assert.match(handoff.summary, /RESUMO DE ATENDIMENTO — RASCUNHO NÃO ENVIADO/);
   assert.match(handoff.summary, /Autorização declarada, ainda não enviada/);
-  assert.match(handoff.summary, /Nenhum contato foi coletado, enviado ou armazenado/);
+  assert.match(handoff.summary, /Nenhum dado de contato foi coletado/);
 });
 
 test('R08 strict profile validator rejects extra fields and accessors without executing them', () => {
