@@ -6,7 +6,7 @@ const workflow=readFileSync(new URL('../.github/workflows/validate.yml',import.m
 test('SEO auditor is pinned to a reviewed SHA, not a moving branch',()=>{
   const match=workflow.match(/repository: rafhael100\/imagine-seo-engine\s+ref: ([a-f0-9]{40})/);
   assert.ok(match,'Expected exact independent SEO Engine commit');
-  assert.equal(match[1],'e9a6f0faf757e0abc26c0f88e59cbca2a9f03af7');
+  assert.equal(match[1],'2f77051e04266a9ae64bbdb48d7cd951a00d455e');
 });
 test('Commercial CI fails on any technical SEO warnings including orphan pages',()=>{
   assert.ok(workflow.includes('audit-dist.mjs dist https://imaginecomunicacao.com.br/ --fail-on-warnings'));

@@ -22,19 +22,39 @@ try{
  const robots=join(sandbox,'robots.txt');
  const contents=await readFile(robots,'utf8');
  assert.match(contents,/Sitemap:\s*https:\/\/imaginecomunicacao\.com\.br\/sitemap\.xml/);
- // A realistic migration mistake: sitemap/canonical still look healthy, but
- // robots starts to block only the service subtree, not the homepage.
- await writeFile(robots,contents+'\nDisallow: /servicos/\n');
- const blocked=await auditStaticSite(sandbox,args);
- const hit=blocked.errors.filter(e=>e.type==='robots_block_public_page');
- assert.ok(hit.some(e=>e.file==='servicos/index.html'),
-  'Pinned independent SEO gate must catch a built service blocked by robots');
- assert.ok(!hit.some(e=>e.file==='index.html'),
-  'Blocking a service subtree must not falsely report the homepage');
- assert.equal(blocked.errors.some(e=>e.type==='robots_block_all'),false,
-  'Service-only regression cannot masquerade as a root-wide block');
- assert.ok(blocked.summary.errors>0,'Mutated build must be rejected');
- console.log('F356 PASS: pristine build audited and disposable service-blocked robots mutation rejected');
+ // Each case starts from the pristine rules. The HTML, sitemap and canonical
+ // remain unchanged, so a healthy build cannot hide a crawler-specific block.
+ const cases=[
+  {name:'wildcard service block',text:contents+'\nDisallow: /servicos/\n',blocked:true},
+  {name:'versioned Googlebot service block',
+   text:contents+'\nUser-agent: Googlebot/2.1\nDisallow: /servicos/\n',blocked:true},
+  {name:'star-suffixed Googlebot service block',
+   text:contents+'\nUser-agent: Googlebot*\nDisallow: /servicos/\n',blocked:true},
+  {name:'specific versioned allow overrides wildcard root block',
+   text:contents+'\nDisallow: /\n\nUser-agent: Googlebot/2.1\nAllow: /\n',blocked:false},
+  {name:'Googlebot-Image does not select the general crawler',
+   text:contents+'\nUser-agent: Googlebot-Image\nDisallow: /servicos/\n',blocked:false},
+ ];
+ for(const item of cases){
+  await writeFile(robots,item.text);
+  const result=await auditStaticSite(sandbox,args);
+  assert.equal(result.summary.warnings,0,item.name+': literal rules need no manual review');
+  if(item.blocked){
+   const hit=result.errors.filter(e=>e.type==='robots_block_public_page');
+   assert.ok(hit.some(e=>e.file==='servicos/index.html'),
+    item.name+': pinned SEO gate must catch a built service blocked by robots');
+   assert.ok(result.errors.every(e=>e.type==='robots_block_public_page'&&e.file.startsWith('servicos/')),
+    item.name+': every error must be a robots block inside the service subtree');
+   assert.ok(!hit.some(e=>e.file==='index.html'),
+    item.name+': service-only block must not falsely report the homepage');
+   assert.equal(result.errors.some(e=>e.type==='robots_block_all'),false,
+    item.name+': service-only regression cannot masquerade as a root-wide block');
+   assert.ok(result.summary.errors>0,item.name+': mutated build must be rejected');
+  }else{
+   assert.equal(result.summary.errors,0,item.name+': allowed general crawler must remain valid');
+  }
+ }
+ console.log('F356 PASS: pristine Astro, 3 rejected service blocks and 2 crawler-selection controls');
 }finally{
  await rm(temporary,{recursive:true,force:true});
 }
