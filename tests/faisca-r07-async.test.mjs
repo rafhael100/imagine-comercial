@@ -53,6 +53,10 @@ test('R07 J09: timeout needs explicit reconciliation of the same dispatch, witho
   assert.equal(unknown.status, 'unknown');
   assert.equal(unknown.delivery, 'unknown');
   assert.equal((await lab.reconcile(req)).status, 'unknown');
+  const mismatchedLookup = request(context, message, 'Quanto custa?');
+  assert.equal((await lab.reconcile(mismatchedLookup)).status, 'conflict');
+  assert.equal(lab.inspect().awaitingReconciliation, 1,
+    'a conflicting lookup must not release an unknown message');
   assert.equal(await lab.send(req), unknown, 'replay retains the original unknown result');
   assert.equal((await lab.send(request(context, 'r07_message_J09_0002'))).status, 'busy');
   assert.equal(lab.inspect().summary, before);
@@ -60,6 +64,8 @@ test('R07 J09: timeout needs explicit reconciliation of the same dispatch, witho
   await until(() => lab.inspect().pending === 0);
   assert.equal(lab.inspect().awaitingReconciliation, 1,
     'the completed provider does not implicitly present the pending answer');
+  assert.equal((await lab.reconcile(mismatchedLookup)).status, 'conflict');
+  assert.equal(lab.inspect().awaitingReconciliation, 1, 'wrong payload cannot unlock completed work');
   assert.equal(lab.local({ type: 'text', text: 'Quero Landing Page.' }).status, 'busy');
   assert.equal((await lab.send(request(context, 'r07_message_J09_0003'))).status, 'busy');
   assert.equal(lab.inspect().summary, before);
