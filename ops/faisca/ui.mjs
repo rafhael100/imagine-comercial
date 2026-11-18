@@ -62,7 +62,20 @@ export function mountFaisca(root, config = {}) {
   if (Reflect.ownKeys(descriptors).some(key => !['replyDelayMs', 'replyAdapter', 'prepareTurn', 'sessionPolicy'].includes(key) || !Object.hasOwn(descriptors[key], 'value'))) {
     throw new TypeError('Only local reply timing and a trusted laboratory adapter can be configured.');
   }
-  // Optional, checked-in R07 local policy; public and legacy demos retain the original session.\n  const sessionPolicy = descriptors.sessionPolicy?.value ?? null;\n  if (sessionPolicy !== null) {\n    if (!sessionPolicy || typeof sessionPolicy !== 'object' || Array.isArray(sessionPolicy) ||\n        ![Object.prototype, null].includes(Object.getPrototypeOf(sessionPolicy))) throw new TypeError('Invalid local session policy.');\n    const fields = Object.getOwnPropertyDescriptors(sessionPolicy);\n    if (Reflect.ownKeys(fields).length !== 2 ||\n        ['create', 'summary'].some(key => !fields[key] || !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function')) {\n      throw new TypeError('Incomplete local session policy.');\n    }\n  }\n  const createSessionForView = sessionPolicy?.create ?? createSession;\n  const getSummaryForView = sessionPolicy?.summary ?? getSummary;\n  const replyDelayMs = descriptors.replyDelayMs?.value ?? 220;
+  // Optional, checked-in R07 local policy; public and legacy demos retain the original session.
+  const sessionPolicy = descriptors.sessionPolicy?.value ?? null;
+  if (sessionPolicy !== null) {
+    if (!sessionPolicy || typeof sessionPolicy !== 'object' || Array.isArray(sessionPolicy) ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(sessionPolicy))) throw new TypeError('Invalid local session policy.');
+    const fields = Object.getOwnPropertyDescriptors(sessionPolicy);
+    if (Reflect.ownKeys(fields).length !== 2 ||
+        ['create', 'summary'].some(key => !fields[key] || !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function')) {
+      throw new TypeError('Incomplete local session policy.');
+    }
+  }
+  const createSessionForView = sessionPolicy?.create ?? createSession;
+  const getSummaryForView = sessionPolicy?.summary ?? getSummary;
+  const replyDelayMs = descriptors.replyDelayMs?.value ?? 220;
   const prepareTurn = descriptors.prepareTurn?.value ?? respond;
   if (typeof prepareTurn !== 'function') throw new TypeError('Invalid trusted turn policy.');
   if (!Number.isInteger(replyDelayMs) || replyDelayMs < 0 || replyDelayMs > 2000) throw new TypeError('Invalid replyDelayMs.');
