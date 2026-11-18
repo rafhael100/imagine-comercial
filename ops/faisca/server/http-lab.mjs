@@ -128,7 +128,7 @@ export async function startHttpLab({ enabled, port = 0, staticDir = defaultStati
       (prepareTurnFactory !== undefined && prepareTurn !== undefined)) throw new TypeError('Invalid HTTP laboratory configuration.');
   // Validate the per-session policy factory before listening. Each HTTP session
   // receives a fresh R07 state closure; a neighboring token cannot share it.
-  const probePrepareTurn = prepareTurnFactory ? prepareTurnFactory('faisca-probe-session') : (prepareTurn ?? undefined);
+  const probePrepareTurn = prepareTurnFactory ? prepareTurnFactory('0'.repeat(32)) : (prepareTurn ?? undefined);
   if (probePrepareTurn !== undefined && typeof probePrepareTurn !== 'function') throw new TypeError('Invalid session conversation policy.');
   const probe = createConversationRuntime({ provider: createSimulatedProvider({ scenario, delayMs }), timeoutMs, maxEntries,
     ...(probePrepareTurn ? { prepareTurn: probePrepareTurn } : {}) });
