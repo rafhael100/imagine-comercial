@@ -28,7 +28,7 @@ test('R09 pipeline routes natural-language questions then requires R06 grounded 
     assert.equal(process.delivery, 'php_grounded');
     assert.equal(process.route.answerId, 'process');
     assert.equal(process.reply.text, getGroundedAnswer('process').text);
-    assert.deepEqual(process.reply.sources, getGroundedAnswer('process').sources);
+    assert.deepEqual(process.reply.sources, getGroundedAnswer('process').sources.map(({ id, title }) => ({ id, title })));
     assert.equal(calls.length, 1);
 
     const price = await pipeline.send(input('r09_pipeline_price_01', 'Quanto custa?'));
