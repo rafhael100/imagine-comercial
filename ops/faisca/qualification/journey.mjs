@@ -195,8 +195,10 @@ export function respondQualificationJourney(session, rawInput) {
       if (result.reply.intent === 'journey_summary') {
         return summaryReply(createState(result.session, session.profile, session.phase), result.userText);
       }
-      return questionReply(createState(result.session, session.profile, session.phase),
+      const prepared = questionReply(createState(result.session, session.profile, session.phase),
         session.profile, result.reply.text, result.reply.sources, result.userText);
+      return result.reply.sources.length
+        ? Object.freeze({ ...prepared, providerReply: result.reply }) : prepared;
     }
   }
 
@@ -204,8 +206,12 @@ export function respondQualificationJourney(session, rawInput) {
   const confirmedService = result.reply.intent === 'goal_presence' || result.reply.intent === 'goal_campaign';
   if (confirmedService) {
     const profile = createLeadProfileFromJourney(result.session);
-    if (profile) return questionReply(createState(result.session, profile, 'qualification'),
-      profile, result.reply.text, result.reply.sources, result.userText);
+    if (profile) {
+      const prepared = questionReply(createState(result.session, profile, 'qualification'),
+        profile, result.reply.text, result.reply.sources, result.userText);
+      return result.reply.sources.length
+        ? Object.freeze({ ...prepared, providerReply: result.reply }) : prepared;
+    }
   }
   if (['goal_sales', 'goal_ads', 'channel_google', 'channel_meta'].includes(result.reply.intent) &&
       result.session.pendingGoal === null) {
@@ -216,9 +222,11 @@ export function respondQualificationJourney(session, rawInput) {
         'r08_service_qualification_unavailable', result.reply.sources, [action('sell', labels.sell)])
     });
   }
-  return Object.freeze({
+  const prepared = Object.freeze({
     session: createState(result.session, null, 'sales'),
     userText: result.userText,
     reply: result.reply
   });
+  return result.reply.sources.length
+    ? Object.freeze({ ...prepared, providerReply: result.reply }) : prepared;
 }
