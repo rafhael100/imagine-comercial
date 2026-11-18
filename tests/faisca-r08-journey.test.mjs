@@ -109,6 +109,14 @@ test('R09 accepts natural-language answers to closed R08 qualification questions
   assert.match(getQualificationSummary(answer.session), /Outras empresas/);
 });
 
+test('R09 unknown free-text answers are not stored as arbitrary qualification data', () => {
+  const session = startOnepage();
+  const answer = send(session, 'Tenho uma ideia diferente e ainda estou organizando.');
+  assert.equal(answer.session.profile.objective, null);
+  assert.doesNotMatch(getQualificationSummary(answer.session), /ideia diferente/);
+  assert.match(answer.reply.text, /Qual é o principal resultado/);
+});
+
 test('R09 negative and deferred contact preferences remain distinct and never imply consent', () => {
   let session = complete(startOnepage());
   const correction = choose(session, 'r08:edit:contactConsent');
