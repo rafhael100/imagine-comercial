@@ -158,20 +158,23 @@ try {
     assert.match(await lastAnswer().innerText(), /Qual é o principal resultado/);
     await assertGroundedSource('goal_presence');
     assert.equal(phpCounts().spawned, 1);
-    for (const [action, expected] of [
-      ['r08:objective:present_company', /Quem você deseja alcançar/],
-      ['r08:audience:local_customers', /Como estão os textos e as imagens/],
-      ['r08:materials:ready', /previsão para iniciar/],
-      ['r08:timeline:within_30_days', /autoriza que a equipe Imagine entre em contato/],
-      ['r08:contactConsent:granted', /RASCUNHO NÃO ENVIADO/]
-    ]) {
-      await choose(action);
-      assert.match(await lastAnswer().innerText(), expected);
-    }
+    await sendText('Quero captar leads interessados.');
+    assert.match(await lastAnswer().innerText(), /Quem você deseja alcançar/);
+    await sendText('Quero alcançar outras empresas e consumidores online.');
+    assert.match(await lastAnswer().innerText(), /mais de uma interpretação possível/);
+    assert.equal(phpCounts().spawned, 1, 'Ambiguous field answers stay local.');
+    await choose('r08:audience:businesses');
+    assert.match(await lastAnswer().innerText(), /Como estão os textos e as imagens/);
+    await sendText('Já tenho textos e imagens.');
+    assert.match(await lastAnswer().innerText(), /previsão para iniciar/);
+    await sendText('Quero iniciar nos próximos 30 dias.');
+    assert.match(await lastAnswer().innerText(), /autoriza que a equipe Imagine entre em contato/);
+    await sendText('Sim, autorizo.');
+    assert.match(await lastAnswer().innerText(), /RASCUNHO NÃO ENVIADO/);
     const summary = await page.locator('#faisca-summary-text').inputValue();
     assert.match(summary, /Site Onepage/);
-    assert.match(summary, /Apresentar a empresa/);
-    assert.match(summary, /Clientes da região/);
+    assert.match(summary, /Captar contatos/);
+    assert.match(summary, /Outras empresas/);
     assert.match(summary, /Textos e imagens disponíveis/);
     assert.match(summary, /Até 30 dias/);
     assert.ok(summary.includes('Sim, autorizou (nenhum contato foi enviado)'));
