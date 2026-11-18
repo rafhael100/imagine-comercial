@@ -76,3 +76,18 @@ Reprodução:
 node --test tests/faisca-r09-*.test.mjs
 node ops/faisca/model-router/demo.mjs
 ```
+
+## R09-C — pipeline R09 → R06/PHP
+
+Arquivo: `ops/faisca/model-router/grounded-pipeline.mjs`.
+
+O pipeline encadeia a seleção de uma resposta candidata R06 com a validação independente do texto e das fontes pelo PHP real do Imagine Agents. O roteador pode selecionar apenas um candidato editorial; a resposta só é exibida depois de o PHP confirmar o candidato exato.
+
+Respostas que representam seleção de serviço (Onepage, Landing Page ou canais individuais de anúncios) não são tratadas como contratação nem gravadas no resumo. O host interrompe a etapa e faz uma pergunta fixa de esclarecimento. Respostas sem candidato não iniciam PHP. Se a validação PHP falhar ou ficar incerta, texto e fontes editoriais não são apresentados como confirmados.
+
+O gate real `ops/faisca/model-router/check-grounded-pipeline.mjs` executa o fluxo com a fixture local de roteamento e o PHP CLI real do Agents fixado no CI. Ele verifica perguntas sobre processo, preço e comparação, além de esclarecimento de serviço, ausência de fonte e pré-validação de dados pessoais. Não há modelo externo.
+
+Reprodução no ambiente CI com PHP e pin Agents configurados:
+```bash
+node ops/faisca/model-router/check-grounded-pipeline.mjs
+```
