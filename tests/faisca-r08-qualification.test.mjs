@@ -1,0 +1,144 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  createLeadProfile, validateLeadProfile, updateLeadProfile, getNextQualificationQuestion,
+  isQualificationComplete, buildHandoffPackage, LEAD_PROFILE_SCHEMA, LEAD_HANDOFF_SCHEMA
+} from '../ops/faisca/qualification/profile.mjs';
+
+test('R08 profile can only begin from a service already confirmed in R07', () => {
+  assert.equal(createLeadProfile('onepage').service, 'onepage');
+  assert.equal(createLeadProfile('landing-page').service, 'landing-page');
+  for (const value of [null, 'crm', 'Onepage', 'unknown', { service: 'onepage' }]) {
+    assert.equal(createLeadProfile(value), null);
+  }
+});
+
+test('R08 initial profile has no inferred answers and asks one qualification question at a time', () => {
+  const profile = createLeadProfile('onepage');
+  assert.equal(profile.schema, LEAD_PROFILE_SCHEMA);
+  assert.equal(profile.objective, null);
+  assert.equal(profile.audience, null);
+  assert.equal(profile.materials, null);
+  assert.equal(profile.timeline, null);
+  assert.equal(profile.contactConsent, 'not_asked');
+  assert.equal(isQualificationComplete(profile), false);
+  const next = getNextQualificationQuestion(profile);
+  assert.equal(next.field, 'objective');
+  assert.equal(next.options.length, 5);
+});
+
+test('R08 each explicit choice updates only its own field and advances one question', () => {
+  const first = createLeadProfile('landing-page');
+  const objective = updateLeadProfile(first, 'objective', 'capture_leads');
+  assert.equal(objective.objective, 'capture_leads');
+  assert.equal(objective.audience, null);
+  assert.equal(first.objective, null, 'the previous immutable profile must not be mutated');
+  assert.equal(getNextQualificationQuestion(objective).field, 'audience');
+  const audience = updateLeadProfile(objective, 'audience', 'businesses');
+  assert.equal(audience.audience, 'businesses');
+  assert.equal(getNextQualificationQuestion(audience).field, 'materials');
+});
+
+test('R08 visitor may explicitly skip a field without the system inventing an answer', () => {
+  let profile = createLeadProfile('onepage');
+  profile = updateLeadProfile(profile, 'objective', 'not_specified');
+  profile = updateLeadProfile(profile, 'audience', 'not_specified');
+  assert.equal(profile.objective, 'not_specified');
+  assert.equal(profile.audience, 'not_specified');
+  assert.equal(getNextQualificationQuestion(profile).field, 'materials');
+  const handoff = buildHandoffPackage(profile);
+  assert.match(handoff.summary, /Objetivo: Não informado/);
+  assert.match(handoff.summary, /Público: Não informado/);
+});
+
+test('R08 only closed enum values are accepted; arbitrary text and unknown fields are refused', () => {
+  const profile = createLeadProfile('onepage');
+  assert.equal(updateLeadProfile(profile, 'objective', 'Quero vender muito'), null);
+  assert.equal(updateLeadProfile(profile, 'email', 'visitor@example.invalid'), null);
+  assert.equal(updateLeadProfile(profile, 'phone', '5511999999999'), null);
+  assert.equal(updateLeadProfile(profile, 'objective', 'sell_online;crm.write'), null);
+  assert.equal(updateLeadProfile(profile, 'timeline', 'tomorrow guaranteed'), null);
+});
+
+test('R08 contact consent is never inferred and is asked only after qualification fields', () => {
+  let profile = createLeadProfile('landing-page');
+  profile = updateLeadProfile(profile, 'objective', 'capture_leads');
+  profile = updateLeadProfile(profile, 'audience', 'online_consumers');
+  profile = updateLeadProfile(profile, 'materials', 'ready');
+  profile = updateLeadProfile(profile, 'timeline', 'within_30_days');
+  assert.equal(profile.contactConsent, 'not_asked');
+  assert.equal(isQualificationComplete(profile), false);
+  assert.equal(getNextQualificationQuestion(profile).field, 'contactConsent');
+  profile = updateLeadProfile(profile, 'contactConsent', 'later');
+  assert.equal(isQualificationComplete(profile), true);
+  assert.match(buildHandoffPackage(profile).summary, /Prefere decidir depois/);
+});
+
+test('R08 consent options distinguish grant, refusal and deferment', () => {
+  const profile = createLeadProfile('onepage');
+  assert.equal(updateLeadProfile(profile, 'contactConsent', 'granted').contactConsent, 'granted');
+  assert.equal(updateLeadProfile(profile, 'contactConsent', 'declined').contactConsent, 'declined');
+  assert.equal(updateLeadProfile(profile, 'contactConsent', 'later').contactConsent, 'later');
+  assert.equal(updateLeadProfile(profile, 'contactConsent', true), null);
+});
+
+test('R08 handoff is copy-only and never claims that the team received the lead', () => {
+  let profile = createLeadProfile('onepage');
+  profile = updateLeadProfile(profile, 'objective', 'present_company');
+  profile = updateLeadProfile(profile, 'audience', 'local_customers');
+  profile = updateLeadProfile(profile, 'materials', 'need_support');
+  profile = updateLeadProfile(profile, 'timeline', 'flexible');
+  profile = updateLeadProfile(profile, 'contactConsent', 'granted');
+  const handoff = buildHandoffPackage(profile);
+  assert.equal(handoff.schema, LEAD_HANDOFF_SCHEMA);
+  assert.equal(handoff.delivery, 'copy_only');
+  assert.equal(handoff.sent, false);
+  assert.equal(handoff.operationalEffects, false);
+  assert.match(handoff.summary, /RESUMO DE ATENDIMENTO — RASCUNHO NÃO ENVIADO/);
+  assert.match(handoff.summary, /Autorização declarada, ainda não enviada/);
+  assert.match(handoff.summary, /Nenhum contato foi coletado, enviado ou armazenado/);
+});
+
+test('R08 strict profile validator rejects extra fields and accessors without executing them', () => {
+  const profile = createLeadProfile('onepage');
+  assert.equal(validateLeadProfile(profile).service, 'onepage');
+  assert.equal(validateLeadProfile({ ...profile, email: 'visitor@example.invalid' }), null);
+  let reads = 0;
+  const hostile = { ...profile };
+  Object.defineProperty(hostile, 'objective', { enumerable: true, get() { reads++; return 'sell_online'; } });
+  assert.equal(validateLeadProfile(hostile), null);
+  assert.equal(reads, 0);
+});
+
+test('R08 updates are immutable and cannot change the confirmed service', () => {
+  const profile = createLeadProfile('landing-page');
+  const changed = updateLeadProfile(profile, 'objective', 'sell_online');
+  assert.equal(changed.service, 'landing-page');
+  assert.equal(profile.service, 'landing-page');
+  assert.equal(Object.isFrozen(profile), true);
+  assert.equal(Object.isFrozen(changed), true);
+});
+
+test('R08 summary contains only closed, explicitly supplied values and no scoring', () => {
+  let profile = createLeadProfile('onepage');
+  profile = updateLeadProfile(profile, 'objective', 'organize_service');
+  const handoff = buildHandoffPackage(profile);
+  assert.match(handoff.summary, /Objetivo: Organizar o atendimento/);
+  assert.match(handoff.summary, /Público: Não informado/);
+  assert.doesNotMatch(JSON.stringify(handoff), /score|probability|leadValue|email|phone/i);
+});
+
+test('R08 qualification can be completed with explicit choices and no personal contact data', () => {
+  let profile = createLeadProfile('landing-page');
+  for (const [field, value] of [
+    ['objective', 'capture_leads'], ['audience', 'businesses'],
+    ['materials', 'ready'], ['timeline', 'within_90_days'],
+    ['contactConsent', 'declined']
+  ]) profile = updateLeadProfile(profile, field, value);
+  assert.equal(isQualificationComplete(profile), true);
+  assert.equal(getNextQualificationQuestion(profile), null);
+  const handoff = buildHandoffPackage(profile);
+  assert.match(handoff.summary, /Landing Page/);
+  assert.match(handoff.summary, /Captar contatos/);
+  assert.match(handoff.summary, /Não concedida/);
+});
