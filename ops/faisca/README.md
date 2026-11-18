@@ -327,3 +327,6 @@ O pipeline `ops/faisca/model-router/grounded-pipeline.mjs` conecta a seleção R
 
 
 A camada R09 também prepara a interpretação de respostas livres da qualificação: `ops/faisca/model-router/field-contract.mjs` classifica apenas entre opções fechadas e retorna `matched/ambiguous/unknown`, sem texto livre. A fixture local é integrada à jornada R08 para aceitar respostas em português; ambiguidade reapresenta as opções, e a troca de serviço só descarta o perfil anterior depois da confirmação. Testes em `tests/faisca-r09-field-router.test.mjs` e nos cenários R08 de `tests/faisca-r08-journey.test.mjs`.
+
+
+A IA generativa real permanece desligada. O gate de provedor, modelo, privacidade, orçamento, segredos e segurança está documentado em `docs/faisca/R09-E-GATE-ATIVACAO-IA.md`; nenhuma chamada externa ou custo é permitido até aprovação humana explícita.
