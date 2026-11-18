@@ -109,6 +109,22 @@ test('R09 accepts natural-language answers to closed R08 qualification questions
   assert.match(getQualificationSummary(answer.session), /Outras empresas/);
 });
 
+test('R09 negative and deferred contact preferences remain distinct and never imply consent', () => {
+  let session = complete(startOnepage());
+  const correction = choose(session, 'r08:edit:contactConsent');
+  const declined = send(correction.session, 'Não autorizo contato.');
+  assert.equal(declined.session.profile.contactConsent, 'declined');
+  assert.match(getQualificationSummary(declined.session), /Não concedida/);
+  assert.doesNotMatch(getQualificationSummary(declined.session), /Sim, autorizou/);
+
+  session = complete(startOnepage());
+  const deferCorrection = choose(session, 'r08:edit:contactConsent');
+  const later = send(deferCorrection.session, 'Prefiro decidir depois.');
+  assert.equal(later.session.profile.contactConsent, 'later');
+  assert.match(getQualificationSummary(later.session), /Prefere decidir depois/);
+  assert.doesNotMatch(getQualificationSummary(later.session), /Sim, autorizou/);
+});
+
 test('R09 ambiguous free-text qualification does not guess or store a value', () => {
   const session = choose(startOnepage(), 'r08:objective:present_company').session;
   const answer = send(session, 'Quero alcançar outras empresas e consumidores online.');
