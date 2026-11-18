@@ -13,6 +13,7 @@ const labels = Object.freeze({
   changeService: 'Trocar solução',
   restart: 'Reiniciar atendimento'
 });
+const editLabels = Object.freeze({ objective: 'objetivo', audience: 'público', materials: 'materiais', timeline: 'previsão', contactConsent: 'autorização de contato' });
 
 function readInput(input) {
   try {
@@ -62,10 +63,10 @@ export function getQualificationSummary(session) {
   return buildHandoffPackage(session.profile)?.summary ?? getJourneySummary(session.journey);
 }
 
-function serviceChoiceReply(session, text = 'Qual solução você deseja avaliar?') {
+function serviceChoiceReply(session, text = 'Qual solução você deseja avaliar?', userText = labels.changeService) {
   return Object.freeze({
     session: createState(session.journey, null, 'sales'),
-    userText: 'Trocar solução',
+    userText,
     reply: makeReply(text, 'r08_service_choice', [], [
       action('goal_presence', 'Site Onepage'),
       action('goal_campaign', 'Landing Page')
@@ -160,7 +161,7 @@ export function respondQualificationJourney(session, rawInput) {
       const field = input.id.slice('r08:edit:'.length);
       const revised = reviseLeadProfile(session.profile, field);
       if (!revised) return summaryReply(session, 'Não consegui abrir essa correção. Confira o resumo e escolha um campo disponível.');
-      return questionReply(session, revised, 'Vamos corrigir esta informação.');
+      return questionReply(session, revised, 'Vamos corrigir esta informação.', [], 'Corrigir ' + editLabels[field]);
     }
 
     if (input.type === 'action' && input.id.startsWith('r08:')) {
@@ -178,7 +179,7 @@ export function respondQualificationJourney(session, rawInput) {
   }
 
   if (input.type === 'action' && input.id === 'sell') {
-    return serviceChoiceReply(session);
+    return serviceChoiceReply(session, 'Qual solução você deseja avaliar?', labels.sell);
   }
 
   if (session.phase === 'qualification' || session.phase === 'complete') {
