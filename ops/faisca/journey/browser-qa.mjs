@@ -29,7 +29,7 @@ try {
     }
   }
   await collect(output);
-  assert.ok(files.has('/journey/index.html'), 'Build the isolated Astro R07 route first.');
+  assert.ok(files.has('/journey/index.html'), 'Build the isolated Astro R08 route first.');
   server = createServer((req, res) => {
     const path = req.url === '/' ? '/index.html' : req.url;
     if (req.method !== 'GET' || !files.has(path)) { res.writeHead(404); res.end(); return; }
@@ -75,7 +75,7 @@ try {
     await page.locator('#faisca-quick-actions [data-action-id="' + id + '"]').click();
     await done(previous);
   }
-  await check('R07 does not activate or issue a request before explicit user activation', async () => {
+  await check('R08 does not activate or issue a request before explicit user activation', async () => {
     const button = page.locator('[data-journey-start]');
     await button.waitFor({ state: 'visible' });
     assert.equal(await page.locator('#faisca-composer').isVisible(), false);
@@ -85,7 +85,7 @@ try {
     await page.locator('#faisca-composer').waitFor({ state: 'visible' });
     assert.equal(await page.locator('[data-faisca-root]').getAttribute('data-faisca-mode'), 'r08_local_qualification');
   });
-  await check('R07 visible proposal requires confirmation and does not overwrite the current summary', async () => {
+  await check('R08 visible proposal requires confirmation and does not overwrite the current summary', async () => {
     await send('Quero Onepage.');
     assert.match(await last().innerText(), /Confirme a escolha/);
     assert.doesNotMatch(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
@@ -93,7 +93,7 @@ try {
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     assert.equal(await page.locator('#faisca-log .assistant').last().locator('.message-sources').count(), 1);
   });
-  await check('R07 correction is proposed, confirmed and reflected exactly once in summary', async () => {
+  await check('R08 correction is proposed, confirmed and reflected exactly once in summary', async () => {
     await send('Na verdade prefiro Landing Page.');
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     await choose('confirm_goal');
@@ -101,19 +101,19 @@ try {
     assert.match(summary, /Landing Page/);
     assert.doesNotMatch(summary, /@|[0-9]{10,}/);
   });
-  await check('R07 unsupported and comparative questions keep the selected solution', async () => {
+  await check('R08 unsupported and comparative questions keep the selected solution', async () => {
     await send('O site inclui e-mail?');
     assert.match(await last().innerText(), /Não encontrei/);
     await send('Qual a diferença entre Onepage e Landing Page?');
     assert.equal(await page.locator('#faisca-log .assistant').last().locator('.message-sources').count(), 1);
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Landing Page/);
   });
-  await check('R07 local sensitive preflight prevents credential echo and preserves selection', async () => {
+  await check('R08 local sensitive preflight prevents credential echo and preserves selection', async () => {
     await send('Minha senha TEST_SECRET_555');
     assert.doesNotMatch(await page.locator('#faisca-log').innerText(), /TEST_SECRET_555/);
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Landing Page/);
   });
-  await check('R07 reset discards previous summary and active confirmation', async () => {
+  await check('R08 reset discards previous summary and active confirmation', async () => {
     await send('Quero Onepage.');
     await page.locator('#faisca-reset').click();
     assert.doesNotMatch(await page.locator('#faisca-summary-text').inputValue(), /Landing Page|Site Onepage/);
@@ -122,7 +122,7 @@ try {
     assert.match(await last().innerText(), /Objetivo ainda não selecionado/);
   });
   for (const width of [320, 390, 1440]) {
-    await check('R07 responsive accessible controls at ' + width + 'px', async () => {
+    await check('R08 responsive accessible controls at ' + width + 'px', async () => {
       await page.setViewportSize({ width, height: 900 });
       assert.equal(await page.locator('#faisca-send').isVisible(), true);
       const violations = (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()).violations;
@@ -168,7 +168,7 @@ try {
     assert.match(summary, /Não concedida/);
     assert.doesNotMatch(summary, /@|[0-9]{10,}/);
   });
-  await check('R07 browser makes no external requests, persistence or script execution errors', async () => {
+  await check('R08 browser makes no external requests, persistence or script execution errors', async () => {
     assert.deepEqual(blocked, []);
     assert.deepEqual(errors, []);
     assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
