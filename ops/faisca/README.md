@@ -238,7 +238,7 @@ O módulo `ops/faisca/journey/async-lab.mjs` funciona **somente como API local d
 node --test tests/faisca-r07-async.test.mjs
 ```
 
-Este teste cobre timeout, consulta manual do turno original, reset, duas conversas com o mesmo identificador de mensagem, travamento até a conciliação e fonte maliciosa. A visualização `/journey/` continua um exemplo local **síncrono** de confirmação de objetivo; os cenários assíncronos são atualmente comprovados pela suíte Node, não por uma página pública interativa. O próximo gate é confirmar o mesmo comportamento com navegador, HTTP e PHP real no modo de sessão R07. Nenhum passo envia dados à equipe Imagine.
+Este teste cobre timeout, consulta manual do turno original, reset, duas conversas com o mesmo identificador de mensagem, travamento até a conciliação e fonte maliciosa. A visualização `/journey/` continua um exemplo local **síncrono** de confirmação de objetivo. Os cenários assíncronos têm testes Node e a experiência completa navegador/HTTP/PHP está coberta separadamente pela página `/journey-http/`. Nenhum passo envia dados à equipe Imagine.
 
 ### R07-G — laboratório HTTP com PHP real (18/11/2026)
 
@@ -265,4 +265,4 @@ Remove-Item Env:IMAGINE_FAISCA_LAB
 
 O script abre um servidor descartável exclusivamente em `127.0.0.1`, inicia Chromium, valida o pin do Agents, executa PHP de verdade, encerra servidor/sessões/processos e grava apenas métricas sintéticas em `ops/faisca/reports/Faisca_R07_HTTP_BROWSER_QA.json`. Atrasos são conciliados pela mesma mensagem; reset destrói a sessão; duas sessões independentes podem usar o mesmo ID de mensagem sem compartilhar escolha ou resposta. Nenhuma URL pública, API externa, CRM ou pagamento é chamado.
 
-A CI executa este gate no workflow `Faísca R06 - grounded commercial passages with real PHP`, depois das regressões R06. Uma aprovação desse workflow será evidência da ponte **no laboratório**, não liberação de produção nem ativação de IA generativa.
+**Validação concluída:** workflow [44378972555](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972555) aprovou 6/6 cenários R07 com PHP real e pin Agents `36caf2ee3585c3f64a6f1d78552550ae5aaebeb0`. O artefato [14462093314](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972555/artifacts/14462093314) registra `status=passed`, `executedPHP=true`, 5 processos iniciados, 4 concluídos, 1 encerrado intencionalmente no teste de reset, 0 falhas PHP inesperadas e 0 processos pendentes. Isso comprova a ponte **no laboratório**, não liberação de produção nem ativação de IA generativa.
