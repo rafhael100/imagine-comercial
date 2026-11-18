@@ -75,6 +75,15 @@ test('R08-B changing the confirmed service clears the old profile before asking 
   assert.equal(confirmed.session.profile.objective, null);
 });
 
+test('R08-B does not invent a qualification questionnaire for unsupported service categories', () => {
+  const proposal = choose(createQualificationJourney(), 'goal_ads');
+  assert.equal(proposal.reply.intent, 'journey_confirmation_needed');
+  const confirmed = choose(proposal.session, 'confirm_goal');
+  assert.equal(confirmed.session.profile, null);
+  assert.match(confirmed.reply.text, /questionário aprovado para esta solução/);
+  assert.equal(confirmed.session.phase, 'sales');
+});
+
 test('R08-B handoff is generated only after explicit answers and is never sent', () => {
   const session = complete(startOnepage());
   assert.equal(session.phase, 'complete');
