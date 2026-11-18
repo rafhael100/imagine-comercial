@@ -59,15 +59,18 @@ jobs:
         run: node ops/faisca/journey/http-browser-qa.mjs
       - name: Provar R08 qualificação, HTTP, sessões e PHP real
         run: node ops/faisca/qualification/http-browser-qa.mjs
+      - name: Provar R09 roteamento conversacional com PHP real
+        run: node ops/faisca/model-router/check-grounded-pipeline.mjs
       - name: Guardar somente evidências sintéticas
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: faisca-grounding-R06-R08-SYNTHETIC-REVIEW-ONLY
+          name: faisca-grounding-R06-R09-SYNTHETIC-REVIEW-ONLY
           path: |
             ops/faisca/reports/*R06*.json
             ops/faisca/reports/*R07*.json
             ops/faisca/reports/*R08*.json
+            ops/faisca/reports/*R09*.json
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: false
