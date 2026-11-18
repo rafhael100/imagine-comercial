@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createConversationRuntime } from '../conversation-runtime.mjs';
 import { CONVERSATION_SCHEMA } from '../conversation-contract.mjs';
 import { groundedRespond } from '../grounding/guide.mjs';
@@ -25,9 +26,11 @@ function readInput(value) {
 }
 
 function requestForGrounding(input, answerId) {
+  const isolatedConversationId = createHash('sha256')
+    .update(input.conversationId + ':' + input.messageId).digest('hex').slice(0, 32);
   return Object.freeze({
     schema: CONVERSATION_SCHEMA,
-    conversationId: input.conversationId + '_r06',
+    conversationId: isolatedConversationId,
     messageId: input.messageId + '_r06',
     locale: 'pt-BR',
     input: Object.freeze({ type: 'action', id: answerId })
@@ -45,9 +48,13 @@ function hostClarification(id) {
 }
 
 function pendingResult(status, route = null, reason = status) {
+  const text = status === 'unknown'
+    ? 'A resposta ainda não foi confirmada. Consulte novamente; nenhuma nova tentativa foi enviada.'
+    : status === 'busy' ? 'Uma resposta anterior ainda está pendente. Aguarde ou consulte o resultado.'
+      : 'Não consegui confirmar essa resposta. Reformule sua dúvida ou tente novamente mais tarde.';
   return Object.freeze({
     status, delivery: status === 'unknown' ? 'unknown' : 'none', accepted: status === 'unknown',
-    reason, route, reply: Object.freeze({ text: 'A resposta ainda não foi confirmada. Consulte novamente; nenhuma nova tentativa foi enviada.',
+    reason, route, reply: Object.freeze({ text,
       sources: Object.freeze([]), actions: Object.freeze([]) }),
     externalModelInvocations: 0, operationalEffects: false
   });
@@ -92,7 +99,12 @@ export function createGroundedModelPipeline({
     if (!input) return pendingResult('invalid_request');
     const routeResult = await router.send(input);
     if (routeResult.status !== 'answered') return pendingResult(routeResult.status, null, routeResult.reason);
-    if (routeResult.route?.routeStatus !== 'grounded') return routeResult;
+    if (routeResult.route?.routeStatus !== 'grounded') return Object.freeze({
+      ...routeResult,
+      reply: Object.freeze({ text: routeResult.route?.text ?? safeFallback,
+        sources: routeResult.route?.sources ?? Object.freeze([]),
+        actions: routeResult.route?.actions ?? Object.freeze([]) })
+    });
     const answerId = routeResult.route.answerId;
     if (!groundedAnswerIds.has(answerId)) return hostClarification('service_choice');
     const groundingRequest = requestForGrounding(input, answerId);
@@ -105,7 +117,12 @@ export function createGroundedModelPipeline({
     if (!input) return pendingResult('invalid_request');
     const routeResult = await router.reconcile(input);
     if (routeResult.status !== 'answered') return pendingResult(routeResult.status, null, routeResult.reason);
-    if (routeResult.route?.routeStatus !== 'grounded') return routeResult;
+    if (routeResult.route?.routeStatus !== 'grounded') return Object.freeze({
+      ...routeResult,
+      reply: Object.freeze({ text: routeResult.route?.text ?? safeFallback,
+        sources: routeResult.route?.sources ?? Object.freeze([]),
+        actions: routeResult.route?.actions ?? Object.freeze([]) })
+    });
     const answerId = routeResult.route.answerId;
     if (!groundedAnswerIds.has(answerId)) return hostClarification('service_choice');
     const groundingRequest = requestForGrounding(input, answerId);
