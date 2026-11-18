@@ -4,6 +4,7 @@ const VERSION = 'faisca-lead-profile-r08-1';
 export const LEAD_PROFILE_SCHEMA = 'faisca.lead-profile.v1';
 export const LEAD_HANDOFF_SCHEMA = 'faisca.lead-handoff.v1';
 
+const trustedProfiles = new WeakSet();
 const serviceValues = new Set(['onepage', 'landing-page']);
 const fields = Object.freeze(['objective', 'audience', 'materials', 'timeline', 'contactConsent']);
 const values = Object.freeze({
@@ -104,6 +105,7 @@ function plainData(value, expected) {
 }
 
 export function validateLeadProfile(value) {
+  if (!trustedProfiles.has(value)) return null;
   const data = plainData(value, ['schema', 'version', 'service', ...fields]);
   if (!data || data.schema !== LEAD_PROFILE_SCHEMA || data.version !== VERSION ||
       !serviceValues.has(data.service)) return null;
@@ -112,17 +114,19 @@ export function validateLeadProfile(value) {
       if (!values[field].has(data[field])) return null;
     } else if (data[field] !== null && !values[field].has(data[field])) return null;
   }
-  return Object.freeze({ ...data });
+  return value;
 }
 
 /** Internal constructor; callers must derive the service from a trusted R07 session. */
 function createLeadProfile(confirmedService) {
   if (!serviceValues.has(confirmedService)) return null;
-  return Object.freeze({
+  const profile = Object.freeze({
     schema: LEAD_PROFILE_SCHEMA, version: VERSION, service: confirmedService,
     objective: null, audience: null, materials: null, timeline: null,
     contactConsent: 'not_asked'
   });
+  trustedProfiles.add(profile);
+  return profile;
 }
 
 /** Only a trusted, explicitly confirmed R07 selection can start qualification. */
@@ -136,7 +140,9 @@ export function updateLeadProfile(profile, field, value) {
   const safe = validateLeadProfile(profile);
   const next = safe ? getNextQualificationQuestion(safe) : null;
   if (!safe || !next || next.field !== field || !values[field].has(value)) return null;
-  return Object.freeze({ ...safe, [field]: value });
+  const nextProfile = Object.freeze({ ...safe, [field]: value });
+  trustedProfiles.add(nextProfile);
+  return nextProfile;
 }
 
 export function getNextQualificationQuestion(profile) {
