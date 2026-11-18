@@ -65,7 +65,7 @@ const patterns = Object.freeze({
     not_specified: [/\b(?:prefiro nao informar|ainda nao sei|nao defini)\b/]
   }),
   contactConsent: Object.freeze({
-    declined: [/\b(?:nao autorizo|nao quero contato|prefiro que nao entrem em contato)\b/],
+    declined: [/\b(?:nao autorizo|nao quero contato|nao quero que entrem em contato|nao pode entrar em contato|prefiro que nao entrem em contato)\b/],
     later: [/\b(?:prefiro decidir depois|mais tarde|depois eu decido|ainda nao sei)\b/],
     granted: [/\b(?:sim autorizo|pode entrar em contato|pode me contatar)\b/]
   })
