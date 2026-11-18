@@ -83,3 +83,28 @@ SHA testada e deve ser registrado na PR. Build público, autenticação,
 catálogo, preços e gates de checkout continuam sujeitos aos contratos de suas
 respectivas fontes; merge, deploy e ativação de ambiente exigem a autorização
 operacional já prevista no projeto.
+
+## Continuidade — Onepage pelo simulador principal
+
+O build privado pode habilitar a escolha **Onepage sem anúncios** no CTA do
+simulador, usando a mesma URL estrita dos cartões. São exigidos juntos
+`GITHUB_ACTIONS=true`, `IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW=1` e
+`IMAGINE_PORTAL_CHOICE_HANDOFF_PREVIEW=1`. A política de URL roda somente no
+frontmatter Astro. Sem qualquer um desses opt-ins, o simulador mantém o contato
+por WhatsApp; não recebe endpoint, identidade ou preço do visitante.
+
+A opção inicial funciona no HTML sem JavaScript. Com JavaScript, adicionar
+anúncios ou trocar o formato restaura href, texto, target e rel do contato;
+remover os anúncios e voltar a Onepage restaura a entrada privada. A URL
+transporta exclusivamente `product=onepage`. O Portal continua responsável
+por autenticação, preço, aceite e pagamento.
+
+O **mesmo** workflow V5 agora verifica o HTML inicial e começa pelo simulador
+Onepage → cadastro → pedido. Mantém o clique dos quatro cartões, cadastro pelo
+Google para o segundo comprador, login pelo Meta e os cinco pedidos dos dois
+proprietários (4/1). O SQL e as recusas de cobrança permanecem inalterados.
+Nenhum novo laboratório, rota ou worker foi criado.
+
+Esta continuação não aciona Asaas nem comprova pagamento ou liberação do
+briefing. Execução HTTP/PostgreSQL depende da CI desta revisão; testes Node e
+análise sintática locais não substituem essa prova.
