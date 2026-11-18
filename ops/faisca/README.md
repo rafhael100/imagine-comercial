@@ -330,3 +330,6 @@ A camada R09 também prepara a interpretação de respostas livres da qualifica�
 
 
 A IA generativa real permanece desligada. O gate de provedor, modelo, privacidade, orçamento, segredos e segurança está documentado em `docs/faisca/R09-E-GATE-ATIVACAO-IA.md`; nenhuma chamada externa ou custo é permitido até aprovação humana explícita.
+
+
+Playbook de pré-venda, objeções, limites de pós-venda, handoff e tom de voz: `docs/faisca/PLAYBOOK-COMERCIAL.md`.
