@@ -24,7 +24,7 @@
 | [Faísca R06/R08 PHP real 44398316208](https://github.com/rafhael100/imagine-comercial/actions/runs/44398316208) | **SUCCESS** — R06 interop 7/7; R06 browser 8/8; R07 HTTP/PHP 6/6; R08 HTTP/PHP 7/7 |
 | [Faísca R05 44398316277](https://github.com/rafhael100/imagine-comercial/actions/runs/44398316277) | **SUCCESS** |
 | [PostgreSQL descartável 44398316186](https://github.com/rafhael100/imagine-comercial/actions/runs/44398316186) | **SUCCESS** |
-| [Comercial/SEO/build 44398316190](https://github.com/rafhael100/imagine-comercial/actions/runs/44398316190) | Em execução na última conferência; não é gate exclusivo do Faísca |
+| [Comercial/SEO/build 44398316190](https://github.com/rafhael100/imagine-comercial/actions/runs/44398316190) | **SUCCESS** — 1.271 testes Comerciais + 1.057 testes SEO, zero falhas; QA 63 rotas móveis e 9 desktop |
 
 ## Evidência do HTTP/PHP R08
 
