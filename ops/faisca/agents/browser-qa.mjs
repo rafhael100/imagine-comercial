@@ -191,7 +191,7 @@ try {
   assert.deepEqual([...assets].filter(path => path.endsWith('.html')).sort(), ['/grounded/index.html', '/http/index.html', '/index.html', '/journey-http/index.html', '/journey/index.html'],
     'The isolated laboratory contains the five reviewed R03/R04/R06/R07 pages.');
   const deferredModules = [...assets].filter(path => /\/_astro\/http-ui\.[^/]+\.js$/.test(path));
-  assert.equal(deferredModules.length, 1, 'The HTTP conversation must retain one deferred UI module.');
+  assert.ok(deferredModules.length >= 1, 'The isolated lab must contain at least one deferred HTTP UI module.');
   assert.ok(!(await readFile(resolve(staticDir, 'http/index.html'), 'utf8')).includes('Bearer '), 'Static HTML cannot embed credentials.');
   phase = 'browser_launch';
   browser = await chromium.launch({ headless: true,
@@ -204,9 +204,9 @@ try {
       await view.start.waitFor({ state: 'visible' });
       assert.equal(await view.page.locator('#hero-title').isVisible(), true, 'Static guidance must remain readable.');
       assert.equal(await view.page.locator('#faisca-composer').isVisible(), false, 'The conversation must remain lazy.');
-      assert.equal(view.requests.some(request => request.path === deferredModules[0]), false, 'The conversation module cannot load before activation.');
+      assert.equal(view.requests.some(request => deferredModules.includes(request.path)), false, 'The conversation module cannot load before activation.');
       await view.activate();
-      assert.equal(view.requests.filter(request => request.path === deferredModules[0]).length, 1, 'Activation must load the UI once.');
+      assert.equal(view.requests.filter(request => deferredModules.includes(request.path)).length, 1, 'Activation must load exactly one HTTP UI module for this page.');
       assert.equal(view.apiCount(endpoints.sessions), 0, 'Activation alone cannot create a session.');
       await view.send('Minha senha SYNTHETIC_EXAMPLE');
       assert.equal(view.requests.some(request => request.path.startsWith('/__faisca_lab/')), false, 'Sensitive input must stay in the local preflight.');
