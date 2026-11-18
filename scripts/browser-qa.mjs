@@ -243,6 +243,8 @@ try {
     assert.deepEqual(await preview.locator('[data-choice-selected-items] li').allTextContents(),
       ['Site · Onepage'],'F354: selected site visible before sign-up');
     assert.equal(await preview.locator('[data-choice-onetime]').textContent(),'3 × R$ 330,00');
+    assert.equal(await preview.locator('[data-choice-channel-breakdown]').isVisible(),false,
+      'F355: no channel costs until an ad channel is selected');
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'private_single_preview_only','F348: site alone has only a private Portal preview, no checkout');
     assert.match(await preview.locator('[data-choice-portal-readiness]').textContent(),
@@ -253,6 +255,14 @@ try {
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'multi_product_cart_required','F348: site+ads cannot downgrade to a single SKU checkout');
     await preview.locator('[data-choice-channel="meta_ads"]').click();
+    assert.equal(await preview.locator('[data-choice-channel-costs] li').count(),2,
+      'F355: both advertising channels have separate cost explanations');
+    assert.match(await preview.locator('[data-choice-channel-costs] li').nth(0).textContent(),
+      /Google Ads.*1\.500,00.*300,00.*490,00/,
+      'F355: Google media, monthly management and one-time activation are distinct');
+    assert.match(await preview.locator('[data-choice-channel-costs] li').nth(1).textContent(),
+      /Meta Ads.*1\.000,00.*200,00.*490,00/,
+      'F355: Meta media, monthly management and one-time activation are distinct');
     assert.deepEqual(await preview.locator('[data-choice-selected-items] li').allTextContents(),
       ['Site · Onepage','Anúncios · Google Ads','Anúncios · Meta Ads'],
       'F354: site and channels remain visible before registration');
@@ -281,6 +291,10 @@ try {
       'F346: changing the quote invalidates an old clipboard confirmation');
     assert.ok((await preview.locator('[data-choice-management]').textContent()).includes('370,00'));
     assert.ok((await preview.locator('[data-choice-media]').textContent()).includes('1.700,00'));
+    assert.match(await preview.locator('[data-choice-channel-costs] li').nth(0).textContent(),
+      /Google Ads.*1\.000,00.*200,00.*490,00/);
+    assert.match(await preview.locator('[data-choice-channel-costs] li').nth(1).textContent(),
+      /Meta Ads.*700,00.*170,00.*490,00/);
     await preview.locator('[data-choice-site="landing-pages"]').click();
     assert.equal(await preview.locator('[data-choice-onetime]').textContent(),
       '2 × R$ 756,66 + 1 × R$ 756,68',
@@ -299,6 +313,8 @@ try {
     await preview.locator('[data-choice-channel="meta_ads"]').click();
     assert.equal(await preview.locator('[data-choice-selected-items]').isVisible(),false,
       'F354: no empty cart displayed');
+    assert.equal(await preview.locator('[data-choice-channel-breakdown]').isVisible(),false,
+      'F355: no stale channel breakdown when all ads are removed');
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'no_selection');
@@ -476,7 +492,18 @@ try {
             lang==='en'?/Public checkout is not available/:/No existe checkout público/);
           assert.equal(await estimate.locator('[data-choice-action]').getAttribute('href'),
             reviewedQuoteChoiceHref(lang,{site:'onepage',channels:[],tier:'recommended'}));
+          assert.equal(await estimate.locator('[data-choice-channel-breakdown]').isVisible(),false,
+            lang+': no advertising costs before a channel is selected');
           await estimate.locator('[data-choice-channel="meta_ads"]').click();
+          assert.equal(await estimate.locator('[data-choice-channel-costs] li').count(),1,
+            lang+': per-channel disclosure remains visible in the translated preview');
+          const line=await estimate.locator('[data-choice-channel-costs] li').first().textContent();
+          assert.ok(lang==='en'
+            ? /Meta Ads.*BRL 1,000\.00.*BRL 200\.00.*BRL 490\.00/.test(line)
+            : /Meta Ads.*R\$ 1\.000,00.*R\$ 200,00.*R\$ 490,00/.test(line),
+            lang+': media goes to the platform, estimated management and activation remain distinct');
+          assert.ok(line.includes(lang==='en'?'Platform media/month':'Publicidad en plataformas/mes'),
+            lang+': public quote explicitly identifies the media recipient');
           assert.equal(await estimate.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
             'multi_product_cart_required');
           assert.equal(await estimate.locator('[data-choice-channel="meta_ads"]').getAttribute('aria-pressed'),'true');
