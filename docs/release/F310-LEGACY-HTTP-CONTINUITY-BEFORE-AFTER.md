@@ -103,6 +103,22 @@ permanecem obrigatórios.
 
 ## Limites
 
+### Caminhos privados independentes do diretório de execução
+
+Os dois CLIs identificam a raiz física deste checkout a partir do próprio
+script, sem presumir que o diretório de trabalho do operador seja a raiz Git.
+O diretório-pai existente de cada entrada/saída é resolvido antes do uso;
+arquivos que terminariam dentro do checkout são recusados, inclusive por
+aliases de diretório. O caminho físico externo resolvido é o usado na leitura
+ou gravação, evitando que a troca posterior de um alias redirecione a saída.
+
+Assim, executar o script por caminho absoluto a partir do próprio diretório
+privado é permitido. Esse diretório deve continuar sob controle do operador,
+com acesso restrito. A verificação não autentica snapshots nem substitui
+isolamento do sistema de arquivos contra quem possa renomear diretórios
+físicos. A criação exclusiva `0600`, `O_NOFOLLOW`, a leitura limitada por um
+descritor e os bloqueios de CI/opt-in permanecem ativos.
+
 A observação da origem pública é um retrato do momento, não um backup dos
 arquivos nem prova de que todos os links, scripts ou formulários funcionam.
 Não armazena HTML por segurança; a recuperação do site antigo depende de
