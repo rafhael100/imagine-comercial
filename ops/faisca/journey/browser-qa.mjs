@@ -130,25 +130,23 @@ try {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
     });
   }
-  await check('R09 accepts natural-language qualification answers and clarifies ambiguous text', async () => {
+  await check('R07 confirmed Onepage journey uses explicit one-at-a-time choices', async () => {
     await send('Quero Onepage.');
     await choose('confirm_goal');
     assert.match(await last().innerText(), /Qual é o principal resultado/);
-    await send('Quero captar leads interessados.');
+    await choose('r08:objective:present_company');
     assert.match(await last().innerText(), /Quem você deseja alcançar/);
-    await send('Quero alcançar outras empresas e consumidores online.');
-    assert.match(await last().innerText(), /mais de uma interpretação possível/);
-    await choose('r08:audience:businesses');
+    await choose('r08:audience:local_customers');
     assert.match(await last().innerText(), /Como estão os textos e as imagens/);
-    await send('Já tenho textos e imagens.');
+    await choose('r08:materials:ready');
     assert.match(await last().innerText(), /previsão para iniciar/);
-    await send('Quero iniciar nos próximos 30 dias.');
+    await choose('r08:timeline:within_30_days');
     assert.match(await last().innerText(), /autoriza que a equipe Imagine entre em contato/);
-    await send('Sim, autorizo.');
+    await choose('r08:contactConsent:granted');
     const summary = await page.locator('#faisca-summary-text').inputValue();
     assert.match(summary, /Site Onepage/);
-    assert.match(summary, /Captar contatos/);
-    assert.match(summary, /Outras empresas/);
+    assert.match(summary, /Apresentar a empresa/);
+    assert.match(summary, /Clientes da região/);
     assert.match(summary, /Textos e imagens disponíveis/);
     assert.match(summary, /Até 30 dias/);
     assert.ok(summary.includes('Sim, autorizou (nenhum contato foi enviado)'));
