@@ -1,6 +1,57 @@
-# Faísca — ponte com PHP Agents R05
+# Faísca — orientação com trechos comerciais R06
 
 Continuação da [atividade #444](https://github.com/rafhael100/imagine-comercial/issues/444), [R02 #452](https://github.com/rafhael100/imagine-comercial/pull/452), [R03 #453](https://github.com/rafhael100/imagine-comercial/pull/453) e [R04 #456](https://github.com/rafhael100/imagine-comercial/pull/456). O PNG aprovado e as três jornadas — escolha de solução, dúvidas e orientação de pós-venda — foram preservados.
+
+A R06 acrescenta **21 trechos comerciais literais, organizados em 11 respostas**, com citação visível em “Base desta orientação”. O PHP recupera os trechos pinados e recompõe a resposta inteira; Node e navegador verificam o vínculo com o turno preparado. Perguntas sem fonte ou com objetivos diferentes recebem uma limitação explícita, sem inventar uma escolha comercial.
+
+Continuação da [R05 Comercial #457](https://github.com/rafhael100/imagine-comercial/pull/457). O contrato detalhado está em [`CONTRATO-CONHECIMENTO-R06.md`](../../docs/faisca/CONTRATO-CONHECIMENTO-R06.md) e as evidências em [`VALIDACAO-R06.md`](../../docs/faisca/VALIDACAO-R06.md). O catálogo é um snapshot editorial de revisão; preços, condições e atendimento privado continuam sujeitos aos canais oficiais.
+
+## Experimentar a R06
+
+Requisitos: Node >=22.12, Git e PHP >=8.2 CLI já disponíveis. Use checkouts dedicados, com bytes preservados. `grounding/pin.json` fixa a SHA Agents e os hashes dos 23 arquivos revisados. Os três arquivos comerciais de origem, o catálogo e o conhecimento R02 também são conferidos antes da execução e da entrega.
+
+No Linux, na raiz deste checkout Comercial:
+
+```sh
+npm ci --no-audit --no-fund
+git -c core.autocrlf=false clone https://github.com/rafhael100/imagine-ai-agents.git ../imagine-ai-agents-faisca-r06
+faisca_r06_sha=$(node -p "JSON.parse(require('node:fs').readFileSync('ops/faisca/grounding/pin.json','utf8')).commit")
+git -C ../imagine-ai-agents-faisca-r06 checkout --detach "$faisca_r06_sha"
+export IMAGINE_FAISCA_AGENTS_ROOT="$(cd ../imagine-ai-agents-faisca-r06 && pwd)"
+export IMAGINE_FAISCA_LAB=1
+npx --no-install astro build --config ops/faisca/lab/astro.config.mjs
+export IMAGINE_FAISCA_HTTP_LAB=1
+export IMAGINE_FAISCA_AGENTS_LAB=1
+export IMAGINE_FAISCA_GROUNDED_LAB=1
+node ops/faisca/grounding/serve.mjs
+```
+
+No Windows 11 / PowerShell, com Node, Git e PHP CLI instalados:
+
+```powershell
+npm ci --no-audit --no-fund
+git -c core.autocrlf=false clone https://github.com/rafhael100/imagine-ai-agents.git ../imagine-ai-agents-faisca-r06
+$faiscaR06Sha = (Get-Content ops/faisca/grounding/pin.json -Raw | ConvertFrom-Json).commit
+git -C ../imagine-ai-agents-faisca-r06 checkout --detach $faiscaR06Sha
+$env:IMAGINE_FAISCA_AGENTS_ROOT = (Resolve-Path ../imagine-ai-agents-faisca-r06).Path
+$env:IMAGINE_FAISCA_PHP_BINARY = (Get-Command php.exe).Source
+$env:IMAGINE_FAISCA_LAB = "1"
+npx --no-install astro build --config ops/faisca/lab/astro.config.mjs
+$env:IMAGINE_FAISCA_HTTP_LAB = "1"
+$env:IMAGINE_FAISCA_AGENTS_LAB = "1"
+$env:IMAGINE_FAISCA_GROUNDED_LAB = "1"
+node ops/faisca/grounding/serve.mjs
+```
+
+Abra **http://127.0.0.1:4332/grounded/** no Edge ou Chrome e ative a conversa. Use mensagens fictícias como “Qual a diferença entre Onepage e Landing Page?”, “O site inclui e-mail?” ou “Quero apresentar minha empresa e captar contatos para uma campanha.” A primeira mostra trechos; a segunda indica ausência de fonte; a terceira pede que você escolha um objetivo. Encerre com Ctrl+C.
+
+A ativação sozinha não abre sessão nem executa PHP. Navegação, ausência de fonte, ambiguidade e limites de atendimento seguem como orientação local, sem citação nem despacho PHP. Mensagens sensíveis continuam bloqueadas antes da rede. O resumo é preparado para cópia; ele não é enviado à equipe.
+
+`IMAGINE_FAISCA_HTTP_PORT` altera a porta local. `IMAGINE_FAISCA_AGENTS_SCENARIO` aceita os cenários R05 abaixo e, na R06, `source_disabled_before_delivery`. As opções são do host confiável, nunca da mensagem do visitante. Em `delay`, consulte a resposta pendente: a consulta recupera o despacho original sem iniciar outro PHP. Falta de resultado confiável após despacho permanece incerta.
+
+O checkout Comercial também deve preservar fins de linha dos arquivos pinados. A evidência automatizada é Linux; execução nativa em Windows não foi realizada neste ambiente. A porta deve permanecer exclusivamente local.
+
+## Ponte R05 preservada
 
 A R05 acrescenta **execução real entre Node e um processo PHP do Imagine AI Agents**, no laboratório local. O PHP usa os componentes existentes de conhecimento e coordenação com provedor sintético. A resposta visível continua sendo o texto editorial aprovado do Comercial; o PHP recebe apenas hashes, identificadores opacos e referências permitidas. A página HTTP fica exclusivamente no laboratório, fora do site público.
 
@@ -49,8 +100,6 @@ Em um atraso, use **Consultar resposta pendente**. A consulta busca o resultado 
 
 ## Experimentar a R04 preservada
 
-## Experimentar a R04
-
 Na raiz do checkout, com Node >=22.12:
 
 ```sh
@@ -91,6 +140,7 @@ Encerre com Ctrl+C. Não exponha a porta por proxy, túnel ou interface externa.
 | Contrato R03 no browser | `http://127.0.0.1:4330/` no servidor acima, ou Astro dev na porta 4329 | Simulador na memória da página |
 | HTTP R04 | `http://127.0.0.1:4330/http/` | Browser → servidor loopback → simulador |
 | PHP Agents R05 | `http://127.0.0.1:4331/http/`, com `agents/serve.mjs` | Browser → servidor loopback → PHP Agents pinado |
+| Trechos comerciais R06 | `http://127.0.0.1:4332/grounded/`, com `grounding/serve.mjs` | Browser → servidor loopback → PHP com resposta vinculada ao catálogo |
 
 O desenvolvimento estático R03 continua com `IMAGINE_FAISCA_LAB=1 npx --no-install astro dev --config ops/faisca/lab/astro.config.mjs`. O Astro dev sozinho não implementa a API R04.
 
@@ -108,14 +158,20 @@ O desenvolvimento estático R03 continua com `IMAGINE_FAISCA_LAB=1 npx --no-inst
 | `lab/http-client.mjs` | Token em memória, pré-verificação antes da rede, transporte e resultado incerto |
 | `lab/http-ui.mjs`, `lab/http-host.mjs` | Ativação sob demanda, consulta manual e ciclo de vida |
 | `lab/src/components/FaiscaHttpLab.astro` | Página isolada com os controles HTTP |
-| `ui.mjs` | UI compartilhada preservada; resumo avança após resultado aceito |
+| `ui.mjs` | UI compartilhada com política de turno injetada pelo host; resumo avança após resultado aceito |
 | `browser-qa.mjs`, `lab/browser-qa.mjs`, `server/browser-qa.mjs` | Regressões e acessibilidade nos três modos |
-| `agents/check-interop.mjs`, `agents/browser-qa.mjs` | Interop e navegador exigindo PHP real, sem substituição ou skip |
+| `agents/check-interop.mjs`, `agents/browser-qa.mjs` | Interop e navegador R05 exigindo PHP real |
+| `grounding/catalog.json`, `catalog.mjs`, `guide.mjs` | Trechos literais, receitas e seleção conservadora R06 |
+| `grounding/protocol.mjs`, `php-provider.mjs`, `pin.json` | Vínculo integral da resposta e processo PHP R06 pinado |
+| `grounding/http-policy.mjs`, `grounded-ui.mjs` | Mesma política de turno e verificação exata do resultado no navegador |
+| `grounding/check-interop.mjs`, `browser-qa.mjs` | Provas R06 com PHP real, sem substituição ou skip |
+| `scripts/verify-faisca-grounding.mjs` | Origem, seletor, literalidade, hashes e catálogo compilado |
 
 ## Verificação
 
 ```sh
 node --test tests/faisca-*.test.mjs
+node scripts/verify-faisca-grounding.mjs
 IMAGINE_FAISCA_LAB=1 npx --no-install astro build --config ops/faisca/lab/astro.config.mjs
 node ops/faisca/browser-qa.mjs
 node ops/faisca/lab/browser-qa.mjs
@@ -126,15 +182,17 @@ npm run build
 node scripts/verify-dist.mjs
 ```
 
-Os dois HTML são `/index.html` e `/http/index.html`, em `ops/faisca/output/astro`. Os QA usam conteúdo sintético e portas efêmeras; não é necessário deixar a CLI aberta. `FAISCA_CHROMIUM_EXECUTABLE` pode indicar um Chromium autorizado. O workflow Faísca coleta os relatórios sintéticos de `ops/faisca/reports/`.
+Os três HTML são `/index.html`, `/http/index.html` e `/grounded/index.html`, em `ops/faisca/output/astro`. Os QA usam conteúdo sintético e portas efêmeras; não é necessário deixar a CLI aberta. `FAISCA_CHROMIUM_EXECUTABLE` pode indicar um Chromium autorizado. O workflow Faísca coleta os relatórios sintéticos de `ops/faisca/reports/`.
 
 Os dois scripts `agents/` exigem `IMAGINE_FAISCA_AGENTS_ROOT`, o checkout pinado e PHP real; ausência dessas condições é falha. Os testes unitários de ciclo de vida Node usam fixtures explicitamente identificadas e não comprovam execução PHP. O workflow R05 faz o checkout da SHA Agents fixa e exige os testes entre processos e no navegador.
+
+Com `IMAGINE_FAISCA_AGENTS_ROOT` apontando ao checkout R06 pinado, execute também `node ops/faisca/grounding/check-interop.mjs` e `node ops/faisca/grounding/browser-qa.mjs`. Os checks R05 precisam do checkout R05 próprio, pois seu pin permanece inalterado. Cada workflow faz os checkouts corretos.
 
 O site público mantém `publicFaiscaEnabled=false` e não importa o laboratório. Consulte [`VALIDACAO-R05.md`](../../docs/faisca/VALIDACAO-R05.md), [`CONTRATO-AGENTS-R05.md`](../../docs/faisca/CONTRATO-AGENTS-R05.md), [`CONTRATO-HTTP-R04.md`](../../docs/faisca/CONTRATO-HTTP-R04.md) e [`CODEX-PROXIMA-ENTREGA.md`](../../docs/faisca/CODEX-PROXIMA-ENTREGA.md).
 
 ## Limites desta entrega
 
-A sessão é pública e sintética: não autentica clientes, empresas, contratos ou acesso de pós-venda. A integração PHP executa `MockKnowledgeRetriever`, `MockContextEnvelope`, `SupervisedCoordinator` e `MockAiSuggestionProvider`, com gateway que recusa efeitos. A passagem PHP é um digest das referências admitidas; não é recuperação do conteúdo de um documento comercial. Portal, Central, CRM, voz e LLM permanecem fora dessa ponte.
+A sessão é pública e sintética: não autentica clientes, empresas, contratos ou acesso de pós-venda. A integração PHP executa `MockKnowledgeRetriever`, `MockContextEnvelope`, `SupervisedCoordinator` e `MockAiSuggestionProvider`, com gateway que recusa efeitos. Na R05, a passagem PHP é um digest das referências admitidas. Na R06, a camada própria recupera os trechos comerciais literais, enquanto o recibo de execução legado continua sintético. O catálogo R06 tem seleção finita e não cobre toda pergunta livre. Portal, Central, CRM, voz e LLM permanecem fora dessa ponte.
 
 Os registros ficam na memória do processo, por até cinco minutos na configuração padrão, e desaparecem no encerramento. Não há persistência distribuída, reserva de crédito ou garantia financeira de execução única. Recarregar a página perde o token; uma resposta de criação perdida pode deixar uma sessão órfã até expirar.
 

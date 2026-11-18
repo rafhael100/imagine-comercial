@@ -2,11 +2,13 @@
 import { renderLabView } from '../../render-fragment.mjs';
 import { requireLabMode } from '../../lab-policy.mjs';
 requireLabMode(process.env.IMAGINE_FAISCA_LAB);
+const grounded = Astro.props.grounded === true;
+const Host = grounded ? 'faisca-grounded-lab' : 'faisca-http-lab';
 const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE_ROOT, transport: 'loopback_http' });
 ---
 <style is:global set:html={view.css} />
 <style>
-  faisca-http-lab { display: block; }
+  faisca-http-lab, faisca-grounded-lab { display: block; }
   .http-lab-activation { max-width: 1360px; margin: 1rem auto; padding: 0 24px; display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
   .http-lab-activation h1 { flex-basis: 100%; font-size: 1.15rem; margin: 0; color: #222a27; }
   .http-lab-activation p { margin: 0; color: #49514d; overflow-wrap: anywhere; }
@@ -17,17 +19,18 @@ const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE
   .http-lab-activation [hidden] { display: none; }
   [data-faisca-http-reconciliation] { flex-basis: 100%; white-space: pre-line; }
 </style>
-<faisca-http-lab>
+<Host>
   <section class="http-lab-activation" aria-label="Controles do laboratório HTTP">
-    <h1>Faísca · Conversa com servidor local</h1>
+    <h1>{grounded ? 'Faísca · Orientação com fontes comerciais' : 'Faísca · Conversa com servidor local'}</h1>
     <p class="http-lab-notice">Use apenas mensagens fictícias. Este laboratório envia mensagens para um servidor no seu computador, com respostas simuladas e registros temporários. Nenhuma IA externa está conectada.</p>
+    {grounded && <p class="http-lab-notice">Leia os trechos usados em “Base desta orientação”. As fontes são uma versão editorial de revisão; preços e condições dependem da proposta oficial.</p>}
     <button type="button" data-faisca-http-start hidden>Ativar conversa de laboratório</button>
     <button type="button" data-faisca-http-reconcile hidden disabled>Consultar resposta pendente</button>
     <p data-faisca-http-status role="status">A conversa será carregada quando você ativar.</p>
     <p data-faisca-http-reconciliation role="status"></p>
   </section>
   <div data-faisca-root data-lab-preview set:html={view.markup} />
-</faisca-http-lab>
+</Host>
 <script>
   import { bindHttpLabHost } from '../../http-host.mjs';
   class FaiscaHttpLabElement extends HTMLElement {
@@ -36,4 +39,10 @@ const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE
     disconnectedCallback() { this.#binding?.destroy(); this.#binding = undefined; }
   }
   if (!customElements.get('faisca-http-lab')) customElements.define('faisca-http-lab', FaiscaHttpLabElement);
+  class FaiscaGroundedLabElement extends HTMLElement {
+    #binding;
+    connectedCallback() { this.#binding ??= bindHttpLabHost(this, () => import('../../../grounding/grounded-ui.mjs')); }
+    disconnectedCallback() { this.#binding?.destroy(); this.#binding = undefined; }
+  }
+  if (!customElements.get('faisca-grounded-lab')) customElements.define('faisca-grounded-lab', FaiscaGroundedLabElement);
 </script>

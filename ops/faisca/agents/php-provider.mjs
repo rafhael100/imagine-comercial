@@ -13,7 +13,13 @@ import { AGENTS_ENTRYPOINT, AGENTS_POLICY_PATH, AGENTS_MAX_BYTES, AGENTS_REQUIRE
 
 const execFileAsync = promisify(execFile);
 const knowledgePath = fileURLToPath(new URL('../knowledge.mjs', import.meta.url));
-const scenarios = new Set(['success', 'delay', 'unavailable', 'malformed', 'exit_after_dispatch', 'revoke_before_delivery']);
+const agentsContract = Object.freeze({
+  entrypoint: AGENTS_ENTRYPOINT, requiredFiles: AGENTS_REQUIRED_FILES,
+  scenarios: Object.freeze(['success', 'delay', 'unavailable', 'malformed', 'exit_after_dispatch', 'revoke_before_delivery']),
+  environment: Object.freeze({}), createRequest: createAgentsRequest,
+  parseOutput: parseAgentsOutput, finish: (_result, candidate) => candidate,
+  verifyExtra: async () => {}
+});
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 
 // Windows needs its installed executable search path and SystemRoot. Select
@@ -36,7 +42,7 @@ class AgentsBridgeError extends Error {
 }
 const failure = code => new AgentsBridgeError(code);
 
-function readPin(value) {
+function readPin(value, requiredFiles) {
   try {
     if (!value || typeof value !== 'object' || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return null;
     const keys = ['commit', 'files', 'knowledgeVersion', 'knowledgeDigest'];
@@ -50,7 +56,7 @@ function readPin(value) {
         !/^[a-f0-9]{64}$/.test(pin.knowledgeDigest) || !pin.files || typeof pin.files !== 'object' ||
         ![Object.prototype, null].includes(Object.getPrototypeOf(pin.files))) return null;
     const names = Reflect.ownKeys(pin.files);
-    if (names.length < AGENTS_REQUIRED_FILES.length || names.length > 64) return null;
+    if (names.length < requiredFiles.length || names.length > 64) return null;
     const files = {};
     const fileDescriptors = Object.getOwnPropertyDescriptors(pin.files);
     for (const path of names) {
@@ -61,7 +67,7 @@ function readPin(value) {
       if (typeof digest !== 'string' || !/^[a-f0-9]{64}$/.test(digest)) return null;
       files[path] = digest;
     }
-    if (AGENTS_REQUIRED_FILES.some(path => !Object.hasOwn(files, path))) return null;
+    if (requiredFiles.some(path => !Object.hasOwn(files, path))) return null;
     return Object.freeze({ ...pin, files: Object.freeze(files) });
   } catch { return null; }
 }
@@ -99,7 +105,7 @@ async function readPinnedFile(path, maxBytes) {
   } finally { await handle.close(); }
 }
 
-async function verifyPin(root, pin) {
+async function verifyPin(root, pin, contract) {
   try {
     await directPath(root);
     if (!(await lstat(root)).isDirectory()) throw failure('pin_mismatch');
@@ -116,7 +122,9 @@ async function verifyPin(root, pin) {
       if (total > 4 * 1024 * 1024 || sha256(bytes) !== digest) throw failure('pin_mismatch');
       if (path === AGENTS_POLICY_PATH) policy = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     }
-    if (!validatePublicContext(policy, pin) || await head() !== pin.commit) throw failure('pin_mismatch');
+    if (!validatePublicContext(policy, pin)) throw failure('pin_mismatch');
+    await contract.verifyExtra({ agentsRoot: root, pin, readPinnedFile });
+    if (await head() !== pin.commit) throw failure('pin_mismatch');
   } catch { throw failure('pin_mismatch'); }
 }
 
@@ -125,23 +133,32 @@ async function verifyPin(root, pin) {
  * internal test seam; HTTP requests never choose an executable, environment,
  * checkout, scenario or process runner. There is no second retry ledger here.
  */
-export async function prepareAgentsBridge({ enabled, agentsRoot, pin: pinValue, phpBinary = 'php',
-  scenario = 'success', delayMs = 0, processDeadlineMs = 3000, spawnProcess = spawn } = {}) {
+export function prepareAgentsBridge(options = {}) {
+  return preparePinnedProcessBridge(options, agentsContract);
+}
+
+// Internal host-code composition only. Each public bridge fixes this contract
+// in its own module; neither HTTP data nor bridge options select a contract.
+// R05 still requires its original 19 pins, policy, knowledge and closed wire.
+export async function preparePinnedProcessBridge({ enabled, agentsRoot, pin: pinValue, phpBinary = 'php',
+  scenario = 'success', delayMs = 0, processDeadlineMs = 3000, spawnProcess = spawn } = {}, contract) {
   if (enabled !== '1') throw failure('lab_disabled');
   if (typeof agentsRoot !== 'string' || !isAbsolute(agentsRoot) || agentsRoot.includes('\0') ||
       typeof phpBinary !== 'string' || (phpBinary !== 'php' && !isAbsolute(phpBinary)) || phpBinary.includes('\0') ||
-      !scenarios.has(scenario) || !Number.isInteger(delayMs) || delayMs < 0 || delayMs > 2000 ||
+      !contract?.scenarios?.includes(scenario) || !Number.isInteger(delayMs) || delayMs < 0 || delayMs > 2000 ||
       !Number.isInteger(processDeadlineMs) || processDeadlineMs < 1 || processDeadlineMs > 10000 ||
       typeof spawnProcess !== 'function') throw failure('invalid_config');
   const root = resolve(agentsRoot);
-  const pin = readPin(pinValue);
+  const requiredFiles = [...new Set([...AGENTS_REQUIRED_FILES, ...contract.requiredFiles])];
+  const pin = readPin(pinValue, requiredFiles);
   if (!pin) throw failure('pin_mismatch');
-  await verifyPin(root, pin);
+  await verifyPin(root, pin, contract);
 
   const args = Object.freeze(['-n', '-d', 'display_errors=stderr', '-d', 'log_errors=0',
-    '-d', 'allow_url_fopen=0', '-f', join(root, AGENTS_ENTRYPOINT)]);
+    '-d', 'allow_url_fopen=0', '-f', join(root, contract.entrypoint)]);
   const env = Object.freeze({ ...minimalEnv, IMAGINE_FAISCA_AGENTS_LAB: '1',
-    IMAGINE_FAISCA_AGENTS_SCENARIO: scenario, IMAGINE_FAISCA_AGENTS_DELAY_MS: String(delayMs) });
+    IMAGINE_FAISCA_AGENTS_SCENARIO: scenario, IMAGINE_FAISCA_AGENTS_DELAY_MS: String(delayMs),
+    ...contract.environment });
   const counts = { spawned: 0, completed: 0, failed: 0, pending: 0, rejectedBeforeSpawn: 0 };
   const providers = new Set();
   const operations = new Set();
@@ -223,21 +240,22 @@ export async function prepareAgentsBridge({ enabled, agentsRoot, pin: pinValue, 
           const candidate = request && descriptor && Object.hasOwn(descriptor, 'value') &&
             validateConversationResponse(descriptor.value, request);
           if (!candidate) throw failure('unavailable');
-          const wire = await createAgentsRequest(request, candidate, { invocationId: randomBytes(16).toString('hex'),
+          const wire = await contract.createRequest(request, candidate, { invocationId: randomBytes(16).toString('hex'),
             knowledgeVersion: pin.knowledgeVersion, knowledgeDigest: pin.knowledgeDigest });
           const frame = Buffer.from(JSON.stringify(wire), 'utf8');
           if (frame.length > AGENTS_MAX_BYTES) throw failure('unavailable');
-          await verifyPin(root, pin);
+          await verifyPin(root, pin, contract);
           if (!live || !owner.live) throw failure('unavailable');
           const result = await runProcess(owner, frame, state);
-          const output = parseAgentsOutput(result.bytes, wire);
+          const output = contract.parseOutput(result.bytes, wire, pin);
           if (!output || (result.code !== 0 && result.code !== 2) ||
               (result.code === 0) !== (output.kind === 'result')) throw failure('provider_unknown');
-          await verifyPin(root, pin);
+          await verifyPin(root, pin, contract);
           if (!live || !owner.live) throw failure('provider_unknown');
           if (output.kind === 'error') throw failure('unavailable');
+          const response = contract.finish(output.value, candidate, request, wire);
           counts.completed++;
-          return candidate;
+          return response;
         } catch (error) {
           if (state.started) counts.failed++;
           else counts.rejectedBeforeSpawn++;

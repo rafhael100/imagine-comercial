@@ -59,10 +59,12 @@ export function mountFaisca(root, config = {}) {
   }
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw new TypeError('Invalid Faísca configuration.');
   const descriptors = Object.getOwnPropertyDescriptors(config);
-  if (Reflect.ownKeys(descriptors).some(key => !['replyDelayMs', 'replyAdapter'].includes(key) || !Object.hasOwn(descriptors[key], 'value'))) {
+  if (Reflect.ownKeys(descriptors).some(key => !['replyDelayMs', 'replyAdapter', 'prepareTurn'].includes(key) || !Object.hasOwn(descriptors[key], 'value'))) {
     throw new TypeError('Only local reply timing and a trusted laboratory adapter can be configured.');
   }
   const replyDelayMs = descriptors.replyDelayMs?.value ?? 220;
+  const prepareTurn = descriptors.prepareTurn?.value ?? respond;
+  if (typeof prepareTurn !== 'function') throw new TypeError('Invalid trusted turn policy.');
   if (!Number.isInteger(replyDelayMs) || replyDelayMs < 0 || replyDelayMs > 2000) throw new TypeError('Invalid replyDelayMs.');
   // The optional adapter is supplied by checked-in laboratory code, never by a
   // visitor envelope, DOM URL or public page. Standalone remains guided-only.
@@ -197,7 +199,7 @@ export function mountFaisca(root, config = {}) {
     summaryRevision += 1;
     byId('faisca-copy-status').textContent = '';
     let result;
-    try { result = respond(session, event); }
+    try { result = prepareTurn(session, event); }
     catch { result = { session, reply: safeReply(), userText: '' }; }
     if (!result || !result.session || !result.reply) result = { session, reply: safeReply(), userText: '' };
     // Only the core's vetted echo reaches the conversation. Raw input is never echoed.

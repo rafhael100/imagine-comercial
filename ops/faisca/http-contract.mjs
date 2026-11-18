@@ -14,7 +14,8 @@ export const HTTP_CONTEXT = Object.freeze({ scope: 'public_comercial', knowledge
 const statuses = new Set(['answered', 'unavailable', 'provider_limit', 'invalid_response', 'unknown',
   'busy', 'conflict', 'limit', 'invalid_request', 'cancelled', 'closed', 'not_found']);
 const reasons = new Set([...statuses, 'sensitive_input', 'unsupported_instruction', 'invalid_input',
-  'too_long', 'invalid_session', 'invalid_signal', 'pending', 'timeout_after_dispatch', 'cancelled_after_dispatch', 'provider_unknown']);
+  'too_long', 'invalid_session', 'invalid_signal', 'pending', 'timeout_after_dispatch', 'cancelled_after_dispatch', 'provider_unknown',
+  'grounding_navigation', 'grounding_boundary', 'grounding_unsupported', 'grounding_ambiguous']);
 const errorCodes = new Set(['invalid_host', 'invalid_origin', 'invalid_headers', 'invalid_path',
   'method_not_allowed', 'invalid_content_type', 'unsupported_encoding', 'invalid_framing', 'body_too_large',
   'body_timeout', 'invalid_json', 'invalid_request', 'unauthorized', 'conversation_mismatch',

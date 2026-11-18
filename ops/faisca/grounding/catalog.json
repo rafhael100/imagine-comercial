@@ -1,0 +1,394 @@
+{
+  "schema": "faisca.grounding.catalog.v1",
+  "version": "faisca-grounding-1",
+  "scope": "public_comercial",
+  "sourceSnapshot": {
+    "repository": "rafhael100/imagine-comercial",
+    "commit": "84b4c82d1a7ff77b4ee7212bc877d4639ceb809d",
+    "files": {
+      "src/data/services.mjs": "a0d5483899e6cc20406fe01687de7f1130697b2f6c862732c3dd0d7915e0ee65",
+      "src/data/commercial-faq.mjs": "1dd3a5d4f02343d3c657bd975302bf0f397bf4c4c308a892982df7907e3d73ed",
+      "src/data/commercial-process.mjs": "ef26a2fb231be45c57cc332348a59eb065fb31589e4ea3b26c1f91c7980f3256"
+    }
+  },
+  "passages": [
+    {
+      "id": "onepage.description",
+      "title": "Site Onepage: apresentação",
+      "sourcePath": "src/data/services.mjs",
+      "selector": "services[slug=onepage].description",
+      "text": "Site Onepage profissional para apresentar sua empresa, seus serviços e seus canais de contato em uma única página organizada.",
+      "digest": "47b8ea3155240f665c058f3bab987bffd2011d392e8100a735e41df967e6a340",
+      "factKey": "onepage.format",
+      "factValue": "single_page_presentation"
+    },
+    {
+      "id": "onepage.choice",
+      "title": "Site Onepage: quando avaliar",
+      "sourcePath": "src/data/services.mjs",
+      "selector": "services[slug=onepage].faqs[0][1]",
+      "text": "Quando o conteúdo cabe de maneira clara em uma única página e a prioridade é apresentar a empresa com simplicidade.",
+      "digest": "710b9b439de7593f311b372d6a700c6e01d654a18525cc2174de5330e1feee29",
+      "factKey": "onepage.fit",
+      "factValue": "single_page_content"
+    },
+    {
+      "id": "landing.intro",
+      "title": "Landing Page: oferta e ação",
+      "sourcePath": "src/data/services.mjs",
+      "selector": "services[slug=landing-pages].intro",
+      "text": "Uma boa Landing Page apresenta uma oferta, responde às principais dúvidas e conduz o visitante para o contato ou contratação, sem distrações desnecessárias.",
+      "digest": "75dc8739b8cb71f72a732e89fa7315e3b1ee32e06a7cc64a473c491d15ef359a",
+      "factKey": "landing.focus",
+      "factValue": "single_offer_action"
+    },
+    {
+      "id": "landing.difference",
+      "title": "Landing Page: diferença de formato",
+      "sourcePath": "src/data/services.mjs",
+      "selector": "services[slug=landing-pages].faqs[0][1]",
+      "text": "Não. A Landing Page normalmente concentra a atenção em uma oferta e uma ação; o site institucional tende a organizar informações mais amplas sobre a empresa.",
+      "digest": "5a5a104c265f5b7d4c1e02b96619e339943cee97d93a5ae58835a4eba440f299",
+      "factKey": "landing.focus",
+      "factValue": "single_offer_action"
+    },
+    {
+      "id": "google.approach",
+      "title": "Google Ads: abordagem",
+      "sourcePath": "src/data/services.mjs",
+      "selector": "services[slug=gestao-google-ads].approach",
+      "text": "A gestão considera objetivos, estrutura das campanhas, relevância dos anúncios, páginas de destino e indicadores de resultado.",
+      "digest": "4d45f70f833f685a194515f9d2f61e6ad018443da839d27fad79621926c00649",
+      "factKey": "google.method",
+      "factValue": "campaign_relevance_measurement"
+    },
+    {
+      "id": "google.intent",
+      "title": "Google Ads: planejamento de mídia",
+      "sourcePath": "src/data/services.mjs",
+      "selector": "services[slug=gestao-google-ads].details[0][1]",
+      "text": "Alinhamento entre público, intenção de busca, oferta e orçamento de anúncios.",
+      "digest": "3072e7e322270c35d555b39faa1da500b7661d1fc1c0c5cf05159f948051c40c",
+      "factKey": "google.targeting",
+      "factValue": "search_intent"
+    },
+    {
+      "id": "meta.approach",
+      "title": "Meta Ads: abordagem",
+      "sourcePath": "src/data/services.mjs",
+      "selector": "services[slug=gestao-meta-ads].approach",
+      "text": "Planejamos a mensagem, os públicos, os criativos e a página de destino de acordo com o objetivo da campanha.",
+      "digest": "36144fe3bd8cf9d2db1c06ed656915aa8f67acfe02bf3dd4de191733e32a7f17",
+      "factKey": "meta.method",
+      "factValue": "message_audience_creative_destination"
+    },
+    {
+      "id": "faq.escolha",
+      "title": "Escolha da solução",
+      "sourcePath": "src/data/commercial-faq.mjs",
+      "selector": "commercialFaqSections.questions[id=escolha].answer",
+      "text": "Não. Você pode apresentar o objetivo da empresa e comparar formatos possíveis. Site Onepage, site com várias páginas, Landing Page e gestão de anúncios respondem a necessidades diferentes. A escolha e os entregáveis devem ser confirmados na proposta.",
+      "digest": "ed94719838a0a544be59684ad2a6888d0fdaedce1742a8568292e64b8686a2fc",
+      "factKey": "service.choice",
+      "factValue": "proposal_confirmation"
+    },
+    {
+      "id": "faq.materiais",
+      "title": "Materiais para iniciar a conversa",
+      "sourcePath": "src/data/commercial-faq.mjs",
+      "selector": "commercialFaqSections.questions[id=materiais].answer",
+      "text": "É útil saber o objetivo, o público, os serviços que precisam de apresentação e quais textos e imagens já existem. Não envie senhas, acessos ou dados pessoais sensíveis por canais não homologados.",
+      "digest": "59ad1859f76b3c6689e3f9d93437a72b9c8995e54045954184ba39c25ac5a8a1",
+      "factKey": "materials.preparation",
+      "factValue": "objectives_existing_assets_no_secrets"
+    },
+    {
+      "id": "faq.precos",
+      "title": "Investimento e proposta",
+      "sourcePath": "src/data/commercial-faq.mjs",
+      "selector": "commercialFaqSections.questions[id=precos].answer",
+      "text": "Não é possível definir um valor sem avaliar o escopo. Implantação, mensalidade, entregas, suporte, prazos e condições precisam constar na proposta oficial e nos documentos aplicáveis.",
+      "digest": "e76cbe2bcaa9bf298810c6d490a79704efa5219c1d605019b2916a45957399fc",
+      "factKey": "quote.authority",
+      "factValue": "reviewed_scope_official_proposal"
+    },
+    {
+      "id": "faq.revisoes",
+      "title": "Revisões, prazos e escopo",
+      "sourcePath": "src/data/commercial-faq.mjs",
+      "selector": "commercialFaqSections.questions[id=revisoes].answer",
+      "text": "Essas condições dependem do serviço contratado e devem ser registradas antes da execução. Solicitações fora do escopo acordado precisam de avaliação, não constituem entregas automáticas.",
+      "digest": "e032c660a481fc8cac013d4c507a548d99b33fa0e49feb5599f922915a37f41a",
+      "factKey": "scope.change",
+      "factValue": "evaluation_required"
+    },
+    {
+      "id": "faq.midia",
+      "title": "Investimento em mídia e gestão",
+      "sourcePath": "src/data/commercial-faq.mjs",
+      "selector": "commercialFaqSections.questions[id=midia].answer",
+      "text": "Não. O orçamento destinado às plataformas de anúncios e a remuneração pelo serviço de gestão são itens distintos. A proposta deve explicar cada componente e as responsabilidades de pagamento.",
+      "digest": "383e2d6851448e1e505b0de5720c864e1b12a1e1ed7d6bd22f21a4d0259961a7",
+      "factKey": "budget.separation",
+      "factValue": "media_and_management_distinct"
+    },
+    {
+      "id": "faq.resultados",
+      "title": "Resultados e limites",
+      "sourcePath": "src/data/commercial-faq.mjs",
+      "selector": "commercialFaqSections.questions[id=resultados].answer",
+      "text": "Não. Resultados dependem de oferta, demanda, concorrência, público, investimento e outros fatores. Indicadores e objetivos podem orientar o acompanhamento, mas não constituem garantia de performance.",
+      "digest": "6bb7ae86699eeb1f8de449297352f78d8d23e411c1195f0b248ee977be063ab5",
+      "factKey": "results.guarantee",
+      "factValue": "none"
+    },
+    {
+      "id": "faq.portal",
+      "title": "Portal: disponibilidade prevista",
+      "sourcePath": "src/data/commercial-faq.mjs",
+      "selector": "commercialFaqSections.questions[id=portal].answer",
+      "text": "O Portal está previsto para apoiar o acompanhamento e aprovações dos serviços elegíveis. As integrações operacionais ainda dependem de homologação; canais e rotinas efetivamente disponíveis precisam ser confirmados antes da contratação.",
+      "digest": "eaf0c05f3ae9d89345c3340d84ea2f47e79944aa02461c254ecce0806d10700e",
+      "factKey": "portal.availability",
+      "factValue": "requires_homologation_confirmation"
+    },
+    {
+      "id": "faq.acessos",
+      "title": "Credenciais e canais autorizados",
+      "sourcePath": "src/data/commercial-faq.mjs",
+      "selector": "commercialFaqSections.questions[id=acessos].answer",
+      "text": "Não. Os links públicos servem para iniciar uma conversa. O compartilhamento de credenciais e permissões deve ocorrer apenas por um processo seguro e previamente autorizado, conforme os requisitos do serviço.",
+      "digest": "31e4c98d8ff14d803a7cdf3fb0125ce9508369074631c747fbbe4fd1c04fef44",
+      "factKey": "access.sharing",
+      "factValue": "secure_authorized_channel"
+    },
+    {
+      "id": "process.objetivo",
+      "title": "Etapa: Entender o objetivo",
+      "sourcePath": "src/data/commercial-process.mjs",
+      "selector": "processStages[key=objetivo].summary",
+      "text": "A conversa começa pela necessidade da empresa, pelo público e pelo resultado que se deseja acompanhar.",
+      "digest": "aac584ada8396d92b3672838b7ed9f47f337660cd17be68620c834ff25e06782",
+      "factKey": "process.objetivo",
+      "factValue": "needs_and_audience"
+    },
+    {
+      "id": "process.formato",
+      "title": "Etapa: Escolher o formato",
+      "sourcePath": "src/data/commercial-process.mjs",
+      "selector": "processStages[key=formato].summary",
+      "text": "Site Onepage, site, Landing Page e gestão de mídia têm finalidades diferentes. Algumas necessidades podem combinar soluções.",
+      "digest": "1124ab9c96dad4ef3f4acd459fbcf10b460e3bbedf8a5c38c3464d45ca7621ef",
+      "factKey": "process.formato",
+      "factValue": "format_by_objective"
+    },
+    {
+      "id": "process.proposta",
+      "title": "Etapa: Conferir a proposta",
+      "sourcePath": "src/data/commercial-process.mjs",
+      "selector": "processStages[key=proposta].summary",
+      "text": "Escopo, entregas, valores, prazos, responsabilidades e condições de continuidade devem ser descritos na proposta vigente antes de qualquer aceite.",
+      "digest": "61bad49e3ba13ea5aa46a6ab9f442e503b98ea6f55a9eaa748108d37042bd909",
+      "factKey": "quote.authority",
+      "factValue": "reviewed_scope_official_proposal"
+    },
+    {
+      "id": "process.aprovacao",
+      "title": "Etapa: Alinhar materiais e aprovações",
+      "sourcePath": "src/data/commercial-process.mjs",
+      "selector": "processStages[key=aprovacao].summary",
+      "text": "Textos, imagens, identidade visual, acessos e permissões necessários são definidos conforme o serviço contratado e os canais autorizados.",
+      "digest": "11cc668a785845e7321d31d6fea43deb66da434cbc429c3b1e7a7003a1dfb6b8",
+      "factKey": "process.aprovacao",
+      "factValue": "materials_and_authorized_channels"
+    },
+    {
+      "id": "process.execucao",
+      "title": "Etapa: Executar e revisar",
+      "sourcePath": "src/data/commercial-process.mjs",
+      "selector": "processStages[key=execucao].summary",
+      "text": "As entregas e revisões seguem o escopo e os marcos acordados. Mudanças de escopo precisam de avaliação antes de serem assumidas.",
+      "digest": "faa04c3425363acdcaf896f9b6cc7d139e845afff4941b60c6a8802f7146ce2c",
+      "factKey": "scope.change",
+      "factValue": "evaluation_required"
+    },
+    {
+      "id": "process.continuidade",
+      "title": "Etapa: Publicar ou acompanhar quando aplicável",
+      "sourcePath": "src/data/commercial-process.mjs",
+      "selector": "processStages[key=continuidade].summary",
+      "text": "A publicação, o suporte e o acompanhamento só acontecem quando previstos no contrato e quando os requisitos técnicos e autorizações estiverem atendidos.",
+      "digest": "a3594f0e0776e28690a1c9f0334a125121724177e20da5943f6dd31b082cd90d",
+      "factKey": "process.continuidade",
+      "factValue": "contract_and_authorization_required"
+    }
+  ],
+  "answers": [
+    {
+      "id": "goal_presence",
+      "passageIds": [
+        "onepage.description",
+        "onepage.choice"
+      ],
+      "prefix": "Para avaliar a apresentação da sua empresa:",
+      "suffix": "Você já tem textos e imagens ou precisa organizar os materiais?",
+      "actionIds": [
+        "materials_ready",
+        "materials_help",
+        "compare_sites",
+        "pricing"
+      ]
+    },
+    {
+      "id": "goal_campaign",
+      "passageIds": [
+        "landing.intro"
+      ],
+      "prefix": "Para avaliar uma página voltada à sua oferta:",
+      "suffix": "Você já tem textos e imagens ou precisa organizar os materiais?",
+      "actionIds": [
+        "materials_ready",
+        "materials_help",
+        "compare_sites",
+        "pricing"
+      ]
+    },
+    {
+      "id": "compare_sites",
+      "passageIds": [
+        "onepage.description",
+        "landing.difference"
+      ],
+      "prefix": "Vamos comparar o que a base editorial descreve:",
+      "suffix": "Seu objetivo é apresentar a empresa ou divulgar uma oferta específica?",
+      "actionIds": [
+        "goal_presence",
+        "goal_campaign",
+        "pricing"
+      ]
+    },
+    {
+      "id": "channel_google",
+      "passageIds": [
+        "google.approach",
+        "google.intent",
+        "faq.midia"
+      ],
+      "prefix": "Para avaliar Google Ads:",
+      "suffix": "Quer comparar os canais ou organizar o próximo passo?",
+      "actionIds": [
+        "channel_google",
+        "channel_meta",
+        "channel_compare",
+        "results",
+        "summary"
+      ]
+    },
+    {
+      "id": "channel_meta",
+      "passageIds": [
+        "meta.approach",
+        "faq.midia"
+      ],
+      "prefix": "Para avaliar Meta Ads:",
+      "suffix": "Quer comparar os canais ou organizar o próximo passo?",
+      "actionIds": [
+        "channel_google",
+        "channel_meta",
+        "channel_compare",
+        "results",
+        "summary"
+      ]
+    },
+    {
+      "id": "channel_compare",
+      "passageIds": [
+        "google.intent",
+        "meta.approach",
+        "faq.midia"
+      ],
+      "prefix": "Para comparar os canais:",
+      "suffix": "Qual é o objetivo da divulgação e qual público você deseja alcançar?",
+      "actionIds": [
+        "channel_google",
+        "channel_meta",
+        "results",
+        "summary"
+      ]
+    },
+    {
+      "id": "pricing",
+      "passageIds": [
+        "faq.precos"
+      ],
+      "prefix": "Sobre investimento:",
+      "suffix": "Quer organizar seu objetivo para conversar sobre a proposta?",
+      "actionIds": [
+        "summary",
+        "process",
+        "human",
+        "sell"
+      ]
+    },
+    {
+      "id": "results",
+      "passageIds": [
+        "faq.resultados"
+      ],
+      "prefix": "Sobre resultados:",
+      "suffix": "Qual objetivo você quer acompanhar?",
+      "actionIds": [
+        "summary",
+        "process",
+        "human",
+        "sell"
+      ]
+    },
+    {
+      "id": "scope",
+      "passageIds": [
+        "faq.revisoes",
+        "process.proposta"
+      ],
+      "prefix": "Sobre escopo e condições:",
+      "suffix": "Qual entrega ou condição você quer esclarecer?",
+      "actionIds": [
+        "summary",
+        "process",
+        "human",
+        "sell"
+      ]
+    },
+    {
+      "id": "materials_help",
+      "passageIds": [
+        "faq.materiais",
+        "process.aprovacao"
+      ],
+      "prefix": "Para organizar os materiais:",
+      "suffix": "Quer ver as etapas ou preparar um resumo do seu interesse?",
+      "actionIds": [
+        "pricing",
+        "process",
+        "summary",
+        "human"
+      ]
+    },
+    {
+      "id": "process",
+      "passageIds": [
+        "process.objetivo",
+        "process.proposta",
+        "process.continuidade"
+      ],
+      "prefix": "Este é um recorte de três etapas da base editorial:",
+      "suffix": "Qual destas etapas você quer entender melhor?",
+      "actionIds": [
+        "scope",
+        "summary",
+        "human",
+        "sell"
+      ]
+    }
+  ]
+}
