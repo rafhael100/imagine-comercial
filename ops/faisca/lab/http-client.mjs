@@ -98,7 +98,7 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
     if (!valid) return null;
     if (validatePreparedResult) {
       try {
-        if (validatePreparedResult(valid, entry.request, entry.prepared.reply) !== true) return null;
+        if (validatePreparedResult(valid, entry.request, entry.prepared.reply, entry.prepared.providerReply ?? null) !== true) return null;
       } catch { return null; }
     }
     return valid;
