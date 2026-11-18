@@ -123,3 +123,9 @@ flowchart TD
 ```
 
 O modelo futuro não escreve a resposta final nem aciona ferramentas. O host controla a conversa e o PHP valida a evidência editorial antes da apresentação.
+
+## Limite conhecido: relevância da escolha
+
+A validação R09 prova que o `answerId` escolhido pertence ao conjunto fechado e que o texto final vem do catálogo editorial; ela não prova, sozinha, que o modelo escolheu o melhor candidato para a pergunta. Um modelo poderia selecionar um candidato permitido, porém menos relevante. Isso não autoriza conteúdo inventado, mas pode produzir uma resposta fora do foco.
+
+Antes de ativar um provedor real, o host deverá usar um conjunto de avaliação em português, medir precisão por intenção e confusão entre respostas, exigir abstenção/clarificação em empates e revisar manualmente os casos de maior risco. A confiança declarada pelo modelo não será tratada como prova. A política do host poderá reduzir o conjunto a um único candidato quando a recuperação for inequívoca.
