@@ -162,15 +162,16 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
     // trusted R07 host policy instead of being misclassified as invalid_input.
     const safe = validateConversationRequest({ schema: CONVERSATION_SCHEMA, conversationId: 'preflight',
       messageId: 'preflight', locale: 'pt-BR', input });
-    if (!safe) return Promise.resolve(localOutcome('transport_rejected'));
-    // Reuse the R03 sensitive/unsupported-input check before creating a server
-    // session. This remains a conservative heuristic, not complete DLP.
-    const preflight = respond(createSession(), safe.input);
-    const r07LocalAction = safe.input.type === 'action' &&
+    // Never inspect an invalid visitor object with the legacy policy. A closed,
+    // empty placeholder preserves its local refusal behavior without getters.
+    const preflightInput = safe?.input ?? Object.freeze({ type: 'text', text: '' });
+    const preflight = respond(createSession(), preflightInput);
+    const r07LocalAction = safe?.input.type === 'action' &&
       ['confirm_goal', 'cancel_goal'].includes(safe.input.id);
     if (blockedIntents.has(preflight.reply.intent) && !r07LocalAction) return Promise.resolve(Object.freeze({
       status: 'answered', delivery: 'guided_fallback', accepted: true, reason: preflight.reply.intent,
       reply: preflight.reply, mode: 'simulated_lab', operationalEffects: false }));
+    if (!safe) return Promise.resolve(localOutcome('transport_rejected'));
     let resolve;
     const promise = new Promise(yes => { resolve = yes; });
     let prepared = null;
