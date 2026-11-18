@@ -174,7 +174,7 @@ try {
     assert.match(summary, /Clientes da região/);
     assert.match(summary, /Textos e imagens disponíveis/);
     assert.match(summary, /Até 30 dias/);
-    assert.match(summary, /Sim, autorizou \(nenhum contato foi enviado\)/);
+    assert.ok(summary.includes('Sim, autorizou (nenhum contato foi enviado)'));
     assert.match(summary, /Nenhum dado de contato foi coletado/);
     assert.doesNotMatch(summary, /@|[0-9]{10,}/);
     assert.equal(phpCounts().spawned, 1, 'R08 choices and consent must not create PHP work.');
