@@ -91,3 +91,15 @@ Reprodução no ambiente CI com PHP e pin Agents configurados:
 ```bash
 node ops/faisca/model-router/check-grounded-pipeline.mjs
 ```
+
+## R09-D — interpretação de respostas livres para campos de qualificação
+
+Arquivos: `ops/faisca/model-router/field-contract.mjs` e integração local em `ops/faisca/qualification/journey.mjs`.
+
+A qualificação R08 continua armazenando apenas valores enumerados. A nova fronteira `faisca.model-field.request.v1/response.v1` permite que um futuro modelo classifique uma resposta escrita pelo visitante em uma das opções permitidas para a pergunta atual. A saída não contém texto livre: somente `matched`, `ambiguous` ou `unknown`, com um valor fechado ou `null`.
+
+A fixture local reconhece expressões portuguesas explícitas para objetivo, público, materiais, previsão e preferência de contato. Se houver duas interpretações, não escolhe nenhuma; reapresenta as opções. Se não houver correspondência, a conversa continua pelo roteador comercial R07. A mensagem “Quero captar leads” durante a pergunta de objetivo é registrada como objetivo `capture_leads`, não como troca automática para Landing Page.
+
+Uma proposta de troca de serviço agora preserva o perfil atual enquanto aguarda confirmação. Se o visitante cancelar, retoma a qualificação anterior. Se confirmar Onepage/Landing Page, inicia um perfil novo para o serviço confirmado. Serviços sem questionário R08 aprovado continuam sem qualificação inventada.
+
+Esta implementação é determinística e local. Nenhum modelo externo é chamado; a estrutura prepara o ponto de integração futuro, sujeito a aprovação de provedor, privacidade e custos.
