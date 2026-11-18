@@ -266,3 +266,15 @@ Remove-Item Env:IMAGINE_FAISCA_LAB
 O script abre um servidor descartável exclusivamente em `127.0.0.1`, inicia Chromium, valida o pin do Agents, executa PHP de verdade, encerra servidor/sessões/processos e grava apenas métricas sintéticas em `ops/faisca/reports/Faisca_R07_HTTP_BROWSER_QA.json`. Atrasos são conciliados pela mesma mensagem; reset destrói a sessão; duas sessões independentes podem usar o mesmo ID de mensagem sem compartilhar escolha ou resposta. Nenhuma URL pública, API externa, CRM ou pagamento é chamado.
 
 **Validação concluída:** workflow [44378972555](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972555) aprovou 6/6 cenários R07 com PHP real e pin Agents `36caf2ee3585c3f64a6f1d78552550ae5aaebeb0`. O artefato [14462093314](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972555/artifacts/14462093314) registra `status=passed`, `executedPHP=true`, 5 processos iniciados, 4 concluídos, 1 encerrado intencionalmente no teste de reset, 0 falhas PHP inesperadas e 0 processos pendentes. Isso comprova a ponte **no laboratório**, não liberação de produção nem ativação de IA generativa.
+
+### R08-A — perfil de qualificação comercial (somente local)
+
+A R08 começa com o schema de dados, sem ativar a coleta na interface. Para validar o perfil e o resumo copiável:
+
+```bash
+node --test tests/faisca-r08-qualification.test.mjs
+```
+
+O perfil exige uma solução já confirmada na R07 e aceita somente escolhas enumeradas para objetivo, público, materiais, previsão e autorização futura de contato. Não existe campo para nome, telefone, e-mail, credencial ou texto livre. O pacote de encaminhamento é apenas um rascunho copiável, com `sent=false`; nada é enviado ou armazenado. A autorização de contato começa em `not_asked` e não é tratada como consentimento legal genérico.
+
+Escopo e sequência: `docs/faisca/R08-QUALIFICACAO-E-HANDOFF.md`. A integração à conversa começa na R08-B após a revisão da PR filha #466.
