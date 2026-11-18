@@ -129,7 +129,9 @@ test('R08 handoff is copy-only and never claims that the team received the lead'
 test('R08 strict profile validator rejects extra fields and accessors without executing them', () => {
   const profile = confirmedProfile('onepage');
   assert.equal(validateLeadProfile(profile).service, 'onepage');
+  assert.equal(validateLeadProfile({ ...profile }), null, 'a caller cannot forge a server-created profile by cloning it');
   assert.equal(validateLeadProfile({ ...profile, email: 'visitor@example.invalid' }), null);
+  assert.equal(updateLeadProfile({ ...profile }, 'objective', 'sell_online'), null);
   let reads = 0;
   const hostile = { ...profile };
   Object.defineProperty(hostile, 'objective', { enumerable: true, get() { reads++; return 'sell_online'; } });
