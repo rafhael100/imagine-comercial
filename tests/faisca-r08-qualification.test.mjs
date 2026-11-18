@@ -124,7 +124,7 @@ test('R08 handoff is copy-only and never claims that the team received the lead'
   assert.equal(handoff.sent, false);
   assert.equal(handoff.operationalEffects, false);
   assert.match(handoff.summary, /RESUMO DE ATENDIMENTO — RASCUNHO NÃO ENVIADO/);
-  assert.match(handoff.summary, /Autorização declarada, ainda não enviada/);
+  assert.match(handoff.summary, /Sim, autorizou (nenhum contato foi enviado)/);
   assert.match(handoff.summary, /Nenhum dado de contato foi coletado/);
 });
 
