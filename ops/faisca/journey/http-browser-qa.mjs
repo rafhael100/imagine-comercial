@@ -270,6 +270,7 @@ try {
     await eventually(() => server.inspect().sessions === 1, 'Both raw test sessions must be deleted while the browser session remains.');
     assert.equal(phpCounts().spawned, before.spawned + 2);
     assert.equal(phpCounts().completed, before.completed + 2);
+    await eventually(() => phpCounts().pending === 0, 'All real PHP children must be drained after session teardown.');
     executedPHP = true;
   });
 
