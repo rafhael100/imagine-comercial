@@ -39,7 +39,7 @@ jobs:
         run: node ops/faisca/browser-qa.mjs
       - name: Verificar ativação do componente Astro
         run: node ops/faisca/lab/browser-qa.mjs
-      - name: Verificar conversa HTTP loopback e reconciliação
+      - name: Verificar R07 conversa de confirmação no Chromium e WCAG\n        run: node ops/faisca/journey/browser-qa.mjs\n      - name: Verificar conversa HTTP loopback e reconciliação
         run: node ops/faisca/server/browser-qa.mjs
       - name: Guardar evidências sintéticas para revisão
         if: always()
