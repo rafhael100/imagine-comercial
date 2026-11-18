@@ -266,3 +266,47 @@ Remove-Item Env:IMAGINE_FAISCA_LAB
 O script abre um servidor descartável exclusivamente em `127.0.0.1`, inicia Chromium, valida o pin do Agents, executa PHP de verdade, encerra servidor/sessões/processos e grava apenas métricas sintéticas em `ops/faisca/reports/Faisca_R07_HTTP_BROWSER_QA.json`. Atrasos são conciliados pela mesma mensagem; reset destrói a sessão; duas sessões independentes podem usar o mesmo ID de mensagem sem compartilhar escolha ou resposta. Nenhuma URL pública, API externa, CRM ou pagamento é chamado.
 
 **Validação concluída:** workflow [44378972555](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972555) aprovou 6/6 cenários R07 com PHP real e pin Agents `36caf2ee3585c3f64a6f1d78552550ae5aaebeb0`. O artefato [14462093314](https://github.com/rafhael100/imagine-comercial/actions/runs/44378972555/artifacts/14462093314) registra `status=passed`, `executedPHP=true`, 5 processos iniciados, 4 concluídos, 1 encerrado intencionalmente no teste de reset, 0 falhas PHP inesperadas e 0 processos pendentes. Isso comprova a ponte **no laboratório**, não liberação de produção nem ativação de IA generativa.
+
+### R08-A — perfil de qualificação comercial (somente local)
+
+A R08 começa com o schema de dados, sem ativar a coleta na interface. Para validar o perfil e o resumo copiável:
+
+```bash
+node --test tests/faisca-r08-*.test.mjs
+```
+
+O perfil exige uma solução já confirmada na R07 e aceita somente escolhas enumeradas para objetivo, público, materiais, previsão e autorização futura de contato. Não existe campo para nome, telefone, e-mail, credencial ou texto livre. O pacote de encaminhamento é apenas um rascunho copiável, com `sent=false`; nada é enviado ou armazenado. A autorização de contato começa em `not_asked` e não é tratada como consentimento legal genérico.
+
+Escopo e sequência: `docs/faisca/R08-QUALIFICACAO-E-HANDOFF.md`. A integração à conversa começa na R08-B após a revisão da PR filha #466.
+
+### R08-B — qualificação progressiva no laboratório
+
+A rota local `/journey/` agora usa a máquina R08 sobre o estado confirmado da R07. Ela apresenta uma pergunta por vez, aceita apenas opções fechadas e permite corrigir uma resposta, limpando as respostas dependentes. O painel de resumo continua sendo somente copiável; nenhuma equipe ou CRM recebe dados.
+
+Após compilar o laboratório Astro conforme a seção R07, execute a regressão de navegador:
+
+```bash
+node ops/faisca/journey/browser-qa.mjs
+```
+
+O teste percorre Onepage → objetivo → público → materiais → previsão → autorização futura de contato, corrige o público e confirma que a autorização anterior volta a ficar não definida. A suíte completa de Node também inclui `tests/faisca-r08-qualification.test.mjs`. Não há envio de contato, armazenamento, scoring ou LLM externo.
+
+### R08-D — HTTP por sessão e respostas PHP reais
+
+A rota de laboratório `/journey-http-r08/` mantém o estado de qualificação R08 no servidor, isolado por sessão HTTP. Escolhas de qualificação e consentimento são locais; perguntas respondidas pela base editorial R07 são encaminhadas ao PHP real do Imagine Agents e retornam com as fontes validadas. O contrato HTTP mantém ações R08 fechadas e o browser não escolhe política, sessão ou provedor.
+
+O gate automatizado é `ops/faisca/qualification/http-browser-qa.mjs`, executado no workflow R06/R08. Ele exige checkout Agents fixado, PHP CLI real e Chromium. Testa a qualificação, uma resposta editorial com PHP, timeout e conciliação, correção, duas sessões simultâneas com o mesmo ID de mensagem, recusa de token cruzado, reset e encerramento dos processos.
+
+Para reproduzir localmente, depois do build do laboratório e com o Agents fixado:
+
+```bash
+node ops/faisca/qualification/http-browser-qa.mjs
+```
+
+A evidência é sintética e restrita a loopback. Não há LLM externo, CRM, envio de lead, pagamento ou deploy.
+
+### R08-E — contrato futuro do CRM (documentação, sem escrita)
+
+A especificação preventiva está em `docs/faisca/R08-E-PLANEJAMENTO-CRM.md`. Ela separa a qualificação atual de qualquer coleta de contato e exige identidade de tenant resolvida no servidor, aviso de privacidade, consentimento granular por canal, revisão humana, idempotência, S2S, auditoria, revogação e exclusão antes de habilitar qualquer escrita.
+
+Nenhum endpoint, token, tabela ou integração CRM foi criado. O handoff permanece `copy_only`.

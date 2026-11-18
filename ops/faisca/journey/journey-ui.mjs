@@ -1,12 +1,18 @@
 import { mountFaisca } from '../ui.mjs';
-import { createJourney, getJourneySummary, respondJourney } from './state.mjs';
+import { createQualificationJourney, getQualificationSummary, respondQualificationJourney } from '../qualification/journey.mjs';
 
-const policy = Object.freeze({ create: createJourney, summary: getJourneySummary });
+const policy = Object.freeze({
+  create: createQualificationJourney,
+  summary: getQualificationSummary
+});
 
-/** Opt-in R07 local UI. Reuses the approved markup, artwork and CSS unchanged. */
+/** Opt-in R08 local sales qualification, reusing the approved UI and artwork. */
 export function mountJourney(root) {
-  const mounted = mountFaisca(root, { prepareTurn: respondJourney,
-    sessionPolicy: policy, replyDelayMs: 120 });
-  root.dataset.faiscaMode = 'r07_local_journey';
+  const mounted = mountFaisca(root, {
+    prepareTurn: respondQualificationJourney,
+    sessionPolicy: policy,
+    replyDelayMs: 120
+  });
+  root.dataset.faiscaMode = 'r08_local_qualification';
   return mounted;
 }

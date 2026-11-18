@@ -5,8 +5,40 @@ import { getGroundingSources } from './grounding/catalog.mjs';
 // An in-memory laboratory wire contract, not authentication or an HTTP API.
 export const CONVERSATION_SCHEMA = 'faisca.conversation.v1';
 export const RESPONSE_SCHEMA = 'faisca.response.v1';
+const qualificationFields = Object.freeze({
+  objective: Object.freeze(['present_company', 'capture_leads', 'sell_online', 'organize_service', 'not_specified']),
+  audience: Object.freeze(['local_customers', 'businesses', 'online_consumers', 'existing_clients', 'not_specified']),
+  materials: Object.freeze(['ready', 'need_support', 'not_specified']),
+  timeline: Object.freeze(['within_30_days', 'within_90_days', 'flexible', 'not_specified']),
+  contactConsent: Object.freeze(['granted', 'declined', 'later'])
+});
+const qualificationActionLabels = Object.freeze({
+  objective: Object.freeze({ present_company: 'Apresentar minha empresa', capture_leads: 'Captar contatos interessados',
+    sell_online: 'Divulgar produtos ou serviços online', organize_service: 'Facilitar o primeiro contato com clientes',
+    not_specified: 'Ainda não defini' }),
+  audience: Object.freeze({ local_customers: 'Clientes da minha região', businesses: 'Outras empresas',
+    online_consumers: 'Consumidores online', existing_clients: 'Clientes atuais', not_specified: 'Ainda não defini' }),
+  materials: Object.freeze({ ready: 'Já tenho os materiais', need_support: 'Preciso de ajuda com o conteúdo',
+    not_specified: 'Ainda não sei' }),
+  timeline: Object.freeze({ within_30_days: 'Nos próximos 30 dias', within_90_days: 'Nos próximos 90 dias',
+    flexible: 'Sem prazo definido', not_specified: 'Prefiro não informar' }),
+  contactConsent: Object.freeze({ granted: 'Sim, autorizo', declined: 'Não autorizo', later: 'Prefiro decidir depois' })
+});
+const qualificationActions = Object.freeze({
+  'r08:summary': 'Ver resumo parcial',
+  'r08:change_service': 'Trocar solução',
+  'r08:restart': 'Reiniciar atendimento',
+  'r08:edit:objective': 'Corrigir objetivo',
+  'r08:edit:audience': 'Corrigir público',
+  'r08:edit:materials': 'Corrigir materiais',
+  'r08:edit:timeline': 'Corrigir previsão',
+  'r08:edit:contactConsent': 'Corrigir autorização',
+  ...Object.fromEntries(Object.entries(qualificationFields).flatMap(([field, values]) =>
+    values.map(value => ['r08:' + field + ':' + value, qualificationActionLabels[field][value]])))
+});
 const actions = Object.freeze({ ...getActionCatalog(),
-  confirm_goal: 'Confirmar meu objetivo', cancel_goal: 'Não, quero avaliar outra opção' });
+  confirm_goal: 'Confirmar meu objetivo', cancel_goal: 'Não, quero avaliar outra opção',
+  ...qualificationActions });
 const sources = new Map([
   ...Object.values(KNOWLEDGE.sources).map(source => [source.id,
     Object.freeze({ id: source.id, title: source.title, version: KNOWLEDGE.version })]),

@@ -1,0 +1,232 @@
+import { createJourney, getJourneySummary, respondJourney } from '../journey/state.mjs';
+import {
+  createLeadProfileFromJourney, updateLeadProfile, reviseLeadProfile,
+  getNextQualificationQuestion, isQualificationComplete, buildHandoffPackage
+} from './profile.mjs';
+
+export const QUALIFICATION_JOURNEY_VERSION = 'faisca-qualification-journey-r08-1';
+const trusted = new WeakSet();
+
+const labels = Object.freeze({
+  sell: 'Conhecer soluções',
+  summary: 'Ver resumo parcial',
+  changeService: 'Trocar solução',
+  restart: 'Reiniciar atendimento'
+});
+const editLabels = Object.freeze({ objective: 'objetivo', audience: 'público', materials: 'materiais', timeline: 'previsão', contactConsent: 'autorização de contato' });
+
+function readInput(input) {
+  try {
+    if (!input || typeof input !== 'object' || Array.isArray(input) ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(input))) return null;
+    const keys = Reflect.ownKeys(input);
+    if (keys.length !== 2 || !keys.includes('type')) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(input);
+    if (!Object.hasOwn(descriptors.type, 'value') || !Object.hasOwn(descriptors.id ?? descriptors.text ?? {}, 'value')) return null;
+    if (descriptors.type.value === 'action' && keys.includes('id') && typeof descriptors.id.value === 'string') {
+      return Object.freeze({ type: 'action', id: descriptors.id.value });
+    }
+    if (descriptors.type.value === 'text' && keys.includes('text') &&
+        typeof descriptors.text.value === 'string' && descriptors.text.value.length <= 800) {
+      return Object.freeze({ type: 'text', text: descriptors.text.value });
+    }
+    return null;
+  } catch { return null; }
+}
+
+function makeReply(text, intent, sources = [], actions = []) {
+  return Object.freeze({
+    text, intent, state: 'TALK', sources: Object.freeze(sources),
+    actions: Object.freeze(actions.map(item => Object.freeze({ id: item.id, label: item.label })))
+  });
+}
+
+function action(id, label) { return Object.freeze({ id, label }); }
+
+function createState(journey, profile, phase) {
+  const session = Object.freeze({
+    ...journey,
+    version: QUALIFICATION_JOURNEY_VERSION,
+    journey, profile, phase
+  });
+  trusted.add(session);
+  return session;
+}
+
+export function createQualificationJourney() {
+  return createState(createJourney(), null, 'sales');
+}
+
+export function getQualificationSummary(session) {
+  if (!trusted.has(session)) return getJourneySummary(createJourney());
+  if (!session.profile) return getJourneySummary(session.journey);
+  return buildHandoffPackage(session.profile)?.summary ?? getJourneySummary(session.journey);
+}
+
+function serviceChoiceReply(session, text = 'Qual solução você deseja avaliar?', userText = labels.changeService) {
+  return Object.freeze({
+    session: createState(session.journey, null, 'sales'),
+    userText,
+    reply: makeReply(text, 'r08_service_choice', [], [
+      action('goal_presence', 'Site Onepage'),
+      action('goal_campaign', 'Landing Page')
+    ])
+  });
+}
+
+function questionReply(session, profile, prefix = '', sources = [], userText = '') {
+  const next = getNextQualificationQuestion(profile);
+  if (!next) {
+    const handoff = buildHandoffPackage(profile);
+    return Object.freeze({
+      session: createState(session.journey, profile, 'complete'),
+      userText,
+      reply: makeReply((prefix ? prefix + '\n\n' : '') + handoff.summary, 'r08_qualification_complete', sources, [
+        action('r08:edit:objective', 'Corrigir objetivo'),
+        action('r08:edit:audience', 'Corrigir público'),
+        action('r08:edit:materials', 'Corrigir materiais'),
+        action('r08:edit:timeline', 'Corrigir previsão'),
+        action('r08:edit:contactConsent', 'Corrigir autorização'),
+        action('r08:change_service', labels.changeService)
+      ])
+    });
+  }
+  const options = next.options.map(option => action('r08:' + next.field + ':' + option.value, option.label));
+  return Object.freeze({
+    session: createState(session.journey, profile, 'qualification'),
+    userText,
+    reply: makeReply((prefix ? prefix + '\n\n' : '') + next.prompt, 'r08_qualification_question', sources, [
+      ...options, action('r08:summary', labels.summary)
+    ])
+  });
+}
+
+function summaryReply(session, userText = labels.summary) {
+  const handoff = buildHandoffPackage(session.profile);
+  if (!isQualificationComplete(session.profile)) {
+    return questionReply(session, session.profile, handoff.summary, [], userText);
+  }
+  const actions = session.phase === 'complete'
+    ? [
+      action('r08:edit:objective', 'Corrigir objetivo'),
+      action('r08:edit:audience', 'Corrigir público'),
+      action('r08:edit:materials', 'Corrigir materiais'),
+      action('r08:edit:timeline', 'Corrigir previsão'),
+      action('r08:edit:contactConsent', 'Corrigir autorização'),
+      action('r08:change_service', labels.changeService)
+    ]
+    : [action('r08:change_service', labels.changeService)];
+  return Object.freeze({
+    session,
+    userText,
+    reply: makeReply(handoff.summary, 'r08_qualification_summary', [], actions)
+  });
+}
+
+function freshReply() {
+  const session = createQualificationJourney();
+  return Object.freeze({
+    session,
+    userText: '[Contexto reiniciado]',
+    reply: makeReply('Vamos começar novamente. Qual solução você deseja avaliar?', 'r08_restart', [], [
+      action('goal_presence', 'Site Onepage'),
+      action('goal_campaign', 'Landing Page')
+    ])
+  });
+}
+
+/** Local qualification controller. No CRM, persistence, contact data or model call. */
+export function respondQualificationJourney(session, rawInput) {
+  if (!trusted.has(session)) return freshReply();
+  const input = readInput(rawInput);
+  if (!input) {
+    return Object.freeze({
+      session,
+      userText: '',
+      reply: makeReply('Não consegui validar essa escolha. Use uma das opções disponíveis para continuar.',
+        'r08_invalid_input', [], [action('r08:summary', labels.summary)])
+    });
+  }
+
+  if (input.type === 'action' && input.id === 'r08:restart') return freshReply();
+  if (input.type === 'action' && input.id === 'r08:change_service') {
+    return serviceChoiceReply(session, 'Sem problema. Vamos rever a solução antes de continuar a qualificação.');
+  }
+  if (input.type === 'action' && input.id === 'r08:summary' && session.profile) {
+    return summaryReply(session);
+  }
+
+  if (session.phase === 'qualification' || session.phase === 'complete') {
+    if (input.type === 'action' && input.id.startsWith('r08:edit:')) {
+      const field = input.id.slice('r08:edit:'.length);
+      const revised = reviseLeadProfile(session.profile, field);
+      if (!revised) return summaryReply(session, 'Não consegui abrir essa correção. Confira o resumo e escolha um campo disponível.');
+      return questionReply(session, revised, 'Vamos corrigir esta informação.', [], 'Corrigir ' + editLabels[field]);
+    }
+
+    if (input.type === 'action' && input.id.startsWith('r08:')) {
+      const parts = input.id.split(':');
+      if (parts.length === 3) {
+        const [, field, value] = parts;
+        const currentQuestion = getNextQualificationQuestion(session.profile);
+        const selectedOption = currentQuestion?.field === field
+          ? currentQuestion.options.find(option => option.value === value) : null;
+        const updated = updateLeadProfile(session.profile, field, value);
+        if (updated) return questionReply(session, updated, '', [], selectedOption?.label ?? 'Escolha registrada');
+      }
+      return questionReply(session, session.profile, 'Escolha uma das opções da pergunta atual.');
+    }
+  }
+
+  if (input.type === 'action' && input.id === 'sell') {
+    return serviceChoiceReply(session, 'Qual solução você deseja avaliar?', labels.sell);
+  }
+
+  if (session.phase === 'qualification' || session.phase === 'complete') {
+    if (input.type === 'text' || input.type === 'action') {
+      const result = respondJourney(session.journey, input);
+      if (result.session.pendingGoal !== null) {
+        return Object.freeze({
+          session: createState(result.session, null, 'sales'),
+          userText: result.userText,
+          reply: result.reply
+        });
+      }
+      if (result.reply.intent === 'journey_summary') {
+        return summaryReply(createState(result.session, session.profile, session.phase), result.userText);
+      }
+      const prepared = questionReply(createState(result.session, session.profile, session.phase),
+        session.profile, result.reply.text, result.reply.sources, result.userText);
+      return result.reply.sources.length
+        ? Object.freeze({ ...prepared, providerReply: result.reply }) : prepared;
+    }
+  }
+
+  const result = respondJourney(session.journey, input);
+  const confirmedService = result.reply.intent === 'goal_presence' || result.reply.intent === 'goal_campaign';
+  if (confirmedService) {
+    const profile = createLeadProfileFromJourney(result.session);
+    if (profile) {
+      const prepared = questionReply(createState(result.session, profile, 'qualification'),
+        profile, result.reply.text, result.reply.sources, result.userText);
+      return result.reply.sources.length
+        ? Object.freeze({ ...prepared, providerReply: result.reply }) : prepared;
+    }
+  }
+  if (['goal_sales', 'goal_ads', 'channel_google', 'channel_meta'].includes(result.reply.intent) &&
+      result.session.pendingGoal === null) {
+    return Object.freeze({
+      session: createState(result.session, null, 'sales'),
+      userText: result.userText,
+      reply: makeReply(result.reply.text + '\n\nA qualificação estruturada R08 ainda não tem um questionário aprovado para esta solução. Posso continuar com as orientações gerais.',
+        'r08_service_qualification_unavailable', result.reply.sources, [action('sell', labels.sell)])
+    });
+  }
+  const prepared = Object.freeze({
+    session: createState(result.session, null, 'sales'),
+    userText: result.userText,
+    reply: result.reply
+  });
+  return result.reply.sources.length
+    ? Object.freeze({ ...prepared, providerReply: result.reply }) : prepared;
+}

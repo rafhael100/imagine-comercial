@@ -17,7 +17,9 @@ const reasons = new Set([...statuses, 'sensitive_input', 'unsupported_instructio
   'too_long', 'invalid_session', 'invalid_signal', 'pending', 'timeout_after_dispatch', 'cancelled_after_dispatch', 'provider_unknown',
   'grounding_navigation', 'grounding_boundary', 'grounding_unsupported', 'grounding_ambiguous',
   'journey_confirmation_needed', 'journey_cancelled', 'journey_no_pending',
-  'journey_confirmation_refused', 'journey_invalid', 'journey_summary', 'summary']);
+  'journey_confirmation_refused', 'journey_invalid', 'journey_summary', 'summary',
+  'r08_service_choice', 'r08_qualification_question', 'r08_qualification_complete',
+  'r08_qualification_summary', 'r08_invalid_input', 'r08_restart', 'r08_service_qualification_unavailable']);
 const errorCodes = new Set(['invalid_host', 'invalid_origin', 'invalid_headers', 'invalid_path',
   'method_not_allowed', 'invalid_content_type', 'unsupported_encoding', 'invalid_framing', 'body_too_large',
   'body_timeout', 'invalid_json', 'invalid_request', 'unauthorized', 'conversation_mismatch',
