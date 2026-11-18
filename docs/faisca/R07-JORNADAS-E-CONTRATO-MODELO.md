@@ -66,4 +66,19 @@ Somente considerar R07 concluída quando J01–J14 estiverem verdes com evidênc
 
 **Como experimentar a nova camada:** `node ops/faisca/journey/demo.mjs`. Testes: `node --test tests/faisca-r07-*.test.mjs`. Esses comandos não instalam nada nem iniciam um serviço remoto.
 
-**Pendente na R07:** J09–J11 com nova integração de ponta a ponta (os transportes anteriores já têm regressões próprias); injeção nas próprias fontes R07 além da fixture de saída; demonstração navegável `/journey/`; revisão independente final com evidências de todas as SHAs. `publicFaiscaEnabled=false` permanece vigente. Não existe provedor generativo conectado. O contrato novo não habilita geração livre de texto, CRM ou pós-venda autenticado. Este registro não constitui um PASS do gate de saída.
+**Atualização da R07:** os cenários J09–J11 estão cobertos no **laboratório assíncrono Node R07**, reutilizando o runtime existente R03 e o contrato/fonte R06, com testes de consulta, bloqueio de novo turno até a conciliação, reinício e isolamento entre IDs de conversa iguais ou diferentes. Há também uma contraprova J12 para fonte adulterada e saída que tenta dar autoridade a instruções maliciosas. A demonstração visual `/journey/` e seu QA Chromium/Axe existem, mas **a tela atual ainda é local e síncrona; não expõe a consulta de resultado pendente desse novo laboratório assíncrono**.
+
+**Pendente para considerar a R07 totalmente homologada:** exercício **browser → HTTP → PHP real** especificamente com o novo estado R07 (as regressões reais de R05/R06 não substituem esse gate); avaliação semântica para uma futura geração de texto livre; revisão independente e comparação de SHAs. `publicFaiscaEnabled=false` permanece vigente. Não existe provedor generativo conectado, efeito CRM ou pós-venda autenticado. Este registro não constitui um PASS do gate final.
+
+## R07-F — mensagens incertas e isolamento (18/11/2026)
+
+`ops/faisca/journey/async-lab.mjs` é um adaptador local opt-in que **reutiliza** `createConversationRuntime` (R03) e `respondJourney` (R07). Propostas e confirmações do objetivo são operações locais explícitas; apenas orientações com resposta e trechos comprovados são elegíveis para envio ao provedor sintético. Nenhum input de visitante escolhe o provedor. O modo padrão do site não é alterado.
+
+As novas provas `tests/faisca-r07-async.test.mjs` incluem:
+- J09: timeout produz `unknown`; a entrega tardia é lida somente por `reconcile`, com o mesmo `conversationId/messageId` e sem novo despacho; outro objetivo permanece bloqueado até conciliação explícita, inclusive depois que o provedor já terminou.
+- J10: `reset()` destrói o runtime da geração anterior, devolve a operação pendente como encerrada, desconsidera o resultado tardio e reinicia o resumo sem contaminar a nova sessão.
+- J11: instâncias isoladas podem usar o mesmo `messageId` e resolvem seus próprios resumos, sem aceitar a mensagem da outra conversa.
+- J12: uma fonte adulterada perde o vínculo de confiança e a saída que interpreta instruções dentro da fonte é recusada.
+- Contraprovas: mensagem diferente com o mesmo ID dá `conflict`; uma consulta não redispara; reenvio de uma resposta já conciliada não bloqueia novamente o atendimento; troca de objetivo durante pré-despacho é recusada.
+
+**Limites operacionais:** o ledger é volátil, em um único processo, e o provedor é local/sintético. Não há durabilidade entre reinícios, orçamento, credencial ou garantia financeira de exactly-once. `reconcile` devolve dados ao chamador; nenhuma interface pública é automaticamente atualizada por esse laboratório. Para comprovar a experiência assíncrona R07 completa no navegador é necessário integrar explicitamente o transport/controller e testar o fechamento de sessões antes da liberação.
