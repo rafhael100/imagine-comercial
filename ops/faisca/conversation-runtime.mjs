@@ -110,16 +110,21 @@ export function createConversationRuntime({ provider, timeoutMs = 250, maxEntrie
     const guideResult = prepareTurn(state.session, request.input);
     state.session = guideResult.session;
     conversations.set(request.conversationId, state);
+    const providerReply = guideResult.providerReply ?? null;
+    const fallbackReply = providerReply
+      ? Object.freeze({ ...guideResult.reply, sources: Object.freeze([]) })
+      : guideResult.reply;
     let resolve;
     const promise = new Promise(yes => { resolve = yes; });
-    const entry = { fingerprint, conversationId: request.conversationId, guide: guideResult.reply,
-      promise, resolve, initial: null, final: null, pending: false, timer: null, cleanup: null };
+    const entry = { fingerprint, conversationId: request.conversationId, guide: fallbackReply,
+      guideReply: guideResult.reply, providerReply, promise, resolve, initial: null, final: null,
+      pending: false, timer: null, cleanup: null };
     entries.set(key, entry);
-    if (notForwarded.has(guideResult.reply.intent)) {
+    if (!providerReply && notForwarded.has(guideResult.reply.intent)) {
       settle(entry, outcome('answered', { reply: guideResult.reply, accepted: true, delivery: 'guided_fallback', reason: guideResult.reply.intent }));
       return entry.initial;
     }
-    const candidate = createConversationResponse(request, guideResult.reply);
+    const candidate = createConversationResponse(request, providerReply ?? guideResult.reply);
     entry.pending = true;
     state.active = entry;
     if (signal) {
@@ -141,7 +146,12 @@ export function createConversationRuntime({ provider, timeoutMs = 250, maxEntrie
       // reviewed candidate. A known source ID alone does not make a claim true.
       // A future real-model adapter requires its own reviewed grounding policy.
       const matchesCandidate = response && JSON.stringify(response) === JSON.stringify(candidate);
-      settle(entry, matchesCandidate ? outcome('answered', { reply: conversationResponseToReply(response), accepted: true, delivery: 'simulated' })
+      const validatedReply = matchesCandidate ? conversationResponseToReply(response) : null;
+      const finalReply = validatedReply && providerReply
+        ? Object.freeze({ ...guideResult.reply, sources: validatedReply.sources })
+        : validatedReply;
+      settle(entry, finalReply
+        ? outcome('answered', { reply: finalReply, accepted: true, delivery: 'simulated' })
         : outcome('invalid_response', { reply: entry.guide, accepted: true, delivery: 'guided_fallback' }));
     }, error => {
       if (!live) return;
