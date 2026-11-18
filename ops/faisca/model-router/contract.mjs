@@ -14,7 +14,8 @@ const clarificationCopy = Object.freeze({
   audience_clarification: 'Quem você deseja alcançar principalmente?',
   support_unknown: 'Não encontrei uma informação confirmada para responder com segurança. Posso reformular a dúvida ou preparar um resumo para a equipe.'
 });
-const clarificationIds = Object.freeze(Object.keys(clarificationCopy));
+export const ROUTER_CLARIFICATION_IDS = Object.freeze(Object.keys(clarificationCopy));
+const clarificationIds = ROUTER_CLARIFICATION_IDS;
 const stopWords = new Set(['a', 'as', 'ao', 'aos', 'com', 'da', 'das', 'de', 'do', 'dos',
   'e', 'em', 'essa', 'esse', 'esta', 'este', 'eu', 'me', 'minha', 'meu', 'na', 'nas',
   'no', 'nos', 'o', 'os', 'para', 'por', 'qual', 'quais', 'que', 'se', 'sua', 'seu',
