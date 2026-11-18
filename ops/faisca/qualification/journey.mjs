@@ -44,6 +44,10 @@ function makeReply(text, intent, sources = [], actions = []) {
 
 function action(id, label) { return Object.freeze({ id, label }); }
 
+function advanceJourney(journey) {
+  return respondJourney(journey, { type: 'action', id: 'summary' }).session;
+}
+
 function createState(journey, profile, phase, previousPhase = null) {
   const session = Object.freeze({
     ...journey,
@@ -201,7 +205,8 @@ export function respondQualificationJourney(session, rawInput) {
       const field = input.id.slice('r08:edit:'.length);
       const revised = reviseLeadProfile(session.profile, field);
       if (!revised) return summaryReply(session, 'Não consegui abrir essa correção. Confira o resumo e escolha um campo disponível.');
-      return questionReply(session, revised, 'Vamos corrigir esta informação.', [], 'Corrigir ' + editLabels[field]);
+      return questionReply(createState(advanceJourney(session.journey), revised, session.phase), revised,
+        'Vamos corrigir esta informação.', [], 'Corrigir ' + editLabels[field]);
     }
 
     if (input.type === 'action' && input.id.startsWith('r08:')) {
@@ -212,7 +217,8 @@ export function respondQualificationJourney(session, rawInput) {
         const selectedOption = currentQuestion?.field === field
           ? currentQuestion.options.find(option => option.value === value) : null;
         const updated = updateLeadProfile(session.profile, field, value);
-        if (updated) return questionReply(session, updated, '', [], selectedOption?.label ?? 'Escolha registrada');
+        if (updated) return questionReply(createState(advanceJourney(session.journey), updated, session.phase),
+          updated, '', [], selectedOption?.label ?? 'Escolha registrada');
       }
       return questionReply(session, session.profile, 'Escolha uma das opções da pergunta atual.');
     }
@@ -234,11 +240,12 @@ export function respondQualificationJourney(session, rawInput) {
         });
         if (fieldResult.accepted && fieldResult.status === 'matched') {
           const updated = updateLeadProfile(session.profile, fieldResult.field, fieldResult.value);
-          if (updated) return questionReply(session, updated, '', [], input.text);
+          if (updated) return questionReply(createState(advanceJourney(session.journey), updated, session.phase),
+            updated, '', [], input.text);
         }
         if (fieldResult.accepted && fieldResult.status === 'ambiguous') {
-          return questionReply(session, session.profile,
-            'Encontrei mais de uma interpretação possível. Escolha a alternativa que melhor representa sua resposta.',
+          return questionReply(createState(advanceJourney(session.journey), session.profile, session.phase),
+            session.profile, 'Encontrei mais de uma interpretação possível. Escolha a alternativa que melhor representa sua resposta.',
             [], input.text);
         }
       }
