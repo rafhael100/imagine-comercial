@@ -32,7 +32,7 @@ try {
   await collect(output);
   assert.ok(files.has('/index.html'), 'build the isolated Astro laboratory first');
   assert.equal([...files.keys()].filter(path => path.endsWith('.html')).length, 1);
-  const uiFiles = [...files.keys()].filter(path => /\/_astro\/ui\.[^/]+\.js$/.test(path));
+  const uiFiles = [...files.keys()].filter(path => /\/_astro\/conversation-ui\.[^/]+\.js$/.test(path));
   assert.equal(uiFiles.length, 1, 'conversation has a separate lazy-loaded module');
   phase = 'server_start';
   server = createServer((request, response) => {
@@ -52,7 +52,7 @@ try {
   phase = 'checks';
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const requests = [];
-  await context.route('**/*', async route => {
+  const restrictToLocalBuild = target => target.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
     const allowed = url.origin === origin && !url.search && request.method() === 'GET' &&
@@ -61,40 +61,183 @@ try {
     requests.push(url.pathname);
     await route.continue();
   });
+  await restrictToLocalBuild(context);
   const page = await context.newPage();
   page.on('pageerror', error => runtimeErrors.push(error.message));
   await page.goto(origin, { waitUntil: 'load' });
+  const conversation = page.locator('[data-faisca-root]');
+  const scenario = page.locator('[data-faisca-lab-scenario]');
+  const start = page.locator('[data-faisca-lab-start]');
+  const lastAnswer = () => page.locator('#faisca-log .assistant .message-body').last();
+  async function waitForAnswer(previousCount) {
+    await page.waitForFunction(count => {
+      const log = document.querySelector('#faisca-log');
+      return log.getAttribute('aria-busy') === 'false' && log.querySelectorAll('.assistant').length === count + 1;
+    }, previousCount);
+  }
+  async function send(text) {
+    const previousCount = await page.locator('#faisca-log .assistant').count();
+    await page.locator('#faisca-input').fill(text);
+    await page.locator('#faisca-send').click();
+    await waitForAnswer(previousCount);
+  }
+  async function choose(id) {
+    const previousCount = await page.locator('#faisca-log .assistant').count();
+    await page.locator(`#faisca-quick-actions [data-action-id="${id}"]`).click();
+    await waitForAnswer(previousCount);
+  }
+  async function activateScenario(value) {
+    if (await scenario.inputValue() !== value) {
+      await scenario.selectOption(value);
+      await start.waitFor({ state: 'visible' });
+      assert.equal(await page.locator('.chat-message').count(), 0, 'changing a scenario destroys the previous conversation');
+      assert.equal(await page.locator('#faisca-composer').isVisible(), false);
+    } else if (!await start.isVisible()) {
+      await page.locator('#faisca-reset').click();
+    }
+    if (await start.isVisible()) await start.click();
+    await page.locator('#faisca-composer').waitFor({ state: 'visible' });
+    assert.equal(await conversation.getAttribute('data-faisca-mode'), 'simulated_contract_demo');
+    assert.equal(await page.locator('.chat-message').count(), 1);
+    assert.match(await page.locator('[data-faisca-lab-status]').innerText(), /simulado/i);
+  }
+  async function assertOutcome(status, delivery) {
+    assert.equal(await conversation.getAttribute('data-faisca-status'), status);
+    assert.equal(await conversation.getAttribute('data-faisca-delivery'), delivery);
+  }
+  // Wait beyond the simulated provider's 800 ms delivery to expose stale callbacks.
+  const settleLateProvider = () => page.waitForTimeout(1000);
   await check('Astro view starts with static guidance and deferred conversation code', async () => {
-    await page.locator('[data-faisca-lab-start]').waitFor({ state: 'visible' });
+    await start.waitFor({ state: 'visible' });
+    assert.equal(await scenario.isVisible(), true);
     assert.equal(await page.locator('.chat-message').count(), 0);
     assert.equal(requests.includes(uiFiles[0]), false);
     assert.equal(await page.locator('#faisca-composer').isVisible(), false);
     assert.equal(await page.locator('#faisca-master').evaluate(img => img.complete && img.naturalWidth === 1254), true);
   });
-  await check('activation loads the conversation once and handles a real guided turn', async () => {
-    await page.locator('[data-faisca-lab-start]').click();
-    await page.locator('#faisca-composer').waitFor({ state: 'visible' });
+  await check('activation loads the simulated contract once and handles a guided turn', async () => {
+    await activateScenario('success');
     assert.equal(requests.filter(path => path === uiFiles[0]).length, 1);
-    assert.equal(await page.locator('.chat-message').count(), 1);
-    await page.locator('#faisca-input').fill('Qual a diferença entre Onepage e Landing Page?');
-    await page.locator('#faisca-send').click();
-    await page.waitForFunction(() => document.querySelector('#faisca-log').getAttribute('aria-busy') === 'false');
-    assert.match(await page.locator('#faisca-log .assistant .message-body').last().innerText(), /Onepage/);
+    await send('Qual a diferença entre Onepage e Landing Page?');
+    await assertOutcome('answered', 'simulated');
+    assert.match(await lastAnswer().innerText(), /Onepage/);
+    assert.equal(await page.locator('#faisca-log .assistant').last().locator('.message-sources').count(), 1);
   });
-  await check('custom-element disconnect and reconnect starts a clean conversation', async () => {
+  await check('simulated conversation keeps qualification and curated summary coherent across turns', async () => {
+    await activateScenario('success');
+    await choose('sell');
+    await choose('goal_presence');
+    await choose('materials_ready');
+    await choose('summary');
+    await assertOutcome('answered', 'simulated');
+    const summary = await page.locator('#faisca-summary-text').inputValue();
+    assert.match(summary, /Site Onepage/);
+    assert.match(summary, /textos e imagens já disponíveis/);
+    assert.match(summary, /nenhum dado foi enviado/i);
+  });
+  for (const [value, expectedStatus, explanation] of [
+    ['unavailable', 'unavailable', /indisponível/i],
+    ['limit', 'provider_limit', /limite/i],
+    ['malformed', 'invalid_response', /validação/i]
+  ]) {
+    await check(`${value} provider returns an explicit guided fallback without executing its content`, async () => {
+      await activateScenario(value);
+      await send('Qual a diferença entre Onepage e Landing Page?');
+      await assertOutcome(expectedStatus, 'guided_fallback');
+      const text = await lastAnswer().innerText();
+      assert.match(text, explanation);
+      assert.match(text, /guiada local/);
+      assert.match(text, /Onepage/);
+      assert.equal(await page.locator('#faisca-log script, #faisca-log iframe, #faisca-log img, #faisca-log a').count(), 0);
+      assert.equal(await page.locator('#faisca-send').isEnabled(), true);
+    });
+  }
+  await check('a timeout stays uncertain and does not append a late provider answer automatically', async () => {
+    await activateScenario('timeout');
+    await send('Qual a diferença entre Onepage e Landing Page?');
+    await assertOutcome('unknown', 'unknown');
+    assert.match(await lastAnswer().innerText(), /ainda não confirmou/);
+    assert.match(await lastAnswer().innerText(), /Nenhuma nova tentativa foi enviada/);
+    const snapshot = await page.locator('#faisca-log').innerText();
+    await settleLateProvider();
+    assert.equal(await page.locator('#faisca-log').innerText(), snapshot);
+    await assertOutcome('unknown', 'unknown');
+  });
+  await check('reset during a pending provider call discards the old response and outcome markers', async () => {
+    await activateScenario('timeout');
+    await page.locator('#faisca-input').fill('Quero organizar minhas vendas');
+    await page.locator('#faisca-send').click();
+    assert.equal(await page.locator('#faisca-log').getAttribute('aria-busy'), 'true');
+    await page.locator('#faisca-reset').click();
+    assert.equal(await page.locator('.chat-message').count(), 1);
+    assert.equal(await page.locator('#faisca-log').getAttribute('aria-busy'), 'false');
+    assert.equal(await conversation.getAttribute('data-faisca-status'), null);
+    assert.equal(await conversation.getAttribute('data-faisca-delivery'), null);
+    const snapshot = await page.locator('#faisca-log').innerText();
+    await settleLateProvider();
+    assert.equal(await page.locator('#faisca-log').innerText(), snapshot);
+    assert.equal(await page.locator('.chat-message').count(), 1);
+    assert.doesNotMatch(await page.locator('#faisca-summary-text').inputValue(), /Imagine CRM/);
+  });
+  await check('changing scenarios while pending cannot pollute the replacement conversation', async () => {
+    await activateScenario('timeout');
+    await page.locator('#faisca-input').fill('Quero organizar minhas vendas');
+    await page.locator('#faisca-send').click();
+    assert.equal(await page.locator('#faisca-log').getAttribute('aria-busy'), 'true');
+    await activateScenario('success');
+    await send('Como funciona o investimento?');
+    await assertOutcome('answered', 'simulated');
+    assert.match(await lastAnswer().innerText(), /Portal/);
+    const snapshot = await page.locator('#faisca-log').innerText();
+    await settleLateProvider();
+    assert.equal(await page.locator('#faisca-log').innerText(), snapshot);
+    assert.equal(await page.locator('#faisca-log .user').count(), 1);
+    assert.doesNotMatch(await page.locator('#faisca-summary-text').inputValue(), /Imagine CRM/);
+  });
+  await check('typing the next draft during an asynchronous answer preserves that draft', async () => {
+    await activateScenario('timeout');
+    const previousCount = await page.locator('#faisca-log .assistant').count();
+    await page.locator('#faisca-input').fill('Como funciona o projeto?');
+    await page.locator('#faisca-send').click();
+    await page.locator('#faisca-input').fill('Esta é minha próxima pergunta');
+    await waitForAnswer(previousCount);
+    assert.equal(await page.locator('#faisca-input').inputValue(), 'Esta é minha próxima pergunta');
+  });
+  await check('hiding a pending conversation keeps announcements quiet and reopening restores focus', async () => {
+    await activateScenario('timeout');
+    await page.locator('#faisca-input').fill('Como funciona o projeto?');
+    await page.locator('#faisca-input').press('Enter');
+    await page.locator('#faisca-input').press('Escape');
+    assert.equal(await page.locator('#faisca-chat').isVisible(), false);
+    assert.equal(await page.locator('#faisca-log').getAttribute('aria-live'), 'off');
+    await settleLateProvider();
+    assert.equal(await page.locator('#faisca-log').getAttribute('aria-live'), 'off');
+    await page.locator('#faisca-launcher').click();
+    assert.equal(await page.locator('#faisca-log').getAttribute('aria-live'), 'polite');
+    assert.equal(await page.locator('#faisca-input').evaluate(element => element === document.activeElement), true);
+  });
+  await check('disconnect and reconnect cancels a pending view and starts a clean conversation', async () => {
+    await activateScenario('timeout');
+    await page.locator('#faisca-input').fill('Quero organizar minhas vendas');
+    await page.locator('#faisca-send').click();
     await page.evaluate(() => {
       const host = document.querySelector('faisca-lab');
       const parent = host.parentElement;
       host.remove(); parent.append(host);
     });
-    await page.locator('[data-faisca-lab-start]').waitFor({ state: 'visible' });
+    await start.waitFor({ state: 'visible' });
     assert.equal(await page.locator('.chat-message').count(), 0);
-    await page.locator('[data-faisca-lab-start]').click();
+    await start.click();
     await page.locator('#faisca-composer').waitFor({ state: 'visible' });
     assert.equal(await page.locator('.chat-message').count(), 1);
+    const snapshot = await page.locator('#faisca-log').innerText();
+    await settleLateProvider();
+    assert.equal(await page.locator('#faisca-log').innerText(), snapshot);
+    assert.equal(await conversation.getAttribute('data-faisca-status'), null);
     assert.equal(requests.filter(path => path === uiFiles[0]).length, 1);
   });
   await check('Astro view fits the three target widths and passes axe', async () => {
+    await activateScenario('success');
     for (const width of [1440, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `overflow at ${width}`);
@@ -104,10 +247,13 @@ try {
   });
   await check('Astro guidance remains available without JavaScript', async () => {
     const noJS = await browser.newContext({ javaScriptEnabled: false });
+    await restrictToLocalBuild(noJS);
     const staticPage = await noJS.newPage();
+    staticPage.on('pageerror', error => runtimeErrors.push(error.message));
     await staticPage.goto(origin, { waitUntil: 'load' });
     assert.equal(await staticPage.locator('#hero-title').isVisible(), true);
     assert.equal(await staticPage.locator('[data-faisca-lab-start]').isVisible(), false);
+    assert.equal(await staticPage.locator('[data-faisca-lab-scenario]').isVisible(), false);
     assert.equal(await staticPage.locator('#faisca-composer').isVisible(), false);
     assert.equal(await staticPage.locator('.no-script-note').isVisible(), true);
     await noJS.close();

@@ -59,11 +59,23 @@ export function mountFaisca(root, config = {}) {
   }
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw new TypeError('Invalid Faísca configuration.');
   const descriptors = Object.getOwnPropertyDescriptors(config);
-  if (Reflect.ownKeys(descriptors).some(key => key !== 'replyDelayMs' || !Object.hasOwn(descriptors[key], 'value'))) {
-    throw new TypeError('Only replyDelayMs can be configured in the local demonstration.');
+  if (Reflect.ownKeys(descriptors).some(key => !['replyDelayMs', 'replyAdapter'].includes(key) || !Object.hasOwn(descriptors[key], 'value'))) {
+    throw new TypeError('Only local reply timing and a trusted laboratory adapter can be configured.');
   }
   const replyDelayMs = descriptors.replyDelayMs?.value ?? 220;
   if (!Number.isInteger(replyDelayMs) || replyDelayMs < 0 || replyDelayMs > 2000) throw new TypeError('Invalid replyDelayMs.');
+  // The optional adapter is supplied by checked-in laboratory code, never by a
+  // visitor envelope, DOM URL or public page. Standalone remains guided-only.
+  const replyAdapter = descriptors.replyAdapter?.value ?? null;
+  if (replyAdapter !== null) {
+    if (typeof replyAdapter !== 'object' || Array.isArray(replyAdapter)) throw new TypeError('Invalid laboratory adapter.');
+    const methods = Object.getOwnPropertyDescriptors(replyAdapter);
+    const names = ['send', 'reset', 'destroy'];
+    if (Reflect.ownKeys(methods).some(key => !names.includes(key)) ||
+        names.some(key => !Object.hasOwn(methods, key) || !Object.hasOwn(methods[key], 'value') || typeof methods[key].value !== 'function')) {
+      throw new TypeError('Incomplete laboratory adapter.');
+    }
+  }
   const document = root.ownerDocument;
   const window = document.defaultView;
   const navigator = window.navigator;
@@ -83,7 +95,7 @@ export function mountFaisca(root, config = {}) {
   const feedback = byId('faisca-feedback');
   const story = root.querySelector('.hero-story');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const originalRootAttributes = new Map(['data-motion', 'data-page-hidden', 'data-faisca-mode', 'data-faisca-mounted']
+  const originalRootAttributes = new Map(['data-motion', 'data-page-hidden', 'data-faisca-mode', 'data-faisca-mounted', 'data-faisca-status', 'data-faisca-delivery']
     .map(name => [name, root.getAttribute(name)]));
   const cleanups = [];
   let alive = true;
@@ -164,9 +176,9 @@ export function mountFaisca(root, config = {}) {
   }
 
   function finishPending() {
-    if (!alive || !pending) return;
+    if (!alive || !pending || !pending.ready) return;
     const focusWasInActions = actions.contains(document.activeElement);
-    const result = pending;
+    const result = pending.result;
     pending = null;
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
@@ -175,7 +187,7 @@ export function mountFaisca(root, config = {}) {
     setBusy(false);
     appendMessage('assistant', reply.text, reply.sources);
     renderActions(reply.actions);
-    setState(reply.state || 'TALK');
+    setState(shell.hidden ? 'SLEEP' : reply.state || 'TALK');
     refreshSummary();
     if (focusWasInActions && !shell.hidden) input.focus({ preventScroll: true });
   }
@@ -192,9 +204,34 @@ export function mountFaisca(root, config = {}) {
     if (typeof result.userText === 'string') appendMessage('user', result.userText);
     input.value = '';
     byId('faisca-count').textContent = '0/800';
-    pending = result;
+    const current = { result, ready: !replyAdapter };
+    pending = current;
     const ownGeneration = generation;
     setBusy(true);
+    if (replyAdapter) {
+      Promise.resolve().then(() => {
+        if (!alive || ownGeneration !== generation || pending !== current) return null;
+        return replyAdapter.send(event);
+      }).then(outcome => {
+        if (!alive || ownGeneration !== generation || pending !== current) return;
+        current.result = {
+          session: outcome?.accepted === true ? result.session : session,
+          reply: normalizeReply(outcome?.reply)
+        };
+        root.dataset.faiscaStatus = typeof outcome?.status === 'string' ? outcome.status : 'invalid_response';
+        root.dataset.faiscaDelivery = typeof outcome?.delivery === 'string' ? outcome.delivery : 'none';
+        current.ready = true;
+        finishPending();
+      }).catch(() => {
+        if (!alive || ownGeneration !== generation || pending !== current) return;
+        current.result = { session, reply: safeReply() };
+        current.ready = true;
+        root.dataset.faiscaStatus = 'adapter_unavailable';
+        root.dataset.faiscaDelivery = 'none';
+        finishPending();
+      });
+      return;
+    }
     timer = window.setTimeout(() => {
       if (!alive || ownGeneration !== generation || !pending) return;
       finishPending();
@@ -237,6 +274,9 @@ export function mountFaisca(root, config = {}) {
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
     pending = null;
+    try { replyAdapter?.reset(); } catch { /* Local guidance must stay usable. */ }
+    delete root.dataset.faiscaStatus;
+    delete root.dataset.faiscaDelivery;
     session = createSession();
     log.replaceChildren();
     input.value = '';
@@ -270,6 +310,7 @@ export function mountFaisca(root, config = {}) {
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
     pending = null;
+    try { replyAdapter?.destroy(); } catch { /* Always release the UI lifecycle. */ }
     for (const cleanup of cleanups.splice(0)) cleanup();
     mountedFaiscaRoots.delete(root);
     session = null;
@@ -311,6 +352,11 @@ export function mountFaisca(root, config = {}) {
   for (const button of root.querySelectorAll('[data-demo-action]')) {
     on(button, 'click', () => {
       openChat(button, false);
+      if (pending && !pending.ready) {
+        announce('Aguarde esta resposta ou reinicie a conversa.');
+        input.focus({ preventScroll: true });
+        return;
+      }
       finishPending();
       turn({ type: 'action', id: button.dataset.demoAction });
       shell.scrollIntoView({ block: 'nearest', behavior: reduceMotion.matches ? 'instant' : 'smooth' });
@@ -365,7 +411,7 @@ export function mountFaisca(root, config = {}) {
   summary.open = false;
   feedback.textContent = '';
   setBusy(false);
-  root.dataset.faiscaMode = getCapabilities().mode;
+  root.dataset.faiscaMode = replyAdapter ? 'simulated_contract_demo' : getCapabilities().mode;
   root.dataset.faiscaMounted = 'true';
   root.dataset.pageHidden = String(document.hidden);
   updateMotion();
@@ -377,7 +423,7 @@ export function mountFaisca(root, config = {}) {
   launcher.setAttribute('aria-expanded', 'true');
   // Reveal interaction only after every listener and initial state is installed.
   for (const node of root.querySelectorAll('[data-js-only]')) node.hidden = false;
-  const api = Object.freeze({ mode: 'guided_demo', root,
+  const api = Object.freeze({ mode: replyAdapter ? 'simulated_contract_demo' : 'guided_demo', root,
     open: () => openChat(), close: closeChat, reset: resetConversation, destroy });
   mountedFaiscaRoots.set(root, api);
   return api;
