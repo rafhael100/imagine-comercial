@@ -102,7 +102,7 @@ export function respondJourney(session, input) {
   }
 
   const inner = groundedRespond(session.coreSession, input);
-  if (inner.reply.intent === 'summary') {
+  if (special === 'summary') {
     return conclude(session, session.coreSession, session.pendingGoal, {
       userText: inner.userText,
       reply: reply(inner.reply.text, 'journey_summary')
