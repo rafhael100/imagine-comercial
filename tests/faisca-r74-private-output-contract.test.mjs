@@ -66,7 +66,7 @@ test('R74 provider output corruption or attempted operational claims fail closed
     { ...draft, operationalEffects: true },
     { ...draft, publicReady: true },
     { ...draft, sourceIds: [] },
-    { ...draft, sourceIds: ['sk-secret-cannot-be-source'] },
+    { ...draft, sourceIds: ['sk secret cannot be source'] },
     { ...draft, sourceIds: [source, () => {}] },
     { ...draft, modelIds: ['unreviewed-model'] },
     { ...draft, sourceIds: Array(1) },
