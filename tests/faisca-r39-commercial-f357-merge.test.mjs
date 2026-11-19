@@ -83,6 +83,6 @@ test('R39 imported quote guard and private Faísca handoff remain distinct', asy
   assert.match(server,/data-faisca-private-entry/);
   assert.match(server,/data-faisca-apply-choice/);
   assert.match(bridge,/data-faisca-quote-site/);
-  assert.match(bridge,/Object\.hasOwn\(allowed,value\)/);
+  assert.match(bridge,/Object\.hasOwn\(allowed,\s*value\)/);
   assert.doesNotMatch(bridge,/\bfetch\s*\(|XMLHttpRequest|postMessage|localStorage|sessionStorage/);
 });
