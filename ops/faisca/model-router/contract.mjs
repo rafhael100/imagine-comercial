@@ -63,7 +63,26 @@ export function retrieveCandidateAnswerIds(userText, maxCandidates = 5) {
   ranked.sort((a, b) => b.score - a.score || a.index - b.index);
   return Object.freeze(ranked.slice(0, maxCandidates).map(item => item.id));
 }
-const blockedIntents = new Set(['sensitive_input', 'unsupported_instruction', 'too_long', 'invalid_input', 'invalid_session']);
+const anonymousBoundaries = Object.freeze({
+  support_status: Object.freeze({ routeStatus: 'authentication_required',
+    text: 'Para consultar o andamento de um pedido ou projeto, utilize o Portal autenticado ou um canal oficial da Imagine. Esta prévia não consulta informações de clientes.' }),
+  support_issue: Object.freeze({ routeStatus: 'authentication_required',
+    text: 'O suporte de um serviço real exige confirmação de identidade e canal autorizado. Não envie senhas, dados de clientes nem credenciais nesta prévia.' }),
+  support_billing: Object.freeze({ routeStatus: 'authentication_required',
+    text: 'Cobranças, pagamentos, notas fiscais e contratos precisam ser verificados em ambiente autenticado. Esta prévia não comprova pagamento nem gera cobranças.' }),
+  support_cancel: Object.freeze({ routeStatus: 'authentication_required',
+    text: 'Cancelamentos e alterações exigem contrato e canal autorizado. Esta prévia não cancela nem altera qualquer serviço.' }),
+  after_sales: Object.freeze({ routeStatus: 'authentication_required',
+    text: 'Para acompanhar um serviço contratado, acesse o Portal autenticado ou o canal oficial. Esta prévia apenas ajuda a organizar a dúvida.' }),
+  human: Object.freeze({ routeStatus: 'human_handoff',
+    text: 'Não há atendente conectado nesta prévia. Você pode preparar um resumo e procurar a equipe pelos canais oficiais confirmados.' }),
+  privacy: Object.freeze({ routeStatus: 'privacy_guidance',
+    text: 'Não envie senhas, códigos, documentos ou dados de clientes nesta prévia. Consulte a política de privacidade oficial antes de compartilhar informações.' }),
+  goal_sales: Object.freeze({ routeStatus: 'product_unverified',
+    text: 'Os recursos e a contratação do Imagine CRM precisam ser confirmados pela equipe e pela proposta oficial. Esta prévia não consulta o CRM.' })
+});
+const blockedIntents = new Set(['sensitive_input', 'unsupported_instruction', 'too_long', 'invalid_input', 'invalid_session',
+  ...Object.keys(anonymousBoundaries)]);
 
 function plainData(value, expected) {
   try {
@@ -187,16 +206,38 @@ export function verifyModelRouteResponse(request, candidate) {
   return rejected;
 }
 
-/** Run the complete host -> fixture -> verifier path without an external model. */
-export function routeWithLocalFixture({ conversationId, messageId, userText, scenario = 'success' } = {}) {
+/** Run host -> guarded retrieval -> fixture -> verifier with zero external model calls. */
+export function routeWithLocalFixture(rawOptions = {}) {
+  const config = plainData(rawOptions, ['conversationId', 'messageId', 'userText']) ||
+    plainData(rawOptions, ['conversationId', 'messageId', 'userText', 'scenario']);
+  const refused = Object.freeze({
+    accepted: false, reason: 'request_refused', routeStatus: 'refused',
+    text: 'Não foi possível encaminhar essa mensagem para a demonstração. Não envie dados pessoais ou de acesso.',
+    sources: Object.freeze([]), actions: Object.freeze([]),
+    candidateAnswerIds: Object.freeze([])
+  });
+  if (!config || typeof config.userText !== 'string') return refused;
+  const { conversationId, messageId, userText } = config;
+  const scenario = config.scenario ?? 'success';
+  // An anonymous visitor cannot authorize private Portal/CRM operations merely
+  // by phrasing them as a natural-language question. Return fixed host copy.
+  const preflight = respond(createSession(), { type: 'text', text: userText });
+  const boundary = anonymousBoundaries[preflight.reply.intent];
+  if (boundary && [conversationId, messageId].every(value =>
+    typeof value === 'string' && ID_PATTERN.test(value))) {
+    return Object.freeze({
+      accepted: true, reason: 'anonymous_operational_boundary',
+      routeStatus: boundary.routeStatus, text: boundary.text,
+      sources: Object.freeze([]), actions: Object.freeze([]),
+      provenance: 'host_fixed_boundary', candidateAnswerIds: Object.freeze([])
+    });
+  }
   const candidateAnswerIds = retrieveCandidateAnswerIds(userText);
   const request = prepareModelRouteRequest({
     conversationId, messageId, userText, candidateAnswerIds,
     allowedClarificationIds: clarificationIds
   });
-  if (!request) return Object.freeze({ accepted: false, reason: 'request_refused', routeStatus: 'refused',
-    text: 'Não foi possível encaminhar essa mensagem para a demonstração. Não envie dados pessoais ou de acesso.',
-    sources: Object.freeze([]), actions: Object.freeze([]), candidateAnswerIds });
+  if (!request) return refused;
   const raw = localModelRouteFixture(request, scenario);
   const verified = verifyModelRouteResponse(request, raw);
   return Object.freeze({ ...verified, candidateAnswerIds });
