@@ -27,8 +27,22 @@ const FAISCA_PRIVATE_ENTRY='<section class="section section-soft" data-faisca-pr
   '<h2 id="faisca-private-title">Conheça o Faísca na Imagine</h2>'+
   '<p>Veja a qualificação comercial guiada sem criar pedidos, pagamentos ou leads.</p>'+
   '<a class="cta" href="/__faisca_preview/journey/">Conversar com o Faísca (teste privado)</a>'+
-  '<p>Prévia apenas para revisão. Não é atendimento ou contratação real.</p>'+
-  '</div></section>';
+  '<details data-faisca-private-inline><summary>Testar o Faísca dentro do site</summary>'+
+  '<p>Esta é uma conversa local simulada. Não informe dados pessoais ou senhas.</p>'+
+  '<iframe data-faisca-inline-frame src="/__faisca_preview/journey/" '+
+  'title="Faísca: conversa comercial de revisão privada" loading="lazy" '+
+  'referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin"></iframe>'+
+  '</details><p>Prévia apenas para revisão. Não é atendimento ou contratação real.</p>'+
+  '</div></section>'+
+  '<style data-faisca-private-inline-style>'+
+  '[data-faisca-private-inline]{margin-top:1.2rem;max-width:100%;border:1px solid #e1d2bc;'+
+  'border-radius:12px;background:#fff9f0;padding:12px 16px}'+
+  '[data-faisca-private-inline]>summary{min-height:44px;display:flex;align-items:center;'+
+  'color:#884100;font-weight:800;cursor:pointer}'+
+  '[data-faisca-private-inline] iframe{display:block;width:100%;height:min(80vh,860px);'+
+  'min-height:440px;border:1px solid #ddd0be;border-radius:12px;background:#fcfaf7}'+
+  '@media(max-width:620px){[data-faisca-private-inline] iframe{min-height:540px}}'+
+  '</style>';
 function preparePrivateFaiscaAssets(value){
   if(value===undefined)return new Map();
   if(!(value instanceof Map)||value.size<3||value.size>48)
@@ -129,6 +143,14 @@ export function createPrivateLoopbackPreview({directory,password,faiscaPrivateAs
     // canonical bytes were verified against the Faísca lab manifest upstream.
     const privateFile=extra.get(req.url);
     if(privateFile){
+      if(FAISCA_PRIVATE_PAGE.test(req.url)){
+        // ONLY these authenticated private pages can be framed by the
+        // same authenticated origin; the Comercial pages stay XFO DENY.
+        res.setHeader('X-Frame-Options','SAMEORIGIN');
+        res.setHeader('Content-Security-Policy',
+          HEADERS['Content-Security-Policy'].replace(
+            "frame-ancestors 'none'","frame-ancestors 'self'"));
+      }
       const mime=FAISCA_PRIVATE_PAGE.test(req.url)
         ?'text/html; charset=utf-8':req.url.endsWith('.css')
           ?'text/css; charset=utf-8':'text/javascript; charset=utf-8';
