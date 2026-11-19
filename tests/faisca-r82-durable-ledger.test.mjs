@@ -15,6 +15,7 @@ async function directoryFixture(fn) {
 }
 function fakeResponse(payload) {
   return new Response(JSON.stringify({
+    model: 'gpt-6-luna',
     status: 'completed',
     output: [{ type: 'message', role: 'assistant', content: [
       { type: 'output_text', text: JSON.stringify(payload) }
