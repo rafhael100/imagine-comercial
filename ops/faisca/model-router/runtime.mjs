@@ -64,8 +64,10 @@ export function createModelRouteRuntime({ provider, timeoutMs = 250, maxEntries 
   function settle(entry, value) {
     if (!live || entry.final) return;
     entry.final = value;
+    // Local fixed replies never reserved a provider slot. Do not decrement
+    // the counter of a different conversation turn still waiting on a provider.
+    if (entry.pending) pending = Math.max(0, pending - 1);
     entry.pending = false;
-    pending = Math.max(0, pending - 1);
     clearTimeout(entry.timer);
     const state = conversations.get(entry.conversationId);
     if (state?.active === entry) state.active = null;
