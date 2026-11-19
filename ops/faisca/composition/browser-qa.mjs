@@ -69,6 +69,28 @@ try {
       panelAxe.violations.map(v => v.id).join(','));
   });
 
+  await check('R28 preserves F357 cart guard and trusted WhatsApp during Faísca staging', async () => {
+    const simulator = page.locator('#simular-compra[data-choice-preview]');
+    assert.equal(await simulator.count(), 1);
+    await simulator.locator('[data-choice-site="none"]').click();
+    const contact = simulator.locator('[data-choice-action]');
+    assert.equal(await contact.getAttribute('aria-disabled'), 'true');
+    const before = page.url();
+    assert.equal(await contact.evaluate(link =>
+      link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))), false,
+      'An empty selection must not navigate to contact from the private Faísca preview.');
+    assert.equal(page.url(), before);
+    await simulator.locator('[data-choice-site="onepage"]').click();
+    assert.equal(await contact.getAttribute('aria-disabled'), 'false');
+    const target = new URL(await contact.getAttribute('href'));
+    assert.equal(target.origin, 'https://wa.me');
+    assert.equal(target.pathname, '/5585996632689');
+    assert.deepEqual([...target.searchParams.keys()], ['text']);
+    assert.ok(target.searchParams.get('text').length > 0);
+    assert.equal(await page.locator('[data-faisca-private-entry]').count(), 1,
+      'The Faísca private entry must not hide or replace the Commercial cart.');
+  });
+
   await check('R25 inline assistant runs in the real Comercial page without replacing CTAs', async () => {
     const disclosure = page.locator('[data-faisca-private-inline]');
     assert.equal(await disclosure.count(), 1);
