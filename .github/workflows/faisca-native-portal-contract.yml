@@ -1,0 +1,48 @@
+name: Faísca - compatibilidade Onepage com Portal nativo fixado
+
+on:
+  pull_request:
+    paths:
+      - 'ops/faisca/qualification/**'
+      - 'tests/faisca-*.test.mjs'
+      - '.github/workflows/faisca-native-portal-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  onepage-native-source:
+    name: Validar contrato PHP Onepage em SHA revisada do Portal
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Obter a candidata Faísca exata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Obter exclusivamente os arquivos do Portal Onepage em SHA fixa
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-portal
+          ref: 0e0ccc06755b6ddd938635e5c4c3625ff6497e2c
+          path: .qa/faisca-native-portal-pin
+          persist-credentials: false
+          sparse-checkout: |
+            apps/portal/app/Http/Controllers/OnepageOrderController.php
+            apps/portal/app/Infrastructure/Commerce/OnepageOrderCommands.php
+            apps/portal/config/portal_onepage.php
+            apps/portal/docs/NATIVE-ONEPAGE-CHECKOUT.md
+          sparse-checkout-cone-mode: false
+      - name: Configurar Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+      - name: Recusar drift de commit, fontes e autoridade Onepage
+        run: |
+          set -euo pipefail
+          test "$(git -C .qa/faisca-native-portal-pin rev-parse HEAD)" = "0e0ccc06755b6ddd938635e5c4c3625ff6497e2c"
+          node --test tests/faisca-r34-portal-native-intent.test.mjs tests/faisca-r36-native-portal-pin.test.mjs
+          node ops/faisca/qualification/verify-native-portal-pin.mjs --portal-root .qa/faisca-native-portal-pin
+      # No PHP serving, checkout API, migrations, secrets, customers or artifacts.
