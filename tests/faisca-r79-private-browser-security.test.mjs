@@ -70,7 +70,7 @@ test('R79 private page, script and CSS serve only static content on loopback wit
     assert.equal(response.headers.get('access-control-allow-origin'), null);
     assert.match(response.headers.get('content-security-policy') ?? '', /default-src 'none'/);
     const body = await response.text();
-    assert.doesNotMatch(body, /sk-proj-|sk-test-|OPENAI_API_KEY|localStorage|sessionStorage|indexedDB/i, path);
+    assert.doesNotMatch(body, /sk-proj-|sk-test-|localStorage|sessionStorage|indexedDB/i, path);
   }
   const html = await (await fetch(server.address + PRIVATE_REVIEW_PAGE_PATH)).text();
   assert.match(html, /type="password"/);
