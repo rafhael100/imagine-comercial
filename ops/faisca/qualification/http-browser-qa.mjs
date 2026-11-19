@@ -312,7 +312,16 @@ try {
     assert.equal(await page.locator('#faisca-input').inputValue(), '');
     assert.equal(phpCounts().spawned, previousPhp,
       'Sensitive text in pending mode must not reach the PHP source verifier.');
-    await choose('cancel_goal');
+    // The visual log intentionally keeps at most 40 nodes; after many turns,
+    // the number of assistant nodes may remain constant. Observe the new DOM
+    // reply rather than assuming a cumulative count.
+    const previousAnswer = await page.locator('#faisca-log .assistant').last().elementHandle();
+    await page.locator('#faisca-quick-actions [data-action-id="cancel_goal"]').click();
+    await page.waitForFunction(previous => {
+      const log = document.querySelector('#faisca-log');
+      const current = [...(log?.querySelectorAll('.assistant') ?? [])].at(-1);
+      return log?.getAttribute('aria-busy') === 'false' && current && current !== previous;
+    }, previousAnswer, { timeout: 10000 });
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     assert.equal(phpCounts().spawned, previousPhp);
   });
