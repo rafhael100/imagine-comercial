@@ -158,12 +158,18 @@ function normalize(text) {
 }
 
 function hasSensitiveData(text) {
-  // Conservative local heuristic, not a complete DLP control. An access-related
-  // marker hides the whole message even without punctuation or a claimed value.
-  // A recovery question may also be hidden; no credential text is needed here.
+  // Conservative local heuristic, not a complete DLP control. Access-related
+  // markers hide the whole message before any model/grounding dispatch.
+  const normalized = normalize(text);
   return /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(text) ||
     /(?:\d[\s().+\-/]*){10,}/.test(text) ||
-    /\b(?:senhas?|passwords?|passcode|tokens?|otp|mfa|2fa|api[_ -]?key|chave (?:secreta|privada|(?:da |de )?api)|codigo (?:de (?:acesso|verificacao|autenticacao|seguranca)|mfa|otp))\b/i.test(normalize(text)) ||
+    /\b(?:senhas?|passwords?|passcode|tokens?|otp|mfa|2fa|bearer|access[_ -]?token|api[_ -]?key|chave (?:secreta|privada|(?:da |de )?api)|codigo (?:de (?:acesso|verificacao|autenticacao|seguranca)|mfa|otp))\b/i.test(normalized) ||
+    // Short personal documents and random Pix identifiers can avoid a
+    // ten-digit detector; refuse the subject without echoing its value.
+    /\b(?:chave (?:aleatoria )?pix|pix copia(?: e |-| )cola|(?:meu|minha|nosso|nossa) (?:cpf|cnpj|rg|cep|endereco residencial))\b/.test(normalized) ||
+    /\brg\b[\s:=-]{0,6}(?:\d[.\s-]*){7,9}\b/i.test(text) ||
+    /\bcep\b[\s:=-]{0,6}\d{5}-?\d{3}\b/i.test(text) ||
+    /https?:\/\/[^\s]+[?&](?:access_token|api_key|token|session|auth)=/i.test(text) ||
     /\b(?:sk-|ghp_|gho_|github_pat_)[A-Za-z0-9_-]{8,}\b/.test(text) ||
     /-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(text);
 }
