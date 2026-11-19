@@ -68,6 +68,7 @@ test('R24 composes the actual compiled commercial HTML with a private, audited F
   assert.ok(prepared.extra.has('/__faisca_preview/journey/'));
   assert.ok(prepared.extra.has('/__faisca_preview/support/'));
   assert.ok(prepared.extra.has('/_astro/journey.TESTHASH.js'));
+  assert.ok(prepared.extra.has('/__faisca_preview/quote-bridge.js'));
 
   const before = await readFile(join(files.commercialDir, 'index.html'));
   const stage = await startPrivateCommercialFaisca({ ...files, password });
@@ -88,6 +89,8 @@ test('R24 composes the actual compiled commercial HTML with a private, audited F
   assert.match(html, /href="\/__faisca_preview\/journey\/"/);
   assert.match(html, /data-faisca-private-inline/);
   assert.match(html, /data-faisca-inline-frame/);
+  assert.match(html, /data-faisca-apply-choice/);
+  assert.match(html, /__faisca_preview\/quote-bridge\.js/);
   assert.match(html, /sandbox="allow-scripts allow-same-origin allow-forms"/);
   assert.match(html, /referrerpolicy="no-referrer"/);
   assert.equal(page.headers.get('x-frame-options'), 'DENY');
@@ -110,6 +113,12 @@ test('R24 composes the actual compiled commercial HTML with a private, audited F
   });
   assert.equal(js.status, 200);
   assert.match(await js.text(), /__faiscaPrivateTest/);
+  const bridge = await fetch(stage.origin + '/__faisca_preview/quote-bridge.js', {
+    headers: { Authorization: auth }
+  });
+  assert.equal(bridge.status, 200);
+  assert.match(bridge.headers.get('content-type'), /javascript/);
+  assert.match(await bridge.text(), /Levar escolha|faiscaQuoteSite|data-faisca-quote-site/);
 });
 
 test('R24 all commercial and Faísca routes deny anonymous visitors and writes', async t => {
@@ -117,7 +126,7 @@ test('R24 all commercial and Faísca routes deny anonymous visitors and writes',
   const stage = await startPrivateCommercialFaisca({ ...files, password });
   t.after(() => stage.close());
   for (const path of ['/', '/__faisca_preview/journey/', '/__faisca_preview/support/',
-    '/_astro/journey.TESTHASH.js']) {
+    '/_astro/journey.TESTHASH.js', '/__faisca_preview/quote-bridge.js']) {
     const response = await fetch(stage.origin + path, { redirect: 'manual' });
     assert.equal(response.status, 401, path);
     assert.match(response.headers.get('www-authenticate'), /^Basic/);

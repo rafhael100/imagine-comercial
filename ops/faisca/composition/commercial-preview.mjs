@@ -8,7 +8,8 @@ import {
 } from '../../../src/lib/private-loopback-preview.mjs';
 
 export const COMPOSITE_SCHEMA = 'faisca.commercial-private-composite.v1';
-const sourceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const compositionRoot = dirname(fileURLToPath(import.meta.url));
+const sourceRoot = resolve(compositionRoot, '..', '..', '..');
 const accepted = Object.freeze([
   ['journey/index.html', '/__faisca_preview/journey/'],
   ['support/index.html', '/__faisca_preview/support/']
@@ -35,6 +36,13 @@ export async function preparePrivateCommercialFaisca({
   const dir = await realDirectory(commercialDir);
   const reviewed = await loadReviewSnapshot(faiscaBundleDir);
   const extra = new Map();
+  // This reviewed, same-origin bridge is distributed with the R29 portable
+  // source. Never fetch it from the Internet or an operator-supplied path.
+  const bridge = await readFile(resolve(compositionRoot, 'quote-bridge.mjs'));
+  if (bridge.length < 300 || bridge.length > 12000) {
+    throw new Error('R37 private quote bridge has an unexpected size.');
+  }
+  extra.set('/__faisca_preview/quote-bridge.js', bridge);
   for (const [file, path] of accepted) {
     const bytes = reviewed.memory.get(file);
     if (!bytes) throw new Error('R24 missing an audited Faísca journey.');

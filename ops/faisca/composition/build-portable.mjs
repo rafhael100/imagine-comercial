@@ -57,6 +57,7 @@ export async function buildPortableCommercialReview() {
   const vetted = [
     ['private-loopback-preview.mjs', 'src/lib/private-loopback-preview.mjs'],
     ['commercial-preview.mjs', 'ops/faisca/composition/commercial-preview.mjs'],
+    ['quote-bridge.mjs', 'ops/faisca/composition/quote-bridge.mjs'],
     ['static-server.mjs', 'ops/faisca/review/static-server.mjs'],
     ['portable-verify.mjs', 'ops/faisca/composition/portable-verify.mjs'],
     ['iniciar-faisca-comercial.mjs', 'ops/faisca/composition/portable-launcher.mjs']

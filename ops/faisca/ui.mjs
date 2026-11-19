@@ -68,8 +68,14 @@ export function mountFaisca(root, config = {}) {
     if (!sessionPolicy || typeof sessionPolicy !== 'object' || Array.isArray(sessionPolicy) ||
         ![Object.prototype, null].includes(Object.getPrototypeOf(sessionPolicy))) throw new TypeError('Invalid local session policy.');
     const fields = Object.getOwnPropertyDescriptors(sessionPolicy);
-    if (Reflect.ownKeys(fields).length !== 2 ||
-        ['create', 'summary'].some(key => !fields[key] || !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function')) {
+    const names = Reflect.ownKeys(fields);
+    if (names.length < 2 || names.length > 3 ||
+        names.some(key => typeof key !== 'string' ||
+          !['create', 'summary', 'quoteSite'].includes(key)) ||
+        ['create', 'summary'].some(key => !fields[key] ||
+          !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function') ||
+        (fields.quoteSite && (!Object.hasOwn(fields.quoteSite, 'value') ||
+          typeof fields.quoteSite.value !== 'function'))) {
       throw new TypeError('Incomplete local session policy.');
     }
   }
@@ -175,6 +181,20 @@ export function mountFaisca(root, config = {}) {
     summaryRevision += 1;
     const text = getSummaryForView(session);
     summaryText.value = typeof text === 'string' ? text : '';
+    // R37: expose ONLY a validated, completed service enum for the
+    // opt-in private quote preview. Never publish the profile, contact
+    // choice, free text, audience or any price in DOM attributes.
+    // R37: only the trusted R08 host policy may provide a COMPLETED service.
+    // The generic R02 UI must keep its single original core import so the
+    // audited standalone offline demonstrator remains self-contained.
+    let quoteSite = null;
+    try { quoteSite = sessionPolicy?.quoteSite?.(session) ?? null; }
+    catch { /* No trusted status on callback failure. */ }
+    if (quoteSite === 'onepage' || quoteSite === 'landing-pages') {
+      root.dataset.faiscaQuoteSite = quoteSite;
+    } else {
+      delete root.dataset.faiscaQuoteSite;
+    }
     const hasSelection = Array.isArray(session.selection) && session.selection.length > 0;
     const hasContext = hasSelection || session.goal !== null || session.supportTopic !== null;
     const prompts = { sell: 'Escolha seu objetivo', after_sales: 'Escolha o assunto', faq: 'Explorando dúvidas', human: 'Preparar atendimento', start: 'Comece uma jornada' };
@@ -336,6 +356,7 @@ export function mountFaisca(root, config = {}) {
     actions.replaceChildren();
     input.value = '';
     summaryText.value = '';
+    delete root.dataset.faiscaQuoteSite;
     summary.open = false;
     feedback.textContent = '';
     byId('faisca-copy-status').textContent = '';
