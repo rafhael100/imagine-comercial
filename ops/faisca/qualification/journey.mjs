@@ -28,7 +28,7 @@ function readInput(input) {
     if (descriptors.type.value === 'action' && keys.includes('id') &&
         typeof descriptors.id.value === 'string' &&
         descriptors.id.value.length > 0 && descriptors.id.value.length <= 96 &&
-        /^[a-z0-9:_.-]+$/.test(descriptors.id.value)) {
+        /^[A-Za-z0-9:_.-]+$/.test(descriptors.id.value)) {
       // R58: bounded ASCII action IDs, never free text or control characters.
       // Unknown IDs use the existing closed fallback without echoing the input.
       return Object.freeze({ type: 'action', id: descriptors.id.value });
