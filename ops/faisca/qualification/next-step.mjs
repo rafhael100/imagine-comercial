@@ -26,7 +26,7 @@ export function buildQualificationNextStep(profile) {
         '1. Confira o resumo de interesse e corrija qualquer escolha antes de utilizá-lo.',
         '2. Copie o resumo pelo botão da conversa, se desejar compartilhar com a equipe por um canal oficial confirmado.',
         '3. Disponibilidade atual no Imagine Comercial: ' + portalStatus,
-        '4. Escopo, valores e condições finais dependem de validação oficial no Portal Imagine quando houver um fluxo autorizado.',
+        '4. Escopo, valores e condições finais dependem da proposta oficial e da validação no Portal Imagine quando houver um fluxo autorizado.',
         'Nenhum contato, pedido, proposta, cobrança, chamado ou agendamento foi criado. Esta prévia não enviou o resumo à equipe nem ao CRM.'
       ].join('\n')
     : [
