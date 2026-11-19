@@ -34,6 +34,21 @@ async function fixture(t) {
   return { root, assetPath };
 }
 
+function rawPathStatus(origin, path) {
+  return new Promise((yes, no) => {
+    const url = new URL(origin);
+    const req = httpRequest({
+      hostname: '127.0.0.1', port: url.port, path,
+      method: 'GET', headers: { Host: '127.0.0.1:' + url.port }
+    }, res => {
+      res.resume();
+      res.on('end', () => yes(res.statusCode));
+    });
+    req.on('error', no);
+    req.end();
+  });
+}
+
 function requestWithHost(origin, hostHeader) {
   return new Promise((yes, no) => {
     const url = new URL(origin);
@@ -82,9 +97,10 @@ test('R22 denies PHP-dependent paths, APIs, unsupported methods, invalid host an
     const response = await fetch(review.origin + url);
     assert.equal(response.status, 404, url);
   }
+  // URL/fetch normalizes dot segments before sending; use a raw Node HTTP
+  // request so this probe reaches the server with its original encoded path.
   for (const url of ['/journey/?token=anything', '/%2e%2e/', '/_astro/%2e%2e/secrets']) {
-    const response = await fetch(review.origin + url);
-    assert.equal(response.status, 400, url);
+    assert.equal(await rawPathStatus(review.origin, url), 400, url);
   }
   const posted = await fetch(review.origin + '/journey/', { method: 'POST', body: 'test' });
   assert.equal(posted.status, 405);
@@ -98,7 +114,9 @@ test('R22 denies PHP-dependent paths, APIs, unsupported methods, invalid host an
 test('R22 rejects edited assets, extra files and symlinks before binding any socket', async t => {
   const { root, assetPath } = await fixture(t);
   const old = await readFile(assetPath);
-  await writeFile(assetPath, 'window.modified=true;');
+  const tampered = Buffer.from(old);
+  tampered[0] ^= 1; // Same size, altered digest (not an unrelated size gate).
+  await writeFile(assetPath, tampered);
   await assert.rejects(startReviewServer({ rootDir: root, enabled: '1' }), /digest differs/);
   await writeFile(assetPath, old);
   await writeFile(join(root, 'astro', 'unknown.txt'), 'do not serve this');
