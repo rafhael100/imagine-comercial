@@ -17,6 +17,26 @@ const routes = Object.freeze([
   })
 ]);
 
+async function limitedText(response, signal) {
+  if (!response.body) throw new Error('missing body');
+  const reader = response.body.getReader();
+  const chunks = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      if (signal.aborted) throw new Error('timeout');
+      const next = await reader.read();
+      if (next.done) break;
+      bytes += next.value.byteLength;
+      if (bytes > 20000) throw new Error('oversized');
+      chunks.push(Buffer.from(next.value));
+    }
+    return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+  } finally {
+    try { await reader.cancel(); } catch { /* aborted read */ }
+  }
+}
+
 /**
  * Read-only smoke of the actual private review UI. It only requests static
  * HTML/JS/CSS via GET over loopback. No API token, OpenAI key, POST, model
@@ -37,9 +57,11 @@ export async function inspectFaiscaPrivateReviewUi({
   }
   for (const item of routes) {
     let passed = false;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
     try {
       const response = await fetchImpl(origin + item.path, {
-        method: 'GET', redirect: 'error', cache: 'no-store',
+        method: 'GET', signal: controller.signal, redirect: 'error', cache: 'no-store',
         credentials: 'omit', referrerPolicy: 'no-referrer'
       });
       const length = response.headers.get('content-length');
@@ -55,10 +77,10 @@ export async function inspectFaiscaPrivateReviewUi({
           !/default-src 'none'/.test(response.headers.get('content-security-policy') ?? '')) {
         throw new Error('unreviewed headers');
       }
-      const body = await response.text();
-      passed = Buffer.byteLength(body, 'utf8') <= 20000 &&
-        item.required.every(fragment => body.includes(fragment));
+      const body = await limitedText(response, controller.signal);
+      passed = item.required.every(fragment => body.includes(fragment));
     } catch { passed = false; }
+    finally { clearTimeout(timeout); controller.abort(); }
     checks.push(Object.freeze({ path: item.path, passed }));
     // No need to perform additional probes after a failure.
     if (!passed) break;
