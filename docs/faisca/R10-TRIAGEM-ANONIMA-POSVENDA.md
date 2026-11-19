@@ -62,7 +62,7 @@ node ops/faisca/support/browser-qa.mjs
 
 O workflow `Faísca - demonstração guiada e acessibilidade` executa o teste de navegador e conserva evidência sintética `Faisca_R10_SUPPORT_BROWSER_QA.json`.
 
-Aumentou-se a capacidade máxima da lista estática do servidor loopback de 128 para 160 arquivos por causa dos bundles extras, preservando limites de **8 MiB por arquivo** e **16 MiB no total**, proibição de symlinks, diretórios fora da allowlist e requisições fora de loopback. O teste `tests/faisca-http-server.test.mjs` verifica o limite de 160 e a recusa do arquivo 161.
+A medição do build R10 registrou **31 arquivos e 17.940.216 bytes**. O servidor loopback fica limitado a **64 arquivos**, **8 MiB por arquivo** e **24 MiB no total**, com proibição de symlinks, diretórios fora da allowlist e requisições fora de loopback. O teste `tests/faisca-http-server.test.mjs` verifica a recusa do arquivo 65 e do excesso de 24 MiB. Esses limites são somente do laboratório, não representam configuração de produção.
 
 ## R10-D — preparação para pós-venda autenticado (posterior)
 
