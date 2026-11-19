@@ -321,6 +321,8 @@ try {
     await quick('r08:next_steps');
     assert.match(await lastAnswer().innerText(), /Como avançar com Site Onepage/);
     assert.match(await lastAnswer().innerText(), /Portal Imagine/);
+    assert.match(await lastAnswer().innerText(), /comparar também com Landing Page/i,
+      'R19 must flag the declared lead-capture goal while retaining Onepage.');
     assert.match(await lastAnswer().innerText(), /contratação pública ainda não está disponível/i);
     assert.match(await lastAnswer().innerText(), /não enviou o resumo/i);
     assert.equal(phpCounts().spawned, beforeGuidance, 'Copy-only guidance must remain local.');
