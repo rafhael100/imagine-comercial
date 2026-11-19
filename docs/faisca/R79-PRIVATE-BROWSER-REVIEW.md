@@ -8,13 +8,14 @@ Permitir que o operador veja no navegador uma resposta gerada por Luna e Terra n
 
 Arquivos:
 - `ops/faisca/openai/private-review-page.mjs`: HTML, CSS e JS locais. O JS só envia `caseId` fechado, token de revisão Bearer transitório em memória, nenhuma persistência e modelo renderizado apenas via `textContent`.
-- `ops/faisca/openai/private-review-http.mjs`: GET somente nos três assets da página, host exato `127.0.0.1`, sem Origin/proxy/cookie, CSP restritiva; POST aceita apenas Origin exata do mesmo loopback, mantendo a rejeição de origens externas.
-- `tests/faisca-r79-private-browser-review.test.mjs`: testes HTTP reais no loopback para GET/CSP, token, POST exato, recusa de origem externa e recusa de textos livres.
+- `ops/faisca/openai/private-review-http.mjs`: GET somente nos três assets da página, host exato `127.0.0.1`, Origin ausente ou exatamente igual à origem loopback, sem proxy/cookie, CSP restritiva; POST aceita apenas Origin ausente ou exata do mesmo loopback, mantendo a rejeição de origens externas.
+- `tests/faisca-r79-private-browser-review.test.mjs` e `tests/faisca-r79-private-browser-security.test.mjs`: testes HTTP reais no loopback para GET/CSP, Origin exata/externa, token, POST e recusa de textos livres.
+- `ops/faisca/openai/private-review-browser-qa.mjs`: teste Chromium, WCAG em 320/390/1440 px, resultado autenticado e token apagado imediatamente após envio; a CI executa este teste sem usar a API paga.
 
 ## Teste sem crédito de API
 
 ```sh
-node --test tests/faisca-r79-private-browser-review.test.mjs
+node --test tests/faisca-r79-private-browser-review.test.mjs tests/faisca-r79-private-browser-security.test.mjs
 node --test tests/faisca-r72-openai-live-lab.test.mjs tests/faisca-r72-openai-private-http.test.mjs
 ```
 
