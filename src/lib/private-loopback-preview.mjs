@@ -31,7 +31,7 @@ const FAISCA_PRIVATE_ENTRY='<section class="section section-soft" data-faisca-pr
   '<p>Esta é uma conversa local simulada. Não informe dados pessoais ou senhas.</p>'+
   '<iframe data-faisca-inline-frame src="/__faisca_preview/journey/" '+
   'title="Faísca: conversa comercial de revisão privada" loading="lazy" '+
-  'referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin"></iframe>'+
+  'referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>'+
   '</details><p>Prévia apenas para revisão. Não é atendimento ou contratação real.</p>'+
   '</div></section>'+
   '<style data-faisca-private-inline-style>'+
