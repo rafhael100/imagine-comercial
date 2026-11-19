@@ -52,6 +52,16 @@ const FAISCA_PRIVATE_ENTRY='<section class="section section-soft" data-faisca-pr
   '@media(max-width:620px){[data-faisca-private-inline] iframe{min-height:540px}}'+
   '</style>'+
   '<script src="/__faisca_preview/quote-bridge.js" defer></script>';
+/** R38: the private preview HTML is shared with the offline staging kit.
+ * It is NEVER a transform performed on the production Astro dist. */
+export function renderPrivateFaiscaHome(original) {
+  if (typeof original !== 'string' || original.length < 100 ||
+      original.split('</main>').length !== 2 ||
+      original.includes('data-faisca-private-entry')) {
+    throw new Error('Unexpected private composition anchor.');
+  }
+  return original.replace('</main>', FAISCA_PRIVATE_ENTRY + '</main>');
+}
 function preparePrivateFaiscaAssets(value){
   if(value===undefined)return new Map();
   if(!(value instanceof Map)||value.size<3||value.size>48)
@@ -187,13 +197,9 @@ export function createPrivateLoopbackPreview({directory,password,faiscaPrivateAs
       let data=await readAllowed(root,route.file);
       if(!data){send(res,404,'Not found',isHead);return;}
       if(extra.size&&route.kind==='html'&&route.file==='index.html'){
-        const original=data.toString('utf8');
-        if(original.split('</main>').length!==2||
-           original.includes('data-faisca-private-entry'))
-          throw new Error('Unexpected private composition anchor.');
-        // Private Basic-Auth preview ONLY; the compiled public Astro dist on
-        // disk stays byte-identical and never receives this CTA.
-        data=Buffer.from(original.replace('</main>',FAISCA_PRIVATE_ENTRY+'</main>'),'utf8');
+        // The separate R38 Nginx staging kit shares this exact vetted
+        // private markup; neither path modifies the public compiled tree.
+        data=Buffer.from(renderPrivateFaiscaHome(data.toString('utf8')),'utf8');
       }
       const extension=route.file.slice(route.file.lastIndexOf('.'));
       res.setHeader('Content-Type',types.get(extension)||'application/octet-stream');
