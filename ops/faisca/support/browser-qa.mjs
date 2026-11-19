@@ -100,6 +100,10 @@ try {
     await page.locator('#faisca-composer').waitFor({ state: 'visible' });
     assert.equal(await page.locator('[data-faisca-root]').getAttribute('data-faisca-mode'),
       'r10_anonymous_support_lab');
+    assert.match(await last().innerText(), /prévia anônima/);
+    assert.doesNotMatch(await last().innerText(), /escreva sua dúvida/i);
+    assert.deepEqual(await page.locator('#faisca-quick-actions button').allTextContents(),
+      ['Organizar atendimento']);
   });
 
   await check('R10 support mode asks a closed topic, service and detail before a copy-only summary', async () => {
@@ -145,6 +149,8 @@ try {
     assert.equal(await page.locator('#faisca-log .assistant').count(), 1);
     assert.doesNotMatch(await summary(), /Site Onepage|Landing Page|Página não abre/);
     assert.match(await summary(), /Nenhum ticket foi aberto/);
+    assert.match(await last().innerText(), /prévia anônima/);
+    assert.doesNotMatch(await last().innerText(), /escreva sua dúvida/i);
   });
 
   await check('R10 screen remains responsive and accessible at 320, 390 and 1440 pixels', async () => {

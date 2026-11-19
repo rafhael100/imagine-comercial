@@ -69,18 +69,23 @@ export function mountFaisca(root, config = {}) {
         ![Object.prototype, null].includes(Object.getPrototypeOf(sessionPolicy))) throw new TypeError('Invalid local session policy.');
     const fields = Object.getOwnPropertyDescriptors(sessionPolicy);
     const names = Reflect.ownKeys(fields);
-    if (names.length < 2 || names.length > 3 ||
+    if (names.length < 2 || names.length > 4 ||
         names.some(key => typeof key !== 'string' ||
-          !['create', 'summary', 'quoteSite'].includes(key)) ||
+          !['create', 'summary', 'quoteSite', 'welcome'].includes(key)) ||
         ['create', 'summary'].some(key => !fields[key] ||
           !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function') ||
         (fields.quoteSite && (!Object.hasOwn(fields.quoteSite, 'value') ||
-          typeof fields.quoteSite.value !== 'function'))) {
+          typeof fields.quoteSite.value !== 'function')) ||
+         (fields.welcome && (!Object.hasOwn(fields.welcome, 'value') ||
+          typeof fields.welcome.value !== 'function'))) {
       throw new TypeError('Incomplete local session policy.');
     }
   }
   const createSessionForView = sessionPolicy?.create ?? createSession;
   const getSummaryForView = sessionPolicy?.summary ?? getSummary;
+  // R53: only checked-in isolated laboratory policies may replace the welcome.
+  // Default public and legacy demos keep the original Faísca greeting.
+  const getWelcomeForView = sessionPolicy?.welcome ?? getWelcome;
   const replyDelayMs = descriptors.replyDelayMs?.value ?? 220;
   const prepareTurn = descriptors.prepareTurn?.value ?? respond;
   if (typeof prepareTurn !== 'function') throw new TypeError('Invalid trusted turn policy.');
@@ -318,7 +323,7 @@ export function mountFaisca(root, config = {}) {
     byId('faisca-count').textContent = '0/800';
     summary.open = false;
     setBusy(false);
-    const welcome = normalizeReply(getWelcome());
+    const welcome = normalizeReply(getWelcomeForView());
     appendMessage('assistant', welcome.text, welcome.sources);
     renderActions(welcome.actions);
     refreshSummary();
@@ -451,7 +456,7 @@ export function mountFaisca(root, config = {}) {
   root.dataset.faiscaMounted = 'true';
   root.dataset.pageHidden = String(document.hidden);
   updateMotion();
-  const welcome = normalizeReply(getWelcome());
+  const welcome = normalizeReply(getWelcomeForView());
   appendMessage('assistant', welcome.text, welcome.sources);
   renderActions(welcome.actions);
   refreshSummary();
