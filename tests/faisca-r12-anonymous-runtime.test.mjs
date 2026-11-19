@@ -93,6 +93,28 @@ test('R12 a fixed safety boundary works even when an editorial answer is still p
   } finally { runtime.destroy(); }
 });
 
+test('R12 a fixed unsupported reply never releases a different in-flight provider slot', async () => {
+  let release;
+  const runtime = createModelRouteRuntime({ provider: {
+    kind: 'simulated', route(request) {
+      return new Promise(resolve => { release = () => resolve(localModelRouteFixture(request)); });
+    }
+  }, timeoutMs: 500 });
+  try {
+    const ongoing = runtime.send(input('r12_pending_second', 'Como funciona o projeto?'));
+    const unrelatedFallback = await runtime.send(input('r12_no_candidate',
+      'Qual é a cor favorita do mascote?', 'r12_other_conversation'));
+    assert.equal(unrelatedFallback.status, 'answered');
+    assert.equal(unrelatedFallback.delivery, 'fixed_fallback');
+    assert.equal(runtime.inspect().pending, 1);
+    const blocked = await runtime.send(input('r12_next_public', 'Quanto custa?'));
+    assert.equal(blocked.status, 'busy');
+    release();
+    assert.equal((await ongoing).status, 'answered');
+    assert.equal(runtime.inspect().pending, 0);
+  } finally { runtime.destroy(); }
+});
+
 test('R12 pipeline propagates boundary without any model routing or PHP grounding', async () => {
   let routeCalls = 0, phpCalls = 0;
   const pipeline = createGroundedModelPipeline({
