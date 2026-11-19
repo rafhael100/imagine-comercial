@@ -155,7 +155,9 @@ try {
       const home = await page.goto(origin + '/', { waitUntil: 'load' });
       assert.equal(home?.status(), 200);
       assert.equal(await page.locator('#simular-compra[data-choice-preview]').count(), 1);
-      const link = page.locator('a[data-purchase-start]').first();
+      // F325/R27 use a visible, service-specific CTA. The first generic
+      // purchase-start anchor can be hidden in the 320px mobile header.
+      const link = page.locator('a[data-purchase-intent="site"]').first();
       await link.click();
       assert.equal(new URL(page.url()).hash, '#simular-compra');
       const disclosure = page.locator('[data-faisca-private-inline]');
