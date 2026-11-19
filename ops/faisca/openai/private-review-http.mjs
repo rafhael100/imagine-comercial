@@ -1,6 +1,8 @@
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
+import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
+import { getGroundedAnswer } from '../grounding/guide.mjs';
+import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
 import { getGroundingSources } from '../grounding/catalog.mjs';
 import {
   PRIVATE_REVIEW_PAGE_PATH, PRIVATE_REVIEW_SCRIPT_PATH, PRIVATE_REVIEW_STYLE_PATH,
@@ -75,7 +77,7 @@ function safeReviewList(value, allowed = null) {
   }
   return items;
 }
-function safeReviewOutput(response) {
+function safeReviewOutput(response, caseId) {
   try {
     if (!response || typeof response !== 'object' || Array.isArray(response) ||
         ![Object.prototype, null].includes(Object.getPrototypeOf(response))) return null;
@@ -100,7 +102,33 @@ function safeReviewOutput(response) {
       sources.length === 0 || models.length !== 2 ||
       models[0] !== FAISCA_OPENAI_MODELS.classification ||
       models[1] !== FAISCA_OPENAI_MODELS.answer))) return null;
-    return Object.freeze({ status, answer, sources, models });
+    // Real R72 results include the live-lab schema and Luna-selected answerId.
+    // An allowlisted source may still refer to a completely unrelated recipe:
+    // bind the *ordered exact list* to the selected host-reviewed answer and
+    // ensure it was a candidate for the operator's fixed synthetic question.
+    // Legacy untagged provider fixtures remain possible in older HTTP tests,
+    // but they are never represented as a source-recipe verified result.
+    const schema = get('schema');
+    const hasAnswerId = Object.hasOwn(descriptors, 'answerId');
+    const realEnvelope = schema === FAISCA_OPENAI_LIVE_LAB_SCHEMA;
+    if ((schema !== undefined && !realEnvelope) ||
+        (hasAnswerId && !Object.hasOwn(descriptors.answerId, 'value')) ||
+        (hasAnswerId && !realEnvelope)) return null;
+    let sourceRecipeBound = false;
+    if (realEnvelope && status === 'draft_answer') {
+      const selectedId = get('answerId');
+      const candidates = retrieveCandidateAnswerIds(FAISCA_OPENAI_TEST_CASES[caseId]);
+      const grounded = typeof selectedId === 'string' && candidates.includes(selectedId)
+        ? getGroundedAnswer(selectedId) : null;
+      const expected = grounded?.sources.map(source => source.id);
+      if (!expected || expected.length !== sources.length ||
+          expected.some((id, index) => sources[index] !== id)) return null;
+      sourceRecipeBound = true;
+    }
+    if (realEnvelope && status === 'unsupported' &&
+        (hasAnswerId || sources.length !== 0 || models.length !== 0 ||
+         get('source') !== 'host_fixed_fallback')) return null;
+    return Object.freeze({ status, answer, sources, models, sourceRecipeBound });
   } catch { return null; }
 }
 
@@ -217,7 +245,7 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
     inFlight = true;
     requests++;
     try {
-      const outcome = safeReviewOutput(await lab.answer(caseId));
+      const outcome = safeReviewOutput(await lab.answer(caseId), caseId);
       if (!outcome) throw new Error('Invalid private review output.');
       send(res, 200, {
         schema: 'faisca.openai-private-review-response.v1',
@@ -226,6 +254,7 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
         answer: outcome.answer,
         sources: outcome.sources,
         models: outcome.models,
+        sourceRecipeBound: outcome.sourceRecipeBound,
         requiresEditorialReview: true,
         publicReady: false, operationalEffects: false
       });
