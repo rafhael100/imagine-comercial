@@ -43,7 +43,10 @@ function inputData(raw) {
       return Object.freeze({ type: 'action', id: d.id.value });
     }
     if (d.type.value === 'text' && keys.includes('text') && d.text &&
-        Object.hasOwn(d.text, 'value') && typeof d.text.value === 'string') {
+        Object.hasOwn(d.text, 'value') && typeof d.text.value === 'string' &&
+        // Match the closed R08/HTTP laboratory limit before dispatching any
+        // typed content, even though support intentionally discards its text.
+        d.text.value.length <= 800) {
       return Object.freeze({ type: 'text' });
     }
     return null;
