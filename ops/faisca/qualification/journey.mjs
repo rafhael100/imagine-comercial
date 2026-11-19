@@ -25,7 +25,12 @@ function readInput(input) {
     if (keys.length !== 2 || !keys.includes('type')) return null;
     const descriptors = Object.getOwnPropertyDescriptors(input);
     if (!Object.hasOwn(descriptors.type, 'value') || !Object.hasOwn(descriptors.id ?? descriptors.text ?? {}, 'value')) return null;
-    if (descriptors.type.value === 'action' && keys.includes('id') && typeof descriptors.id.value === 'string') {
+    if (descriptors.type.value === 'action' && keys.includes('id') &&
+        typeof descriptors.id.value === 'string' &&
+        descriptors.id.value.length > 0 && descriptors.id.value.length <= 96 &&
+        /^[a-z0-9:_.-]+$/.test(descriptors.id.value)) {
+      // R58: bounded ASCII action IDs, never free text or control characters.
+      // Unknown IDs use the existing closed fallback without echoing the input.
       return Object.freeze({ type: 'action', id: descriptors.id.value });
     }
     if (descriptors.type.value === 'text' && keys.includes('text') &&
