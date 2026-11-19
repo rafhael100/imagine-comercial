@@ -303,7 +303,9 @@ export function respondQualificationJourney(session, rawInput) {
     if (input.type === 'action' && input.id.startsWith('r08:edit:')) {
       const field = input.id.slice('r08:edit:'.length);
       const revised = reviseLeadProfile(session.profile, field);
-      if (!revised) return summaryReply(session, 'Não consegui abrir essa correção. Confira o resumo e escolha um campo disponível.');
+      if (!revised) return questionReply(session, session.profile,
+        'Esta correção não está disponível enquanto o campo não tiver uma escolha registrada.',
+        [], '[Ação não aplicada]');
       return questionReply(createState(advanceJourney(session.journey), revised, session.phase), revised,
         'Vamos corrigir esta informação.', [], 'Corrigir ' + editLabels[field]);
     }

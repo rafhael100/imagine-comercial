@@ -139,7 +139,10 @@ export function createLeadProfileFromJourney(journeySession) {
 export function reviseLeadProfile(profile, field) {
   const safe = validateLeadProfile(profile);
   const index = fields.indexOf(field);
-  if (!safe || index < 0) return null;
+  // Stale/forged correction actions must not "edit" unanswered fields.
+  // Consent is unanswered while it holds the explicit not_asked sentinel.
+  if (!safe || index < 0 || (field === 'contactConsent'
+    ? safe.contactConsent === 'not_asked' : safe[field] === null)) return null;
   const next = { ...safe };
   for (let i = index; i < fields.length; i++) {
     const name = fields[i];
