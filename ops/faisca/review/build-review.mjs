@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, readdir, realpath, lstat, open, mkdir, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
-import { resolve, dirname, relative, sep } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildDemo } from '../build-demo.mjs';
 
@@ -16,7 +16,7 @@ const MAX_FILES = 64;
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 24 * 1024 * 1024;
 const here = dirname(fileURLToPath(import.meta.url));
-const projectRoot = resolve(here, '..', '..');
+const projectRoot = resolve(here, '..');
 const outputRoot = resolve(projectRoot, 'output');
 const sha256 = data => createHash('sha256').update(data).digest('hex');
 
