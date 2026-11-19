@@ -299,6 +299,24 @@ try {
     executedPHP = true;
   });
 
+  await check('R15 browser masks private text while a service change awaits confirmation', async () => {
+    await choose('r08:change_service');
+    assert.match(await lastAnswer().innerText(), /solução/i);
+    await choose('goal_campaign');
+    assert.match(await lastAnswer().innerText(), /Confirme a escolha/);
+    const previousPhp = phpCounts().spawned;
+    await sendText('Meu email é teste.sintetico@example.invalid');
+    const chat = await page.locator('#faisca-log').innerText();
+    assert.match(chat, /Mensagem livre não registrada/);
+    assert.doesNotMatch(chat, /teste.sintetico@example.invalid/);
+    assert.equal(await page.locator('#faisca-input').inputValue(), '');
+    assert.equal(phpCounts().spawned, previousPhp,
+      'Sensitive text in pending mode must not reach the PHP source verifier.');
+    await choose('cancel_goal');
+    assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
+    assert.equal(phpCounts().spawned, previousPhp);
+  });
+
   await check('R08 reset during PHP work destroys its HTTP session and discards late delivery', async () => {
     const before = await assistantCount();
     await page.locator('#faisca-input').fill('Como funciona o projeto?');
