@@ -77,6 +77,8 @@ try {
     await inside.locator('#faisca-send').click();
     await inside.locator('[data-action-id="confirm_goal"]').waitFor({ state: 'visible' });
     await inside.locator('[data-action-id="confirm_goal"]').click();
+    await inside.locator('[data-action-id="r08:objective:present_company"]')
+      .waitFor({ state: 'visible' });
     assert.match(await inside.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     assert.equal(await choices.locator('[data-choice-site="landing-pages"]').getAttribute('aria-pressed'), 'true');
   });
