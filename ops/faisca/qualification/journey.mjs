@@ -97,7 +97,8 @@ function questionReply(session, profile, prefix = '', sources = [], userText = '
         action('r08:edit:materials', 'Corrigir materiais'),
         action('r08:edit:timeline', 'Corrigir previsão'),
         action('r08:edit:contactConsent', 'Corrigir autorização'),
-        action('r08:change_service', labels.changeService),
+        // Keep the closed HTTP response under six actions. Changing service
+        // remains available from the explicit next-step menu.
         action('r08:next_steps', 'Como avançar?')
       ])
     });
@@ -124,7 +125,6 @@ function summaryReply(session, userText = labels.summary) {
       action('r08:edit:materials', 'Corrigir materiais'),
       action('r08:edit:timeline', 'Corrigir previsão'),
       action('r08:edit:contactConsent', 'Corrigir autorização'),
-      action('r08:change_service', labels.changeService),
       action('r08:next_steps', 'Como avançar?')
     ]
     : [action('r08:change_service', labels.changeService)];
