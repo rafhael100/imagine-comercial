@@ -170,7 +170,7 @@ try{
     });
     if(path==='/'||path==='/contato/'){
       assert.equal(response.headers.get('x-synthetic-origin'),'LEGACY-LOCAL-FIXTURE');
-      assert.equal(content.toString('utf8'),'SYNTHETIC_LEGACY_ONLY:GET:/');
+      assert.equal(content.toString('utf8'),'SYNTHETIC_LEGACY_ONLY:GET:'+path);
     }else{
       assert.equal(response.headers.get('x-synthetic-origin'),'REVIEWED-STATIC-LOCAL');
       assert.deepEqual(content,bytes.get(path.slice(1)+'index.html'));
