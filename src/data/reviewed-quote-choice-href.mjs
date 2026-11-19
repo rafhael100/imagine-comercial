@@ -5,7 +5,7 @@
  * every permitted URL. No arbitrary string or URL parameter is accepted.
  */
 import {reviewedQuoteChoiceMessage} from './reviewed-quote-choice-messages.mjs';
-const PUBLIC_WHATSAPP='https://wa.me/5585996632689';
+import {contactWhatsAppUrl} from './contact-channels.mjs';
 export function reviewedQuoteChoiceHref(locale,selection){
- return PUBLIC_WHATSAPP+'?text='+encodeURIComponent(reviewedQuoteChoiceMessage(locale,selection));
+ return contactWhatsAppUrl(reviewedQuoteChoiceMessage(locale,selection));
 }

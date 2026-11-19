@@ -195,6 +195,11 @@ import {describeSelectedQuoteServices} from '../lib/public-quote-item-labels.mjs
    const copyButton=root.querySelector('[data-choice-copy]');
    if(copyButton){copyButton.hidden=false;copyButton.disabled=!estimate.hasChoice;}
   };
+  // F357: aria-disabled alone does not prevent pointer navigation.
+  // An empty quote must never activate the fallback contact link.
+  root.querySelector('[data-choice-action]')?.addEventListener('click',event=>{
+   if(event.currentTarget.getAttribute('aria-disabled')==='true')event.preventDefault();
+  });
   root.querySelector('[data-choice-copy]')?.addEventListener('click',async()=>{
    const status=root.querySelector('[data-choice-copy-status]');
    if(!status)return;
