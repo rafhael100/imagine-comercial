@@ -150,6 +150,34 @@ try {
     assert.match(await page.locator('[data-faisca-apply-status]').innerText(),
       /Site Onepage selecionado no simulador local/);
     assert.equal(await page.locator('#simular-compra form, #simular-compra input[type="email"]').count(), 0);
+
+    // R42: a completed profile must STOP authorizing handoff as soon as
+    // the visitor starts switching services, even though the old profile
+    // remains in memory until confirmation.
+    await chooseWithin('r08:next_steps','r08:change_service');
+    await chooseWithin('r08:change_service','goal_campaign');
+    assert.equal(await frame.locator('[data-faisca-root]').getAttribute('data-faisca-quote-site'), null);
+    await quote.locator('[data-choice-site="landing-pages"]').click();
+    await transfer.click();
+    assert.equal(await quote.locator('[data-choice-site="landing-pages"]').getAttribute('aria-pressed'), 'true');
+    assert.match(await page.locator('[data-faisca-apply-status]').innerText(), /Conclua a qualificação/);
+    await chooseWithin('goal_campaign','confirm_goal');
+    assert.equal(await frame.locator('[data-faisca-root]').getAttribute('data-faisca-quote-site'), null);
+    await transfer.click();
+    assert.equal(await quote.locator('[data-choice-site="landing-pages"]').getAttribute('aria-pressed'), 'true');
+    await chooseWithin('cancel_goal','r08:next_steps');
+    assert.equal(await frame.locator('[data-faisca-root]').getAttribute('data-faisca-quote-site'), 'onepage');
+
+    // An ongoing UI turn cannot supply a quote choice even with a stale
+    // attribute: the bridge refuses when aria-busy is true.
+    const log = frame.locator('[data-faisca-id="faisca-log"]');
+    await log.evaluate(el=>el.setAttribute('aria-busy','true'));
+    await transfer.click();
+    assert.match(await page.locator('[data-faisca-apply-status]').innerText(), /Conclua a resposta atual/);
+    assert.equal(await quote.locator('[data-choice-site="landing-pages"]').getAttribute('aria-pressed'), 'true');
+    await log.evaluate(el=>el.setAttribute('aria-busy','false'));
+    await transfer.click();
+    assert.equal(await quote.locator('[data-choice-site="onepage"]').getAttribute('aria-pressed'), 'true');
     await frame.locator('#faisca-reset').click();
     assert.equal(await frame.locator('[data-faisca-root]').getAttribute('data-faisca-quote-site'), null);
     await quote.locator('[data-choice-site="landing-pages"]').click();
