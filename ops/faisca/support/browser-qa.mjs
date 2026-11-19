@@ -154,6 +154,17 @@ try {
     assert.equal(await page.locator('#faisca-send').isDisabled(), true);
     assert.equal(await page.locator('#faisca-quick-actions button').first().evaluate(
       button => button === document.activeElement), true);
+    const beforeCount = await page.locator('#faisca-log .assistant').count();
+    const beforeSummary = await summary();
+    await page.evaluate(() => {
+      const input = document.querySelector('#faisca-input');
+      input.value = 'SYNTHETIC_SECRET_999 secret@example.invalid';
+      document.querySelector('#faisca-composer').dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    assert.equal(await page.locator('#faisca-input').inputValue(), '');
+    assert.equal(await page.locator('#faisca-log .assistant').count(), beforeCount);
+    assert.equal(await summary(), beforeSummary);
     assert.doesNotMatch(await page.locator('#faisca-log').innerText(),
       /SYNTHETIC_SECRET_999|secret@example.invalid/);
     assert.match(await summary(), /Nenhum ticket foi aberto/);
