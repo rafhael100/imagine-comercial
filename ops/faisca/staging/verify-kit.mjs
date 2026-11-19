@@ -103,6 +103,8 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
     readFile(resolve(root,'site/index.html'),'utf8')
   ]);
   const configMarkers = [
+    'map $request_uri $faisca_review_frame {',
+    'map $request_uri $faisca_review_ancestors {',
     'auth_basic_user_file /etc/nginx/auth/.htpasswd;',
     'X-Robots-Tag "noindex, nofollow, noarchive"',
     'connect-src \'none\'', 'form-action \'none\'',
@@ -113,7 +115,10 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
     'IMAGINE_FAISCA_STAGING_HTPASSWD_PATH',
     'no-new-privileges:true','read_only: true'
   ];
-  if (configMarkers.some(marker => !nginx.includes(marker)) ||
+  // The original request URI must survive Nginx try_files index redirects.
+  // Never admit the old $uri mapping, even if an attacker regenerates hashes.
+  if (nginx.includes('map $uri $faisca_review_') ||
+      configMarkers.some(marker => !nginx.includes(marker)) ||
       composeMarkers.some(marker => !compose.includes(marker)) ||
       !home.includes('data-faisca-private-entry') ||
       !home.includes('data-faisca-apply-choice') ||
