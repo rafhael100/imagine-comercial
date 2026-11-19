@@ -11,10 +11,14 @@
  */
 import {sitePages} from '../data/services.mjs';
 import {legacyUrls} from '../data/legacy-urls.mjs';
+import {legacyPublicSitemapPaths,legacyPublicSitemapProtectedVariants}
+ from '../data/legacy-public-sitemap-paths.mjs';
 
 const STATIC_PAGES=Object.freeze(sitePages.map(page=>page.path));
 const PAGES=new Set(STATIC_PAGES);
 const LEGACY=new Set(legacyUrls.map(item=>item.from));
+const SITEMAP_PROTECTED=new Set(legacyPublicSitemapProtectedVariants);
+const ORIGINAL_PAGE_CONFLICTS=STATIC_PAGES.filter(path=>SITEMAP_PROTECTED.has(path));
 const SHA=/^[a-f0-9]{64}$/;
 const ABSOLUTE_ASSET=/^\/_astro\/[A-Za-z0-9_-][A-Za-z0-9_.-]{0,179}\.(?:css|js)$/;
 const STATIC_FILE=/^(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-][A-Za-z0-9_.-]{0,179}$/;
@@ -24,7 +28,11 @@ const MANIFEST_KEYS=['schema','mode','origin','htmlPages','fileCount',
 
 if(STATIC_PAGES.length!==63 || new Set(STATIC_PAGES).size!==63 ||
   LEGACY.size!==27 || legacyUrls.filter(x=>x.status==='hold').length!==22 ||
-  STATIC_PAGES.some(path=>LEGACY.has(path)))
+  STATIC_PAGES.some(path=>LEGACY.has(path))||
+  legacyPublicSitemapPaths.length!==81||SITEMAP_PROTECTED.size!==161||
+  ORIGINAL_PAGE_CONFLICTS.length!==2||
+  !ORIGINAL_PAGE_CONFLICTS.includes('/')||
+  !ORIGINAL_PAGE_CONFLICTS.includes('/contato/'))
   throw Error('F314: reviewed current or historic route catalog changed');
 
 function exactData(o,fields){
@@ -94,8 +102,13 @@ export function reviewProgressiveOverlayManifest(manifest){
   status:'REVIEW_ONLY_NOT_AUTHORIZED_FOR_DEPLOY',
   staticTreeSha256:manifest.treeSha256,
   currentStaticHtmlPages:paths.size,
-  eligibleNewPages:paths.size-1,
+  eligibleNewPages:paths.size-ORIGINAL_PAGE_CONFLICTS.length,
   oldHomepageKept:true,
+  oldContactRouteKept:true,
+  publicSitemapOwnedPathsKept:legacyPublicSitemapPaths.length,
+  publicSitemapSlashVariantsKept:SITEMAP_PROTECTED.size,
+  malformedSitemapLocExcluded:1,
+  publicSitemapContentEquivalenceProven:false,
   oldSeoFilesKept:true,
   heldLegacyRoutesKept:22,
   historicalRedirectCandidatesKeptWithout301:5,
@@ -139,7 +152,7 @@ export function classifyProgressiveOverlayRequest(plan,request){
  const readOnly=request.method==='GET'||request.method==='HEAD';
  const protectedPath=request.pathname==='/'||
    request.pathname==='/robots.txt'||request.pathname==='/sitemap.xml'||
-   LEGACY.has(request.pathname);
+   LEGACY.has(request.pathname)||SITEMAP_PROTECTED.has(request.pathname);
  let decision='LEGACY_ORIGIN_RETAIN';
  if(readOnly&&!protectedPath&&PAGES.has(request.pathname))
    decision='REVIEWED_NEW_ASTRO_HTML';

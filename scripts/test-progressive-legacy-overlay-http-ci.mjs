@@ -10,6 +10,8 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {extname} from 'node:path';
 import {sitePages} from '../src/data/services.mjs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
+import {legacyPublicSitemapPaths,legacyPublicSitemapProtectedVariants}
+ from '../src/data/legacy-public-sitemap-paths.mjs';
 import {readProtectedDist} from '../src/lib/read-protected-dist.mjs';
 import {reviewStagingBuildIntegrity} from '../src/lib/staging-build-integrity.mjs';
 import {reviewProgressiveOverlayManifest,classifyProgressiveOverlayRequest}
@@ -166,13 +168,20 @@ try{
     const {response,content}=await probe(current,path,{
       headers:{Cookie:'lab=synthetic'}
     });
-    if(path==='/'){
+    if(path==='/'||path==='/contato/'){
       assert.equal(response.headers.get('x-synthetic-origin'),'LEGACY-LOCAL-FIXTURE');
-      assert.equal(content.toString('utf8'),'SYNTHETIC_LEGACY_ONLY:GET:/');
+      assert.equal(content.toString('utf8'),'SYNTHETIC_LEGACY_ONLY:GET:'+path);
     }else{
       assert.equal(response.headers.get('x-synthetic-origin'),'REVIEWED-STATIC-LOCAL');
       assert.deepEqual(content,bytes.get(path.slice(1)+'index.html'));
     }
+  }
+  assert.equal(legacyPublicSitemapPaths.length,81);
+  assert.equal(legacyPublicSitemapProtectedVariants.length,161);
+  for(const path of legacyPublicSitemapProtectedVariants){
+    const {response,content}=await probe(current,path);
+    assert.equal(response.headers.get('x-synthetic-origin'),'LEGACY-LOCAL-FIXTURE');
+    assert.equal(content.toString('utf8'),'SYNTHETIC_LEGACY_ONLY:GET:'+path);
   }
   for(const entry of legacyUrls){
     const {response,content}=await probe(current,entry.from);
@@ -206,18 +215,21 @@ try{
   const head=await probe(current,'/es/',{method:'HEAD'});
   assert.equal(head.content.length,0);
   assert.equal(head.response.headers.get('x-synthetic-origin'),'REVIEWED-STATIC-LOCAL');
-  assert.equal(edgeDecisions.newHtml,63,'F317: exactly 62 GET new pages and one HEAD');
+  assert.equal(edgeDecisions.newHtml,62,'F317: exactly 61 GET new pages and one HEAD');
   assert.equal(edgeDecisions.newAsset,plan.eligibleStaticAssets.length);
   assert.equal(edgeDecisions.writeRequestsOnLegacy,6);
-  assert.equal(legacyRequests.length,39,'F317: all old paths, originals, and writes preserved');
-  assert.equal(legacyRequests.filter(x=>x.sawSyntheticCookie).length,2);
+  assert.equal(legacyRequests.length,201,'F317: 161 sitemap variants, 27 curated, old home/contact and writes');
+  assert.equal(legacyRequests.filter(x=>x.sawSyntheticCookie).length,3);
   const record=Object.freeze({
     schema:'imagine.comercial.synthetic-legacy-overlay-http.v1',
     status:'LOCAL_HTTP_SIMULATED_PASS_NOT_DEPLOYED',
     staticTreeSha256:manifest.treeSha256,
     publicAstroHtmlCount:sitePages.length,
-    newAstroHtmlGetChecks:62,
+    newAstroHtmlGetChecks:61,
     originalHomepagePreserved:true,
+    originalContactPagePreserved:true,
+    publicSitemapPathsRetained:81,
+    publicSitemapSlashVariantsRetained:161,
     all27KnownLegacyPathsPreserved:true,
     legacySeoFilesPreserved:true,
     unknownLegacyPathsPreserved:true,
@@ -234,7 +246,7 @@ try{
   });
   writeFileSync('artifacts/release-review/REVIEW-ONLY-synthetic-overlay-http.json',
     JSON.stringify(record,null,2)+'\n',{flag:'wx'});
-  console.log('PASS F317: LOCAL HTTP only — 62 Astro routes, original home, 27 historic paths, '+
+  console.log('PASS F317: LOCAL HTTP only — 61 Astro routes, original home/contact, 81 sitemap paths and 27 curated historic paths, '+
     plan.eligibleStaticAssets.length+' hashed assets and mutating requests; no deploy.');
 }finally{
   for(const server of [overlay,legacy]){

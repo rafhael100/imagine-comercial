@@ -11,6 +11,8 @@ import {reviewProgressiveOverlayManifest,classifyProgressiveOverlayRequest}
  from '../src/lib/progressive-legacy-overlay-plan.mjs';
 import {sitePages} from '../src/data/services.mjs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
+import {legacyPublicSitemapPaths,legacyPublicSitemapProtectedVariants}
+ from '../src/data/legacy-public-sitemap-paths.mjs';
 
 const manifest=JSON.parse(await readFile(
  'artifacts/release-review/REVIEW-ONLY-static-build-sha256.json','utf8'));
@@ -22,14 +24,21 @@ const candidate=reviewProgressiveOverlayManifest(manifest);
 const decisions=sitePages.map(page=>classifyProgressiveOverlayRequest(candidate,{
  method:'GET',pathname:page.path,search:''
 }));
-assert.equal(decisions.filter(d=>d.decision==='REVIEWED_NEW_ASTRO_HTML').length,62);
-assert.equal(decisions.filter(d=>d.decision==='LEGACY_ORIGIN_RETAIN').length,1);
+assert.equal(decisions.filter(d=>d.decision==='REVIEWED_NEW_ASTRO_HTML').length,61);
+assert.equal(decisions.filter(d=>d.decision==='LEGACY_ORIGIN_RETAIN').length,2);
 for(const item of legacyUrls){
  const record=classifyProgressiveOverlayRequest(candidate,{
   method:'GET',pathname:item.from,search:''
  });
  assert.equal(record.decision,'LEGACY_ORIGIN_RETAIN');
 }
+for(const path of legacyPublicSitemapProtectedVariants){
+ const record=classifyProgressiveOverlayRequest(candidate,{method:'GET',pathname:path,search:''});
+ assert.equal(record.decision,'LEGACY_ORIGIN_RETAIN');
+}
+assert.equal(legacyPublicSitemapPaths.length,81);
+assert.equal(legacyPublicSitemapProtectedVariants.length,161);
+assert.equal(candidate.oldContactRouteKept,true);
 for(const candidateAsset of candidate.eligibleStaticAssets){
  const record=classifyProgressiveOverlayRequest(candidate,{
   method:'GET',pathname:candidateAsset,search:''
@@ -56,8 +65,12 @@ const handoff=Object.freeze({
  staticTreeSha256:manifest.treeSha256,
  reviewContract:candidate.schema,
  publicPagesBuilt:63,
- newPagesEligibleForPrivateOverlay:62,
+ newPagesEligibleForPrivateOverlay:61,
  retainedOriginalHomepageCount:1,
+ retainedOriginalContactRouteCount:1,
+ retainedOriginalPublicSitemapPaths:81,
+ retainedOriginalPublicSitemapVariants:161,
+ malformedSourceLocExcluded:1,
  retainedKnownOldUrls:27,
  retainedLegacyHeld:22,
  retainedLegacyRedirectCandidates:5,
@@ -79,5 +92,5 @@ const handoff=Object.freeze({
 });
 await writeFile('artifacts/release-review/REVIEW-ONLY-progressive-legacy-overlay.json',
  JSON.stringify(handoff,null,2)+'\n');
-console.log('PASS F314: preview only; 62 Astro routes, 27 old and original home preserved, '+
+console.log('PASS F314: preview only; 61 Astro routes, 81 sitemap locs (+slash variants), 27 curated old, home/contact preserved, '+
  candidate.eligibleStaticAssets.length+' approved assets. Private staging/noindex only, no deploy.');
