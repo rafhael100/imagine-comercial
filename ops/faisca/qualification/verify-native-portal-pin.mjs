@@ -53,7 +53,7 @@ export function checkNativeOnepageContract({ controller, commands, config, contr
     contract.includes('site=onepage') &&
     contract.includes('channels=[]') &&
     contract.includes('tier=minimum|recommended') &&
-    contract.includes('O navegador não fornece comprador ou empresa.')
+    contract.includes('o navegador não fornece comprador ou empresa.')
   );
 }
 
