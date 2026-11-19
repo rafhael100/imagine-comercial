@@ -76,6 +76,15 @@ jobs:
         run: node ops/faisca/staging/build-kit.mjs --review-only
       - name: Conferir hashes e política do kit R38 extraído
         run: node ops/faisca/output/private-staging-kit/verify-kit.mjs --verify
+      - name: Verificar regra R41 do Nginx instalado sem tocar em Docker ou VPS
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/faisca/staging/check-nginx-loopback.py
+          if command -v nginx >/dev/null 2>&1 && command -v htpasswd >/dev/null 2>&1; then
+            python3 ops/faisca/staging/check-nginx-loopback.py --kit ops/faisca/output/private-staging-kit
+          else
+            echo "R41 Nginx live HOLD: ferramentas não presentes neste runner; teste estático obrigatório e prova local independente ainda necessária."
+          fi
       - name: Disponibilizar pacote de demonstração R21 estritamente para revisão
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
