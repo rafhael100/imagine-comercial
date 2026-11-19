@@ -81,6 +81,9 @@ form?.addEventListener('submit', async event => {
   event.preventDefault();
   if (pending) return;
   const reviewToken = token.value.trim(), caseId = scenario.value;
+  // Clear the DOM immediately; the operator must explicitly supply a new
+  // transient bearer for any further paid request. Never persist it.
+  token.value = '';
   // All visitor-controlled values are bounded and only the case ID leaves
   // the browser. Do not store the bearer or the generated text.
   if (!/^[A-Za-z0-9_-]{32,128}$/.test(reviewToken) || !validCases.has(caseId)) {
@@ -102,10 +105,15 @@ form?.addEventListener('submit', async event => {
       credentials:'omit', cache:'no-store', referrerPolicy:'no-referrer'
     });
     const data = await response.json();
-    if (response.status !== 200 || data?.status !== 'draft_answer' ||
+    if (response.status !== 200 ||
+        data?.schema !== 'faisca.openai-private-review-response.v1' ||
+        data.status !== 'draft_answer' || data.syntheticCaseId !== caseId ||
+        data.requiresEditorialReview !== true ||
         typeof data.answer !== 'string' || data.answer.length > 900 ||
-        !Array.isArray(data.sources) || data.publicReady !== false ||
-        data.operationalEffects !== false) {
+        !Array.isArray(data.sources) || data.sources.length === 0 ||
+        !Array.isArray(data.models) ||
+        !data.models.every(id => ['gpt-6-luna', 'gpt-6.1-terra'].includes(id)) ||
+        data.publicReady !== false || data.operationalEffects !== false) {
       throw new Error('review_unavailable');
     }
     // All output, including model text, is displayed as plain text.
