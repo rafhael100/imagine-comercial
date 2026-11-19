@@ -112,8 +112,13 @@ export function respondSupportJourney(session, rawInput) {
   if (input.id === 'r10:summary') {
     const brief = buildSupportBrief(session.triage);
     const question = getNextSupportQuestion(session.triage);
+    if (!question) return Object.freeze({
+      session,
+      userText: 'Ver resumo',
+      reply: makeReply(brief.summary, 'r10_support_summary', nextActions(session.triage))
+    });
     return currentReply(session.triage,
-      brief.summary + (question ? '\n\nVocê pode continuar escolhendo uma opção abaixo.' : ''),
+      brief.summary + '\n\nVocê pode continuar escolhendo uma opção abaixo.',
       'Ver resumo');
   }
   if (input.id.startsWith('r10:revise:')) {
