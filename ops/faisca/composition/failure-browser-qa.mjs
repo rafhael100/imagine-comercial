@@ -43,7 +43,7 @@ try {
       await embedded.locator('.no-script-note').waitFor({ state: 'visible', timeout: 15000 });
       assert.match(await embedded.locator('.no-script-note').innerText(), /Ative JavaScript/);
       assert.equal(await embedded.locator('#faisca-composer').isVisible(), false);
-      assert.equal(await context.cookies(), []);
+      assert.deepEqual(await context.cookies(), []);
       await page.goto(server.origin + '/servicos/', { waitUntil: 'load' });
       assert.equal(await page.locator('main#conteudo').count(), 1);
       assert.ok(await page.locator('h1').count() >= 1);
@@ -89,7 +89,7 @@ try {
       await disclosure.locator('summary').click();
       await quote.locator('[data-choice-site="onepage"]').click();
       assert.equal(await quote.locator('[data-choice-site="onepage"]').getAttribute('aria-pressed'), 'true');
-      assert.equal(await context.cookies(), []);
+      assert.deepEqual(await context.cookies(), []);
     } finally { await context.close(); }
   });
 
@@ -110,7 +110,7 @@ try {
       assert.equal(await page.locator('[data-faisca-private-inline]').getAttribute('open'), null);
       assert.equal(await page.locator('#simular-compra form').count(), 0);
       assert.equal(await page.locator('[data-faisca-private-entry] input[type="email"]').count(), 0);
-      assert.equal(await context.cookies(), []);
+      assert.deepEqual(await context.cookies(), []);
     } finally { await context.close(); }
     assert.deepEqual(outbound, []);
   });
