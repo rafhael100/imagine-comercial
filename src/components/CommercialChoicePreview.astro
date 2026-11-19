@@ -195,7 +195,7 @@ import {describeSelectedQuoteServices} from '../lib/public-quote-item-labels.mjs
    const copyButton=root.querySelector('[data-choice-copy]');
    if(copyButton){copyButton.hidden=false;copyButton.disabled=!estimate.hasChoice;}
   };
-  root.querySelector('[data-choice-copy]')?.addEventListener('click',async()=>{
+  // F357: an aria-disabled link still navigates on a mouse click.\n  // Block the default navigation when the selected cart is empty.\n  root.querySelector('[data-choice-action]')?.addEventListener('click',event=>{\n   if(event.currentTarget.getAttribute('aria-disabled')==='true')event.preventDefault();\n  });  root.querySelector('[data-choice-copy]')?.addEventListener('click',async()=>{
    const status=root.querySelector('[data-choice-copy-status]');
    if(!status)return;
    const version=choiceRevision;
