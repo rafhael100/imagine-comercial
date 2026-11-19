@@ -15,6 +15,13 @@ if (host && button && status) {
     try {
       const iframe = host.querySelector('iframe[data-faisca-inline-frame]');
       const root = iframe?.contentDocument?.querySelector('[data-faisca-root]');
+      // A quote from a prior completed turn must not be transferred while
+      // the visitor is submitting a new action or changing services.
+      const log = root?.querySelector('[data-faisca-id="faisca-log"]');
+      if (!log || log.getAttribute('aria-busy') !== 'false') {
+        setStatus('Conclua a resposta atual do Faísca antes de usar o simulador.');
+        return;
+      }
       const value = root?.getAttribute('data-faisca-quote-site');
       const site = typeof value === 'string' &&
         Object.hasOwn(allowed, value) ? value : null;
