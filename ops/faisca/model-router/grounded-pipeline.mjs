@@ -73,14 +73,16 @@ function pendingResult(status, route = null, reason = status) {
  */
 export function createGroundedModelPipeline({
   routeProvider, groundedProvider, routeTimeoutMs = 250, groundedTimeoutMs = 2500,
-  maxEntries = 64
+  maxEntries = 64, routeQuota
 } = {}) {
   if (!groundedProvider || groundedProvider.kind !== 'simulated' ||
       typeof groundedProvider.respond !== 'function') {
     throw new TypeError('A simulated grounded R06 provider is required.');
   }
+  // R33: host-owned, synthetic-only quota gates R09 BEFORE any R06/PHP
+  // grounding. A quota denial must never dispatch a PHP response or provider.
   const router = createModelRouteRuntime({
-    provider: routeProvider, timeoutMs: routeTimeoutMs, maxEntries
+    provider: routeProvider, timeoutMs: routeTimeoutMs, maxEntries, quota: routeQuota
   });
   const grounder = createConversationRuntime({
     provider: groundedProvider, timeoutMs: groundedTimeoutMs, maxEntries,
