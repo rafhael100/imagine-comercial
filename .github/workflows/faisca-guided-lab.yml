@@ -70,6 +70,12 @@ jobs:
         run: node ops/faisca/composition/build-portable.mjs --private-review
       - name: Verificar o pacote R29 extraído no Chromium (sem npm e sem PHP)
         run: node ops/faisca/composition/portable-browser-qa.mjs
+      - name: Montar kit R38 de staging privado sem iniciar Docker ou VPS
+        env:
+          IMAGINE_FAISCA_LAB: '1'
+        run: node ops/faisca/staging/build-kit.mjs --review-only
+      - name: Conferir hashes e política do kit R38 extraído
+        run: node ops/faisca/output/private-staging-kit/verify-kit.mjs --verify
       - name: Disponibilizar pacote de demonstração R21 estritamente para revisão
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -90,6 +96,15 @@ jobs:
         with:
           name: faisca-R29-COMERCIAL-INTEGRADO-PRIVADO
           path: ops/faisca/output/portable/
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
+      - name: Disponibilizar kit R38 de staging privado APENAS para revisão
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: faisca-R38-STAGING-PRIVADO-NAO-IMPLANTADO
+          path: ops/faisca/output/private-staging-kit/
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: false
