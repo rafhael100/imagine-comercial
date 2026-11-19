@@ -39,6 +39,10 @@ jobs:
         run: bash scripts/install-chromium-ci.sh
       - name: Compilar laboratório Astro separado
         run: IMAGINE_FAISCA_LAB=1 npx --no-install astro build --config ops/faisca/lab/astro.config.mjs
+      - name: Preparar revisão R21 somente após validar os 7 HTML e o PNG aprovado
+        env:
+          IMAGINE_FAISCA_LAB: '1'
+        run: node ops/faisca/review/build-review.mjs --private-review
       - name: Verificar jornadas, privacidade, teclado, responsividade e axe
         run: node ops/faisca/browser-qa.mjs
       - name: Verificar ativação do componente Astro
@@ -49,6 +53,19 @@ jobs:
         run: node ops/faisca/support/browser-qa.mjs
       - name: Verificar conversa HTTP loopback e reconciliação
         run: node ops/faisca/server/browser-qa.mjs
+      - name: Disponibilizar pacote de demonstração R21 estritamente para revisão
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: faisca-R21-PRIVATE-REVIEW-ONLY
+          path: |
+            ops/faisca/output/astro/
+            ops/faisca/output/Faisca_Demonstracao_Guiada.html
+            ops/faisca/output/Faisca_R21_AUDIT.json
+            ops/faisca/output/LEIA-ME-FAISCA-R21.txt
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
       - name: Guardar evidências sintéticas para revisão
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
