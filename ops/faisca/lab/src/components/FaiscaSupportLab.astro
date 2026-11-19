@@ -28,7 +28,7 @@ const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE
     <p>Laboratório local. Esta conversa não verifica identidade, pedido, contrato ou pagamento. Não abre ticket, não envia mensagens à equipe e não consulta o Portal ou CRM.</p>
     <p>Use apenas as opções fechadas para classificar o assunto. Não informe nomes, e-mails, telefones, senhas ou dados de clientes. O resumo pode ser copiado manualmente.</p>
     <button type="button" data-support-start hidden>Ativar triagem R10</button>
-    <p role="status" data-support-status>Ative a conversa e escolha Pós-venda para começar.</p>
+    <p role="status" data-support-status>Ative a triagem e escolha Organizar atendimento para começar.</p>
   </section>
   <div data-faisca-root data-lab-preview set:html={view.markup} />
 </faisca-support-lab>
@@ -52,7 +52,7 @@ const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE
           if (!this.isConnected || generation !== this.#generation) return;
           this.#app = mountSupport(this.querySelector('[data-faisca-root]'));
           button.hidden = true;
-          status.textContent = 'Triagem local disponível. Escolha Pós-venda e selecione o assunto; nenhum ticket será aberto.';
+          status.textContent = 'Triagem local disponível. Escolha Organizar atendimento e selecione o assunto; nenhum ticket será aberto.';
         } catch {
           if (!this.isConnected || generation !== this.#generation) return;
           status.textContent = 'A triagem local não pôde ser iniciada. Tente novamente.';
