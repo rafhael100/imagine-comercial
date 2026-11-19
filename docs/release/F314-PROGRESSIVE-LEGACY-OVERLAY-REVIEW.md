@@ -101,3 +101,17 @@ não comprova HTTP 200 real, formulário, equivalência de conteúdo, redirects,
 backups ou funcionamento na VPS. O `/contato` real foi observado com 302,
 mas seu destino funcional não foi homologado. O sitemap público antigo não é
 substituído; nenhuma regra 301, DNS, checkout ou deploy é ativada.
+
+## F315 — protocolo de formulários históricos (19/11/2026)
+
+O ensaio HTTP local verifica seis rotas representativas de contato, incluindo
+`/component/imaginecontato`, `/fale-conosco`, `/contato` e `/contato/`.
+Ele deve encaminhar **POST, querystring, cookie de sessão, Content-Type e
+corpo byte-idêntico**, inclusive `multipart/form-data` com boundary, ao
+servidor legado **sintético**. Também testa métodos mutantes nas 161 variantes
+do sitemap e evita que atinjam o Astro.
+
+É um teste de preservação de encaminhamento, não de entrega real de leads,
+consentimento, CSRF do Joomla/Portal, funcionamento do SMTP ou recebimento
+pelo CRM. Não executa POST no domínio público nem na VPS; a prova real de
+captação e rollback permanece bloqueada na issue P0 #466.

@@ -64,7 +64,8 @@ const legacy=createServer(async (request,response)=>{
     }
     const path=raw.pathname;
     legacyRequests.push(Object.freeze({
-      method:request.method,path,
+      method:request.method,path,search:raw.search,
+      contentType:request.headers['content-type']??null,
       body:Buffer.concat(body).toString('utf8'),
       sawSyntheticCookie:request.headers.cookie==='lab=synthetic'
     }));
@@ -105,7 +106,8 @@ const overlay=createServer(async(request,response)=>{
         redirect:'manual',
         headers:{
           'Accept':'text/plain',
-          ...(request.headers.cookie?{Cookie:request.headers.cookie}:{})
+          ...(request.headers.cookie?{Cookie:request.headers.cookie}:{}),
+          ...(request.headers['content-type']?{'Content-Type':request.headers['content-type']}:{})
         },
         ...(['GET','HEAD'].includes(request.method)?
           {}:{body:Buffer.concat(parts)}),
@@ -205,6 +207,42 @@ try{
   });
   assert.equal(post.response.headers.get('x-synthetic-origin'),'LEGACY-LOCAL-FIXTURE');
   assert.equal(legacyRequests.at(-1).body,'LAB_ONLY_NO_CONTACT_PII');
+  assert.equal(legacyRequests.at(-1).contentType,'text/plain');
+  // F315: representative legacy lead endpoints preserve method, query,
+  // cookie, Content-Type and exact synthetic bytes. No real form is submitted.
+  const formPaths=[
+   '/component/imaginecontato',
+   '/component/imaginecontato/criacao-de-sites-em-fortaleza',
+   '/fale-conosco',
+   '/contato',
+   '/contato/',
+   '/en-us/contact-us'
+  ];
+  let syntheticMultipartChecks=0;
+  for(const [index,path] of formPaths.entries()){
+   const multipart=index===1;
+   const contentType=multipart?
+    'multipart/form-data; boundary=F315_SYNTHETIC_ONLY':
+    'application/x-www-form-urlencoded';
+   const body=multipart?
+    '--F315_SYNTHETIC_ONLY\r\nContent-Disposition: form-data; name="lab"\r\n\r\nSYNTHETIC\r\n--F315_SYNTHETIC_ONLY--\r\n':
+    'field=SYNTHETIC_NO_CUSTOMER&csrf=LAB_ONLY';
+   const query='?review_source=synthetic_'+index;
+   const result=await probe(current,path+query,{
+    method:'POST',body,
+    headers:{'Content-Type':contentType,Cookie:'lab=synthetic'}
+   });
+   assert.equal(result.response.headers.get('x-synthetic-origin'),'LEGACY-LOCAL-FIXTURE');
+   const got=legacyRequests.at(-1);
+   assert.equal(got.method,'POST');
+   assert.equal(got.path,path);
+   assert.equal(got.search,query);
+   assert.equal(got.body,body);
+   assert.equal(got.contentType,contentType);
+   assert.equal(got.sawSyntheticCookie,true);
+   if(multipart)syntheticMultipartChecks++;
+  }
+  assert.equal(syntheticMultipartChecks,1);
   for(const method of ['POST','PUT','PATCH','DELETE','OPTIONS']){
     const record=await probe(current,'/en/budget-calculator/',{
       method,body:'LAB_ONLY_NO_CONTACT_PII',
@@ -217,9 +255,9 @@ try{
   assert.equal(head.response.headers.get('x-synthetic-origin'),'REVIEWED-STATIC-LOCAL');
   assert.equal(edgeDecisions.newHtml,62,'F317: exactly 61 GET new pages and one HEAD');
   assert.equal(edgeDecisions.newAsset,plan.eligibleStaticAssets.length);
-  assert.equal(edgeDecisions.writeRequestsOnLegacy,6);
-  assert.equal(legacyRequests.length,201,'F317: 161 sitemap variants, 27 curated, old home/contact and writes');
-  assert.equal(legacyRequests.filter(x=>x.sawSyntheticCookie).length,3);
+  assert.equal(edgeDecisions.writeRequestsOnLegacy,12);
+  assert.equal(legacyRequests.length,207,'F315: six form simulations added to 201 base legacy calls');
+  assert.equal(legacyRequests.filter(x=>x.sawSyntheticCookie).length,9);
   const record=Object.freeze({
     schema:'imagine.comercial.synthetic-legacy-overlay-http.v1',
     status:'LOCAL_HTTP_SIMULATED_PASS_NOT_DEPLOYED',
@@ -234,6 +272,9 @@ try{
     legacySeoFilesPreserved:true,
     unknownLegacyPathsPreserved:true,
     allWriteRequestsRehearsedOnSyntheticLegacy:true,
+    syntheticLegacyContactEndpointPostChecks:6,
+    syntheticMultipartFormChecks:1,
+    syntheticFormContentTypeAndCookieForwarded:true,
     staticAssetByteParityVerified:plan.eligibleStaticAssets.length,
     noIndexOnAllOverlayResponses:true,
     originalAndStaticServersOnlyBoundTo127001:true,
