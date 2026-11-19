@@ -1,5 +1,6 @@
 import { createJourney, getJourneySummary, respondJourney } from '../journey/state.mjs';
 import { routeFieldWithLocalFixture } from '../model-router/field-contract.mjs';
+import { buildQualificationNextStep } from './next-step.mjs';
 import {
   createLeadProfileFromJourney, updateLeadProfile, reviseLeadProfile,
   getNextQualificationQuestion, isQualificationComplete, buildHandoffPackage
@@ -96,7 +97,8 @@ function questionReply(session, profile, prefix = '', sources = [], userText = '
         action('r08:edit:materials', 'Corrigir materiais'),
         action('r08:edit:timeline', 'Corrigir previsão'),
         action('r08:edit:contactConsent', 'Corrigir autorização'),
-        action('r08:change_service', labels.changeService)
+        action('r08:change_service', labels.changeService),
+        action('r08:next_steps', 'Como avançar?')
       ])
     });
   }
@@ -122,13 +124,32 @@ function summaryReply(session, userText = labels.summary) {
       action('r08:edit:materials', 'Corrigir materiais'),
       action('r08:edit:timeline', 'Corrigir previsão'),
       action('r08:edit:contactConsent', 'Corrigir autorização'),
-      action('r08:change_service', labels.changeService)
+      action('r08:change_service', labels.changeService),
+      action('r08:next_steps', 'Como avançar?')
     ]
     : [action('r08:change_service', labels.changeService)];
   return Object.freeze({
     session,
     userText,
     reply: makeReply(handoff.summary, 'r08_qualification_summary', [], actions)
+  });
+}
+
+function nextStepReply(session) {
+  const guide = session.profile ? buildQualificationNextStep(session.profile) : null;
+  if (!guide || !guide.complete || session.phase !== 'complete') {
+    if (session.profile) return questionReply(session, session.profile,
+      'Primeiro conclua as perguntas de qualificação antes de avançar.', [], 'Como avançar?');
+    return serviceChoiceReply(session, 'Primeiro escolha a solução que deseja avaliar.', 'Como avançar?');
+  }
+  return Object.freeze({
+    session,
+    userText: 'Como avançar?',
+    reply: makeReply(guide.text, 'r08_next_steps', [], [
+      action('r08:summary', 'Rever resumo copiável'),
+      action('r08:change_service', labels.changeService),
+      action('r08:edit:objective', 'Corrigir minhas respostas')
+    ])
   });
 }
 
@@ -221,6 +242,9 @@ export function respondQualificationJourney(session, rawInput) {
   }
   if (input.type === 'action' && input.id === 'r08:summary' && session.profile) {
     return summaryReply(session);
+  }
+  if (input.type === 'action' && input.id === 'r08:next_steps') {
+    return nextStepReply(session);
   }
 
   if (session.phase === 'qualification' || session.phase === 'complete') {
