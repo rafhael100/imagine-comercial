@@ -122,3 +122,23 @@ test('R41 rejects an apparently valid rehashed kit that regresses to $uri frame 
   await assert.rejects(verifyPrivateStagingKit({kitDir:dir}),
     /lost its private staging protections/);
 });
+
+
+test('R44 a rehashed Nginx kit still cannot omit the reviewed MIME registry',async t=>{
+  const {dir,manifestFile}=await fixture(t);
+  const nginxFile=join(dir,'ops/staging/nginx.conf');
+  const original=await readFile(nginxFile,'utf8');
+  assert.match(original,/include \/etc\/nginx\/mime\.types;/);
+  assert.match(original,/default_type application\/octet-stream;/);
+  const tampered=original.replace('include /etc/nginx/mime.types;','');
+  await writeFile(nginxFile,tampered);
+  const manifest=JSON.parse(await readFile(manifestFile,'utf8'));
+  const entry=manifest.files.find(x=>x.path==='ops/staging/nginx.conf');
+  assert.ok(entry);
+  entry.bytes=Buffer.byteLength(tampered);
+  entry.sha256=createHash('sha256').update(tampered).digest('hex');
+  manifest.totalBytes=manifest.files.reduce((sum,x)=>sum+x.bytes,0);
+  await writeFile(manifestFile,JSON.stringify(manifest));
+  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}),
+    /lost its private staging protections/);
+});
