@@ -54,7 +54,7 @@ function responseFormat(name, properties) {
   };
 }
 
-async function receiveBoundedResponse(response, signal) {
+async function receiveBoundedResponse(response, signal, expectedModel) {
   if (response.status !== 200 ||
       !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(response.headers.get('content-type') ?? '') ||
       !response.body) throw new Error('OpenAI private test unavailable.');
@@ -83,7 +83,9 @@ async function receiveBoundedResponse(response, signal) {
     data = JSON.parse(new TextDecoder('utf-8', { fatal: true })
       .decode(Buffer.concat(pieces)));
   } catch { throw new Error('OpenAI private test unavailable.'); }
-  if (!data || data.status !== 'completed' || !Array.isArray(data.output) ||
+  // Never stamp the requested model as provenance unless the API response
+  // itself confirms that exact model. Reject missing/mismatched identities.
+  if (!data || data.model !== expectedModel || data.status !== 'completed' || !Array.isArray(data.output) ||
       data.output.some(item => !item || !['message', 'reasoning'].includes(item.type))) {
     throw new Error('OpenAI private test unavailable.');
   }
@@ -172,7 +174,7 @@ export function createFaiscaOpenAILiveLab({
           Accept: 'application/json'
         }
       });
-      return await receiveBoundedResponse(response, controller.signal);
+      return await receiveBoundedResponse(response, controller.signal, model);
     } catch {
       // Never expose API error bodies or configuration in the UI/log.
       throw new Error('OpenAI private test unavailable.');
