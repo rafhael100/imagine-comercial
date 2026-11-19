@@ -110,6 +110,7 @@ form?.addEventListener('submit', async event => {
         data.status !== 'draft_answer' || data.syntheticCaseId !== caseId ||
         data.requiresEditorialReview !== true ||
         typeof data.answer !== 'string' || data.answer.length > 900 ||
+        data.sourceRecipeBound !== true ||
         !Array.isArray(data.sources) || data.sources.length === 0 ||
         !Array.isArray(data.models) || data.models.length !== 2 ||
         data.models[0] !== 'gpt-6-luna' || data.models[1] !== 'gpt-6.1-terra' ||
