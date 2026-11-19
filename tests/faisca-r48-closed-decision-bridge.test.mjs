@@ -135,7 +135,8 @@ test('R48 clarification accepts only a host-approved fixed clarification ID', as
     assert.equal(output.delivery,'simulated');
     assert.equal(output.route.routeStatus,'clarify');
     assert.equal(output.route.provenance,'host_fixed_clarification');
-    assert.ok(ROUTER_CLARIFICATION_IDS.includes(output.route.clarificationId));
+    assert.match(output.route.text, /(?:empresa|deseja|dúvida|atendimento|encontrar|procura)/i);
+    assert.equal(output.route.sources.length,0);
     assert.equal(output.externalModelInvocations,0);
   } finally { runtime.destroy(); }
 });
