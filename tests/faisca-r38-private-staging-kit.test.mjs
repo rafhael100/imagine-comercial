@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, cp, rm, writeFile, readFile, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -100,4 +101,24 @@ test('R38 a changed Nginx auth policy invalidates manifest and cannot pass revie
   assert.equal(m.checkoutEnabled,false);
   assert.equal(m.externalModelEnabled,false);
   assert.ok(!JSON.stringify(m).includes('SYNTHETIC_TEST_PASSWORD'));
+});
+
+
+test('R41 rejects an apparently valid rehashed kit that regresses to $uri frame maps', async t => {
+  const {dir,manifestFile}=await fixture(t);
+  const path=join(dir,'ops/staging/nginx.conf');
+  const current=await readFile(path,'utf8');
+  assert.equal(current.split('map $request_uri $faisca_review_').length-1,2);
+  const unsafe=current.replaceAll('map $request_uri $faisca_review_','map $uri $faisca_review_');
+  await writeFile(path,unsafe);
+  // Simulate a rewritten self-contained manifest: hashes alone are not policy.
+  const manifest=JSON.parse(await readFile(manifestFile,'utf8'));
+  const record=manifest.files.find(file=>file.path==='ops/staging/nginx.conf');
+  assert.ok(record);
+  record.bytes=Buffer.byteLength(unsafe);
+  record.sha256=createHash('sha256').update(unsafe).digest('hex');
+  manifest.totalBytes=manifest.files.reduce((sum,file)=>sum+file.bytes,0);
+  await writeFile(manifestFile,JSON.stringify(manifest));
+  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}),
+    /lost its private staging protections/);
 });
