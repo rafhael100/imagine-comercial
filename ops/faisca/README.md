@@ -344,4 +344,4 @@ node --test tests/faisca-r10-*.test.mjs
 node ops/faisca/support/browser-qa.mjs
 ```
 
-Arquitetura, limites e testes: `docs/faisca/R10-TRIAGEM-ANONIMA-POSVENDA.md`. A lista de arquivos estáticos do servidor loopback permanece limitada a 160 arquivos, 8 MiB por arquivo e 16 MiB no total. Não existe integração com CRM, Portal, ticketing, PHP ou IA externa.
+Arquitetura, limites e testes: `docs/faisca/R10-TRIAGEM-ANONIMA-POSVENDA.md`. A lista de arquivos estáticos do servidor loopback permanece limitada a 64 arquivos, 8 MiB por arquivo e 24 MiB no total, conforme o build de 31 arquivos/17.940.216 bytes. Não existe integração com CRM, Portal, ticketing, PHP ou IA externa.
