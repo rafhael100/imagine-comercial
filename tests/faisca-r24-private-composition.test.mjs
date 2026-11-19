@@ -88,7 +88,7 @@ test('R24 composes the actual compiled commercial HTML with a private, audited F
   assert.match(html, /href="\/__faisca_preview\/journey\/"/);
   assert.match(html, /data-faisca-private-inline/);
   assert.match(html, /data-faisca-inline-frame/);
-  assert.match(html, /sandbox="allow-scripts allow-same-origin"/);
+  assert.match(html, /sandbox="allow-scripts allow-same-origin allow-forms"/);
   assert.match(html, /referrerpolicy="no-referrer"/);
   assert.equal(page.headers.get('x-frame-options'), 'DENY');
   assert.match(html, /id="simular-compra"/);
