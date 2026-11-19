@@ -3,6 +3,8 @@ import {
   retrieveCandidateAnswerIds, ROUTER_CLARIFICATION_IDS
 } from '../model-router/contract.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
+import { createHash } from 'node:crypto';
+import { isTrustedPrivateSyntheticQuestion } from './private-question-gate.mjs';
 
 export const FAISCA_OPENAI_LIVE_LAB_SCHEMA = 'faisca.openai-private-live-lab.v1';
 export const FAISCA_OPENAI_MODELS = Object.freeze({
@@ -110,14 +112,15 @@ async function receiveBoundedResponse(response, signal) {
  */
 export function createFaiscaOpenAILiveLab({
   enabled = false, apiKey, fetchImpl = globalThis.fetch, timeoutMs = 12000,
-  maxBudgetUsd = 0.01
+  maxBudgetUsd = 0.01, enableOperatorSyntheticQuestion = false
 } = {}) {
   if (enabled !== true || typeof apiKey !== 'string' ||
       !/^sk-[A-Za-z0-9_-]{12,}$/.test(apiKey) ||
       typeof fetchImpl !== 'function' ||
       !Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 15000 ||
       typeof maxBudgetUsd !== 'number' || !Number.isFinite(maxBudgetUsd) ||
-      maxBudgetUsd <= 0 || maxBudgetUsd > MAX_TEST_BUDGET_USD) {
+      maxBudgetUsd <= 0 || maxBudgetUsd > MAX_TEST_BUDGET_USD ||
+      typeof enableOperatorSyntheticQuestion !== 'boolean') {
     throw new TypeError('Private OpenAI API trial not explicitly and safely configured.');
   }
   let calls = 0, reservedUsd = 0, busy = false;
@@ -164,20 +167,16 @@ export function createFaiscaOpenAILiveLab({
     }
   }
 
-  async function answer(caseId) {
+  async function answerQuestion(question, messageId) {
     if (busy) throw new Error('Only one private OpenAI trial can run at once.');
-    if (typeof caseId !== 'string' || !Object.hasOwn(FAISCA_OPENAI_TEST_CASES, caseId)) {
-      throw new TypeError('Only reviewed synthetic case IDs are allowed.');
-    }
     busy = true;
     try {
-      const question = FAISCA_OPENAI_TEST_CASES[caseId];
       const boundary = getAnonymousRouteBoundary(question);
       if (boundary) throw new Error('Private operational topics cannot use a model.');
       const ids = retrieveCandidateAnswerIds(question);
       const request = prepareModelRouteRequest({
         conversationId: 'r72_synthetic_private',
-        messageId: 'r72_case_' + caseId,
+        messageId,
         userText: question, candidateAnswerIds: ids,
         allowedClarificationIds: ROUTER_CLARIFICATION_IDS
       });
@@ -245,15 +244,32 @@ export function createFaiscaOpenAILiveLab({
     } finally { busy = false; }
   }
 
+  async function answer(caseId) {
+    if (typeof caseId !== 'string' || !Object.hasOwn(FAISCA_OPENAI_TEST_CASES, caseId)) {
+      throw new TypeError('Only reviewed synthetic case IDs are allowed.');
+    }
+    return answerQuestion(FAISCA_OPENAI_TEST_CASES[caseId], 'r72_case_' + caseId);
+  }
+
+  /** R80: an explicit extra operator-only capability, never available to HTTP R79 by default. */
+  async function answerPreparedSyntheticQuestion(prepared) {
+    if (!enableOperatorSyntheticQuestion || !isTrustedPrivateSyntheticQuestion(prepared)) {
+      throw new TypeError('Only authenticated local fictional question fixtures may use this API.');
+    }
+    const messageId = 'r80_operator_' + createHash('sha256').update(prepared.question).digest('hex').slice(0, 20);
+    return answerQuestion(prepared.question, messageId);
+  }
+
   function inspect() {
     return Object.freeze({
       schema: FAISCA_OPENAI_LIVE_LAB_SCHEMA,
       calls, reservedUsd, maxBudgetUsd,
       maxRequests: MAX_REQUESTS,
+      operatorSyntheticTextEnabled: enableOperatorSyntheticQuestion,
       liveEnabledForPublic: false,
       durableBillingLimit: false,
       operationalEffects: false
     });
   }
-  return Object.freeze({ answer, inspect });
+  return Object.freeze({ answer, answerPreparedSyntheticQuestion, inspect });
 }
