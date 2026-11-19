@@ -26,7 +26,10 @@ test('R20 the next-step comparison option preserves the sales profile and invoke
   const guide = choose(session, 'r08:next_steps');
   assert.equal(guide.reply.intent, 'r08_next_steps');
   assert.ok(guide.reply.actions.some(action => action.id === 'compare_sites'));
-  assert.equal(guide.reply.actions.length, 4);
+  assert.deepEqual(guide.reply.actions.map(action => action.id), [
+    'r08:summary', 'compare_sites', 'r08:change_service',
+    'r08:edit:objective', 'r08:prepare_onepage'
+  ]);
   assert.deepEqual(guide.reply.sources, []);
 
   const comparison = choose(guide.session, 'compare_sites');
