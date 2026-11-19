@@ -36,8 +36,7 @@ const privateBrowserHeaders = Object.freeze({
 function privateBrowserAllowed(req, port) {
   return req.socket.remoteAddress === '127.0.0.1' &&
     req.headers.host === '127.0.0.1:' + port &&
-    (!req.headers.origin || req.headers.origin === 'http://127.0.0.1:' + hostPort) &&
-    !req.headers.cookie &&
+    !req.headers.origin && !req.headers.cookie &&
     !req.headers['x-forwarded-for'];
 }
 
@@ -115,7 +114,8 @@ function authorized(req, token, hostPort) {
   const a = Buffer.from(supplied), b = Buffer.from(expected);
   return req.socket.remoteAddress === '127.0.0.1' &&
     req.headers.host === '127.0.0.1:' + hostPort &&
-    !req.headers.origin && !req.headers.cookie &&
+    (!req.headers.origin || req.headers.origin === 'http://127.0.0.1:' + hostPort) &&
+    !req.headers.cookie &&
     !req.headers['x-forwarded-for'] &&
     timingSafeEqual(a, b);
 }
