@@ -333,3 +333,15 @@ A IA generativa real permanece desligada. O gate de provedor, modelo, privacidad
 
 
 Playbook de pré-venda, objeções, limites de pós-venda, handoff e tom de voz: `docs/faisca/PLAYBOOK-COMERCIAL.md`.
+
+### R10 — pós-venda anônimo, sem acesso a dados de clientes
+
+O laboratório `/support/` reaproveita o mascote e a interface aprovados. O visitante escolhe assunto → serviço declarado → detalhe, sem nome, e-mail, telefone, credenciais ou texto livre. O resumo é copiável, mas permanece `ticketCreated=false` e `sent=false`. Nenhuma pergunta consulta contratos, pedidos, cobranças ou status reais.
+
+```bash
+node --test tests/faisca-r10-*.test.mjs
+# Após compilar o Astro isolado com IMAGINE_FAISCA_LAB=1 e instalar Chromium:
+node ops/faisca/support/browser-qa.mjs
+```
+
+Arquitetura, limites e testes: `docs/faisca/R10-TRIAGEM-ANONIMA-POSVENDA.md`. A lista de arquivos estáticos do servidor loopback permanece limitada a 160 arquivos, 8 MiB por arquivo e 16 MiB no total. Não existe integração com CRM, Portal, ticketing, PHP ou IA externa.
