@@ -310,3 +310,26 @@ A evidência é sintética e restrita a loopback. Não há LLM externo, CRM, env
 A especificação preventiva está em `docs/faisca/R08-E-PLANEJAMENTO-CRM.md`. Ela separa a qualificação atual de qualquer coleta de contato e exige identidade de tenant resolvida no servidor, aviso de privacidade, consentimento granular por canal, revisão humana, idempotência, S2S, auditoria, revogação e exclusão antes de habilitar qualquer escrita.
 
 Nenhum endpoint, token, tabela ou integração CRM foi criado. O handoff permanece `copy_only`.
+
+### R09-A — roteador conversacional fundamentado
+
+O contrato provider-neutral está em `ops/faisca/model-router/contract.mjs`. A recuperação determinística `retrieveCandidateAnswerIds` reduz cada pergunta a até cinco respostas R06 aprovadas. O modelo futuro só poderá selecionar um `answerId` desse conjunto, pedir uma clarificação fixa ou declarar ausência de suporte. O texto factual final, as fontes e as ações continuam sendo renderizados pelo host; a saída do modelo não contém texto livre, URLs, ferramentas ou ações operacionais.
+
+`routeWithLocalFixture` percorre o fluxo completo sem provedor externo; a demonstração reproduzível está em `ops/faisca/model-router/demo.mjs`.
+
+Testes: `node --test tests/faisca-r09-*.test.mjs`. Demonstração: `node ops/faisca/model-router/demo.mjs`. A fixture é sintética e local. Não há SDK, chave, endpoint, chamada externa ou custo. Arquitetura e limites: `docs/faisca/R09-ROTEAMENTO-CONVERSACIONAL.md`.
+
+
+O runtime R09 em `ops/faisca/model-router/runtime.mjs` aceita apenas provider sintético e acrescenta deduplicação, bloqueio de concorrência por conversa, timeout, conciliação explícita e reset. Testes em `tests/faisca-r09-runtime.test.mjs` cobrem replay, conflito, timeout, resposta tardia, falha do provedor, privacidade e isolamento. O runtime não faz chamadas externas e mantém `externalModelInvocations=0`.
+
+
+O pipeline `ops/faisca/model-router/grounded-pipeline.mjs` conecta a seleção R09 ao verificador de fontes R06/PHP. O texto e as fontes só são liberados após validação pelo PHP fixado; seleções de serviço viram esclarecimento fixo, e falhas de grounding não exibem fontes não confirmadas. O gate `ops/faisca/model-router/check-grounded-pipeline.mjs` executa essa integração com PHP CLI real e fixture local de roteamento.
+
+
+A camada R09 também prepara a interpretação de respostas livres da qualificação: `ops/faisca/model-router/field-contract.mjs` classifica apenas entre opções fechadas e retorna `matched/ambiguous/unknown`, sem texto livre. A fixture local é integrada à jornada R08 para aceitar respostas em português; ambiguidade reapresenta as opções, e a troca de serviço só descarta o perfil anterior depois da confirmação. Testes em `tests/faisca-r09-field-router.test.mjs` e nos cenários R08 de `tests/faisca-r08-journey.test.mjs`.
+
+
+A IA generativa real permanece desligada. O gate de provedor, modelo, privacidade, orçamento, segredos e segurança está documentado em `docs/faisca/R09-E-GATE-ATIVACAO-IA.md`; nenhuma chamada externa ou custo é permitido até aprovação humana explícita.
+
+
+Playbook de pré-venda, objeções, limites de pós-venda, handoff e tom de voz: `docs/faisca/PLAYBOOK-COMERCIAL.md`.

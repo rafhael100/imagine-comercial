@@ -130,7 +130,7 @@ try {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
     });
   }
-  await check('R08 qualifies the confirmed Onepage through explicit one-at-a-time choices', async () => {
+  await check('R07 confirmed Onepage journey uses explicit one-at-a-time choices', async () => {
     await send('Quero Onepage.');
     await choose('confirm_goal');
     assert.match(await last().innerText(), /Qual é o principal resultado/);

@@ -1,4 +1,5 @@
 import { createJourney, getJourneySummary, respondJourney } from '../journey/state.mjs';
+import { routeFieldWithLocalFixture } from '../model-router/field-contract.mjs';
 import {
   createLeadProfileFromJourney, updateLeadProfile, reviseLeadProfile,
   getNextQualificationQuestion, isQualificationComplete, buildHandoffPackage
@@ -43,11 +44,16 @@ function makeReply(text, intent, sources = [], actions = []) {
 
 function action(id, label) { return Object.freeze({ id, label }); }
 
-function createState(journey, profile, phase) {
+function advanceJourney(journey) {
+  return respondJourney(journey, { type: 'action', id: 'summary' }).session;
+}
+
+function createState(journey, profile, phase, previousPhase = null) {
   const session = Object.freeze({
     ...journey,
     version: QUALIFICATION_JOURNEY_VERSION,
-    journey, profile, phase
+    journey, profile, phase,
+    ...(previousPhase ? { previousPhase } : {})
   });
   trusted.add(session);
   return session;
@@ -64,12 +70,15 @@ export function getQualificationSummary(session) {
 }
 
 function serviceChoiceReply(session, text = 'Qual solução você deseja avaliar?', userText = labels.changeService) {
+  const hasProfile = Boolean(session.profile);
   return Object.freeze({
-    session: createState(session.journey, null, 'sales'),
+    session: createState(session.journey, session.profile,
+      hasProfile ? 'service_reselect' : 'sales', hasProfile ? session.phase : null),
     userText,
     reply: makeReply(text, 'r08_service_choice', [], [
       action('goal_presence', 'Site Onepage'),
-      action('goal_campaign', 'Landing Page')
+      action('goal_campaign', 'Landing Page'),
+      ...(hasProfile ? [action('r08:keep_service', 'Manter a solução atual')] : [])
     ])
   });
 }
@@ -152,6 +161,62 @@ export function respondQualificationJourney(session, rawInput) {
   if (input.type === 'action' && input.id === 'r08:change_service') {
     return serviceChoiceReply(session, 'Sem problema. Vamos rever a solução antes de continuar a qualificação.');
   }
+  if (session.phase === 'service_reselect') {
+    if (input.type === 'action' && input.id === 'r08:keep_service') {
+      const restoredPhase = session.previousPhase === 'complete' ? 'complete' : 'qualification';
+      return questionReply(createState(session.journey, session.profile, restoredPhase),
+        session.profile, 'Tudo bem. Vamos manter a solução atual.', [], 'Manter a solução atual');
+    }
+    if (input.type === 'action' && ['goal_presence', 'goal_campaign'].includes(input.id)) {
+      const result = respondJourney(session.journey, input);
+      if (result.session.pendingGoal !== null) {
+        return Object.freeze({
+          session: createState(result.session, session.profile, 'service_change_pending', session.previousPhase ?? 'qualification'),
+          userText: result.userText,
+          reply: result.reply
+        });
+      }
+    }
+    return serviceChoiceReply(session, 'Escolha a nova solução ou mantenha a atual.');
+  }
+  if (session.phase === 'service_change_pending') {
+    if (input.type === 'action' && input.id === 'confirm_goal') {
+      const result = respondJourney(session.journey, input);
+      const profile = createLeadProfileFromJourney(result.session);
+      if (profile) {
+        const prepared = questionReply(createState(result.session, profile, 'qualification'),
+          profile, result.reply.text, result.reply.sources, result.userText);
+        return result.reply.sources.length
+          ? Object.freeze({ ...prepared, providerReply: result.reply }) : prepared;
+      }
+      return Object.freeze({
+        session: createState(result.session, null, 'sales'),
+        userText: result.userText,
+        reply: makeReply(result.reply.text + '\\n\\nA qualificação estruturada R08 ainda não tem um questionário aprovado para esta solução. Posso continuar com orientações gerais.',
+          'r08_service_qualification_unavailable', result.reply.sources, [action('sell', labels.sell)])
+      });
+    }
+    if (input.type === 'action' && input.id === 'cancel_goal') {
+      const result = respondJourney(session.journey, input);
+      const restoredPhase = session.previousPhase === 'complete' ? 'complete' : 'qualification';
+      return questionReply(createState(result.session, session.profile, restoredPhase),
+        session.profile, result.reply.text, [], result.userText);
+    }
+    if (input.type === 'action' && input.id === 'r08:summary' && session.profile) {
+      return Object.freeze({
+        session,
+        userText: labels.summary,
+        reply: makeReply(getQualificationSummary(session) + '\\n\\nUma troca de solução está pendente. Confirme ou cancele para continuar.',
+          'r08_service_change_pending', [], [action('confirm_goal', 'Confirmar a troca'), action('cancel_goal', 'Manter a solução atual')])
+      });
+    }
+    return Object.freeze({
+      session,
+      userText: input.type === 'text' ? input.text : '',
+      reply: makeReply('Uma troca de solução está pendente. Confirme a nova opção ou cancele para manter o atendimento atual.',
+        'r08_service_change_pending', [], [action('confirm_goal', 'Confirmar a troca'), action('cancel_goal', 'Manter a solução atual')])
+    });
+  }
   if (input.type === 'action' && input.id === 'r08:summary' && session.profile) {
     return summaryReply(session);
   }
@@ -161,7 +226,8 @@ export function respondQualificationJourney(session, rawInput) {
       const field = input.id.slice('r08:edit:'.length);
       const revised = reviseLeadProfile(session.profile, field);
       if (!revised) return summaryReply(session, 'Não consegui abrir essa correção. Confira o resumo e escolha um campo disponível.');
-      return questionReply(session, revised, 'Vamos corrigir esta informação.', [], 'Corrigir ' + editLabels[field]);
+      return questionReply(createState(advanceJourney(session.journey), revised, session.phase), revised,
+        'Vamos corrigir esta informação.', [], 'Corrigir ' + editLabels[field]);
     }
 
     if (input.type === 'action' && input.id.startsWith('r08:')) {
@@ -172,7 +238,8 @@ export function respondQualificationJourney(session, rawInput) {
         const selectedOption = currentQuestion?.field === field
           ? currentQuestion.options.find(option => option.value === value) : null;
         const updated = updateLeadProfile(session.profile, field, value);
-        if (updated) return questionReply(session, updated, '', [], selectedOption?.label ?? 'Escolha registrada');
+        if (updated) return questionReply(createState(advanceJourney(session.journey), updated, session.phase),
+          updated, '', [], selectedOption?.label ?? 'Escolha registrada');
       }
       return questionReply(session, session.profile, 'Escolha uma das opções da pergunta atual.');
     }
@@ -183,13 +250,38 @@ export function respondQualificationJourney(session, rawInput) {
   }
 
   if (session.phase === 'qualification' || session.phase === 'complete') {
+    if (session.phase === 'qualification' && input.type === 'text' && session.profile) {
+      const currentQuestion = getNextQualificationQuestion(session.profile);
+      if (currentQuestion) {
+        const fieldResult = routeFieldWithLocalFixture({
+          conversationId: 'r08-local-field',
+          messageId: 'r08-field-' + String(session.journey.turnIndex).padStart(8, '0'),
+          userText: input.text,
+          field: currentQuestion.field
+        });
+        if (fieldResult.accepted && fieldResult.status === 'matched') {
+          const updated = updateLeadProfile(session.profile, fieldResult.field, fieldResult.value);
+          if (updated) return questionReply(createState(advanceJourney(session.journey), updated, session.phase),
+            updated, '', [], input.text);
+        }
+        if (fieldResult.accepted && fieldResult.status === 'ambiguous') {
+          return questionReply(createState(advanceJourney(session.journey), session.profile, session.phase),
+            session.profile, 'Encontrei mais de uma interpretação possível. Escolha a alternativa que melhor representa sua resposta.',
+            [], input.text);
+        }
+      }
+    }
     if (input.type === 'text' || input.type === 'action') {
       const result = respondJourney(session.journey, input);
       if (result.session.pendingGoal !== null) {
         return Object.freeze({
-          session: createState(result.session, null, 'sales'),
+          session: createState(result.session, session.profile, 'service_change_pending', session.phase),
           userText: result.userText,
-          reply: result.reply
+          reply: Object.freeze({
+            ...result.reply,
+            text: 'Uma troca de solução está pendente. Sua qualificação atual será mantida até você confirmar a troca.\n\n' +
+              result.reply.text
+          })
         });
       }
       if (result.reply.intent === 'journey_summary') {

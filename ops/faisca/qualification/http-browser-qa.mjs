@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { startHttpLab } from '../server/http-lab.mjs';
-import { HTTP_PATHS, HTTP_RESULT_SCHEMA } from '../http-contract.mjs';
+import { HTTP_PATHS, HTTP_RESULT_SCHEMA, HTTP_ERROR_SCHEMA } from '../http-contract.mjs';
 import { CONVERSATION_SCHEMA } from '../conversation-contract.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { prepareGroundedBridge } from '../grounding/php-provider.mjs';
@@ -16,7 +16,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const staticDir = resolve(root, '../output/astro');
 const reports = resolve(root, '../reports');
 const endpoints = HTTP_PATHS;
-const results = [], unexpected = [], runtimeErrors = [];
+const results = [], unexpected = [], runtimeErrors = [], httpFailures = [];
 let configuration, bridge, server, browser, context, fatal, executedPHP = false;
 let expectedResetTerminations = 0;
 
@@ -78,6 +78,14 @@ try {
   });
   const page = await context.newPage();
   page.on('pageerror', error => runtimeErrors.push(error.message));
+  page.on('response', async response => {
+    const path = new URL(response.url()).pathname;
+    if (Object.values(HTTP_PATHS).includes(path) && response.status() >= 400) {
+      let body = null;
+      try { body = await response.json(); } catch { /* Keep only the status if the body is not JSON. */ }
+      httpFailures.push({ path, status: response.status(), body });
+    }
+  });
   await page.goto(server.origin + '/journey-http-r08/', { waitUntil: 'load' });
   const rootElement = page.locator('[data-faisca-root]');
   const status = page.locator('[data-faisca-http-status]');
@@ -158,26 +166,37 @@ try {
     assert.match(await lastAnswer().innerText(), /Qual é o principal resultado/);
     await assertGroundedSource('goal_presence');
     assert.equal(phpCounts().spawned, 1);
-    for (const [action, expected] of [
-      ['r08:objective:present_company', /Quem você deseja alcançar/],
-      ['r08:audience:local_customers', /Como estão os textos e as imagens/],
-      ['r08:materials:ready', /previsão para iniciar/],
-      ['r08:timeline:within_30_days', /autoriza que a equipe Imagine entre em contato/],
-      ['r08:contactConsent:granted', /RASCUNHO NÃO ENVIADO/]
-    ]) {
-      await choose(action);
-      assert.match(await lastAnswer().innerText(), expected);
-    }
+    await sendText('Quero captar leads interessados.');
+    assert.match(await lastAnswer().innerText(), /Quem você deseja alcançar/);
+    await sendText('Quero alcançar outras empresas e consumidores online.');
+    assert.match(await lastAnswer().innerText(), /mais de uma interpretação possível/);
+    assert.equal(phpCounts().spawned, 1, 'Ambiguous field answers stay local.');
+    await choose('r08:audience:businesses');
+    assert.match(await lastAnswer().innerText(), /Como estão os textos e as imagens/);
+    await sendText('Já tenho textos e imagens.');
+    assert.match(await lastAnswer().innerText(), /previsão para iniciar/);
+    await sendText('Quero iniciar nos próximos 30 dias.');
+    assert.match(await lastAnswer().innerText(), /autoriza que a equipe Imagine entre em contato/);
+    await sendText('Sim, autorizo.');
+    assert.match(await lastAnswer().innerText(), /RASCUNHO NÃO ENVIADO/);
     const summary = await page.locator('#faisca-summary-text').inputValue();
     assert.match(summary, /Site Onepage/);
-    assert.match(summary, /Apresentar a empresa/);
-    assert.match(summary, /Clientes da região/);
+    assert.match(summary, /Captar contatos/);
+    assert.match(summary, /Outras empresas/);
     assert.match(summary, /Textos e imagens disponíveis/);
     assert.match(summary, /Até 30 dias/);
     assert.ok(summary.includes('Sim, autorizou (nenhum contato foi enviado)'));
     assert.match(summary, /Nenhum dado de contato foi coletado/);
     assert.doesNotMatch(summary, /@|[0-9]{10,}/);
     assert.equal(phpCounts().spawned, 1, 'R08 choices and consent must not create PHP work.');
+
+    await choose('r08:edit:contactConsent');
+    assert.match(await lastAnswer().innerText(), /autoriza que a equipe Imagine entre em contato/);
+    await sendText('Não autorizo contato.');
+    const declinedSummary = await page.locator('#faisca-summary-text').inputValue();
+    assert.match(declinedSummary, /Não concedida/);
+    assert.doesNotMatch(declinedSummary, /Sim, autorizou/);
+    assert.equal(phpCounts().spawned, 1, 'Negative consent correction remains local.');
     executedPHP = true;
   });
 
@@ -270,6 +289,9 @@ try {
       locale: 'pt-BR', input: { type: 'action', id: 'confirm_goal' }
     }, a.token);
     assert.equal(wrongContext.status, 403, 'An R08 token cannot consult another qualification session.');
+    assert.deepEqual(wrongContext.data, { schema: HTTP_ERROR_SCHEMA, code: 'conversation_mismatch' });
+    await eventually(() => httpFailures.length === 1,
+      'The expected cross-session 403 must be observed without other HTTP failures.');
     await Promise.all([a, b].map(session => browserFetch(page, endpoints.session, 'DELETE', {}, session.token)));
     await eventually(() => server.inspect().sessions === 1, 'Raw R08 sessions must be deleted while the browser session remains.');
     assert.equal(phpCounts().spawned, before.spawned + 2);
@@ -304,6 +326,10 @@ try {
       assert.deepEqual(audit.violations.map(item => item.id), [], 'R08 HTTP accessibility at ' + width + 'px');
     }
     assert.deepEqual(unexpected, []);
+    assert.deepEqual(httpFailures, [{
+      path: endpoints.reconcile, status: 403,
+      body: { schema: HTTP_ERROR_SCHEMA, code: 'conversation_mismatch' }
+    }], 'Only the intentional cross-token security probe may be rejected.');
     assert.deepEqual(runtimeErrors, []);
     assert.deepEqual(await context.cookies(), []);
     assert.deepEqual(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length, cookie: document.cookie })),
@@ -337,9 +363,10 @@ try {
     server: server ? server.inspect() : null,
     expectedResetTerminations,
     unexpectedPHPFailures: bridge ? Math.max(0, bridgeCounts(bridge).failed - expectedResetTerminations) : null,
-    results, unexpected, runtimeErrors, fatal
+    results, unexpected, runtimeErrors, httpFailures, fatal
   }, null, 2) + '\n');
   console.log('R08 HTTP/PHP browser: ' + results.filter(item => item.status === 'pass').length + '/' + results.length +
     ' passed; executedPHP=' + executedPHP + '.');
+  if (httpFailures.length) console.error('R08 HTTP error responses: ' + JSON.stringify(httpFailures));
   if (fatal) console.error(fatal.phase + ': ' + fatal.code + ': ' + fatal.message);
 }

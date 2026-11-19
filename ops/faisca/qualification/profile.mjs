@@ -173,6 +173,12 @@ export function getNextQualificationQuestion(profile) {
   });
 }
 
+export function getQualificationFieldOptions(field) {
+  const question = questionData[field];
+  return question ? Object.freeze(question.options.map(([value, label]) =>
+    Object.freeze({ value, label }))) : null;
+}
+
 export function isQualificationComplete(profile) {
   const safe = validateLeadProfile(profile);
   return Boolean(safe && fields.every(field => safe[field] !== null) &&
