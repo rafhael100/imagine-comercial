@@ -28,6 +28,8 @@ try {
     }
   }
   await collect(output);
+  console.log('R10 static laboratory snapshot: ' + files.size + ' files, ' +
+    [...files.values()].reduce((sum, item) => sum + item.length, 0) + ' bytes.');
   assert.ok(files.has('/support/index.html'), 'Build isolated R10 support lab first.');
   assert.deepEqual([...files.keys()].filter(path => path.endsWith('.html')).sort(), [
     '/grounded/index.html', '/http/index.html', '/index.html',
