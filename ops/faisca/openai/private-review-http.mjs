@@ -44,13 +44,16 @@ async function readCaseId(req) {
       if (bytes > MAX_BODY_BYTES) return null;
       chunks.push(part);
     }
-    const data = JSON.parse(new TextDecoder('utf-8', { fatal: true })
-      .decode(Buffer.concat(chunks)));
-    if (!data || typeof data !== 'object' || Array.isArray(data) ||
-        Object.keys(data).length !== 1 || !Object.hasOwn(data, 'caseId') ||
-        typeof data.caseId !== 'string' ||
-        !Object.hasOwn(FAISCA_OPENAI_TEST_CASES, data.caseId)) return null;
-    return data.caseId;
+    const body = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
+      .decode(Buffer.concat(chunks));
+    // This endpoint has exactly three operator-selected synthetic cases.
+    // Do not use JSON.parse here: duplicate object keys silently collapse,
+    // allowing ambiguous requests (including an unreviewed earlier caseId).
+    // Require the complete, tiny canonical wire shape instead. Restrict
+    // whitespace to JSON's four legal ASCII whitespace bytes.
+    const match = /^[ \t\r\n]*\{[ \t\r\n]*"caseId"[ \t\r\n]*:[ \t\r\n]*"(compare|process|pricing)"[ \t\r\n]*\}[ \t\r\n]*$/.exec(body);
+    if (!match || !Object.hasOwn(FAISCA_OPENAI_TEST_CASES, match[1])) return null;
+    return match[1];
   } catch { return null; }
 }
 
