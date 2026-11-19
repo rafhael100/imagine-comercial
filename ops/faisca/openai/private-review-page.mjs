@@ -6,7 +6,7 @@ export const PRIVATE_REVIEW_PAGE_PATH = '/__faisca_openai_private/review';
 export const PRIVATE_REVIEW_SCRIPT_PATH = '/__faisca_openai_private/review.js';
 export const PRIVATE_REVIEW_STYLE_PATH = '/__faisca_openai_private/review.css';
 
-export const PRIVATE_REVIEW_HTML = String.raw\`<!doctype html>
+export const PRIVATE_REVIEW_HTML = String.raw`<!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -46,9 +46,9 @@ Nunca cole sua OPENAI_API_KEY aqui.</p>
 <footer>Rascunho editorial · Sem dados pessoais, propostas, pedidos, pagamentos ou publicação.
 A execução privada pode consumir créditos da API.</footer>
 </main>
-</body></html>\`;
+</body></html>`;
 
-export const PRIVATE_REVIEW_CSS = String.raw\`:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f8faf8;color:#25312c}
+export const PRIVATE_REVIEW_CSS = String.raw`:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f8faf8;color:#25312c}
 *{box-sizing:border-box}body{margin:0}main{max-width:740px;padding:1.2rem;margin:1.4rem auto}
 header{padding:1.1rem 0}header h1{font-size:2.35rem;letter-spacing:-.06em;margin:.3rem 0}
 header h1 span{color:#f9941d}.eyebrow{color:#865513;letter-spacing:.16em;font-size:.8rem;font-weight:800}
@@ -65,9 +65,9 @@ button:disabled{opacity:.65;cursor:default}
 #review-answer{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
 footer{padding:.8rem 0;line-height:1.5}
 @media(max-width:420px){main{padding:.75rem;margin:.5rem auto}section{padding:1rem}}
-\`;
+`;
 
-export const PRIVATE_REVIEW_JS = String.raw\`const form = document.getElementById('faisca-review-form');
+export const PRIVATE_REVIEW_JS = String.raw`const form = document.getElementById('faisca-review-form');
 const token = document.getElementById('review-token');
 const scenario = document.getElementById('review-case');
 const send = document.getElementById('review-send');
@@ -121,4 +121,4 @@ form?.addEventListener('submit', async event => {
   }
 });
 window.addEventListener('pagehide', () => { token.value = ''; });
-\`;
+`;
