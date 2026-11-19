@@ -1,6 +1,6 @@
 import { readFile, lstat, realpath } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadReviewSnapshot } from '../review/static-server.mjs';
 import {
@@ -51,7 +51,7 @@ export async function preparePrivateCommercialFaisca({
     try {
       const stat = await lstat(full);
       if (!stat.isFile() || stat.isSymbolicLink() ||
-          !(await realpath(full)).startsWith(dir + '/') ||
+          !(await realpath(full)).startsWith(dir + sep) ||
           !Buffer.from(await readFile(full)).equals(bytes)) {
         throw new Error('R24 Astro asset collision with incompatible bytes.');
       }
