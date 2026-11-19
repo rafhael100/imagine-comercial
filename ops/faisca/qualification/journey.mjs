@@ -288,13 +288,18 @@ export function respondQualificationJourney(session, rawInput) {
         });
         if (fieldResult.accepted && fieldResult.status === 'matched') {
           const updated = updateLeadProfile(session.profile, fieldResult.field, fieldResult.value);
-          if (updated) return questionReply(createState(advanceJourney(session.journey), updated, session.phase),
-            updated, '', [], input.text);
+          if (updated) {
+            // Display only an approved option label, never the untrusted raw
+            // text from a free-form answer in the chat transcript.
+            const choice = currentQuestion.options.find(option => option.value === fieldResult.value);
+            return questionReply(createState(advanceJourney(session.journey), updated, session.phase),
+              updated, '', [], choice?.label ?? '[Opção escolhida]');
+          }
         }
         if (fieldResult.accepted && fieldResult.status === 'ambiguous') {
           return questionReply(createState(advanceJourney(session.journey), session.profile, session.phase),
             session.profile, 'Encontrei mais de uma interpretação possível. Escolha a alternativa que melhor representa sua resposta.',
-            [], input.text);
+            [], '[Resposta ambígua — escolha uma opção]');
         }
       }
     }
