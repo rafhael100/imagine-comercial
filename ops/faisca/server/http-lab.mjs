@@ -11,6 +11,8 @@ import { HTTP_SESSION_SCHEMA, HTTP_ERROR_SCHEMA, HTTP_CONTEXT, HTTP_PATHS, creat
 
 const defaultStaticDir = resolve(dirname(fileURLToPath(import.meta.url)), '../output/astro');
 const MAX_BODY_BYTES = 8192;
+// R10 adds the separately bundled support UI; retain a finite static-asset cap.
+const MAX_STATIC_FILES = 160;
 const securityHeaders = Object.freeze({
   'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
   'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer',
@@ -44,7 +46,7 @@ async function loadStaticFiles(staticDir) {
       let bytes;
       try {
         const stat = await handle.stat();
-        if (!stat.isFile() || stat.size > 8 * 1024 * 1024 || files.size >= 128 || total + stat.size > 16 * 1024 * 1024) {
+        if (!stat.isFile() || stat.size > 8 * 1024 * 1024 || files.size >= MAX_STATIC_FILES || total + stat.size > 16 * 1024 * 1024) {
           throw new Error('Laboratory static files exceed the bounded snapshot.');
         }
         bytes = await handle.readFile();
