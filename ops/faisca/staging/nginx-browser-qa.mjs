@@ -135,7 +135,111 @@ try {
     assert.deepEqual(errors, [], 'The browser must not report uncaught JavaScript errors.');
   });
 
-  process.stdout.write('R45 actual Nginx + Chromium: ' + checks.length +
+
+  await check('R46 no-JavaScript: Commercial links and disclosure survive on real Nginx', async () => {
+    const noJs = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 320, height: 740 },
+      httpCredentials: { username: 'reviewer', password }
+    });
+    try {
+      await noJs.route('**/*', async route => {
+        const url = new URL(route.request().url());
+        if (url.origin !== origin) {
+          outgoing.push({ origin: 'external', method: route.request().method() });
+          return route.abort('blockedbyclient');
+        }
+        return route.continue();
+      });
+      const page = await noJs.newPage();
+      const home = await page.goto(origin + '/', { waitUntil: 'load' });
+      assert.equal(home?.status(), 200);
+      assert.equal(await page.locator('#simular-compra[data-choice-preview]').count(), 1);
+      const link = page.locator('a[data-purchase-start]').first();
+      await link.click();
+      assert.equal(new URL(page.url()).hash, '#simular-compra');
+      const disclosure = page.locator('[data-faisca-private-inline]');
+      await disclosure.locator('summary').click();
+      assert.equal(await disclosure.getAttribute('open'), '');
+      const frame = page.frameLocator('iframe[data-faisca-inline-frame]');
+      await frame.locator('.no-script-note').waitFor({ state: 'visible', timeout: 12000 });
+      assert.match(await frame.locator('.no-script-note').innerText(), /Ative JavaScript/);
+      assert.equal(await frame.locator('#faisca-composer').isVisible(), false);
+      await page.goto(origin + '/servicos/', { waitUntil: 'load' });
+      assert.ok(await page.locator('h1').count() >= 1);
+      assert.deepEqual(await noJs.cookies(), []);
+    } finally { await noJs.close(); }
+  });
+
+  await check('R46 failed assistant module: Commercial quote stays interactive on real Nginx', async () => {
+    const failing = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      httpCredentials: { username: 'reviewer', password }
+    });
+    let blocked = 0;
+    let ready;
+    const blockedReady = new Promise(resolve => { ready = resolve; });
+    try {
+      await failing.route('**/*', async route => {
+        const url = new URL(route.request().url());
+        if (url.origin !== origin) {
+          outgoing.push({ origin: 'external', method: route.request().method() });
+          return route.abort('blockedbyclient');
+        }
+        if (/^\/_astro\/FaiscaJourneyLab\..+\.js$/.test(url.pathname)) {
+          blocked++;
+          ready();
+          return route.abort('failed');
+        }
+        return route.continue();
+      });
+      const page = await failing.newPage();
+      await page.goto(origin + '/', { waitUntil: 'load' });
+      const quote = page.locator('#simular-compra[data-choice-preview]');
+      await quote.locator('[data-choice-site="landing-pages"]').click();
+      assert.equal(await quote.locator('[data-choice-site="landing-pages"]')
+        .getAttribute('aria-pressed'), 'true');
+      const disclosure = page.locator('[data-faisca-private-inline]');
+      await disclosure.locator('summary').click();
+      await page.frameLocator('iframe[data-faisca-inline-frame]')
+        .locator('[data-faisca-root]').waitFor({ state: 'visible', timeout: 12000 });
+      await Promise.race([
+        blockedReady,
+        new Promise((_, reject) => setTimeout(() =>
+          reject(new Error('The Faísca script was not requested for the negative test.')), 12000))
+      ]);
+      assert.ok(blocked >= 1, 'The actual Faísca client chunk must be blocked.');
+      await quote.locator('[data-choice-site="onepage"]').click();
+      assert.equal(await quote.locator('[data-choice-site="onepage"]')
+        .getAttribute('aria-pressed'), 'true');
+      await disclosure.locator('summary').click();
+      assert.equal(await disclosure.getAttribute('open'), null);
+      assert.deepEqual(await failing.cookies(), []);
+    } finally { await failing.close(); }
+  });
+
+  await check('R46 keyboard and reduced motion open the private Faísca without checkout', async () => {
+    const keyboard = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      reducedMotion: 'reduce',
+      httpCredentials: { username: 'reviewer', password }
+    });
+    try {
+      const page = await keyboard.newPage();
+      await page.goto(origin + '/', { waitUntil: 'load' });
+      const disclosure = page.locator('[data-faisca-private-inline]');
+      const toggle = disclosure.locator('summary');
+      await toggle.focus();
+      await toggle.press('Enter');
+      assert.equal(await disclosure.getAttribute('open'), '');
+      await toggle.press('Enter');
+      assert.equal(await disclosure.getAttribute('open'), null);
+      assert.equal(await page.locator('#simular-compra form, #simular-compra input[type="email"]').count(), 0);
+      assert.deepEqual(await keyboard.cookies(), []);
+    } finally { await keyboard.close(); }
+  });
+
+  process.stdout.write('R45/R46 actual Nginx + Chromium: ' + checks.length +
     '/' + checks.length + ' checks, no external model / checkout / deploy.\n');
 } catch (error) {
   process.exitCode = 1;
