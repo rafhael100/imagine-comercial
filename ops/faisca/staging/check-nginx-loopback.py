@@ -8,6 +8,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 import pathlib
 import secrets
 import shutil
@@ -62,7 +63,7 @@ def verify_kit(root):
     return len(observed)
 
 
-def smoke(root):
+def smoke(root, chromium=False):
     nginx = shutil.which('nginx')
     htpasswd = shutil.which('htpasswd')
     if not nginx or not htpasswd:
@@ -235,6 +236,20 @@ def smoke(root):
             print(f'R44 Nginx byte and MIME parity: {matched}/{len(site_files)}')
             if matched != len(site_files) or matched < 50:
                 raise RuntimeError('Incomplete Nginx static delivery proof')
+
+            # R45: run actual Chromium while this exact temporary Nginx is
+            # still listening. Synthetic Basic Auth lives only in child env,
+            # not process arguments, logs, artifacts or the reviewed bundle.
+            if chromium:
+                env = os.environ.copy()
+                env['FAISCA_R45_ORIGIN'] = address
+                env['FAISCA_R45_SYNTHETIC_PASSWORD'] = password
+                child = subprocess.run(
+                    ['node', 'ops/faisca/staging/nginx-browser-qa.mjs'],
+                    env=env, timeout=100, check=False
+                )
+                if child.returncode:
+                    raise RuntimeError('R45 Chromium Nginx validation failed')
         finally:
             server.terminate()
             try:
@@ -248,9 +263,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--kit', required=True,
         help='Directory of an EXTRACTED, independently reviewed R38/R41 staging kit')
+    parser.add_argument('--chromium', action='store_true',
+        help='Also verify the same temporary Nginx in a real browser')
     opts = parser.parse_args()
     try:
-        smoke(pathlib.Path(opts.kit).resolve())
+        smoke(pathlib.Path(opts.kit).resolve(), chromium=opts.chromium)
     except Exception as error:
         print('R41 HOLD:', type(error).__name__, str(error), file=sys.stderr)
         sys.exit(2)
