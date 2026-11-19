@@ -1,4 +1,5 @@
 import { createSession, respond, getWelcome, getSummary, getCapabilities } from './core.mjs';
+import { validateLeadProfile, isQualificationComplete } from './qualification/profile.mjs';
 
 // Importing this module has no side effect. The host owns mount/destroy.
 // Replies are local and deterministic; no network or persistence is performed.
@@ -175,6 +176,16 @@ export function mountFaisca(root, config = {}) {
     summaryRevision += 1;
     const text = getSummaryForView(session);
     summaryText.value = typeof text === 'string' ? text : '';
+    // R37: expose ONLY a validated, completed service enum for the
+    // opt-in private quote preview. Never publish the profile, contact
+    // choice, free text, audience or any price in DOM attributes.
+    const completeProfile = validateLeadProfile(session?.profile);
+    if (completeProfile && isQualificationComplete(completeProfile)) {
+      root.dataset.faiscaQuoteSite = completeProfile.service === 'onepage'
+        ? 'onepage' : 'landing-pages';
+    } else {
+      delete root.dataset.faiscaQuoteSite;
+    }
     const hasSelection = Array.isArray(session.selection) && session.selection.length > 0;
     const hasContext = hasSelection || session.goal !== null || session.supportTopic !== null;
     const prompts = { sell: 'Escolha seu objetivo', after_sales: 'Escolha o assunto', faq: 'Explorando dúvidas', human: 'Preparar atendimento', start: 'Comece uma jornada' };
@@ -336,6 +347,7 @@ export function mountFaisca(root, config = {}) {
     actions.replaceChildren();
     input.value = '';
     summaryText.value = '';
+    delete root.dataset.faiscaQuoteSite;
     summary.open = false;
     feedback.textContent = '';
     byId('faisca-copy-status').textContent = '';
