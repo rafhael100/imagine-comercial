@@ -356,10 +356,14 @@ export function respondQualificationJourney(session, rawInput) {
     }
     if (input.type === 'text' || input.type === 'action') {
       const result = respondJourney(session.journey, input);
+      // R61: unmatched prose can contain private details the heuristic preflight
+      // did not recognize. Never echo raw free text in a qualification transcript.
+      // Matched answers use approved closed-option labels earlier in this handler.
+      const safeUserText = input.type === 'text' ? '[Mensagem livre não registrada]' : result.userText;
       if (result.session.pendingGoal !== null) {
         return Object.freeze({
           session: createState(result.session, session.profile, 'service_change_pending', session.phase),
-          userText: result.userText,
+          userText: safeUserText,
           reply: Object.freeze({
             ...result.reply,
             text: 'Uma troca de solução está pendente. Sua qualificação atual será mantida até você confirmar a troca.\n\n' +
@@ -368,10 +372,10 @@ export function respondQualificationJourney(session, rawInput) {
         });
       }
       if (result.reply.intent === 'journey_summary') {
-        return summaryReply(createState(result.session, session.profile, session.phase), result.userText);
+        return summaryReply(createState(result.session, session.profile, session.phase), safeUserText);
       }
       const prepared = questionReply(createState(result.session, session.profile, session.phase),
-        session.profile, result.reply.text, result.reply.sources, result.userText);
+        session.profile, result.reply.text, result.reply.sources, safeUserText);
       return result.reply.sources.length
         ? Object.freeze({ ...prepared, providerReply: result.reply }) : prepared;
     }
