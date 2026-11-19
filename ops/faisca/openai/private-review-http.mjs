@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
+import { FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
 
 const REVIEW_PATH = '/__faisca_openai_private/respond';
 const MAX_BODY_BYTES = 96;
@@ -20,6 +20,49 @@ function send(res, status, value) {
   res.writeHead(status, securityHeaders);
   res.end(JSON.stringify(value) + '\n');
 }
+
+// A second, independent output boundary: an injected/misconfigured provider
+// must not make the private HTTP endpoint serialize arbitrary data or accessors.
+// This is an envelope check, NOT semantic verification of generated prose.
+const reviewIdPattern = /^[a-z0-9][a-z0-9._:/@-]{0,127}$/i;
+const approvedModels = new Set(Object.values(FAISCA_OPENAI_MODELS));
+function safeReviewList(value, allowed = null) {
+  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype ||
+      value.length > 12) return null;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  if (Reflect.ownKeys(value).length !== value.length + 1) return null;
+  const items = [];
+  for (let index = 0; index < value.length; index++) {
+    const descriptor = descriptors[index];
+    if (!descriptor || !Object.hasOwn(descriptor, 'value') ||
+        typeof descriptor.value !== 'string' ||
+        !reviewIdPattern.test(descriptor.value) ||
+        (allowed && !allowed.has(descriptor.value))) return null;
+    items.push(descriptor.value);
+  }
+  return items;
+}
+function safeReviewOutput(response) {
+  try {
+    if (!response || typeof response !== 'object' || Array.isArray(response) ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(response))) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(response);
+    const get = key => {
+      const prop = descriptors[key];
+      return prop && Object.hasOwn(prop, 'value') ? prop.value : undefined;
+    };
+    const status = get('status'), answer = get('text');
+    if (!['draft_answer', 'unsupported'].includes(status) ||
+        typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
+        /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
+        get('publicReady') === true || get('operationalEffects') === true) return null;
+    const sources = safeReviewList(get('sourceIds') ?? []);
+    const models = safeReviewList(get('modelIds') ?? [], approvedModels);
+    if (!sources || !models || (status === 'draft_answer' && sources.length === 0)) return null;
+    return Object.freeze({ status, answer, sources, models });
+  } catch { return null; }
+}
+
 function authorized(req, token, hostPort) {
   const supplied = req.headers.authorization;
   const expected = 'Bearer ' + token;
@@ -81,14 +124,15 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
     if (!caseId) { send(res, 400, { status: 'invalid_request' }); return; }
     requests++;
     try {
-      const response = await lab.answer(caseId);
+      const outcome = safeReviewOutput(await lab.answer(caseId));
+      if (!outcome) throw new Error('Invalid private review output.');
       send(res, 200, {
         schema: 'faisca.openai-private-review-response.v1',
-        status: response.status,
+        status: outcome.status,
         syntheticCaseId: caseId,
-        answer: response.text,
-        sources: response.sourceIds ?? [],
-        models: response.modelIds ?? [],
+        answer: outcome.answer,
+        sources: outcome.sources,
+        models: outcome.models,
         requiresEditorialReview: true,
         publicReady: false, operationalEffects: false
       });
