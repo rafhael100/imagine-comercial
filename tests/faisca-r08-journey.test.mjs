@@ -232,13 +232,19 @@ test('R08-B rejects cloned sessions and never executes action getters', () => {
   assert.equal(refused.reply.intent, 'r08_invalid_input');
 });
 
-test('R08-B service change and restart are explicit and discard the previous qualification', () => {
+test('R08 service-switch menu preserves qualification until confirmed, while explicit restart discards it', () => {
   const completeSession = complete(startOnepage());
   const changed = choose(completeSession, 'r08:change_service');
   assert.equal(changed.userText, 'Trocar solução');
-  assert.equal(changed.session.profile, null);
-  assert.equal(changed.session.phase, 'sales');
-  assert.deepEqual(changed.reply.actions.map(item => item.id), ['goal_presence', 'goal_campaign']);
+  assert.equal(changed.session.phase, 'service_reselect');
+  assert.equal(changed.session.profile, completeSession.profile,
+    'Opening a service menu cannot silently discard a finished qualification');
+  assert.deepEqual(changed.reply.actions.map(item => item.id),
+    ['goal_presence', 'goal_campaign', 'r08:keep_service']);
+  const kept = choose(changed.session, 'r08:keep_service');
+  assert.equal(kept.session.phase, 'complete');
+  assert.equal(kept.session.profile.service, 'onepage');
+  assert.equal(kept.session.profile.contactConsent, 'granted');
   const restarted = choose(completeSession, 'r08:restart');
   assert.equal(restarted.session.profile, null);
   assert.equal(restarted.session.journey.coreSession.goal, null);
