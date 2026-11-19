@@ -234,11 +234,16 @@ import {describeSelectedAdvertisingCosts} from '../lib/public-quote-channel-brea
     action.setAttribute('aria-disabled',String(!estimate.hasChoice));
     action.tabIndex=estimate.hasChoice?0:-1;
    }
+   // aria-disabled alone does not block a pointer click on an <a> element.
+   // Empty quotes must never activate even the fallback contact destination.
    const empty=root.querySelector('[data-choice-empty]');
    if(empty)empty.hidden=estimate.hasChoice;
    const copyButton=root.querySelector('[data-choice-copy]');
    if(copyButton){copyButton.hidden=false;copyButton.disabled=!estimate.hasChoice;}
   };
+  root.querySelector('[data-choice-action]')?.addEventListener('click',event=>{
+   if(event.currentTarget.getAttribute('aria-disabled')==='true')event.preventDefault();
+  });
   root.querySelector('[data-choice-copy]')?.addEventListener('click',async()=>{
    const status=root.querySelector('[data-choice-copy-status]');
    if(!status)return;
