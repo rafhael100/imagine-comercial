@@ -136,7 +136,7 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
       !Number.isInteger(bodyTimeoutMs) || bodyTimeoutMs < 50 || bodyTimeoutMs > 30000) {
     throw new TypeError('Private OpenAI review requires a dedicated token and safe loopback port.');
   }
-  let active = true, requests = 0;
+  let active = true, requests = 0, inFlight = false;
   const server = createServer(async (req, res) => {
     if (!active || req.method !== 'POST' || req.url !== REVIEW_PATH) {
       send(res, 404, { status: 'not_found' }); return;
@@ -160,6 +160,11 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
       return;
     }
     if (!caseId) { send(res, 400, { status: 'invalid_request' }); return; }
+    // The live lab implements its own busy guard, but the HTTP boundary must
+    // also serialize a misconfigured/injected provider. No parallel API calls
+    // or implicit retries may arise from one review server.
+    if (inFlight) { send(res, 429, { status: 'busy' }); return; }
+    inFlight = true;
     requests++;
     try {
       const outcome = safeReviewOutput(await lab.answer(caseId));
@@ -179,7 +184,7 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
         status: 'unavailable',
         message: 'The private AI review could not confirm a safe response.'
       });
-    }
+    } finally { inFlight = false; }
   });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -190,7 +195,7 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
     address,
     path: REVIEW_PATH,
     inspect: () => Object.freeze({
-      active, requests, bindAddress: '127.0.0.1',
+      active, requests, inFlight, bindAddress: '127.0.0.1',
       publicReady: false, operationalEffects: false,
       liveBudget: lab.inspect()
     }),
