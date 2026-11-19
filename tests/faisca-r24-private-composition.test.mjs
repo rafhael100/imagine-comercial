@@ -148,7 +148,7 @@ test('R24 standalone commercial private preview is unchanged without an approved
   const server = createPrivateLoopbackPreview({ directory: files.commercialDir, password });
   // No extra routes and no CTA; the original private commercial preview stays intact.
   assert.ok(server);
-  server.close();
+  // Unstarted listener has no open resource to close.
   const forbidden = new Map([
     ['/__faisca_preview/journey/', Buffer.from('lab')],
     ['/__faisca_preview/support/', Buffer.from('lab')],
