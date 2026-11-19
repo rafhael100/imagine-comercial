@@ -303,6 +303,20 @@ test('static startup refuses symlinks and unapproved files rather than serving r
   await assert.rejects(startHttpLab({ enabled: '1', staticDir: dir }), /Symlinks/);
 });
 
+test('R10 enlarged static manifest is still capped at 160 reviewed lab assets', async t => {
+  const dir = await staticFixture(t);
+  for (let index = 0; index < 156; index++) {
+    await writeFile(resolve(dir, '_astro/asset' + String(index).padStart(3, '0') + '.js'),
+      'export const synthetic = ' + index + ';');
+  }
+  // Fixture has four original files, giving exactly 160 allowed assets.
+  const lab = await startHttpLab({ enabled: '1', staticDir: dir });
+  await lab.close();
+  await writeFile(resolve(dir, '_astro/asset156.js'), 'export const synthetic = 156;');
+  await assert.rejects(startHttpLab({ enabled: '1', staticDir: dir }),
+    /Laboratory static files exceed the bounded snapshot/);
+});
+
 test('DELETE requires an empty body and disposes the owned session without accepting its token again', async t => {
   const lab = await fixture(t); const value = await session(lab);
   const invalid = await call(lab, HTTP_PATHS.session, { method: 'DELETE', body: { all: true }, headers: auth(value) }); assert.equal(invalid.status, 400);
