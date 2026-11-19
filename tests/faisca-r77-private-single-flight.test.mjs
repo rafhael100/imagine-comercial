@@ -6,7 +6,7 @@ const token = 'R77_SINGLE_FLIGHT_PRIVATE_TEST_TOKEN_123456';
 const reply = Object.freeze({
   status: 'draft_answer',
   text: 'Este resultado fictício será avaliado somente em revisão privada.',
-  sourceIds: ['faisca.passage.fixture@r06-1'], modelIds: []
+  sourceIds: ['faisca.passage.fixture@r06-1'], modelIds: ['gpt-6-luna', 'gpt-6.1-terra']
 });
 function post(server) {
   return fetch(server.address + server.path, {
