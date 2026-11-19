@@ -188,8 +188,8 @@ try {
   await verified.close();
   phase = 'read_build';
   await collect(staticDir);
-  assert.deepEqual([...assets].filter(path => path.endsWith('.html')).sort(), ['/grounded/index.html', '/http/index.html', '/index.html', '/journey-http-r08/index.html', '/journey-http/index.html', '/journey/index.html'],
-    'The isolated laboratory contains the six reviewed R03/R04/R06/R07/R08 pages.');
+  assert.deepEqual([...assets].filter(path => path.endsWith('.html')).sort(), ['/grounded/index.html', '/http/index.html', '/index.html', '/journey-http-r08/index.html', '/journey-http/index.html', '/journey/index.html', '/support/index.html'],
+    'The isolated laboratory contains the seven reviewed R03/R04/R06/R07/R08 pages.');
   const deferredModules = [...assets].filter(path => /\/_astro\/http-ui\.[^/]+\.js$/.test(path));
   assert.ok(deferredModules.length >= 1, 'The isolated lab must contain at least one deferred HTTP UI module.');
   assert.ok(!(await readFile(resolve(staticDir, 'http/index.html'), 'utf8')).includes('Bearer '), 'Static HTML cannot embed credentials.');

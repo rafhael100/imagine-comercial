@@ -1,0 +1,69 @@
+---
+import { renderLabView } from '../../render-fragment.mjs';
+import { requireLabMode } from '../../lab-policy.mjs';
+requireLabMode(process.env.IMAGINE_FAISCA_LAB);
+const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE_ROOT });
+---
+<style is:global set:html={view.css} />
+<style>
+  faisca-support-lab { display: block; }
+  .support-controls { max-width: 1360px; margin: 1rem auto; padding: 0 24px; display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; }
+  .support-controls h1 { width: 100%; font-size: 1.2rem; margin: 0; color: #222a27; }
+  .support-controls p { margin: 0; color: #49514d; }
+  .support-controls button { font: inherit; font-weight: 700; background: #222a27; color: #fff; border: 0; border-radius: .75rem; padding: .75rem 1rem; cursor: pointer; }
+  .support-controls button:focus-visible { outline: 3px solid #9a4d00; outline-offset: 3px; }
+  .support-controls button:disabled { opacity: .6; cursor: default; }
+  .support-controls [hidden] { display: none; }
+</style>
+<faisca-support-lab>
+  <section class="support-controls" aria-label="Laboratório R10 de triagem de pós-venda">
+    <h1>Faísca · Orientação anônima de pós-venda</h1>
+    <p>Laboratório local. Esta conversa não verifica identidade, pedido, contrato ou pagamento. Não abre ticket, não envia mensagens à equipe e não consulta o Portal ou CRM.</p>
+    <p>Use apenas as opções fechadas para classificar o assunto. Não informe nomes, e-mails, telefones, senhas ou dados de clientes. O resumo pode ser copiado manualmente.</p>
+    <button type="button" data-support-start hidden>Ativar triagem R10</button>
+    <p role="status" data-support-status>Ative a conversa e escolha Pós-venda para começar.</p>
+  </section>
+  <div data-faisca-root data-lab-preview set:html={view.markup} />
+</faisca-support-lab>
+<script>
+  class FaiscaSupportLabElement extends HTMLElement {
+    #app;
+    #handler;
+    #generation = 0;
+    connectedCallback() {
+      const button = this.querySelector('[data-support-start]');
+      const status = this.querySelector('[data-support-status]');
+      if (!button || !status) return;
+      button.hidden = false;
+      const generation = ++this.#generation;
+      this.#handler = async () => {
+        if (this.#app || button.disabled) return;
+        button.disabled = true;
+        status.textContent = 'Preparando triagem local...';
+        try {
+          const { mountSupport } = await import('../../../support/support-ui.mjs');
+          if (!this.isConnected || generation !== this.#generation) return;
+          this.#app = mountSupport(this.querySelector('[data-faisca-root]'));
+          button.hidden = true;
+          status.textContent = 'Triagem local disponível. Escolha Pós-venda e selecione o assunto; nenhum ticket será aberto.';
+        } catch {
+          if (!this.isConnected || generation !== this.#generation) return;
+          status.textContent = 'A triagem local não pôde ser iniciada. Tente novamente.';
+          button.disabled = false;
+        }
+      };
+      button.addEventListener('click', this.#handler);
+    }
+    disconnectedCallback() {
+      ++this.#generation;
+      const button = this.querySelector('[data-support-start]');
+      if (button && this.#handler) button.removeEventListener('click', this.#handler);
+      this.#handler = undefined;
+      this.#app?.destroy();
+      this.#app = undefined;
+    }
+  }
+  if (!customElements.get('faisca-support-lab')) {
+    customElements.define('faisca-support-lab', FaiscaSupportLabElement);
+  }
+</script>

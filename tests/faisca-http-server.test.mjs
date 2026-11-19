@@ -303,6 +303,32 @@ test('static startup refuses symlinks and unapproved files rather than serving r
   await assert.rejects(startHttpLab({ enabled: '1', staticDir: dir }), /Symlinks/);
 });
 
+test('R10 static lab remains capped at 64 files even after adding the support page', async t => {
+  const dir = await staticFixture(t);
+  for (let index = 0; index < 60; index++) {
+    await writeFile(resolve(dir, '_astro/asset' + String(index).padStart(3, '0') + '.js'),
+      'export const synthetic = ' + index + ';');
+  }
+  // Fixture has four original files, giving exactly 64 allowed assets.
+  const lab = await startHttpLab({ enabled: '1', staticDir: dir });
+  await lab.close();
+  await writeFile(resolve(dir, '_astro/asset060.js'), 'export const synthetic = 60;');
+  await assert.rejects(startHttpLab({ enabled: '1', staticDir: dir }),
+    /Laboratory static files exceed the bounded snapshot/);
+});
+
+test('R10 static aggregate limit refuses more than 24 MiB without weakening the 8 MiB file cap', async t => {
+  const dir = await staticFixture(t);
+  const atFileLimit = Buffer.alloc(8 * 1024 * 1024, 65);
+  for (let index = 0; index < 3; index++) {
+    await writeFile(resolve(dir, '_astro/padded' + index + '.js'), atFileLimit);
+  }
+  // Three files at the per-file limit already exceed 24 MiB when the reviewed
+  // HTML and fixture assets are included. Startup must fail before serving.
+  await assert.rejects(startHttpLab({ enabled: '1', staticDir: dir }),
+    /Laboratory static files exceed the bounded snapshot/);
+});
+
 test('DELETE requires an empty body and disposes the owned session without accepting its token again', async t => {
   const lab = await fixture(t); const value = await session(lab);
   const invalid = await call(lab, HTTP_PATHS.session, { method: 'DELETE', body: { all: true }, headers: auth(value) }); assert.equal(invalid.status, 400);

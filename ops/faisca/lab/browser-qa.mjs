@@ -32,7 +32,7 @@ try {
   await collect(output);
   assert.ok(files.has('/index.html'), 'build the isolated Astro laboratory first');
   assert.deepEqual([...files.keys()].filter(path => path.endsWith('.html')).sort(),
-    ['/grounded/index.html', '/http/index.html', '/index.html', '/journey-http-r08/index.html', '/journey-http/index.html', '/journey/index.html'], 'the build contains exactly the six reviewed laboratory pages');
+    ['/grounded/index.html', '/http/index.html', '/index.html', '/journey-http-r08/index.html', '/journey-http/index.html', '/journey/index.html', '/support/index.html'], 'the build contains exactly the seven reviewed laboratory pages');
   const uiFiles = [...files.keys()].filter(path => /\/_astro\/conversation-ui\.[^/]+\.js$/.test(path));
   assert.equal(uiFiles.length, 1, 'conversation has a separate lazy-loaded module');
   phase = 'server_start';

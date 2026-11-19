@@ -11,6 +11,10 @@ import { HTTP_SESSION_SCHEMA, HTTP_ERROR_SCHEMA, HTTP_CONTEXT, HTTP_PATHS, creat
 
 const defaultStaticDir = resolve(dirname(fileURLToPath(import.meta.url)), '../output/astro');
 const MAX_BODY_BYTES = 8192;
+// The R10 build contains 31 files and 17.94 MB, mostly seven approved-artwork page copies.
+// Keep file-count tight; allow a finite 24 MiB aggregate snapshot in loopback only.
+const MAX_STATIC_FILES = 64;
+const MAX_STATIC_TOTAL_BYTES = 24 * 1024 * 1024;
 const securityHeaders = Object.freeze({
   'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
   'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer',
@@ -33,19 +37,20 @@ async function loadStaticFiles(staticDir) {
       const path = prefix + entry.name;
       if (entry.isSymbolicLink()) throw new Error('Symlinks are forbidden in laboratory static files.');
       if (entry.isDirectory()) {
-        if (prefix || !['_astro', 'http', 'grounded', 'journey', 'journey-http', 'journey-http-r08'].includes(entry.name)) throw new Error('Unexpected laboratory static directory.');
+        if (prefix || !['_astro', 'http', 'grounded', 'journey', 'journey-http', 'journey-http-r08', 'support'].includes(entry.name)) throw new Error('Unexpected laboratory static directory.');
         await collect(resolve(directory, entry.name), path + '/');
         continue;
       }
-      if (!entry.isFile() || !(path === 'index.html' || path === 'http/index.html' || path === 'grounded/index.html' || path === 'journey/index.html' || path === 'journey-http/index.html' || path === 'journey-http-r08/index.html' || /^_astro\/[A-Za-z0-9_.-]+\.(?:js|css)$/.test(path))) {
+      if (!entry.isFile() || !(path === 'index.html' || path === 'http/index.html' || path === 'grounded/index.html' || path === 'journey/index.html' || path === 'journey-http/index.html' || path === 'journey-http-r08/index.html' || path === 'support/index.html' || /^_astro\/[A-Za-z0-9_.-]+\.(?:js|css)$/.test(path))) {
         throw new Error('Unexpected laboratory static file.');
       }
       const handle = await open(resolve(directory, entry.name), constants.O_RDONLY | constants.O_NOFOLLOW);
       let bytes;
       try {
         const stat = await handle.stat();
-        if (!stat.isFile() || stat.size > 8 * 1024 * 1024 || files.size >= 128 || total + stat.size > 16 * 1024 * 1024) {
-          throw new Error('Laboratory static files exceed the bounded snapshot.');
+        if (!stat.isFile() || stat.size > 8 * 1024 * 1024 || files.size >= MAX_STATIC_FILES || total + stat.size > MAX_STATIC_TOTAL_BYTES) {
+          throw new Error('Laboratory static files exceed the bounded snapshot: ' +
+            (files.size + 1) + ' files; ' + (total + stat.size) + ' bytes.');
         }
         bytes = await handle.readFile();
         if (bytes.length !== stat.size) throw new Error('Laboratory static file changed during startup.');
@@ -179,7 +184,7 @@ export async function startHttpLab({ enabled, port = 0, staticDir = defaultStati
       if (!['GET', 'HEAD'].includes(request.method)) throw new HttpLabError(405, 'method_not_allowed');
       if (headers.has('content-length') && headers.get('content-length') !== '0') throw new HttpLabError(400, 'invalid_framing');
       const canonical = path === '/' ? '/index.html' : path === '/http/' ? '/http/index.html'
-        : path === '/grounded/' ? '/grounded/index.html' : path === '/journey/' ? '/journey/index.html' : path === '/journey-http/' ? '/journey-http/index.html' : path === '/journey-http-r08/' ? '/journey-http-r08/index.html' : path;
+        : path === '/grounded/' ? '/grounded/index.html' : path === '/journey/' ? '/journey/index.html' : path === '/journey-http/' ? '/journey-http/index.html' : path === '/journey-http-r08/' ? '/journey-http-r08/index.html' : path === '/support/' ? '/support/index.html' : path;
       const body = files.get(canonical);
       if (!body) throw new HttpLabError(404, 'not_found');
       response.writeHead(200, { ...securityHeaders, 'Content-Length': body.length,
