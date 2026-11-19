@@ -382,12 +382,16 @@ export function respondQualificationJourney(session, rawInput) {
   }
 
   const result = respondJourney(session.journey, input);
+  // R67: the pre-qualification sales phase also accepts free text. The core
+  // heuristic cannot detect all private information; never show typed bytes
+  // in the transcript, even when a closed editorial intent was recognized.
+  const safeUserText = input.type === 'text' ? '[Mensagem livre não registrada]' : result.userText;
   const confirmedService = result.reply.intent === 'goal_presence' || result.reply.intent === 'goal_campaign';
   if (confirmedService) {
     const profile = createLeadProfileFromJourney(result.session);
     if (profile) {
       const prepared = questionReply(createState(result.session, profile, 'qualification'),
-        profile, result.reply.text, result.reply.sources, result.userText);
+        profile, result.reply.text, result.reply.sources, safeUserText);
       return result.reply.sources.length
         ? Object.freeze({ ...prepared, providerReply: result.reply }) : prepared;
     }
@@ -396,14 +400,14 @@ export function respondQualificationJourney(session, rawInput) {
       result.session.pendingGoal === null) {
     return Object.freeze({
       session: createState(result.session, null, 'sales'),
-      userText: result.userText,
+      userText: safeUserText,
       reply: makeReply(result.reply.text + '\n\nA qualificação estruturada R08 ainda não tem um questionário aprovado para esta solução. Posso continuar com as orientações gerais.',
         'r08_service_qualification_unavailable', result.reply.sources, [action('sell', labels.sell)])
     });
   }
   const prepared = Object.freeze({
     session: createState(result.session, null, 'sales'),
-    userText: result.userText,
+    userText: safeUserText,
     reply: result.reply
   });
   return result.reply.sources.length
