@@ -1187,6 +1187,10 @@ try {
     // F291: activating the skip link transfers DOM focus to the real <main>,
     // not merely scrolls the page while leaving keyboard focus in the header.
     await page.keyboard.press('Enter');
+    // The native hash change and focus transfer may complete after
+    // keydown returns under heavy Chromium CI load. Await the actual URL
+    // before checking both navigation and the focused main landmark.
+    await page.waitForURL(host+'/#conteudo',{timeout});
     assert.equal(new URL(page.url()).hash,'#conteudo',
       'F291 skip link navigates to the approved main landmark');
     assert.equal(await page.locator('main#conteudo').evaluate(
