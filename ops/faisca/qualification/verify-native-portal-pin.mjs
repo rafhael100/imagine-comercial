@@ -37,9 +37,18 @@ export function gitBlobHash(bytes) {
 /** Conservative checks for the native buyer/session and selection limits
  * assumed by the Faísca R34 intent.
  */
-export function checkNativeOnepageContract({ controller, commands, config, contract } = {}) {
-  if (![controller, commands, config, contract].every(s => typeof s === 'string')) return false;
-  return (
+export function checkNativeOnepageContract(data) {
+  try {
+    if (!data || typeof data !== 'object' || Array.isArray(data) ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(data))) return false;
+    const keys = ['controller', 'commands', 'config', 'contract'];
+    if (Reflect.ownKeys(data).length !== keys.length) return false;
+    const descriptors = Object.getOwnPropertyDescriptors(data);
+    const parts = keys.map(key =>
+      descriptors[key] && Object.hasOwn(descriptors[key], 'value') ? descriptors[key].value : null);
+    if (!parts.every(s => typeof s === 'string')) return false;
+    const [controller, commands, config, contract] = parts;
+    return (
     controller.includes("$this->only($input, ['request_key', 'selection'])") &&
     controller.includes("$request->session()->get('portal.browser_auth')") &&
     controller.includes("($state['phase'] ?? null) !== 'business'") &&
@@ -54,7 +63,8 @@ export function checkNativeOnepageContract({ controller, commands, config, contr
     contract.includes('channels=[]') &&
     contract.includes('tier=minimum|recommended') &&
     contract.includes('o navegador não fornece comprador ou empresa.')
-  );
+    );
+  } catch { return false; }
 }
 
 /** Verify immutable Portal checkout source from a READ-ONLY CI checkout.
