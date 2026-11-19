@@ -80,6 +80,15 @@ async function readCaseId(req) {
   if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(req.headers['content-type'] ?? '')) {
     return null;
   }
+  // The private operator client sends a finite, one-shot Content-Length.
+  // Reject transfer-encoding, compressed or ambiguous framing up front;
+  // a streamed or oversized body must never reach the paid provider.
+  const contentLength = req.headers['content-length'];
+  if (req.headers['transfer-encoding'] || req.headers['content-encoding'] ||
+      req.headers.trailer || req.headers.expect ||
+      typeof contentLength !== 'string' ||
+      !/^[1-9][0-9]{0,2}$/.test(contentLength) ||
+      Number(contentLength) > MAX_BODY_BYTES) return null;
   const chunks = []; let bytes = 0;
   try {
     for await (const part of req) {
@@ -87,6 +96,7 @@ async function readCaseId(req) {
       if (bytes > MAX_BODY_BYTES) return null;
       chunks.push(part);
     }
+    if (bytes !== Number(contentLength)) return null;
     const body = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
       .decode(Buffer.concat(chunks));
     // This endpoint has exactly three operator-selected synthetic cases.
