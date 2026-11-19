@@ -301,11 +301,14 @@ try {
 
   await check('R15 browser masks private text while a service change awaits confirmation', async () => {
     await choose('r08:change_service');
+    console.log('R15 browser stage: service menu');
     assert.match(await lastAnswer().innerText(), /solução/i);
     await choose('goal_campaign');
+    console.log('R15 browser stage: goal proposed');
     assert.match(await lastAnswer().innerText(), /Confirme a escolha/);
     const previousPhp = phpCounts().spawned;
     await sendText('Meu email é teste.sintetico@example.invalid');
+    console.log('R15 browser stage: private message refused');
     const chat = await page.locator('#faisca-log').innerText();
     assert.match(chat, /Mensagem livre não registrada/);
     assert.doesNotMatch(chat, /teste.sintetico@example.invalid/);
@@ -313,6 +316,7 @@ try {
     assert.equal(phpCounts().spawned, previousPhp,
       'Sensitive text in pending mode must not reach the PHP source verifier.');
     await choose('cancel_goal');
+    console.log('R15 browser stage: pending choice cancelled');
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     assert.equal(phpCounts().spawned, previousPhp);
   });
