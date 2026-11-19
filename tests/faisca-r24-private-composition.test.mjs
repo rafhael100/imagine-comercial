@@ -86,6 +86,11 @@ test('R24 composes the actual compiled commercial HTML with a private, audited F
   const html = await page.text();
   assert.match(html, /data-faisca-private-entry/);
   assert.match(html, /href="\/__faisca_preview\/journey\/"/);
+  assert.match(html, /data-faisca-private-inline/);
+  assert.match(html, /data-faisca-inline-frame/);
+  assert.match(html, /sandbox="allow-scripts allow-same-origin allow-forms"/);
+  assert.match(html, /referrerpolicy="no-referrer"/);
+  assert.equal(page.headers.get('x-frame-options'), 'DENY');
   assert.match(html, /id="simular-compra"/);
   assert.match(html, /data-purchase-start/);
   assert.match(html, /Prévia sem checkout/);
@@ -96,6 +101,8 @@ test('R24 composes the actual compiled commercial HTML with a private, audited F
     const response = await fetch(stage.origin + route, { headers: { Authorization: auth } });
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-type'), /text\/html/);
+    assert.equal(response.headers.get('x-frame-options'), 'SAMEORIGIN');
+    assert.match(response.headers.get('content-security-policy'), /frame-ancestors 'self'/);
     assert.match(await response.text(), /data-journey-start/);
   }
   const js = await fetch(stage.origin + '/_astro/journey.TESTHASH.js', {
