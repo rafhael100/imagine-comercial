@@ -36,9 +36,10 @@ function inputData(raw) {
     if (d.type.value === 'action' && keys.includes('id') && d.id &&
         Object.hasOwn(d.id, 'value') && typeof d.id.value === 'string' &&
         d.id.value.length > 0 && d.id.value.length <= 96 &&
-        /^[a-z0-9:_-]+$/.test(d.id.value)) {
-      // UI actions are closed ASCII IDs; reject oversized, control or hidden
-      // characters before dispatch, without echoing the supplied identifier.
+        /^[a-z0-9:_.-]+$/.test(d.id.value)) {
+      // Restrict input to bounded ASCII identifiers. Unknown safe IDs (e.g.
+      // crm.write) reach the existing no-action fallback; control, invisible
+      // or oversized IDs are rejected before dispatch and are never echoed.
       return Object.freeze({ type: 'action', id: d.id.value });
     }
     if (d.type.value === 'text' && keys.includes('text') && d.text &&
