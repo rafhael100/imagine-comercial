@@ -27,6 +27,11 @@ function send(res, status, value) {
 // This is an envelope check, NOT semantic verification of generated prose.
 const reviewIdPattern = /^[a-z0-9][a-z0-9._:/@-]{0,127}$/i;
 const approvedModels = new Set(Object.values(FAISCA_OPENAI_MODELS));
+// This is a narrow, independently enforced rejection list for obvious
+// invented contact/payment/operation claims. Editorial/semantic grounding
+// still requires human review and cannot be certified by a regex.
+const forbiddenReviewClaims =
+  /https?:\/\/|\bwww\.|@[a-z0-9.-]+\.[a-z]{2,}|R\$\s*\d|\b(?:pedido|pagamento|ticket|cobrança|contrato|lead)\s+(?:foi\s+)?(?:criado|realizado|aprovado|confirmado|assinado|enviado)\b/i;
 function safeReviewList(value, allowed = null) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype ||
       value.length > 12) return null;
@@ -56,6 +61,7 @@ function safeReviewOutput(response) {
     if (!['draft_answer', 'unsupported'].includes(status) ||
         typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
+        forbiddenReviewClaims.test(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? []);
     const models = safeReviewList(get('modelIds') ?? [], approvedModels);
