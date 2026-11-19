@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFile, readdir, realpath, lstat, open, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, readdir, realpath, lstat, open, mkdir, writeFile, copyFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -132,13 +132,16 @@ export async function buildPrivateReviewBundle() {
     '',
     '1. Faisca_Demonstracao_Guiada.html funciona offline no navegador.',
     '   Inclui apenas a demonstração guiada (R02), NÃO o fluxo R20/PHP.',
-    '2. O diretório astro/ contém 7 páginas de laboratório, todas NOINDEX.',
-    '   Para testar a jornada R08/R20 completa é necessário o servidor',
-    '   loopback Node + ponte PHP Agents pinada, conforme',
-    '   docs/faisca/R20-COMPARACAO-COM-FONTES.md do repositório.',
-    '3. NÃO publicar a pasta astro/ em host público ou CDN.',
-    '4. Nenhum pedido, lead, cobrança ou atendimento humano é criado.',
-    '5. Faisca_R21_AUDIT.json contém hashes SHA-256 para verificação.',
+    '2. Para abrir a qualificação e o pós-venda LOCAL com Node 22:',
+    '   node faisca-review-server.mjs --private-review',
+    '   Abra os endereços 127.0.0.1 mostrados no terminal.',
+    '   Somente as rotas /journey/ e /support/ são liberadas.',
+    '3. Conteúdo R08-R20 mostrado nesse lançador é simulado/LOCAL.',
+    '   Fonte PHP real e rotas HTTP exigem o laboratório separado',
+    '   descrito em docs/faisca/R20-COMPARACAO-COM-FONTES.md.',
+    '4. NÃO publicar a pasta astro/ em host público ou CDN.',
+    '5. Nenhum pedido, lead, cobrança ou atendimento humano é criado.',
+    '6. Faisca_R21_AUDIT.json contém hashes SHA-256 para verificação.',
     '',
     'Este ZIP do GitHub Actions é somente evidência de laboratório.',
     ''
@@ -146,6 +149,7 @@ export async function buildPrivateReviewBundle() {
   await mkdir(outputRoot, { recursive: true });
   await writeFile(resolve(outputRoot, 'Faisca_R21_AUDIT.json'), JSON.stringify(result, null, 2) + '\n', { mode: 0o600 });
   await writeFile(resolve(outputRoot, 'LEIA-ME-FAISCA-R21.txt'), readme, { mode: 0o600 });
+  await copyFile(resolve(here, 'static-server.mjs'), resolve(outputRoot, 'faisca-review-server.mjs'));
   return result;
 }
 
