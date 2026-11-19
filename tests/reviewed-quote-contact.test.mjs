@@ -42,3 +42,28 @@ test('F324: unknown locales, products, channels and tiers fail closed',()=>{
   assert.throws(()=>reviewedQuoteChoiceHref(locale,selection));
  }
 });
+
+test('F357/R28: all 138 quoted CTAs share the verified contact channel and curated allowlist',()=>{
+ let checked=0;
+ const choices=[[],['google_ads'],['meta_ads'],['google_ads','meta_ads'],
+  ['chatgpt_ads'],['google_ads','chatgpt_ads'],['meta_ads','chatgpt_ads'],
+  ['google_ads','meta_ads','chatgpt_ads']];
+ for(const locale of QUOTE_LOCALES)
+  for(const site of ['none','onepage','landing-pages'])
+   for(const channels of choices)
+    for(const tier of ['minimum','recommended']){
+     if(site==='none'&&channels.length===0)continue;
+     const selection={site,channels,tier};
+     const message=reviewedQuoteChoiceMessage(locale,selection);
+     const href=reviewedQuoteChoiceHref(locale,selection);
+     const parsed=new URL(href);
+     assert.equal(href,contactWhatsAppUrl(message));
+     assert.equal(parsed.origin+parsed.pathname,contactChannels.whatsappBaseHref);
+     assert.equal(parsed.searchParams.size,1);
+     assert.equal(parsed.searchParams.get('text'),message);
+     assert.equal(isApprovedPublicExternalHref(href),true);
+     assert.equal(isApprovedPublicExternalHref(href+'&recipient=other'),false);
+     checked++;
+    }
+ assert.equal(checked,138);
+});
