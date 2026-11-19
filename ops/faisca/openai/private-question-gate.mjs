@@ -10,7 +10,8 @@ const MAX_BYTES = 480;
 // exhaustive PII redaction, a consent mechanism, or production DLP.
 const forbidden = [
   /https?:\/\/|www\.|@|\b(?:[0-9][ .-]?){7,}\b/i,
-  /\b(?:cpf|cnpj|rg|passaporte|documento|telefone|whatsapp|e-?mail|endereco|endere[cç]o)\b/i,
+  /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endere[cç]o|endereco)\b/i,
+  /\b(?:dados\s+(?:pessoais|sens[ií]veis)|informa[cç][oõ]es\s+(?:pessoais|sens[ií]veis)|lista\s+de\s+clientes|base\s+de\s+clientes)\b/i,
   /\b(?:senha|token|api[ _-]?key|chave|credencial|codigo\s+de\s+acesso|c[oó]digo\s+de\s+acesso|otp|2fa|totp)\b/i,
   /\b(?:pix|cart[aã]o|fatura|boleto|nota\s+fiscal|pagamento|pedido|contrato|cancelamento|cancelar|reembolso)\b/i,
   /\b(?:meu\s+cliente|minha\s+empresa\s+se\s+chama|meu\s+site\s+est[aá]\s+fora|projeto\s+do\s+cliente)\b/i,
