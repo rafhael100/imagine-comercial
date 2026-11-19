@@ -1,0 +1,103 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, cp, rm, writeFile, readFile, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import {
+  STAGING_KIT_SCHEMA, snapshotPrivateStagingFiles, verifyPrivateStagingKit
+} from '../ops/faisca/staging/verify-kit.mjs';
+
+async function fixture(t) {
+  const dir = await mkdtemp(join(tmpdir(), 'faisca-r38-kit-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const items = new Map([
+    ['site/index.html', '<!doctype html><html><main><section data-faisca-private-entry><button data-faisca-apply-choice>Escolher</button><script src="/__faisca_preview/quote-bridge.js"></script></section></main></html>'],
+    ['site/404.html', '<!doctype html><html><title>404</title></html>'],
+    ['site/robots.txt', 'User-agent: *\nDisallow: /\n'],
+    ['site/sitemap.xml', '<?xml version="1.0"?><urlset/>'],
+    ['site/__faisca_preview/journey/index.html', '<!doctype html><html><title>Jornada</title></html>'],
+    ['site/__faisca_preview/support/index.html', '<!doctype html><html><title>Suporte</title></html>'],
+    ['site/__faisca_preview/quote-bridge.js', 'const localOnly=true;'],
+    ['LEIA-ME-FAISCA-R38.txt', 'PRIVATE REVIEW ONLY']
+  ]);
+  for (const [path,data] of items) {
+    const target = join(dir,path);
+    await mkdir(dirname(target), {recursive:true});
+    await writeFile(target, data);
+  }
+  for (const [dest,from] of [
+    ['ops/staging/nginx.conf','../ops/faisca/staging/nginx.conf'],
+    ['ops/staging/compose.yaml','../ops/faisca/staging/compose.yaml'],
+    ['verify-kit.mjs','../ops/faisca/staging/verify-kit.mjs']
+  ]) {
+    const to = join(dir,dest);
+    await mkdir(dirname(to),{recursive:true});
+    await cp(new URL(from, import.meta.url),to);
+  }
+  const snapshot = await snapshotPrivateStagingFiles({kitDir:dir});
+  const manifest = {
+    schema: STAGING_KIT_SCHEMA, status: 'REVIEW_ONLY_NO_DEPLOY',
+    approvedMascotSha256: '1'.repeat(64),
+    publicFaiscaEnabled: false, productionPublished: false,
+    checkoutEnabled: false, externalModelEnabled: false, operationalEffects: false,
+    fileCount: snapshot.files.length, totalBytes: snapshot.totalBytes, files: snapshot.files
+  };
+  const manifestFile = join(dir,'Faisca_R38_MANIFEST.json');
+  await writeFile(manifestFile, JSON.stringify(manifest, null, 2));
+  return {dir,manifestFile};
+}
+
+test('R38 reviews a closed private static staging tree and returns no release authority', async t => {
+  const {dir}=await fixture(t);
+  const result = await verifyPrivateStagingKit({kitDir:dir});
+  assert.equal(result.schema, STAGING_KIT_SCHEMA);
+  assert.equal(result.deployPerformed, false);
+  assert.equal(result.operationalEffects, false);
+  assert.ok(result.filesChecked >= 11);
+  assert.equal(result.approvedMascotSha256, '1'.repeat(64));
+  assert.ok(Object.isFrozen(result));
+});
+
+test('R38 refuses a modified script even with unchanged number of bytes', async t => {
+  const {dir}=await fixture(t);
+  const path=join(dir,'site/__faisca_preview/quote-bridge.js');
+  const b=Buffer.from(await readFile(path));
+  b[0]^=1;
+  await writeFile(path,b);
+  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}), /content differs/);
+});
+
+test('R38 detects extra files, missing private route, and a symlinked source', async t => {
+  const {dir}=await fixture(t);
+  await writeFile(join(dir,'site/random.txt'),'unreviewed');
+  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}), /content differs/);
+  await rm(join(dir,'site/random.txt'));
+  await rm(join(dir,'site/__faisca_preview/support/index.html'));
+  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}), /content differs/);
+  const link = dir + '-symlink';
+  t.after(() => rm(link,{force:true}));
+  await symlink(dir, link, 'dir');
+  await assert.rejects(verifyPrivateStagingKit({kitDir:link}), /must not be a symlink/);
+});
+
+test('R38 corrupted or permissive manifests refuse to claim a private review', async t => {
+  const {dir,manifestFile}=await fixture(t);
+  const old = JSON.parse(await readFile(manifestFile,'utf8'));
+  old.productionPublished=true;
+  await writeFile(manifestFile,JSON.stringify(old));
+  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}), /manifest invalid/);
+});
+
+test('R38 a changed Nginx auth policy invalidates manifest and cannot pass review', async t => {
+  const {dir,manifestFile}=await fixture(t);
+  const nginx=join(dir,'ops/staging/nginx.conf');
+  const text=await readFile(nginx,'utf8');
+  await writeFile(nginx,text.replace('auth_basic_user_file /etc/nginx/auth/.htpasswd;',
+    'auth_basic off;'));
+  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}), /content differs/);
+  const m=JSON.parse(await readFile(manifestFile,'utf8'));
+  assert.equal(m.status,'REVIEW_ONLY_NO_DEPLOY');
+  assert.equal(m.checkoutEnabled,false);
+  assert.equal(m.externalModelEnabled,false);
+  assert.ok(!JSON.stringify(m).includes('SYNTHETIC_TEST_PASSWORD'));
+});
