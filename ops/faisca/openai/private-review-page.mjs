@@ -111,8 +111,8 @@ form?.addEventListener('submit', async event => {
         data.requiresEditorialReview !== true ||
         typeof data.answer !== 'string' || data.answer.length > 900 ||
         !Array.isArray(data.sources) || data.sources.length === 0 ||
-        !Array.isArray(data.models) ||
-        !data.models.every(id => ['gpt-6-luna', 'gpt-6.1-terra'].includes(id)) ||
+        !Array.isArray(data.models) || data.models.length !== 2 ||
+        data.models[0] !== 'gpt-6-luna' || data.models[1] !== 'gpt-6.1-terra' ||
         data.publicReady !== false || data.operationalEffects !== false) {
       throw new Error('review_unavailable');
     }
