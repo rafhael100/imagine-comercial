@@ -5,6 +5,7 @@ import { getGroundedAnswer } from '../grounding/guide.mjs';
 
 export const ROUTER_REQUEST_SCHEMA = 'faisca.model-route.request.v1';
 export const ROUTER_RESPONSE_SCHEMA = 'faisca.model-route.response.v1';
+export const ROUTER_EGRESS_SCHEMA = 'faisca.model-route.candidate-only-egress.v1';
 const trustedRequests = new WeakSet();
 const sha = value => createHash('sha256').update(value).digest('hex');
 const ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
@@ -178,6 +179,33 @@ export function prepareModelRouteRequest(options = {}) {
   });
   trustedRequests.add(request);
   return request;
+}
+
+/**
+ * R47 privacy-first contract for a future server-owned classifier.
+ * Never release the visitor's message, messageId, conversationId, a
+ * user-derived invocation digest, contact details or full passages.
+ * The host reattaches the original correlation fields AFTER reviewing a
+ * classifier's closed candidate selection with verifyModelRouteResponse.
+ * No network provider is enabled or configured by this helper.
+ */
+export function buildCandidateOnlyRouteEgress(request) {
+  if (!trustedRequests.has(request)) return null;
+  const ids = request.candidateAnswers.map(item => item.answerId);
+  if (ids.length < 1 || ids.length > 5) return null;
+  return Object.freeze({
+    schema: ROUTER_EGRESS_SCHEMA,
+    task: 'select_reviewed_editorial_candidate_only',
+    locale: request.locale,
+    catalogVersion: request.catalogVersion,
+    rankedAnswerIds: Object.freeze([...ids]),
+    allowedClarificationIds: Object.freeze([...request.allowedClarificationIds]),
+    limits: Object.freeze({ maxSelectedIds: 1, maxOutputChars: 40 }),
+    userTextIncluded: false,
+    contactIncluded: false,
+    conversationIdIncluded: false,
+    modelInvoked: false
+  });
 }
 
 const responseFields = Object.freeze([
