@@ -188,7 +188,7 @@ function nativeOnepagePreparationReply(session) {
       '3. Escolha o plano, confira a cotação calculada pelo Portal e revise os termos e contrato publicados.',
       '4. O pedido depende de aceite explícito no Portal e das verificações financeiras e operacionais independentes.',
       'O Faísca não criou conta, cotação, pedido, cobrança, login ou link de pagamento. A contratação pública ainda não está disponível nesta prévia.'
-    ].join('\\n'), 'r58_portal_preparation_only', [], [
+    ].join('\n'), 'r58_portal_preparation_only', [], [
       action('r08:summary', 'Conferir resumo'),
       action('r08:next_steps', 'Outros próximos passos'),
       action('r08:change_service', labels.changeService)
