@@ -8,15 +8,15 @@ O controlador de suporte R10 já recusava IDs de ação grandes, invisíveis ou 
 
 ## Correção executada
 
-- `ops/faisca/qualification/journey.mjs`: `readInput` passa a validar identificadores de ação **ASCII imprimível**, 1–96 caracteres, com a sintaxe `[a-z0-9:_.-]`, sem acionar getters. Entrada de texto R08 continua sujeita ao seu limite atual de 800 caracteres, preservando a interface comercial.
-- `tests/faisca-r57-qualification-action-envelope.test.mjs`: regressões para 100 mil caracteres, quebra de linha, NUL, caractere invisível, emoji, espaço, ID vazio/maiúsculo; aceitação da jornada legítima Onepage e Landing Page; consentimento não modificado; não execução de getters.
+- `ops/faisca/qualification/journey.mjs`: `readInput` passa a validar identificadores de ação **ASCII imprimível**, 1–96 caracteres, com a sintaxe `[A-Za-z0-9:_.-]`, preservando o ID existente `r08:contactConsent:*`, sem acionar getters. Entrada de texto R08 continua sujeita ao seu limite atual de 800 caracteres, preservando a interface comercial.
+- `tests/faisca-r58-qualification-action-envelope.test.mjs`: regressões para 100 mil caracteres, quebra de linha, NUL, caractere invisível, emoji, espaço, ID vazio/pontuação proibida; aceitação da jornada legítima Onepage e Landing Page; consentimento não modificado; não execução de getters.
 
 O evento inválido produz a mesma resposta neutra já existente e não é refletido no chat nem no resumo. IDs seguros, mas desconhecidos, continuam sujeitos ao fallback do controlador. Nenhuma autoridade, ticket, lead, contato ou integração real é adicionada.
 
 ## Testes e gates
 
 ```sh
-node --test tests/faisca-r57-qualification-action-envelope.test.mjs tests/faisca-r08-journey.test.mjs
+node --test tests/faisca-r58-qualification-action-envelope.test.mjs tests/faisca-r08-journey.test.mjs
 node --test tests/faisca-*.test.mjs
 npm ci --no-audit --no-fund
 IMAGINE_FAISCA_LAB=1 npx --no-install astro build --config ops/faisca/lab/astro.config.mjs
