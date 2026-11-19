@@ -41,6 +41,8 @@ jobs:
         run: node ops/faisca/lab/browser-qa.mjs
       - name: Verificar R08 qualificação comercial, confirmação e WCAG
         run: node ops/faisca/journey/browser-qa.mjs
+      - name: Verificar R10 triagem anônima, privacidade e WCAG
+        run: node ops/faisca/support/browser-qa.mjs
       - name: Verificar conversa HTTP loopback e reconciliação
         run: node ops/faisca/server/browser-qa.mjs
       - name: Guardar evidências sintéticas para revisão
