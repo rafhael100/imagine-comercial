@@ -1,6 +1,7 @@
 import { createJourney, getJourneySummary, respondJourney } from '../journey/state.mjs';
 import { routeFieldWithLocalFixture } from '../model-router/field-contract.mjs';
 import { buildQualificationNextStep } from './next-step.mjs';
+import { buildNativeOnepagePortalIntent } from './portal-native-intent.mjs';
 import {
   createLeadProfileFromJourney, updateLeadProfile, reviseLeadProfile,
   getNextQualificationQuestion, isQualificationComplete, buildHandoffPackage
@@ -149,7 +150,48 @@ function nextStepReply(session) {
       action('r08:summary', 'Rever resumo copiável'),
       action('compare_sites', 'Comparar Onepage e Landing Page'),
       action('r08:change_service', labels.changeService),
-      action('r08:edit:objective', 'Corrigir minhas respostas')
+      action('r08:edit:objective', 'Corrigir minhas respostas'),
+      ...(session.profile.service === 'onepage' &&
+          buildNativeOnepagePortalIntent(session.profile)?.status === 'onepage_intent_only'
+        ? [action('r08:prepare_onepage', 'Ver etapas de contratação Onepage')] : [])
+    ])
+  });
+}
+
+/** R58 private copy-only preparation. Portal itself owns all transactions. */
+function nativeOnepagePreparationReply(session) {
+  const preview = session.phase === 'complete' && session.profile
+    ? buildNativeOnepagePortalIntent(session.profile) : null;
+  if (!preview || preview.status !== 'onepage_intent_only' ||
+      preview.offerHint?.site !== 'onepage' ||
+      preview.portalLoginOrRedirectAuthorized !== false ||
+      preview.publicCheckoutAuthorized !== false ||
+      preview.operationalEffects !== false) {
+    return Object.freeze({
+      session,
+      userText: 'Ver etapas de contratação Onepage',
+      reply: makeReply(
+        'A preparação de contratação está disponível apenas após a qualificação completa e confirmada de Site Onepage. Nenhuma cotação ou pedido foi criado.',
+        'r58_portal_preparation_unavailable', [], [
+          action('r08:summary', 'Rever escolhas'),
+          action('r08:next_steps', 'Como avançar?')
+        ])
+    });
+  }
+  return Object.freeze({
+    session,
+    userText: 'Ver etapas de contratação Onepage',
+    reply: makeReply([
+      'Site Onepage — preparação para contratação no Portal Imagine',
+      '1. Confira o resumo de interesse e suas escolhas; esta etapa não envia dados.',
+      '2. Quando o Portal estiver homologado, autentique-se por seu próprio acesso e confirme a empresa.',
+      '3. Escolha o plano, confira a cotação calculada pelo Portal e revise os termos e contrato publicados.',
+      '4. O pedido depende de aceite explícito no Portal e das verificações financeiras e operacionais independentes.',
+      'O Faísca não criou conta, cotação, pedido, cobrança, login ou link de pagamento. A contratação pública ainda não está disponível nesta prévia.'
+    ].join('\\n'), 'r58_portal_preparation_only', [], [
+      action('r08:summary', 'Conferir resumo'),
+      action('r08:next_steps', 'Outros próximos passos'),
+      action('r08:change_service', labels.changeService)
     ])
   });
 }
@@ -246,6 +288,9 @@ export function respondQualificationJourney(session, rawInput) {
   }
   if (input.type === 'action' && input.id === 'r08:next_steps') {
     return nextStepReply(session);
+  }
+  if (input.type === 'action' && input.id === 'r08:prepare_onepage') {
+    return nativeOnepagePreparationReply(session);
   }
 
   if (session.phase === 'qualification' || session.phase === 'complete') {
