@@ -136,3 +136,38 @@ test('R62: HTTP session tokens cannot inspect another visitor draft or authorize
   assert.equal(server.inspect().sessions, 2);
   assert.equal(server.inspect().dispatched >= 0, true);
 });
+
+test('R69: anonymous HTTP sales prose cannot bypass Onepage consent, identity or completed qualification', async t => {
+  const server = await fixture(t);
+  const visitor = await open(server);
+  const marker = 'R69_SYNTHETIC_PRIVATE_PREQUAL_MARKER';
+  const unknown = await send(server, visitor, 1, { type: 'text', text: marker });
+  assert.equal(unknown.status, 200);
+  assert.equal(unknown.data.status, 'answered');
+  assert.equal(unknown.text.includes(marker), false);
+  assert.equal(unknown.data.response.sources.length, 0);
+
+  const proposal = await send(server, visitor, 2, {
+    type: 'text', text: 'Quero avaliar Site Onepage. ' + marker
+  });
+  assert.equal(proposal.status, 200);
+  assert.equal(proposal.text.includes(marker), false);
+  assert.match(proposal.data.response.text, /Confirme a escolha/);
+  const premature = await send(server, visitor, 3, action('r08:prepare_onepage'));
+  assert.equal(premature.status, 200);
+  assert.match(premature.data.response.text, /Nenhuma cotação ou pedido foi criado/);
+  assert.doesNotMatch(premature.data.response.text, /cotação calculada pelo Portal/);
+
+  const confirmation = await send(server, visitor, 4, action('confirm_goal'));
+  assert.equal(confirmation.status, 200);
+  assert.match(confirmation.data.response.text, /principal resultado/);
+  const stillIncomplete = await send(server, visitor, 5, action('r08:prepare_onepage'));
+  assert.equal(stillIncomplete.status, 200);
+  assert.match(stillIncomplete.data.response.text, /Nenhuma cotação ou pedido foi criado/);
+  for (const response of [unknown, proposal, premature, confirmation, stillIncomplete]) {
+    assert.equal(response.text.includes(marker), false);
+    assert.equal(response.text.includes('checkoutUrl'), false);
+    assert.equal(response.text.includes('paymentRequested'), false);
+  }
+  assert.equal(server.inspect().sessions, 1);
+});
