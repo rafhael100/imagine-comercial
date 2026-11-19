@@ -177,7 +177,7 @@ try {
     assert.match(await last().innerText(), /aceite explícito/);
     assert.match(await last().innerText(), /contratação pública ainda não está disponível/);
     assert.equal(await page.locator('#faisca-log .assistant').last().locator('.message-sources').count(), 0);
-    assert.doesNotMatch(await last().innerText(), /https?:\\/\\/|R\\$\\s*\\d|@/);
+    assert.doesNotMatch(await last().innerText(), new RegExp('https?:|R[$]|@'));
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /RASCUNHO NÃO ENVIADO/);
     assert.deepEqual(blocked, [], 'Portal preparation must not attempt any network call.');
   });
