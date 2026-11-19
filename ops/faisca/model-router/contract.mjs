@@ -7,6 +7,7 @@ export const ROUTER_REQUEST_SCHEMA = 'faisca.model-route.request.v1';
 export const ROUTER_RESPONSE_SCHEMA = 'faisca.model-route.response.v1';
 export const ROUTER_EGRESS_SCHEMA = 'faisca.model-route.candidate-only-egress.v1';
 const trustedRequests = new WeakSet();
+const trustedEgress = new WeakSet();
 const sha = value => createHash('sha256').update(value).digest('hex');
 const ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
 const clarificationCopy = Object.freeze({
@@ -193,7 +194,7 @@ export function buildCandidateOnlyRouteEgress(request) {
   if (!trustedRequests.has(request)) return null;
   const ids = request.candidateAnswers.map(item => item.answerId);
   if (ids.length < 1 || ids.length > 5) return null;
-  return Object.freeze({
+  const envelope = Object.freeze({
     schema: ROUTER_EGRESS_SCHEMA,
     task: 'select_reviewed_editorial_candidate_only',
     locale: request.locale,
@@ -206,6 +207,14 @@ export function buildCandidateOnlyRouteEgress(request) {
     conversationIdIncluded: false,
     modelInvoked: false
   });
+  trustedEgress.add(envelope);
+  return envelope;
+}
+
+/** A forged or re-created envelope must never be accepted for serialization. */
+export function isTrustedCandidateOnlyEgress(value) {
+  return value !== null && (typeof value === 'object' || typeof value === 'function') &&
+    trustedEgress.has(value);
 }
 
 const responseFields = Object.freeze([
