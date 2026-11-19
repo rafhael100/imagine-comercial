@@ -1,6 +1,7 @@
 import {
   validateLeadProfile, isQualificationComplete
 } from './profile.mjs';
+import { buildFaiscaPortalReadiness } from './portal-readiness.mjs';
 
 export const NEXT_STEP_SCHEMA = 'faisca.qualification-next-step.v1';
 const serviceLabels = Object.freeze({ onepage: 'Site Onepage', 'landing-page': 'Landing Page' });
@@ -15,13 +16,17 @@ export function buildQualificationNextStep(profile) {
   const complete = isQualificationComplete(safe);
   const service = serviceLabels[safe.service];
   if (!service) return null;
+  const portal = complete ? buildFaiscaPortalReadiness(safe) : null;
+  const portalStatus = portal?.text ??
+    'A disponibilidade do Portal não pôde ser confirmada nesta prévia; nenhuma contratação está habilitada.';
 
   const text = complete
     ? [
         'Como avançar com ' + service + ' — orientação do Faísca',
         '1. Confira o resumo de interesse e corrija qualquer escolha antes de utilizá-lo.',
         '2. Copie o resumo pelo botão da conversa, se desejar compartilhar com a equipe por um canal oficial confirmado.',
-        '3. Escopo, valores, condições e contratação só podem ser confirmados pela proposta oficial e pelo Portal Imagine quando esse fluxo estiver disponível.',
+        '3. Disponibilidade atual no Imagine Comercial: ' + portalStatus,
+        '4. Escopo, valores e condições finais dependem da proposta oficial e da validação no Portal Imagine quando houver um fluxo autorizado.',
         'Nenhum contato, pedido, proposta, cobrança, chamado ou agendamento foi criado. Esta prévia não enviou o resumo à equipe nem ao CRM.'
       ].join('\n')
     : [
@@ -32,6 +37,8 @@ export function buildQualificationNextStep(profile) {
   return Object.freeze({
     schema: NEXT_STEP_SCHEMA, service: safe.service,
     complete, text, delivery: 'copy_only',
+    portalReadinessCode: portal?.readinessCode ?? 'unverified',
+    portalPublicCheckoutAuthorized: false,
     sent: false, contactCollected: false,
     orderCreated: false, paymentCreated: false,
     ticketCreated: false, operationalEffects: false
