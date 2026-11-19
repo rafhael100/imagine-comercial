@@ -47,7 +47,8 @@ async function loadStaticFiles(staticDir) {
       try {
         const stat = await handle.stat();
         if (!stat.isFile() || stat.size > 8 * 1024 * 1024 || files.size >= MAX_STATIC_FILES || total + stat.size > 16 * 1024 * 1024) {
-          throw new Error('Laboratory static files exceed the bounded snapshot.');
+          throw new Error('Laboratory static files exceed the bounded snapshot: ' +
+            (files.size + 1) + ' files; ' + (total + stat.size) + ' bytes.');
         }
         bytes = await handle.readFile();
         if (bytes.length !== stat.size) throw new Error('Laboratory static file changed during startup.');
