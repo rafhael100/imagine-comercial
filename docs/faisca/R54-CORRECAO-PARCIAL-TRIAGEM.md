@@ -8,8 +8,11 @@ A triagem permite corrigir assunto, serviço e detalhe após a terceira escolha,
 
 ## Arquivos da R54
 
-- `ops/faisca/support/journey.mjs`: apenas construção das ações locais para exibir correções válidas durante as perguntas.
+- `ops/faisca/support/journey.mjs`: geração das ações de correção válidas durante as perguntas.
+- `ops/faisca/ui.mjs` e `ops/faisca/support/support-ui.mjs`: política local validada `actionLimit: 7`, permitindo mostrar as seis opções de serviço **e** o botão de correção; outras jornadas mantêm o limite original de seis botões.
+- `ops/faisca/support/browser-qa.mjs`: prova real em Chromium dos sete botões, correção de assunto/serviço, ausência de overflow a 320 px.
 - `tests/faisca-r54-support-partial-correction.test.mjs`: quatro regressões para escolhas, descarte de dependências, ação forjada, inexistência de ticket e ausência de fontes externas.
+- `tests/faisca-r10-journey.test.mjs`: expectativa do contrato atualizada para exigir exatamente os seis serviços e o botão de correção, não apenas uma contagem antiga.
 - Este documento.
 
 ## Revisão e testes
