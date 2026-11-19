@@ -168,11 +168,39 @@ function hasSensitiveData(text) {
     /-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(text);
 }
 
+/**
+ * R13: finite, high-confidence Brazilian Portuguese patterns for private
+ * account/support requests. Never infer a customer identity from this text.
+ * Return guidance intent only, never an operational action.
+ */
+function inferExtendedOperationalHelp(value) {
+  if (/\b(?:alterar|mudar|trocar|suspender|pausar)\b.{0,50}\b(?:meu|minha|nosso|nossa)\b.{0,30}\b(?:plano|servico|contrato|assinatura|site|campanha)\b/.test(value)) {
+    return 'support_cancel';
+  }
+  if (/\b(?:segunda|2a|2)\s+via\b.{0,40}\b(?:recibo|comprovante|nota|documento|fatura|boleto)\b/.test(value) ||
+      /\b(?:reembolso|estorno)\b/.test(value) ||
+      /\b(?:valor|custo|preco)\b.{0,40}\b(?:do|da)?\s*(?:meu|minha|nosso|nossa)\s+(?:plano|assinatura|contrato|servico)\b/.test(value) ||
+      /\b(?:quando|data)\b.{0,30}\b(?:vence|vencimento)\b.{0,20}\b(?:minha|meu)\s+(?:assinatura|plano)\b/.test(value)) {
+    return 'support_billing';
+  }
+  if (/\b(?:problema|erro|falha|bug|defeito)\b.{0,35}\b(?:no|na|com o|com a)\s+(?:meu|minha|nosso|nossa)?\s*(?:site|pagina|landing|campanha|portal)\b/.test(value) ||
+      /\b(?:site|pagina|landing|campanha)\b.{0,60}\b(?:contratei|contratamos)\b.{0,60}\b(?:erro|problema|falha|lento|fora do ar)\b/.test(value)) {
+    return 'support_issue';
+  }
+  if (/\b(?:acessar|entrar|logar|login|log in)\b.{0,40}\b(?:portal|painel|area (?:do|de) cliente|minha conta)\b/.test(value) ||
+      /\b(?:portal|painel|area (?:do|de) cliente|minha conta)\b.{0,30}\b(?:acesso|login|entrar)\b/.test(value)) {
+    return 'after_sales';
+  }
+  return null;
+}
+
 function inferAction(text) {
   const value = normalize(text);
   if (/^(oi|ola|bom dia|boa tarde|boa noite|inicio|comecar|recomecar)[!?.\s]*$/.test(value)) return 'home';
   if (/resumo|resumir/.test(value)) return 'summary';
   if (/senha|privacidade|dados pessoais|seguranca/.test(value)) return 'privacy';
+  const extendedOperationalHelp = inferExtendedOperationalHelp(value);
+  if (extendedOperationalHelp) return extendedOperationalHelp;
   if (/cancel|rescind/.test(value)) return 'support_cancel';
   if (/boleto|fatura|nota fiscal|cobranca|pagamento do meu|paguei/.test(value)) return 'support_billing';
   const personalService = /\b(?:meu|minha|nosso|nossa)\s+(?:projeto|site|landing\s?page|pagina|campanha|entrega|pedido|contrato|servico)\b/.test(value);
