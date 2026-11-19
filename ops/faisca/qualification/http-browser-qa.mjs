@@ -300,34 +300,42 @@ try {
   });
 
   await check('R15/R17 browser keeps copy-only next steps and masks private text during a proposed change', async () => {
+    // The chat deliberately caps the log at 40 nodes. Await replacement of
+    // the final reply, not an increasing count that eventually becomes fixed.
+    async function nextVisibleReply(perform) {
+      const previous = await page.locator('#faisca-log .assistant').last().elementHandle();
+      await perform();
+      await page.waitForFunction(oldReply => {
+        const log = document.querySelector('#faisca-log');
+        const current = [...(log?.querySelectorAll('.assistant') ?? [])].at(-1);
+        return log?.getAttribute('aria-busy') === 'false' && current && current !== oldReply;
+      }, previous, { timeout: 10000 });
+    }
+    const quick = id => nextVisibleReply(() =>
+      page.locator('#faisca-quick-actions [data-action-id="' + id + '"]').click());
+    const typed = text => nextVisibleReply(async () => {
+      await page.locator('#faisca-input').fill(text);
+      await page.locator('#faisca-send').click();
+    });
     const beforeGuidance = phpCounts().spawned;
-    await choose('r08:next_steps');
+    await quick('r08:next_steps');
     assert.match(await lastAnswer().innerText(), /Como avançar com Site Onepage/);
     assert.match(await lastAnswer().innerText(), /Portal Imagine/);
     assert.match(await lastAnswer().innerText(), /não enviou o resumo/i);
     assert.equal(phpCounts().spawned, beforeGuidance, 'Copy-only guidance must remain local.');
-    await choose('r08:change_service');
+    await quick('r08:change_service');
     assert.match(await lastAnswer().innerText(), /solução/i);
-    await choose('goal_campaign');
+    await quick('goal_campaign');
     assert.match(await lastAnswer().innerText(), /Confirme a escolha/);
     const previousPhp = phpCounts().spawned;
-    await sendText('Meu email é teste.sintetico@example.invalid');
+    await typed('Meu email é teste.sintetico@example.invalid');
     const chat = await page.locator('#faisca-log').innerText();
     assert.match(chat, /Mensagem livre não registrada/);
     assert.doesNotMatch(chat, /teste.sintetico@example.invalid/);
     assert.equal(await page.locator('#faisca-input').inputValue(), '');
     assert.equal(phpCounts().spawned, previousPhp,
       'Sensitive text in pending mode must not reach the PHP source verifier.');
-    // The visual log intentionally keeps at most 40 nodes; after many turns,
-    // the number of assistant nodes may remain constant. Observe the new DOM
-    // reply rather than assuming a cumulative count.
-    const previousAnswer = await page.locator('#faisca-log .assistant').last().elementHandle();
-    await page.locator('#faisca-quick-actions [data-action-id="cancel_goal"]').click();
-    await page.waitForFunction(previous => {
-      const log = document.querySelector('#faisca-log');
-      const current = [...(log?.querySelectorAll('.assistant') ?? [])].at(-1);
-      return log?.getAttribute('aria-busy') === 'false' && current && current !== previous;
-    }, previousAnswer, { timeout: 10000 });
+    await quick('cancel_goal');
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     assert.equal(phpCounts().spawned, previousPhp);
   });
