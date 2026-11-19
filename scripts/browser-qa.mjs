@@ -316,6 +316,9 @@ try {
     assert.equal(await preview.locator('[data-choice-channel-breakdown]').isVisible(),false,
       'F355: no stale channel breakdown when all ads are removed');
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
+    assert.equal(await preview.locator('[data-choice-action]').evaluate(link=>
+      link.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}))),false,
+      'F357: no website and no ads must prevent native anchor navigation on a pointer click');
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'no_selection');
     assert.equal(await preview.locator('[data-choice-copy]').isDisabled(),true,
