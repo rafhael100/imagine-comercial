@@ -4,9 +4,18 @@
  */
 import assert from 'node:assert/strict';
 import {readStrictHtmlAttribute} from './html-attribute-reader.mjs';
+import {activeHtmlTokens} from './active-html-reader.mjs';
 
-const headOf=html=>/<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(html)?.[1]??null;
-const tags=(html,name)=>[...html.matchAll(new RegExp('<'+name+'\\b[^>]*>','gi'))].map(x=>x[0]);
+const headOf=html=>{
+  const tokens=activeHtmlTokens(html);
+  const opening=tokens.find(token=>!token.closing&&token.name==='head');
+  if(!opening)return null;
+  const closing=tokens.find(token=>token.closing&&token.name==='head'&&token.start>=opening.end);
+  if(!closing)return null;
+  return tokens.filter(token=>token.start>=opening.end&&token.end<=closing.start);
+};
+const tags=(tokens,name)=>tokens.filter(token=>!token.closing&&token.name===name)
+  .map(token=>token.raw);
 const attribute=(tag,key)=>readStrictHtmlAttribute(tag,key);
 
 const normalize=x=>x.replaceAll('&amp;','&').replaceAll('&nbsp;',' ')
@@ -24,9 +33,9 @@ export function auditIndexableMetadata(pages){
     seenRoutes.add(entry.path);
     const head=headOf(entry.html);
     assert.ok(head!==null,'F144: missing head');
-    const titleMatches=[...head.matchAll(/<title\b[^>]*>([\s\S]*?)<\/title>/gi)];
+    const titleMatches=head.filter(token=>!token.closing&&token.name==='title'&&token.closingStart!==null);
     assert.equal(titleMatches.length,1,'F144: expected one document title');
-    const title=normalize(titleMatches[0][1]);
+    const title=normalize(entry.html.slice(titleMatches[0].end,titleMatches[0].closingStart));
     assert.ok(title.length>=20&&title.length<=110,'F144: title length outside bounds');
     assert.ok(!titles.has(title),'F144: repeated document title');
     titles.add(title);

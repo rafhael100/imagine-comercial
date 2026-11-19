@@ -63,3 +63,16 @@ export function reviewedCiOnlyChoiceHandoff(selection,env=process.env){
   throw Error('Unsafe private handoff parameter');
  return Object.freeze({...result,href,canNavigate:true});
 }
+
+/**
+ * Server/build-only capability for the existing selector's Onepage entry.
+ * Both private-preview opt-ins are required. This never widens the selector
+ * to Landing Page, advertising or a combined cart and contains no prices.
+ */
+export function reviewedCiOnlyOnepageSelectorHref(env=process.env){
+ if(!env||env.IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW!=='1')return null;
+ const handoff=reviewedCiOnlyChoiceHandoff(
+  {site:'onepage',channels:[],tier:'recommended'},env
+ );
+ return handoff.canNavigate?handoff.href:null;
+}

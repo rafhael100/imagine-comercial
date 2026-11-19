@@ -4,41 +4,44 @@
  */
 import assert from 'node:assert/strict';
 import {readStrictHtmlAttribute} from './html-attribute-reader.mjs';
+import {activeHtmlTokens} from './active-html-reader.mjs';
 
-const tags = (html, tag) => html.match(new RegExp('<' + tag + '\\b[^>]*>', 'gi')) ?? [];
+const tags = (tokens, tag) => tokens.filter(token=>!token.closing&&token.name===tag)
+  .map(token=>token.raw);
 const attr = (tag,name) => readStrictHtmlAttribute(tag,name);
 
 export function verifyIndexablePage(html, expectedCanonical) {
   assert.equal(typeof html, 'string');
   assert.match(expectedCanonical, /^https:\/\/imaginecomunicacao\.com\.br\//);
-  const canonicalTags = tags(html, 'link').filter(tag => attr(tag, 'rel') === 'canonical');
+  const tokens=activeHtmlTokens(html);
+  const canonicalTags = tags(tokens, 'link').filter(tag => attr(tag, 'rel') === 'canonical');
   assert.equal(canonicalTags.length, 1, expectedCanonical + ': expected exactly one canonical');
   assert.equal(attr(canonicalTags[0], 'href'), expectedCanonical, 'canonical URL mismatch');
 
-  const robots = tags(html, 'meta').filter(tag => attr(tag, 'name') === 'robots');
+  const robots = tags(tokens, 'meta').filter(tag => attr(tag, 'name') === 'robots');
   assert.equal(robots.length, 1, expectedCanonical + ': expected one robots meta');
   assert.equal(attr(robots[0], 'content'), 'index,follow', 'indexable page cannot be noindex');
 
-  const ogUrl = tags(html, 'meta').filter(tag => attr(tag, 'property') === 'og:url');
+  const ogUrl = tags(tokens, 'meta').filter(tag => attr(tag, 'property') === 'og:url');
   assert.equal(ogUrl.length, 1, expectedCanonical + ': expected one og:url');
   assert.equal(attr(ogUrl[0], 'content'), expectedCanonical, 'og:url differs from canonical');
 
   const isArticle=/^https:\/\/imaginecomunicacao\.com\.br\/(?:conteudos|(?:en|es)\/articles)\/[a-z0-9-]+\/$/.test(expectedCanonical);
-  const ogType=tags(html,'meta').filter(tag=>attr(tag,'property')==='og:type');
+  const ogType=tags(tokens,'meta').filter(tag=>attr(tag,'property')==='og:type');
   assert.equal(ogType.length,1,'expected one og:type');
   assert.equal(attr(ogType[0],'content'),isArticle?'article':'website',
     'og:type does not match page kind');
 
-  const twitterCard=tags(html,'meta').filter(tag=>attr(tag,'name')==='twitter:card');
+  const twitterCard=tags(tokens,'meta').filter(tag=>attr(tag,'name')==='twitter:card');
   assert.equal(twitterCard.length,1,'expected one Twitter card type');
   assert.equal(attr(twitterCard[0],'content'),'summary','unsupported Twitter card type');
-  const twitterUrl=tags(html,'meta').filter(tag=>attr(tag,'name')==='twitter:url');
+  const twitterUrl=tags(tokens,'meta').filter(tag=>attr(tag,'name')==='twitter:url');
   assert.equal(twitterUrl.length,1,'expected exactly one twitter:url');
   assert.equal(attr(twitterUrl[0],'content'),expectedCanonical,
     'twitter:url differs from canonical');
   for(const field of ['title','description']){
-    const og=tags(html,'meta').filter(tag=>attr(tag,'property')==='og:'+field);
-    const twitter=tags(html,'meta').filter(tag=>attr(tag,'name')==='twitter:'+field);
+    const og=tags(tokens,'meta').filter(tag=>attr(tag,'property')==='og:'+field);
+    const twitter=tags(tokens,'meta').filter(tag=>attr(tag,'name')==='twitter:'+field);
     assert.equal(og.length,1,'expected one og:'+field);
     assert.equal(twitter.length,1,'expected one twitter:'+field);
     assert.equal(attr(twitter[0],'content'),attr(og[0],'content'),

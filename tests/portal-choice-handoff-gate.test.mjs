@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {assessPrivatePortalChoice,reviewedCiOnlyChoiceHandoff} from
+import {assessPrivatePortalChoice,reviewedCiOnlyChoiceHandoff,reviewedCiOnlyOnepageSelectorHref} from
  '../ops/review/purchase/portal-choice-handoff-gate.mjs';
 import {REVIEWED_OFFERS,checkPrivatePortalUrl} from
  '../ops/review/purchase/private-portal-handoff-policy.mjs';
@@ -78,4 +78,25 @@ test('F327 unsupported choices and impersonation fields cannot become Portal des
   assert.throws(()=>assessPrivatePortalChoice(input));
   assert.throws(()=>reviewedCiOnlyChoiceHandoff(input,ci));
  }
+});
+
+test('Onepage selector emits no destination unless both private capabilities are explicitly opted in',()=>{
+ const keys=['GITHUB_ACTIONS','IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW','IMAGINE_PORTAL_CHOICE_HANDOFF_PREVIEW'];
+ const values=['true','1','1'];
+ for(let mask=0;mask<8;mask++){
+  const env=Object.fromEntries(keys.flatMap((key,i)=>mask&(1<<i)?[[key,values[i]]]:[]));
+  const href=reviewedCiOnlyOnepageSelectorHref(env);
+  if(mask!==7)assert.equal(href,null,'A missing opt-in cannot leak a private destination');
+  else {
+   assert.equal(checkPrivatePortalUrl(href,'onepage'),true);
+   assert.deepEqual([...new URL(href).searchParams],[['product','onepage']]);
+  }
+ }
+ for(const key of keys)for(const value of ['',true,1,'TRUE','true ','1 ','0']){
+  assert.equal(reviewedCiOnlyOnepageSelectorHref({
+   GITHUB_ACTIONS:'true',IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW:'1',
+   IMAGINE_PORTAL_CHOICE_HANDOFF_PREVIEW:'1',[key]:value
+  }),null);
+ }
+ assert.equal(reviewedCiOnlyOnepageSelectorHref(null),null);
 });

@@ -1,7 +1,8 @@
 ---
 /**
  * F324 — anonymous selection and estimate, not a cart or live checkout.
- * No forms, tracking, persistence, payment, browser requests or private links.
+ * No forms, tracking, persistence, payment or automatic browser requests.
+ * Onepage may enter the existing Portal preview only in the opted-in CI build.
  */
 import {intlPath} from '../data/i18n.mjs';
 import {buildCommercialChoicePreview,describeThreeIllustrativeInstallments} from '../lib/commercial-choice-preview.mjs';
@@ -9,6 +10,8 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  import {formatReviewedCommercialEstimate} from '../lib/commercial-estimate-copy.mjs';
  import {assessPublicPortalReadiness,describePublicPortalReadiness} from '../lib/public-portal-checkout-readiness.mjs';
 import {describeSelectedQuoteServices} from '../lib/public-quote-item-labels.mjs';
+import {describeSelectedAdvertisingCosts} from '../lib/public-quote-channel-breakdown.mjs';
+import {reviewedCiOnlyOnepageSelectorHref} from '../../ops/review/purchase/portal-choice-handoff-gate.mjs';
 interface Props {locale?:'pt-BR'|'en'|'es';}
 const {locale='pt-BR'}=Astro.props;
 if(!['pt-BR','en','es'].includes(locale))throw Error('Unreviewed quote locale');
@@ -19,7 +22,7 @@ const copy=locale==='en'?{
  site:'1 · Your website',noSite:'No website',onepage:'Site Onepage',landing:'Landing Page',
  channels:'2 · Advertising channels',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Optional · combine your channels',
  tier:'3 · Media planning',minimum:'Minimum',recommended:'Recommended',tierNote:'Recommended is a planning guide, not a results forecast.',
- summary:'Your estimate',products:'Services in your estimate',siteSetup:'Website setup',siteMonthly:'Website monthly fee',adActivation:'Ads activation (one-time)',adManagement:'Estimated ads management / month',media:'Ad spend paid to platforms / month',
+ summary:'Your estimate',products:'Services in your estimate',channelBreakdown:'Per-channel media and fees (illustrative)',siteSetup:'Website setup',siteMonthly:'Website monthly fee',adActivation:'Ads activation (one-time)',adManagement:'Estimated ads management / month',media:'Ad spend paid to platforms / month',
  total:'Setup + activation (3 interest-free installments)',installments:'Website setup in 3 installments',payLater:'Website monthly fee starts 90 days after contracting; advertising management is settled after each full month according to actual spend.',
  cta:'Discuss this selection on WhatsApp',calc:'Try the detailed ads calculator',
  notice:'Estimate only, not an order. Setup and activation together in 3 interest-free installments; any cent difference is included in the last installment.  Clicking WhatsApp opens a message about your chosen services and media tier for your review; nothing is sent automatically. No personal data are collected and public checkout is not active. Final terms require Portal confirmation.',
@@ -29,7 +32,7 @@ const copy=locale==='en'?{
  site:'1 · Tu sitio web',noSite:'Sin sitio',onepage:'Site Onepage',landing:'Landing Page',
  channels:'2 · Canales de publicidad',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · combina tus canales',
  tier:'3 · Plan de inversión',minimum:'Mínimo',recommended:'Recomendado',tierNote:'La inversión recomendada es orientativa, no una previsión de resultados.',
- summary:'Tu resumen',products:'Servicios en tu estimación',siteSetup:'Implantación del sitio',siteMonthly:'Mensualidad del sitio',adActivation:'Activación de anuncios (única)',adManagement:'Gestión estimada de anuncios / mes',media:'Publicidad pagada a las plataformas / mes',
+ summary:'Tu resumen',products:'Servicios en tu estimación',channelBreakdown:'Medios y costes por canal (orientativos)',siteSetup:'Implantación del sitio',siteMonthly:'Mensualidad del sitio',adActivation:'Activación de anuncios (única)',adManagement:'Gestión estimada de anuncios / mes',media:'Publicidad pagada a las plataformas / mes',
  total:'Implantación + activaciones (3 cuotas sin intereses)',installments:'Implantación del sitio en 3 cuotas',payLater:'Mensualidad del sitio desde el día 90 tras contratar. La gestión se calcula después de cada mes completo según la inversión real.',
  cta:'Consultar mi selección por WhatsApp',calc:'Abrir calculadora de anuncios',
  notice:'Estimación, no compra. Implantación y activaciones juntas en 3 cuotas sin intereses; ajuste de céntimos en la última cuota.  Al pulsar WhatsApp se prepara un mensaje con los servicios y la inversión elegidos: tú decides enviarlo. Sin envío automático ni captura de datos personales. El checkout público no está activo; las condiciones finales se confirman en el Portal.',
@@ -39,7 +42,7 @@ const copy=locale==='en'?{
  site:'1 · Seu site',noSite:'Sem site',onepage:'Site Onepage',landing:'Landing Page',
  channels:'2 · Canais de anúncios',google:'Google Ads',meta:'Instagram + Facebook',noAds:'Opcional · escolha um ou combine os canais',
  tier:'3 · Investimento em mídia',minimum:'Mínimo',recommended:'Recomendado',tierNote:'O recomendado é uma referência de planejamento, não promessa de resultado.',
- summary:'Resumo da sua escolha',products:'Serviços na sua simulação',siteSetup:'Implantação do site',siteMonthly:'Mensalidade do site',adActivation:'Ativação de anúncios (única)',adManagement:'Gestão estimada de anúncios / mês',media:'Mídia paga às plataformas / mês',
+ summary:'Resumo da sua escolha',products:'Serviços na sua simulação',channelBreakdown:'Mídia e custos por canal (estimativa)',siteSetup:'Implantação do site',siteMonthly:'Mensalidade do site',adActivation:'Ativação de anúncios (única)',adManagement:'Gestão estimada de anúncios / mês',media:'Mídia paga às plataformas / mês',
  total:'Implantação + ativações (3x sem juros)',installments:'Implantação do site em 3 parcelas',payLater:'Mensalidade do site a partir de D+90 da contratação, mesmo sem publicação. Gestão de anúncios apurada após cada mês completo, conforme a mídia real.',
  cta:'Conversar no WhatsApp sobre esta escolha',calc:'Usar calculadora completa de anúncios',
  notice:'Simulação, não contratação: implantação e ativações juntas em 3 parcelas sem juros, com ajuste de centavos na última quando necessário.  ao clicar no WhatsApp, abrimos uma mensagem com os serviços e a faixa de investimento escolhidos para você revisar e decidir se envia. Não há envio automático nem coleta de dados pessoais. O checkout público ainda não está ativo; os valores finais precisam ser confirmados no Portal.',
@@ -47,7 +50,12 @@ const copy=locale==='en'?{
 };
 const initial=buildCommercialChoicePreview({site:'onepage',channels:[],tier:'recommended'});
 const initialServices=describeSelectedQuoteServices({site:'onepage',channels:[],tier:'recommended'},locale);
-const initialHref=reviewedQuoteChoiceHref(locale,{site:'onepage',channels:[],tier:'recommended'});
+// Build-owned capability; the ops policy and private origin are never imported
+// by the browser script. Normal builds do not emit a private destination.
+const onepagePreviewHref=reviewedCiOnlyOnepageSelectorHref();
+const onepagePreviewLabel=locale==='en'?'Continue with Onepage in the test Portal':locale==='es'?'Continuar con Onepage en el Portal de prueba':'Continuar Onepage no Portal de teste';
+const onepagePreviewNotice=locale==='en'?'Private Onepage preview: continue to the test Portal to register or sign in and review server-calculated terms. No real purchase or payment is authorized. Other selections keep the WhatsApp contact option.':locale==='es'?'Vista privada de Onepage: continúa al Portal de prueba para registrarte o acceder y revisar las condiciones calculadas por el servidor. No autoriza compras ni pagos reales. Las demás selecciones mantienen el contacto por WhatsApp.':'Prévia privada de Onepage: continue no Portal de teste para criar uma conta ou entrar e conferir as condições calculadas pelo servidor. Nenhuma contratação ou pagamento real é autorizado. As demais escolhas mantêm o contato por WhatsApp.';
+const initialHref=onepagePreviewHref||reviewedQuoteChoiceHref(locale,{site:'onepage',channels:[],tier:'recommended'});
 const initialReadinessSelection={site:'onepage',channels:[],tier:'recommended'};
 const initialPortalReadiness=assessPublicPortalReadiness(initialReadinessSelection);
 const fmt=cents=>{
@@ -56,6 +64,9 @@ const fmt=cents=>{
 };
 ---
 <section id="simular-compra" class="choice-section" data-choice-preview data-locale={locale}
+ data-choice-onepage-preview={onepagePreviewHref||undefined}
+ data-choice-onepage-label={onepagePreviewHref?onepagePreviewLabel:undefined}
+ data-choice-contact-label={onepagePreviewHref?copy.cta:undefined}
  data-copy-success={copy.copySuccess} data-copy-failure={copy.copyFailure} aria-labelledby="choice-heading">
  <div class="choice-title">
   <p class="eyebrow">{copy.eyebrow}</p>
@@ -101,19 +112,23 @@ const fmt=cents=>{
    <div class="summary-line"><span>{copy.siteMonthly}</span><strong data-choice-site-monthly>{fmt(initial.siteMonthlyCents)}</strong></div>
    <div class="summary-line"><span>{copy.adManagement}</span><strong data-choice-management>{fmt(initial.adManagementEstimateCents)}</strong></div>
    <div class="summary-line"><span>{copy.media}</span><strong data-choice-media>{fmt(initial.adMediaCents)}</strong></div>
+   <div class="choice-channel-breakdown" data-choice-channel-breakdown hidden>
+    <p class="choice-channel-breakdown-title">{copy.channelBreakdown}</p>
+    <ul data-choice-channel-costs aria-live="polite"></ul>
+   </div>
    <p class="choice-payment-rule">{copy.payLater}</p>
    <p class="choice-portal-readiness" data-choice-portal-readiness
       data-code={initialPortalReadiness.code} aria-live="polite">
       {describePublicPortalReadiness(initialReadinessSelection,locale)}
    </p>
-   <a class="cta choice-action" href={initialHref} data-choice-fallback={contact} target="_blank" rel="noopener noreferrer" data-choice-action>{copy.cta} <span aria-hidden="true">↗</span></a>
+   <a class="cta choice-action" href={initialHref} data-choice-fallback={contact} target={onepagePreviewHref?undefined:'_blank'} rel={onepagePreviewHref?'noreferrer nofollow':'noopener noreferrer'} data-choice-action>{onepagePreviewHref?onepagePreviewLabel:copy.cta} <span aria-hidden="true">↗</span></a>
    <button type="button" class="choice-copy" data-choice-copy hidden>{copy.copyAction}</button>
    <p class="choice-copy-status" data-choice-copy-status role="status" hidden></p>
    <p data-choice-empty hidden class="choice-empty">{copy.empty}</p>
    <a class="choice-calculator" href={calculator}>{copy.calc} <span aria-hidden="true">↗</span></a>
   </aside>
  </div>
- <p class="choice-disclosure">{copy.notice}</p>
+ <p class="choice-disclosure">{onepagePreviewHref?onepagePreviewNotice:copy.notice}</p>
 </section>
 <section class="calculator-promo" aria-labelledby="calculator-promo-title">
  <div><p class="eyebrow">{locale==='en'?'PLAN BEFORE YOU ADVERTISE':locale==='es'?'PLANIFICA ANTES DE ANUNCIAR':'PLANEJE ANTES DE ANUNCIAR'}</p>
@@ -128,10 +143,15 @@ import {reviewedQuoteChoiceHref} from '../data/reviewed-quote-choice-href.mjs';
  import {formatReviewedCommercialEstimate} from '../lib/commercial-estimate-copy.mjs';
  import {assessPublicPortalReadiness,describePublicPortalReadiness} from '../lib/public-portal-checkout-readiness.mjs';
 import {describeSelectedQuoteServices} from '../lib/public-quote-item-labels.mjs';
- // No form, network, persistence, account creation or external redirect.
+import {describeSelectedAdvertisingCosts} from '../lib/public-quote-channel-breakdown.mjs';
+ // No form, network, persistence, account creation or automatic redirect.
  for(const root of document.querySelectorAll('[data-choice-preview]')){
   const locale=root.getAttribute('data-locale')||'pt-BR';
+  const onepagePreviewHref=root.getAttribute('data-choice-onepage-preview');
+  const onepagePreviewLabel=root.getAttribute('data-choice-onepage-label');
+  const contactLabel=root.getAttribute('data-choice-contact-label');
   const format=cents=>(locale==='en'?'BRL ':'R$ ')+(cents/100).toLocaleString(locale==='en'?'en-US':'pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const channelTerms=locale==='en'?{media:'Platform media/month',management:'Estimated management/month',activation:'One-time activation'}:locale==='es'?{media:'Publicidad en plataformas/mes',management:'Gestión estimada/mes',activation:'Activación única'}:{media:'Mídia nas plataformas/mês',management:'Gestão estimada/mês',activation:'Ativação única'};
   let site='onepage',channels=[],tier='recommended',choiceRevision=0;
   const label=(attr,text)=>{const node=root.querySelector('['+attr+']');if(node)node.textContent=text;};
   const render=()=>{
@@ -172,6 +192,19 @@ import {describeSelectedQuoteServices} from '../lib/public-quote-item-labels.mjs
    label('data-choice-site-monthly',format(estimate.siteMonthlyCents));
    label('data-choice-management',format(estimate.adManagementEstimateCents));
    label('data-choice-media',format(estimate.adMediaCents));
+   const costs=describeSelectedAdvertisingCosts({site,channels,tier},locale);
+   const costsBox=root.querySelector('[data-choice-channel-breakdown]');
+   const costsList=root.querySelector('[data-choice-channel-costs]');
+   if(costsBox&&costsList){
+    const fragment=document.createDocumentFragment();
+    for(const cost of costs){
+     const li=document.createElement('li');
+     li.textContent=cost.label+' — '+channelTerms.media+': '+format(cost.mediaCents)+' · '+channelTerms.management+': '+format(cost.estimatedManagementCents)+' · '+channelTerms.activation+': '+format(cost.activationCents);
+     fragment.appendChild(li);
+    }
+    costsList.replaceChildren(fragment);
+    costsBox.hidden=costs.length===0;
+   }
    // F348: the cost estimate is not a Portal checkout or cart.
    // Recompute from the exact public selection; no customer data is passed.
    const readiness=assessPublicPortalReadiness({site,channels,tier});
@@ -186,17 +219,28 @@ import {describeSelectedQuoteServices} from '../lib/public-quote-item-labels.mjs
    }
    const action=root.querySelector('[data-choice-action]');
    if(action){
-    action.setAttribute('href',estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):action.getAttribute('data-choice-fallback'));
+    const privateOnepage=Boolean(onepagePreviewHref&&onepagePreviewLabel&&contactLabel&&site==='onepage'&&channels.length===0);
+    action.setAttribute('href',privateOnepage?onepagePreviewHref:estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):action.getAttribute('data-choice-fallback'));
+    if(onepagePreviewHref){
+     // The capability is a fixed reviewed link, never derived from form data.
+     // Preserve the public link/label unless this private build opted in.
+     if(privateOnepage)action.removeAttribute('target');
+     else action.setAttribute('target','_blank');
+     action.setAttribute('rel',privateOnepage?'noreferrer nofollow':'noopener noreferrer');
+     action.replaceChildren(document.createTextNode((privateOnepage?onepagePreviewLabel:contactLabel)+' '));
+     const arrow=document.createElement('span');
+     arrow.setAttribute('aria-hidden','true');arrow.textContent='↗';action.appendChild(arrow);
+    }
     action.setAttribute('aria-disabled',String(!estimate.hasChoice));
     action.tabIndex=estimate.hasChoice?0:-1;
    }
+   // aria-disabled alone does not block a pointer click on an <a> element.
+   // Empty quotes must never activate even the fallback contact destination.
    const empty=root.querySelector('[data-choice-empty]');
    if(empty)empty.hidden=estimate.hasChoice;
    const copyButton=root.querySelector('[data-choice-copy]');
    if(copyButton){copyButton.hidden=false;copyButton.disabled=!estimate.hasChoice;}
   };
-  // F357: aria-disabled alone does not prevent pointer navigation.
-  // An empty quote must never activate the fallback contact link.
   root.querySelector('[data-choice-action]')?.addEventListener('click',event=>{
    if(event.currentTarget.getAttribute('aria-disabled')==='true')event.preventDefault();
   });
@@ -243,6 +287,11 @@ import {describeSelectedQuoteServices} from '../lib/public-quote-item-labels.mjs
  .choice-products-title{font-size:.82rem;font-weight:700;margin:12px 0 6px;color:#51463a}
  .choice-products{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0 0 18px;padding:0;list-style:none}
  .choice-products li{border:1px solid #e3cda9;border-radius:8px;padding:6px 10px;font-size:.86rem;background:#fff8ec}
+ .choice-channel-breakdown{margin:12px 0 8px;padding:11px 12px;border:1px solid #dce5d8;border-radius:10px;background:#fff}
+ .choice-channel-breakdown[hidden]{display:none}
+ .choice-channel-breakdown-title{font-size:.77rem;font-weight:750;color:#36503b;margin:0 0 7px}
+ .choice-channel-breakdown ul{margin:0;padding-left:18px;display:grid;gap:7px;font-size:.77rem;line-height:1.55;color:#465047}
+ .choice-channel-breakdown li{overflow-wrap:anywhere}
  .choice-section{background:#fff;border:1px solid #eadfcf;border-radius:22px;padding:clamp(20px,3vw,35px);margin-top:26px;scroll-margin-top:90px}
  .choice-title h3{font-size:clamp(1.5rem,2.7vw,2.35rem);letter-spacing:-.04em;line-height:1.19;margin:5px 0 7px}
  .choice-title>p:last-child{font-size:.91rem;color:#58534c;margin:0 0 22px}
