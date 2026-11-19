@@ -32,7 +32,7 @@ try {
       assert.equal(await page.locator('[data-faisca-private-entry]').count(), 1);
       assert.equal(await page.locator('#simular-compra[data-choice-preview]').count(), 1);
       assert.equal(await page.locator('[data-choice-site="onepage"]').getAttribute('aria-pressed'), 'true');
-      const quote = page.locator('a[data-purchase-start]').first();
+      const quote = page.locator('a[data-purchase-intent="site"]').first();
       await quote.click();
       assert.equal(new URL(page.url()).hash, '#simular-compra');
       assert.equal(new URL(page.url()).search, '');
