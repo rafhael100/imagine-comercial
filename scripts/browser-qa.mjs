@@ -300,6 +300,9 @@ try {
     assert.equal(await preview.locator('[data-choice-selected-items]').isVisible(),false,
       'F354: no empty cart displayed');
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
+    assert.equal(await preview.locator('[data-choice-action]').evaluate(link=>
+      link.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}))),false,
+      'F357: an empty cart must block pointer navigation');
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'no_selection');
     assert.equal(await preview.locator('[data-choice-copy]').isDisabled(),true,
