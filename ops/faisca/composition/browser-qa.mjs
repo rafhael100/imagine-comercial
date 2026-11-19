@@ -138,6 +138,13 @@ try {
     await chooseWithin('r08:timeline:within_30_days', 'r08:contactConsent:declined');
     await chooseWithin('r08:contactConsent:declined', 'r08:next_steps');
     assert.equal(await frame.locator('[data-faisca-root]').getAttribute('data-faisca-quote-site'), 'onepage');
+    await frame.locator('[data-faisca-root]').evaluate(el =>
+      el.setAttribute('data-faisca-quote-site', 'javascript:untrusted'));
+    await transfer.click();
+    assert.equal(await quote.locator('[data-choice-site="landing-pages"]').getAttribute('aria-pressed'),
+      'true', 'Unapproved site value must not affect the Commercial simulator.');
+    await frame.locator('[data-faisca-root]').evaluate(el =>
+      el.setAttribute('data-faisca-quote-site', 'onepage'));
     await transfer.click();
     assert.equal(await quote.locator('[data-choice-site="onepage"]').getAttribute('aria-pressed'), 'true');
     assert.match(await page.locator('[data-faisca-apply-status]').innerText(),
