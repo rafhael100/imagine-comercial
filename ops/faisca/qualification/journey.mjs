@@ -26,7 +26,12 @@ function readInput(input) {
     if (keys.length !== 2 || !keys.includes('type')) return null;
     const descriptors = Object.getOwnPropertyDescriptors(input);
     if (!Object.hasOwn(descriptors.type, 'value') || !Object.hasOwn(descriptors.id ?? descriptors.text ?? {}, 'value')) return null;
-    if (descriptors.type.value === 'action' && keys.includes('id') && typeof descriptors.id.value === 'string') {
+    if (descriptors.type.value === 'action' && keys.includes('id') &&
+        typeof descriptors.id.value === 'string' &&
+        descriptors.id.value.length > 0 && descriptors.id.value.length <= 96 &&
+        /^[A-Za-z0-9:_.-]+$/.test(descriptors.id.value)) {
+      // SEC-01: bound identifiers before dispatch. Preserve mixed-case R08
+      // options such as r08:contactConsent:granted without allowing free text.
       return Object.freeze({ type: 'action', id: descriptors.id.value });
     }
     if (descriptors.type.value === 'text' && keys.includes('text') &&
