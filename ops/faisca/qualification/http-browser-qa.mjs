@@ -301,37 +301,27 @@ try {
 
   await check('R15 browser masks private text while a service change awaits confirmation', async () => {
     await choose('r08:change_service');
-    console.log('R15 browser stage: service menu');
     assert.match(await lastAnswer().innerText(), /solução/i);
     await choose('goal_campaign');
-    console.log('R15 browser stage: goal proposed');
     assert.match(await lastAnswer().innerText(), /Confirme a escolha/);
     const previousPhp = phpCounts().spawned;
     await sendText('Meu email é teste.sintetico@example.invalid');
-    console.log('R15 browser stage: private message refused');
     const chat = await page.locator('#faisca-log').innerText();
     assert.match(chat, /Mensagem livre não registrada/);
     assert.doesNotMatch(chat, /teste.sintetico@example.invalid/);
     assert.equal(await page.locator('#faisca-input').inputValue(), '');
     assert.equal(phpCounts().spawned, previousPhp,
       'Sensitive text in pending mode must not reach the PHP source verifier.');
-    const beforeCancel = await assistantCount();
+    // The visual log intentionally keeps at most 40 nodes; after many turns,
+    // the number of assistant nodes may remain constant. Observe the new DOM
+    // reply rather than assuming a cumulative count.
+    const previousAnswer = await page.locator('#faisca-log .assistant').last().elementHandle();
     await page.locator('#faisca-quick-actions [data-action-id="cancel_goal"]').click();
-    try {
-      await waitAnswer(beforeCancel);
-    } catch (error) {
-      console.log('R15 browser cancel diagnostic: ' + JSON.stringify({
-        httpState: await status.getAttribute('data-faisca-http-state'),
-        hostStatus: await rootElement.getAttribute('data-faisca-status'),
-        delivery: await rootElement.getAttribute('data-faisca-delivery'),
-        busy: await page.locator('#faisca-log').getAttribute('aria-busy'),
-        assistantBefore: beforeCancel, assistantAfter: await assistantCount(),
-        actionIds: await page.locator('#faisca-quick-actions button').evaluateAll(items => items.map(item => item.dataset.actionId)),
-        server: server.inspect(), php: phpCounts(), httpErrorCount: httpFailures.length
-      }));
-      throw error;
-    }
-    console.log('R15 browser stage: pending choice cancelled');
+    await page.waitForFunction(previous => {
+      const log = document.querySelector('#faisca-log');
+      const current = [...(log?.querySelectorAll('.assistant') ?? [])].at(-1);
+      return log?.getAttribute('aria-busy') === 'false' && current && current !== previous;
+    }, previousAnswer, { timeout: 10000 });
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     assert.equal(phpCounts().spawned, previousPhp);
   });
