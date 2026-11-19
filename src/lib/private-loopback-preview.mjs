@@ -21,6 +21,7 @@ const CHALLENGE='Basic realm="Imagine local preview", charset="UTF-8"';
 // pages/assets. This is NEVER a public widget flag or a checkout route.
 const FAISCA_PRIVATE_PAGE=/^\/__faisca_preview\/(?:journey|support)\/$/;
 const FAISCA_PRIVATE_ASSET=/^\/_astro\/[A-Za-z0-9._-]+\.(?:js|css)$/;
+const FAISCA_QUOTE_BRIDGE='/__faisca_preview/quote-bridge.js';
 const FAISCA_PRIVATE_ENTRY='<section class="section section-soft" data-faisca-private-entry '+
   'aria-labelledby="faisca-private-title"><div class="shell">'+
   '<p class="eyebrow">LABORATÓRIO PRIVADO · SEM IA EXTERNA</p>'+
@@ -32,6 +33,8 @@ const FAISCA_PRIVATE_ENTRY='<section class="section section-soft" data-faisca-pr
   '<iframe data-faisca-inline-frame src="/__faisca_preview/journey/" '+
   'title="Faísca: conversa comercial de revisão privada" loading="lazy" '+
   'referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>'+
+  '<button type="button" data-faisca-apply-choice>Levar escolha ao simulador (sem envio)</button>'+
+  '<p data-faisca-apply-status role="status" aria-live="polite"></p>'+
   '</details><p>Prévia apenas para revisão. Não é atendimento ou contratação real.</p>'+
   '</div></section>'+
   '<style data-faisca-private-inline-style>'+
@@ -39,10 +42,16 @@ const FAISCA_PRIVATE_ENTRY='<section class="section section-soft" data-faisca-pr
   'border-radius:12px;background:#fff9f0;padding:12px 16px}'+
   '[data-faisca-private-inline]>summary{min-height:44px;display:flex;align-items:center;'+
   'color:#884100;font-weight:800;cursor:pointer}'+
+  '[data-faisca-apply-choice]{margin-top:10px;min-height:44px;padding:10px 15px;'+
+  'border:1px solid #ae691c;background:#fff;color:#783d00;border-radius:9px;font:inherit;'+
+  'font-weight:800;cursor:pointer}'+
+  '[data-faisca-apply-choice]:focus-visible{outline:3px solid #ae691c;outline-offset:2px}'+
+  '[data-faisca-apply-status]{min-height:1.3rem;font-size:.8rem;line-height:1.5}'+
   '[data-faisca-private-inline] iframe{display:block;width:100%;height:min(80vh,860px);'+
   'min-height:440px;border:1px solid #ddd0be;border-radius:12px;background:#fcfaf7}'+
   '@media(max-width:620px){[data-faisca-private-inline] iframe{min-height:540px}}'+
-  '</style>';
+  '</style>'+
+  '<script src="/__faisca_preview/quote-bridge.js" defer></script>';
 function preparePrivateFaiscaAssets(value){
   if(value===undefined)return new Map();
   if(!(value instanceof Map)||value.size<3||value.size>48)
@@ -50,14 +59,15 @@ function preparePrivateFaiscaAssets(value){
   const safe=new Map();let total=0;
   for(const [path,raw] of value){
     if(typeof path!=='string'||safe.has(path)||
-       !FAISCA_PRIVATE_PAGE.test(path)&&!FAISCA_PRIVATE_ASSET.test(path)||
+       !FAISCA_PRIVATE_PAGE.test(path)&&!FAISCA_PRIVATE_ASSET.test(path)&&path!==FAISCA_QUOTE_BRIDGE||
        !Buffer.isBuffer(raw)||!raw.length||raw.length>8*1024*1024||
        (total+=raw.length)>24*1024*1024)
       throw new Error('Faisca R24: unapproved private artifact path or size.');
     safe.set(path,Buffer.from(raw));
   }
   if(!safe.has('/__faisca_preview/journey/')||
-     !safe.has('/__faisca_preview/support/'))
+     !safe.has('/__faisca_preview/support/')||
+     !safe.has(FAISCA_QUOTE_BRIDGE))
     throw new Error('Faisca R24: missing private journey and support pages.');
   return safe;
 }
