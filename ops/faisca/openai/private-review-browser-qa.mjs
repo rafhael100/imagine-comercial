@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { startFaiscaOpenAIPrivateReview } from './private-review-http.mjs';
+import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
+import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
+import { getGroundedAnswer } from '../grounding/guide.mjs';
 
 const reportDir = resolve(dirname(fileURLToPath(import.meta.url)), '../reports');
 const token = 'R79_CHROMIUM_PRIVATE_REVIEW_TOKEN_2026';
@@ -27,10 +30,14 @@ try {
     answer: async caseId => {
       providerCalls++;
       assert.ok(['compare', 'process', 'pricing'].includes(caseId));
+      const selected = retrieveCandidateAnswerIds(FAISCA_OPENAI_TEST_CASES[caseId])[0];
+      const grounded = getGroundedAnswer(selected);
+      assert.ok(grounded, 'A real-shaped synthetic fixture needs a valid pinned recipe.');
       return Object.freeze({
+        schema: FAISCA_OPENAI_LIVE_LAB_SCHEMA, answerId: selected,
         status: 'draft_answer',
         text: 'O Site Onepage apresenta a empresa em uma página organizada. A Landing Page concentra uma oferta ou campanha específica.',
-        sourceIds: Object.freeze(['faisca.passage.onepage.description@r06-1']),
+        sourceIds: Object.freeze(grounded.sources.map(source => source.id)),
         modelIds: Object.freeze(['gpt-6-luna', 'gpt-6.1-terra']),
         publicReady: false, operationalEffects: false
       });
@@ -78,6 +85,30 @@ try {
     assert.equal(server.inspect().requests, 1);
     assert.equal(await page.locator('#review-send').isEnabled(), true);
     assert.deepEqual(blocked, []);
+  });
+
+  await check('R88 Chromium refuses a draft whose source IDs are not bound to a reviewed recipe', async () => {
+    const endpoint = '**/__faisca_openai_private/respond';
+    await page.route(endpoint, async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        schema: 'faisca.openai-private-review-response.v1',
+        status: 'draft_answer', syntheticCaseId: 'compare',
+        answer: 'Uma alegação sem correspondência entre receita e fontes não deve aparecer.',
+        sources: ['faisca.passage.onepage.description@r06-1'],
+        models: ['gpt-6-luna','gpt-6.1-terra'], sourceRecipeBound: false,
+        requiresEditorialReview: true, publicReady: false, operationalEffects: false
+      }) });
+    });
+    try {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-case').selectOption('compare');
+      await page.locator('#review-send').click();
+      await page.waitForFunction(() => document.querySelector('#review-status')?.textContent?.includes('não concluiu.'));
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
+      assert.equal(await page.locator('#review-sources').innerText(), '');
+      assert.equal(providerCalls, 1, 'Forged browser response cannot call the synthetic provider.');
+    } finally { await page.unroute(endpoint); }
   });
 
   await check('R83 Chromium refuses a forged draft with zero model provenance', async () => {
