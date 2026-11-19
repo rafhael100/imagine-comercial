@@ -14,7 +14,7 @@ function syntheticLab() {
         status: 'draft_answer',
         text: 'Resposta editorial fictícia, somente para revisão privada.',
         sourceIds: ['faisca.passage.fixture@r06-1'],
-        modelIds: []
+        modelIds: ['gpt-6-luna', 'gpt-6.1-terra']
       };
     },
     inspect: () => ({ calls, durableBillingLimit: false })
