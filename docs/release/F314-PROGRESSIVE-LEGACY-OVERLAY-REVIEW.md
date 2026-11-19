@@ -16,7 +16,9 @@ regras conservadoras:
 | Tipo de solicitação | Direção prevista |
 |---|---|
 | `GET/HEAD /` (home pública histórica) | **Legado**, preserva formulário que hoje aparece na home |
-| `GET/HEAD` nas outras 62 páginas Astro explícitas | **Novo site estático**, somente em origem isolada revisada |
+| `GET/HEAD /contato` e `/contato/` | **Legado**, sem presumir equivalência do formulário |
+| `GET/HEAD` nos 81 caminhos do sitemap legado e variantes com barra | **Legado**; uma entrada malformada excluída |
+| `GET/HEAD` nas outras **61** páginas Astro explícitas | **Novo site estático**, somente em origem isolada revisada |
 | `GET/HEAD` para os 27 caminhos legados conhecidos | **Legado**, incluindo 22 HOLD e 5 candidatas a 301 não autorizadas |
 | `GET/HEAD /robots.txt` e `/sitemap.xml` | **Legado**, não substituir índice antigo às cegas |
 | `GET/HEAD` para `/_astro/...` presentes no manifesto SHA-256 e `/logo-imagine.png` | **Novo estático**, somente arquivos revisados |
@@ -78,3 +80,24 @@ Não prometer rollback automático sem um ensaio registrado.
 **DRAFT / REVIEW-ONLY / NO-MERGE / NO-DEPLOY / NO-REDIRECT /
 NO-LEAD-COLLECTION / NO-CHARGE.** Nenhum teste nesta PR é prova de acesso
 à Leaseweb, Cloudflare, GSC, DNS, domínio original ou CRM de clientes.
+
+## F314 — inventário público ampliado (19/11/2026)
+
+O sitemap histórico observado em 18/11/2026 contém 82 loc: **81 URLs HTTP
+www válidas pertencentes ao domínio** e um hostname duplicado malformado
+excluído. O catálogo versionado de 81 caminhos e hashes do XML e caminhos
+está em `src/data/legacy-public-sitemap-paths.mjs`; não contém dados GSC,
+HTML, cookies, cabeçalhos, formulários ou informações de clientes.
+
+A proteção contempla também os caminhos com barra final, somando **161 variantes
+únicas**. Entre as 63 rotas compiladas do Astro, o cruzamento encontrou duas
+que devem permanecer no legado: a home `/` e `/contato/`, cuja variante
+sem barra `/contato` consta do sitemap antigo. A prévia conservadora admite
+**61 páginas novas**, enquanto o build do site permanece com 63 páginas.
+
+O teste HTTP F317 verifica que as 161 variantes continuam servidas pela
+origem legada **sintética em loopback**, além das 27 rotas F310. Este ensaio
+não comprova HTTP 200 real, formulário, equivalência de conteúdo, redirects,
+backups ou funcionamento na VPS. O `/contato` real foi observado com 302,
+mas seu destino funcional não foi homologado. O sitemap público antigo não é
+substituído; nenhuma regra 301, DNS, checkout ou deploy é ativada.

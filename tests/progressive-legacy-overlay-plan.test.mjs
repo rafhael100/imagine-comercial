@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {sitePages} from '../src/data/services.mjs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
+import {legacyPublicSitemapPaths,legacyPublicSitemapProvenance,legacyPublicSitemapProtectedVariants}
+ from '../src/data/legacy-public-sitemap-paths.mjs';
 import {renderReadinessReport} from '../scripts/report-launch-blockers.mjs';
 import {reviewProgressiveOverlayManifest as review,classifyProgressiveOverlayRequest as classify}
  from '../src/lib/progressive-legacy-overlay-plan.mjs';
@@ -30,7 +32,10 @@ const req=(pathname,method='GET',search='')=>({method,pathname,search});
 test('F314 accepts an exact, full public build manifest only as a route PLAN',()=>{
  const plan=review(syntheticManifest());
  assert.equal(plan.currentStaticHtmlPages,63);
- assert.equal(plan.eligibleNewPages,62);
+ assert.equal(plan.eligibleNewPages,61);
+ assert.equal(plan.oldContactRouteKept,true);
+ assert.equal(plan.publicSitemapOwnedPathsKept,81);
+ assert.equal(plan.publicSitemapSlashVariantsKept,161);
  assert.equal(plan.heldLegacyRoutesKept,22);
  assert.equal(plan.historicalRedirectCandidatesKeptWithout301,5);
  assert.equal(plan.oldHomepageKept,true);
@@ -43,12 +48,12 @@ test('F314 accepts an exact, full public build manifest only as a route PLAN',()
  assert.ok(Object.isFrozen(plan));
  assert.ok(Object.isFrozen(plan.eligibleStaticAssets));
 });
-test('F314 routes exactly 62 new pages for GET/HEAD and preserves old homepage',()=>{
+test('F314 routes 61 new pages and preserves old homepage and contact variants',()=>{
  const plan=review(syntheticManifest());
  for(const {path} of sitePages){
   for(const method of ['GET','HEAD']){
    const result=classify(plan,req(path,method));
-   assert.equal(result.decision,path==='/'?
+   assert.equal(result.decision,['/','/contato/'].includes(path)?
      'LEGACY_ORIGIN_RETAIN':'REVIEWED_NEW_ASTRO_HTML',path);
    assert.equal(result.actualNetworkPerformed,false);
   }
@@ -84,6 +89,21 @@ test('F314 changes and form submissions never go to static Astro',()=>{
    assert.equal(classify(plan,req(path,method)).decision,'LEGACY_ORIGIN_RETAIN');
   }
  }
+});
+test('F314 protects all public legacy sitemap paths plus trailing slash variants',()=>{
+ const plan=review(syntheticManifest());
+ assert.equal(legacyPublicSitemapPaths.length,81);
+ assert.equal(legacyPublicSitemapProtectedVariants.length,161);
+ assert.equal(legacyPublicSitemapProvenance.publishedLocEntries,82);
+ assert.equal(legacyPublicSitemapProvenance.excludedMalformedLocEntries,1);
+ for(const path of legacyPublicSitemapProtectedVariants){
+  for(const method of ['GET','HEAD']){
+   assert.equal(classify(plan,req(path,method)).decision,'LEGACY_ORIGIN_RETAIN',path);
+   assert.equal(classify(plan,req(path,method,'?utm_source=old')).decision,'LEGACY_ORIGIN_RETAIN',path);
+  }
+ }
+ assert.equal(classify(plan,req('/contato/')).decision,'LEGACY_ORIGIN_RETAIN');
+ assert.equal(classify(plan,req('/servicos/onepage/')).decision,'REVIEWED_NEW_ASTRO_HTML');
 });
 test('F314 only exact compiled hashed assets and logo can enter new static origin',()=>{
  const plan=review(syntheticManifest());
@@ -135,7 +155,9 @@ test('F314 even when all route policies are internally valid the production laun
  const status=JSON.parse(renderReadinessReport(['--target=production']));
  const overlay=status.progressiveLegacyOverlay;
  assert.equal(status.approval,'NOT_AUTHORIZED');
- assert.equal(overlay.listedNewPageCandidates,62);
+ assert.equal(overlay.listedNewPageCandidates,61);
+ assert.equal(overlay.originalContactRouteRetained,true);
+ assert.equal(overlay.originalPublicSitemapPathsRetained,81);
  assert.equal(overlay.knownHistoricalRoutesRetained,27);
  assert.equal(overlay.originalHomepageRetained,true);
  assert.equal(overlay.unlistedPathsMustRemainOnOriginal,true);
