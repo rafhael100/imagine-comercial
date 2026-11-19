@@ -1,19 +1,27 @@
 import { createFaiscaOpenAILiveLab } from '../ops/faisca/openai/live-lab.mjs';
+import { createFaiscaLocalReservationLedger } from '../ops/faisca/openai/durable-reservation-ledger.mjs';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
 
 if (process.env.GITHUB_ACTIONS || process.env.CI ||
     process.env.IMAGINE_FAISCA_OPENAI_LIVE_TEST !== 'YES_PAY_SYNTHETIC_ONLY' ||
-    !process.env.OPENAI_API_KEY || !process.env.FAISCA_REVIEW_BEARER_TOKEN) {
+    !process.env.OPENAI_API_KEY || !process.env.FAISCA_REVIEW_BEARER_TOKEN ||
+    !process.env.FAISCA_PRIVATE_LEDGER_DIR) {
   console.error('Private paid review requires deliberate opt-in and both private secret values.');
   process.exitCode = 2;
 } else {
   let server;
   try {
+    const reservationLedger = createFaiscaLocalReservationLedger({
+      directory: process.env.FAISCA_PRIVATE_LEDGER_DIR,
+      maxRequests: 100, maxBudgetUsd: 10
+    });
+    await reservationLedger.ready();
     const trial = createFaiscaOpenAILiveLab({
       enabled: true, apiKey: process.env.OPENAI_API_KEY,
       extendedPrivateSession: true,
       maxRequests: 100,
-      maxBudgetUsd: 10
+      maxBudgetUsd: 10,
+      reservationLedger
     });
     server = await startFaiscaOpenAIPrivateReview({
       lab: trial,
