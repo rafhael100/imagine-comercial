@@ -48,7 +48,11 @@ test('R10 support journey progresses one closed choice at a time without calling
   let result = choose(session, 'r10:topic:billing');
   assert.equal(result.session.supportTopic, 'billing');
   assert.match(result.reply.text, /A qual serviço/);
-  assert.equal(result.reply.actions.length, 6);
+  assert.deepEqual(result.reply.actions.map(action => action.id), [
+    'r10:service:onepage', 'r10:service:landing-page', 'r10:service:google-ads',
+    'r10:service:meta-ads', 'r10:service:crm', 'r10:service:unspecified',
+    'r10:revise:topic'
+  ]);
   session = result.session;
   result = choose(session, 'r10:service:crm');
   assert.match(result.reply.text, /Qual destas opções/);
