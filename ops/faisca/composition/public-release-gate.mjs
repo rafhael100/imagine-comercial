@@ -95,7 +95,7 @@ export async function auditPublicFaiscaDist({ distDir = resolve(sourceRoot, 'dis
     schema: PUBLIC_LEAK_GATE_SCHEMA,
     inspectedScope: 'compiled_public_dist_only',
     filesChecked, textFilesChecked, bytesChecked,
-    publicFaiscaEnabled: false, privateFaíscaAssetsDetected: false,
+    publicFaiscaEnabled: false, privateFaiscaAssetsDetected: false,
     productionPublished: false, operationalEffects: false
   });
 }
