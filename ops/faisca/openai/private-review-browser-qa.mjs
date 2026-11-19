@@ -70,6 +70,7 @@ try {
     await page.locator('#review-case').selectOption('compare');
     await page.locator('#review-send').click();
     await page.waitForFunction(() => document.querySelector('#review-status')?.textContent?.includes('Resposta gerada.'));
+    assert.equal(await page.locator('#review-token').inputValue(), '', 'Review token must be erased from the DOM immediately.');
     assert.match(await page.locator('#review-answer').innerText(), /Onepage/);
     assert.match(await page.locator('#review-sources').innerText(), /faisca.passage.onepage.description/);
     assert.match(await page.locator('#review-status').innerText(), /Revisão editorial obrigatória/);
