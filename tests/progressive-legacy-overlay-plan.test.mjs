@@ -105,6 +105,17 @@ test('F314 protects all public legacy sitemap paths plus trailing slash variants
  assert.equal(classify(plan,req('/contato/')).decision,'LEGACY_ORIGIN_RETAIN');
  assert.equal(classify(plan,req('/servicos/onepage/')).decision,'REVIEWED_NEW_ASTRO_HTML');
 });
+test('F315 all public sitemap variants remain on the legacy origin for form-like methods',()=>{
+ const plan=review(syntheticManifest());
+ for(const path of legacyPublicSitemapProtectedVariants){
+  for(const method of ['POST','PUT','PATCH','DELETE','OPTIONS']){
+   const decision=classify(plan,req(path,method,'?review_source=synthetic'));
+   assert.equal(decision.decision,'LEGACY_ORIGIN_RETAIN',method+' '+path);
+   assert.equal(decision.readOnlyRequest,false);
+   assert.equal(decision.actualNetworkPerformed,false);
+  }
+ }
+});
 test('F314 only exact compiled hashed assets and logo can enter new static origin',()=>{
  const plan=review(syntheticManifest());
  for(const path of ['/_astro/BaseLayout.contenthash.css',
