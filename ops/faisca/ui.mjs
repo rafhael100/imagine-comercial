@@ -1,5 +1,4 @@
 import { createSession, respond, getWelcome, getSummary, getCapabilities } from './core.mjs';
-import { validateLeadProfile, isQualificationComplete } from './qualification/profile.mjs';
 
 // Importing this module has no side effect. The host owns mount/destroy.
 // Replies are local and deterministic; no network or persistence is performed.
@@ -69,8 +68,14 @@ export function mountFaisca(root, config = {}) {
     if (!sessionPolicy || typeof sessionPolicy !== 'object' || Array.isArray(sessionPolicy) ||
         ![Object.prototype, null].includes(Object.getPrototypeOf(sessionPolicy))) throw new TypeError('Invalid local session policy.');
     const fields = Object.getOwnPropertyDescriptors(sessionPolicy);
-    if (Reflect.ownKeys(fields).length !== 2 ||
-        ['create', 'summary'].some(key => !fields[key] || !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function')) {
+    const names = Reflect.ownKeys(fields);
+    if (names.length < 2 || names.length > 3 ||
+        names.some(key => typeof key !== 'string' ||
+          !['create', 'summary', 'quoteSite'].includes(key)) ||
+        ['create', 'summary'].some(key => !fields[key] ||
+          !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function') ||
+        (fields.quoteSite && (!Object.hasOwn(fields.quoteSite, 'value') ||
+          typeof fields.quoteSite.value !== 'function'))) {
       throw new TypeError('Incomplete local session policy.');
     }
   }
@@ -179,10 +184,14 @@ export function mountFaisca(root, config = {}) {
     // R37: expose ONLY a validated, completed service enum for the
     // opt-in private quote preview. Never publish the profile, contact
     // choice, free text, audience or any price in DOM attributes.
-    const completeProfile = validateLeadProfile(session?.profile);
-    if (completeProfile && isQualificationComplete(completeProfile)) {
-      root.dataset.faiscaQuoteSite = completeProfile.service === 'onepage'
-        ? 'onepage' : 'landing-pages';
+    // R37: only the trusted R08 host policy may provide a COMPLETED service.
+    // The generic R02 UI must keep its single original core import so the
+    // audited standalone offline demonstrator remains self-contained.
+    let quoteSite = null;
+    try { quoteSite = sessionPolicy?.quoteSite?.(session) ?? null; }
+    catch { /* No trusted status on callback failure. */ }
+    if (quoteSite === 'onepage' || quoteSite === 'landing-pages') {
+      root.dataset.faiscaQuoteSite = quoteSite;
     } else {
       delete root.dataset.faiscaQuoteSite;
     }
