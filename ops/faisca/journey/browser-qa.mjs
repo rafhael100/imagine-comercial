@@ -168,6 +168,20 @@ try {
     assert.match(summary, /Não concedida/);
     assert.doesNotMatch(summary, /@|[0-9]{10,}/);
   });
+  await check('R58 completed Onepage qualification opens only a local Portal preparation preview', async () => {
+    await choose('r08:next_steps');
+    assert.equal(await page.locator('#faisca-quick-actions [data-action-id="r08:prepare_onepage"]').isVisible(), true);
+    await choose('r08:prepare_onepage');
+    assert.match(await last().innerText(), /Portal Imagine/);
+    assert.match(await last().innerText(), /cotação calculada pelo Portal/);
+    assert.match(await last().innerText(), /aceite explícito/);
+    assert.match(await last().innerText(), /contratação pública ainda não está disponível/);
+    assert.equal(await page.locator('#faisca-log .assistant').last().locator('.message-sources').count(), 0);
+    assert.doesNotMatch(await last().innerText(), /https?:\\/\\/|R\\$\\s*\\d|@/);
+    assert.match(await page.locator('#faisca-summary-text').inputValue(), /RASCUNHO NÃO ENVIADO/);
+    assert.deepEqual(blocked, [], 'Portal preparation must not attempt any network call.');
+  });
+
   await check('R08 browser makes no external requests, persistence or script execution errors', async () => {
     assert.deepEqual(blocked, []);
     assert.deepEqual(errors, []);
