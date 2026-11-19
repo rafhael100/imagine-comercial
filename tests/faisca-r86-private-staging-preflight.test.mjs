@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, chmod, writeFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, chmod, writeFile, rm, symlink, lstat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { inspectFaiscaPrivateStaging } from '../ops/faisca/openai/private-staging-preflight.mjs';
@@ -50,7 +50,7 @@ test('R86 read-only staging preflight allows only fully reviewed and locally pro
   assert.equal(value.onlyLocalReview, true);
   const serialized = JSON.stringify(value);
   assert.doesNotMatch(serialized, /SYNTHETIC_R86_PRIVATE|R86_SEPARATE_PRIVATE|FAISCA_PRIVATE_LEDGER_DIR/);
-  assert.doesNotMatch(serialized, new RegExp(directory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.equal(serialized.includes(directory), false, 'No operator filesystem path in preflight output');
 });
 
 test('R86 refuses absent secrets, copied key as review token, invalid opt-in, CI and old Node', async t => {
@@ -108,11 +108,6 @@ test('R86 rejects unsafe ledger directories and existing reservation crash locks
   assert.ok(hasFailure(result, 'private_persistent_ledger_ready_without_lock'));
   assert.equal(result.realApiCalled, false);
   // Read-only preflight must not remove an operator-owned crash lock.
-  await assert.rejects(run(environment(directory), {
-    checkLedger: async path => {
-      assert.equal(path, directory);
-      throw Error('blocked lock still present');
-    }
-  }).then(x => x.status === 'READY_FOR_PRIVATE_OPERATOR_START'
-    ? Promise.reject(Error('unsafe accepted')) : Promise.reject(Error('lock preserved'))), /lock preserved/);
+  const info = await lstat(lock);
+  assert.equal(info.isFile(), true);
 });
