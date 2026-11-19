@@ -11,7 +11,7 @@ function fixture() {
       return {
         status: 'draft_answer',
         text: 'Esta é uma orientação da Imagine em revisão privada para ' + caseId + '.',
-        sourceIds: ['faisca.passage.fixture@r06-1'],
+        sourceIds: ['faisca.passage.onepage.description@r06-1'],
         modelIds: ['gpt-6-luna', 'gpt-6.1-terra']
       };
     },
