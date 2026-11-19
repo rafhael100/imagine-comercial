@@ -208,7 +208,7 @@ try{
   assert.equal(post.response.headers.get('x-synthetic-origin'),'LEGACY-LOCAL-FIXTURE');
   assert.equal(legacyRequests.at(-1).body,'LAB_ONLY_NO_CONTACT_PII');
   assert.equal(legacyRequests.at(-1).contentType,'text/plain');
-  // F315: representative legacy lead endpoints preserve method, query,
+  // F358: representative legacy lead endpoints preserve method, query,
   // cookie, Content-Type and exact synthetic bytes. No real form is submitted.
   const formPaths=[
    '/component/imaginecontato',

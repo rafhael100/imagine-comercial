@@ -13,6 +13,8 @@ import {sitePages} from '../src/data/services.mjs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {legacyPublicSitemapPaths,legacyPublicSitemapProtectedVariants}
  from '../src/data/legacy-public-sitemap-paths.mjs';
+import {buildPublicSitemapPreservationReview}
+ from '../src/lib/legacy-public-sitemap-review.mjs';
 
 const manifest=JSON.parse(await readFile(
  'artifacts/release-review/REVIEW-ONLY-static-build-sha256.json','utf8'));
@@ -21,6 +23,13 @@ const integrity=reviewStagingBuildIntegrity({
 });
 assert.equal(integrity.exactTreeBytesVerified,true);
 const candidate=reviewProgressiveOverlayManifest(manifest);
+const sitemapMatrix=buildPublicSitemapPreservationReview(candidate);
+assert.equal(sitemapMatrix.rows.length,81);
+assert.equal(sitemapMatrix.protectedPathVariants,161);
+assert.equal(sitemapMatrix.astroCandidatePages,61);
+assert.equal(sitemapMatrix.directAstroCollisions,1);
+assert.equal(sitemapMatrix.slashVariantAstroCollisions,1);
+assert.equal(sitemapMatrix.redirectsAuthorized,0);
 const decisions=sitePages.map(page=>classifyProgressiveOverlayRequest(candidate,{
  method:'GET',pathname:page.path,search:''
 }));
@@ -59,6 +68,8 @@ for(const page of pages){
  }
 }
 assert.ok(referencedAssets>=63,'F314: expected all pages to reference reviewed resources');
+await writeFile('artifacts/release-review/REVIEW-ONLY-public-sitemap-continuity.json',
+ JSON.stringify(sitemapMatrix,null,2)+'\n');
 const handoff=Object.freeze({
  schema:'imagine.comercial.progressive-legacy-overlay-handoff.v1',
  status:'REVIEW_ONLY_NOT_AUTHORIZED_FOR_DEPLOY',
@@ -70,6 +81,8 @@ const handoff=Object.freeze({
  retainedOriginalContactRouteCount:1,
  retainedOriginalPublicSitemapPaths:81,
  retainedOriginalPublicSitemapVariants:161,
+ publicSitemapReviewMatrix:'REVIEW-ONLY-public-sitemap-continuity.json',
+ publicSitemapReviewRows:81,
  malformedSourceLocExcluded:1,
  retainedKnownOldUrls:27,
  retainedLegacyHeld:22,

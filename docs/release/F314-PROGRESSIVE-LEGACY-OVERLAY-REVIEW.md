@@ -102,7 +102,7 @@ backups ou funcionamento na VPS. O `/contato` real foi observado com 302,
 mas seu destino funcional não foi homologado. O sitemap público antigo não é
 substituído; nenhuma regra 301, DNS, checkout ou deploy é ativada.
 
-## F315 — protocolo de formulários históricos (19/11/2026)
+## F358 — protocolo de formulários históricos (19/11/2026)
 
 O ensaio HTTP local verifica seis rotas representativas de contato, incluindo
 `/component/imaginecontato`, `/fale-conosco`, `/contato` e `/contato/`.
@@ -115,3 +115,19 @@ do sitemap e evita que atinjam o Astro.
 consentimento, CSRF do Joomla/Portal, funcionamento do SMTP ou recebimento
 pelo CRM. Não executa POST no domínio público nem na VPS; a prova real de
 captação e rollback permanece bloqueada na issue P0 #466.
+
+## F359 — matriz pública de continuidade (19/11/2026)
+
+A CI passa a produzir `REVIEW-ONLY-public-sitemap-continuity.json`, no
+mesmo artifact de revisão de release existente. Cada uma das **81 linhas**
+lista somente pathname do sitemap público e a variante com barra, informa se
+existe colisão com a lista Astro ou com o inventário F310 e mantém ambas as
+decisões como `LEGACY_ORIGIN_RETAIN`.
+
+Uma colisão é exata (`/`) e uma depende da barra final
+(`/contato` → `/contato/`). A matriz não contém GSC, métricas, HTML,
+conteúdo de visitantes, credenciais, novos links autorizados ou POSTs.
+**Nenhum HTTP é executado para gerar o arquivo**; não há verificação de
+status atual, equivalência editorial, entrega de formulário ou rollback.
+As linhas são para revisão por SEO, conteúdo, jurídico e infraestrutura, não
+para alimentar automaticamente `_redirects` ou produção.
