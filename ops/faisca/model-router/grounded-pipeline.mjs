@@ -24,7 +24,11 @@ function readInput(value) {
     if (keys.length !== 3 || keys.some(key => !['conversationId', 'messageId', 'userText'].includes(key))) return null;
     const descriptors = Object.getOwnPropertyDescriptors(value);
     if (keys.some(key => !Object.hasOwn(descriptors[key], 'value'))) return null;
-    const { conversationId, messageId, userText } = value;
+    // Never re-read raw input after inspecting descriptors: a Proxy can
+    // return values different from its declared own data properties.
+    const conversationId = descriptors.conversationId.value;
+    const messageId = descriptors.messageId.value;
+    const userText = descriptors.userText.value;
     if (typeof conversationId !== 'string' || typeof messageId !== 'string' ||
         typeof userText !== 'string') return null;
     return Object.freeze({ conversationId, messageId, userText });
@@ -34,10 +38,20 @@ function readInput(value) {
 function requestForGrounding(input, answerId) {
   const isolatedConversationId = createHash('sha256')
     .update(input.conversationId + ':' + input.messageId).digest('hex').slice(0, 32);
+  const legacyMessageId = input.messageId + '_r06';
+  // The R09 route allows dots and IDs as short as one character; the
+  // R06 conversation wire accepts only 8-96 characters without dots.
+  // Preserve the old ID when valid, derive an opaque stable identifier
+  // otherwise. Replay/reconciliation must use the *same* derived ID.
+  const groundedMessageId = /^[A-Za-z0-9_-]{8,96}$/.test(legacyMessageId)
+    ? legacyMessageId
+    : 'r06_' + createHash('sha256')
+      .update(JSON.stringify([input.conversationId, input.messageId]))
+      .digest('hex').slice(0, 32);
   return Object.freeze({
     schema: CONVERSATION_SCHEMA,
     conversationId: isolatedConversationId,
-    messageId: input.messageId + '_r06',
+    messageId: groundedMessageId,
     locale: 'pt-BR',
     input: Object.freeze({ type: 'action', id: answerId })
   });
