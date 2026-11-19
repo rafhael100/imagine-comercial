@@ -92,7 +92,18 @@ async function withServer(scenario, operation) {
       start: page.locator('[data-faisca-http-start]'),
       reconcile: page.locator('[data-faisca-http-reconcile]'),
       reconciliation: page.locator('[data-faisca-http-reconciliation]'),
-      async flush() { await Promise.all(captureWork); },
+      async flush() {
+        // Chromium may resolve a displayed turn before Playwright's Node-side
+        // response.json() handler has registered the capture promise. A bare
+        // Promise.all([]) can pass even though the session was just created.
+        // Wait for observed local POSTs; never resend requests or mask failures.
+        const expected = requests.filter(item =>
+          item.method === 'POST' && item.path === endpoints.sessions).length;
+        await eventually(async () => {
+          await Promise.all([...captureWork]);
+          return sessions.length >= expected;
+        }, 'the local session response was not captured', 5000);
+      },
       apiCount(path) { return requests.filter(item => item.path === path).length; },
       async activate() {
         await fixture.start.waitFor({ state: 'visible' });
