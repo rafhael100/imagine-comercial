@@ -6,6 +6,8 @@ on:
       - 'ops/review/purchase/test-buyer-journey-browser.mjs'
       - 'src/lib/commercial-selection-preview.mjs'
       - 'src/lib/media-budget-calculator.mjs'
+      - 'scripts/install-chromium-ci.sh'
+      - 'tests/comercial-f325-browser-bootstrap.test.mjs'
       - '.github/workflows/comercial-f325-buyer-journey.yml'
 permissions:
   contents: read
@@ -25,8 +27,8 @@ jobs:
           node-version: '22'
       - name: Reproducible local dependencies
         run: npm ci --no-audit --no-fund
-      - name: Prepare local Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Prepare local Chromium with validated F161 fallback
+        run: bash scripts/install-chromium-ci.sh
       - name: Build standalone noindex artifact without Portal or public dist
         env:
           IMAGINE_BUYER_JOURNEY_REVIEW: '1'
