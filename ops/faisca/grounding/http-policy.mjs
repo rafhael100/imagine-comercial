@@ -5,7 +5,7 @@ const localReasons = new Set(['grounding_navigation', 'grounding_boundary',
   'grounding_unsupported', 'grounding_ambiguous', 'journey_confirmation_needed',
   'journey_cancelled', 'journey_no_pending', 'journey_confirmation_refused', 'journey_invalid', 'journey_summary',
   'r08_service_choice', 'r08_service_change_pending', 'r08_qualification_question', 'r08_qualification_complete',
-  'r08_qualification_summary', 'r08_invalid_input', 'r08_restart', 'r08_service_qualification_unavailable']);
+  'r08_qualification_summary', 'r08_next_steps', 'r08_invalid_input', 'r08_restart', 'r08_service_qualification_unavailable']);
 const unknownReasons = new Set(['timeout_after_dispatch', 'cancelled_after_dispatch', 'provider_unknown', 'pending']);
 
 /** The R07 PHP candidate is validated independently from trusted R08 presentation. */
