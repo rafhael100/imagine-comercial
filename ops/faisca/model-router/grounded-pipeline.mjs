@@ -24,7 +24,12 @@ function readInput(value) {
     if (keys.length !== 3 || keys.some(key => !['conversationId', 'messageId', 'userText'].includes(key))) return null;
     const descriptors = Object.getOwnPropertyDescriptors(value);
     if (keys.some(key => !Object.hasOwn(descriptors[key], 'value'))) return null;
-    const { conversationId, messageId, userText } = value;
+    // Descriptors were already validated as own DATA properties. Read
+    // their stored values rather than re-reading the untrusted object:
+    // a Proxy could otherwise execute its get trap after the descriptor gate.
+    const conversationId = descriptors.conversationId.value;
+    const messageId = descriptors.messageId.value;
+    const userText = descriptors.userText.value;
     if (typeof conversationId !== 'string' || typeof messageId !== 'string' ||
         typeof userText !== 'string') return null;
     return Object.freeze({ conversationId, messageId, userText });
