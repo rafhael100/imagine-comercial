@@ -143,7 +143,7 @@ function summaryReply(session, userText = labels.summary) {
 
 function nextStepReply(session) {
   const guide = session.profile ? buildQualificationNextStep(session.profile) : null;
-  if (!guide || !guide.complete || session.phase !== 'complete') {
+  if (!guide || !guide.complete || session.phase !== 'complete' || session.journey.pendingGoal !== null) {
     if (session.profile) return questionReply(session, session.profile,
       'Primeiro conclua as perguntas de qualificação antes de avançar.', [], 'Como avançar?');
     return serviceChoiceReply(session, 'Primeiro escolha a solução que deseja avaliar.', 'Como avançar?');
@@ -165,7 +165,7 @@ function nextStepReply(session) {
 
 /** R58 private copy-only preparation. Portal itself owns all transactions. */
 function nativeOnepagePreparationReply(session) {
-  const preview = session.phase === 'complete' && session.profile
+  const preview = session.phase === 'complete' && session.journey.pendingGoal === null && session.profile
     ? buildNativeOnepagePortalIntent(session.profile) : null;
   if (!preview || preview.status !== 'onepage_intent_only' ||
       preview.offerHint?.site !== 'onepage' ||
@@ -227,7 +227,8 @@ export function respondQualificationJourney(session, rawInput) {
   }
 
   if (input.type === 'action' && input.id === 'r08:restart') return freshReply();
-  if (input.type === 'action' && input.id === 'r08:change_service') {
+  if (input.type === 'action' && input.id === 'r08:change_service' &&
+      session.phase !== 'service_change_pending') {
     return serviceChoiceReply(session, 'Sem problema. Vamos rever a solução antes de continuar a qualificação.');
   }
   if (session.phase === 'service_reselect') {
