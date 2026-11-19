@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { startHttpLab } from '../server/http-lab.mjs';
-import { HTTP_PATHS, HTTP_RESULT_SCHEMA } from '../http-contract.mjs';
+import { HTTP_PATHS, HTTP_RESULT_SCHEMA, HTTP_ERROR_SCHEMA } from '../http-contract.mjs';
 import { CONVERSATION_SCHEMA } from '../conversation-contract.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { prepareGroundedBridge } from '../grounding/php-provider.mjs';
@@ -289,6 +289,9 @@ try {
       locale: 'pt-BR', input: { type: 'action', id: 'confirm_goal' }
     }, a.token);
     assert.equal(wrongContext.status, 403, 'An R08 token cannot consult another qualification session.');
+    assert.deepEqual(wrongContext.data, { schema: HTTP_ERROR_SCHEMA, code: 'conversation_mismatch' });
+    await eventually(() => httpFailures.length === 1,
+      'The expected cross-session 403 must be observed without other HTTP failures.');
     await Promise.all([a, b].map(session => browserFetch(page, endpoints.session, 'DELETE', {}, session.token)));
     await eventually(() => server.inspect().sessions === 1, 'Raw R08 sessions must be deleted while the browser session remains.');
     assert.equal(phpCounts().spawned, before.spawned + 2);
@@ -323,7 +326,10 @@ try {
       assert.deepEqual(audit.violations.map(item => item.id), [], 'R08 HTTP accessibility at ' + width + 'px');
     }
     assert.deepEqual(unexpected, []);
-    assert.deepEqual(httpFailures, [], 'No HTTP API request may be rejected during the R08 flow.');
+    assert.deepEqual(httpFailures, [{
+      path: endpoints.reconcile, status: 403,
+      body: { schema: HTTP_ERROR_SCHEMA, code: 'conversation_mismatch' }
+    }], 'Only the intentional cross-token security probe may be rejected.');
     assert.deepEqual(runtimeErrors, []);
     assert.deepEqual(await context.cookies(), []);
     assert.deepEqual(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length, cookie: document.cookie })),
