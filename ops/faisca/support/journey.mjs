@@ -62,8 +62,16 @@ function nextActions(triage) {
   const question = getNextSupportQuestion(triage);
   if (question) {
     const options = question.options.map(option => action('r10:' + question.field + ':' + option.value, option.label));
-    return Object.freeze(question.field === 'service'
-      ? options : [...options, action('r10:summary', 'Ver resumo parcial')]);
+    // Allow correction of answers already chosen, without forcing visitors
+    // to complete the triage or restart and lose unrelated choices.
+    const corrections = ['topic', 'service', 'detail']
+      .filter(field => triage[field] !== null)
+      .map(field => action('r10:revise:' + field, 'Corrigir ' + fieldLabels[field]));
+    return Object.freeze([
+      ...options,
+      ...(question.field === 'service' ? [] : [action('r10:summary', 'Ver resumo parcial')]),
+      ...corrections
+    ]);
   }
   return Object.freeze([
     action('r10:revise:topic', 'Corrigir assunto'),
