@@ -81,6 +81,22 @@ try {
       .waitFor({ state: 'visible' });
     assert.match(await inside.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     assert.equal(await choices.locator('[data-choice-site="landing-pages"]').getAttribute('aria-pressed'), 'true');
+    const chooseWithin = async (id, nextId) => {
+      await inside.locator('[data-action-id="' + id + '"]').click();
+      await inside.locator('[data-action-id="' + nextId + '"]')
+        .waitFor({ state: 'visible', timeout: 12000 });
+    };
+    await chooseWithin('r08:objective:present_company', 'r08:audience:businesses');
+    await chooseWithin('r08:audience:businesses', 'r08:materials:ready');
+    await chooseWithin('r08:materials:ready', 'r08:timeline:within_30_days');
+    await chooseWithin('r08:timeline:within_30_days', 'r08:contactConsent:declined');
+    await chooseWithin('r08:contactConsent:declined', 'r08:next_steps');
+    assert.equal(await inside.locator('[data-faisca-root]').getAttribute('data-faisca-quote-site'), 'onepage');
+    await page.locator('[data-faisca-apply-choice]').click();
+    assert.equal(await choices.locator('[data-choice-site="onepage"]').getAttribute('aria-pressed'), 'true');
+    assert.match(await page.locator('[data-faisca-apply-status]').innerText(),
+      /Site Onepage selecionado no simulador local/);
+    assert.equal(await choices.locator('form, input[type="email"]').count(), 0);
   });
   await check('portable server still refuses checkout and external traffic', async () => {
     assert.equal((await page.request.post(server.origin + '/__faisca_lab/messages')).status(), 405);
