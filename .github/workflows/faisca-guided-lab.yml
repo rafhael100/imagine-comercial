@@ -29,6 +29,10 @@ jobs:
           cache: npm
       - name: Testar núcleo e integridade da demonstração
         run: node --test tests/faisca-*.test.mjs
+      - name: Avaliar perguntas R14 em corpus sintético e registrar somente contagens
+        run: |
+          mkdir -p ops/faisca/reports
+          node ops/faisca/evaluation/run.mjs --synthetic > ops/faisca/reports/FAISCA_R14_EVALUATION_SYNTHETIC.json
       - name: Instalar dependências reproduzíveis
         run: npm ci --no-audit --no-fund
       - name: Instalar Chromium de testes
