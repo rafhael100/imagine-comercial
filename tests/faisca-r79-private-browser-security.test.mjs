@@ -93,6 +93,10 @@ test('R79 unauthorized origin, DNS-rebinding Host and public-style requests cann
     const result = await rawGet(server, PRIVATE_REVIEW_PAGE_PATH, badHost);
     assert.equal(result.status, 403);
   }
+  const ownOrigin = await fetch(server.address + PRIVATE_REVIEW_SCRIPT_PATH, {
+    headers: { Origin: server.address }
+  });
+  assert.equal(ownOrigin.status, 200, 'Same-origin module GET must remain usable.');
   const crossOrigin = await fetch(server.address + PRIVATE_REVIEW_PAGE_PATH, {
     headers: { Origin: 'https://example.invalid' }
   });
