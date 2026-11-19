@@ -235,7 +235,7 @@ export function mountFaisca(root, config = {}) {
 
   function finishPending() {
     if (!alive || !pending || !pending.ready) return;
-    const focusWasInActions = actions.contains(document.activeElement);
+    const focusWasInActions = pending.focusActions === true || actions.contains(document.activeElement);
     const result = pending.result;
     pending = null;
     if (timer !== null) window.clearTimeout(timer);
@@ -262,7 +262,8 @@ export function mountFaisca(root, config = {}) {
     if (typeof result.userText === 'string') appendMessage('user', result.userText);
     input.value = '';
     byId('faisca-count').textContent = '0/800';
-    const current = { result, ready: !replyAdapter };
+    // Capture focus intent before the button is disabled and potentially blurred.
+    const current = { result, ready: !replyAdapter, focusActions: !textInputEnabled && event?.type === 'action' };
     pending = current;
     const ownGeneration = generation;
     setBusy(true);
