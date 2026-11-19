@@ -37,7 +37,12 @@ test('R33 one quota reservation gates both R09 selection and the R06 grounded br
     assert.equal(accepted.delivery, 'php_grounded');
     assert.equal(accepted.route.answerId, 'pricing');
     assert.equal(accepted.reply.text, getGroundedAnswer('pricing').text);
-    assert.deepEqual(accepted.reply.sources, getGroundedAnswer('pricing').sources);
+    // The user-facing conversation protocol intentionally omits the
+    // internal source version; compare only the verified visible fields.
+    assert.deepEqual(
+      accepted.reply.sources.map(({ id, title }) => ({ id, title })),
+      getGroundedAnswer('pricing').sources.map(({ id, title }) => ({ id, title }))
+    );
     assert.equal(calls.route, 1);
     assert.equal(calls.php, 1);
     assert.equal(quota.inspect().totalReserved, 1);
