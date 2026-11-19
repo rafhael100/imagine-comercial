@@ -5,6 +5,13 @@ requireLabMode(process.env.IMAGINE_FAISCA_LAB);
 const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE_ROOT });
 ---
 <style is:global set:html={view.css} />
+<style is:global>
+  /* The shared visual theme may declare display:grid on the composer.
+     Preserve the accessibility contract of the R55 closed-choice lab. */
+  faisca-support-lab [data-faisca-root] #faisca-composer[hidden] {
+    display: none !important;
+  }
+</style>
 <style>
   faisca-support-lab { display: block; }
   .support-controls { max-width: 1360px; margin: 1rem auto; padding: 0 24px; display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; }

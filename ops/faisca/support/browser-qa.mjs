@@ -82,12 +82,8 @@ try {
     await page.locator('#faisca-quick-actions [data-action-id="' + id + '"]').click();
     await done(before);
   }
-  async function typeText(text) {
-    const before = await page.locator('#faisca-log .assistant').count();
-    await page.locator('#faisca-input').fill(text);
-    await page.locator('#faisca-send').click();
-    await done(before);
-  }
+  // The R55 browser has no free-text submission control. Node tests still
+  // exercise forged typed payloads at the support boundary.
 
   await check('R10 support lab requires explicit activation and keeps the approved artwork', async () => {
     const start = page.locator('[data-support-start]');
@@ -97,11 +93,14 @@ try {
     assert.equal(await page.locator('#faisca-master').evaluate(image =>
       image.complete && image.naturalWidth === 1254), true);
     await start.click();
-    await page.locator('#faisca-composer').waitFor({ state: 'visible' });
+    await page.locator('[data-faisca-root][data-faisca-mounted="true"]').waitFor({ state: 'attached' });
     assert.equal(await page.locator('[data-faisca-root]').getAttribute('data-faisca-mode'),
       'r10_anonymous_support_lab');
     assert.match(await last().innerText(), /prévia anônima/);
     assert.doesNotMatch(await last().innerText(), /escreva sua dúvida/i);
+    assert.equal(await page.locator('#faisca-composer').isVisible(), false);
+    assert.equal(await page.locator('#faisca-input').isDisabled(), true);
+    assert.equal(await page.locator('#faisca-send').isDisabled(), true);
     assert.deepEqual(await page.locator('#faisca-quick-actions button').allTextContents(),
       ['Organizar atendimento']);
   });
@@ -149,14 +148,26 @@ try {
     assert.match(await summary(), /Nenhum ticket foi aberto/);
   });
 
-  await check('R10 never echoes typed credentials, phone numbers or email into the chat or summary', async () => {
-    const before = await summary();
-    await typeText('Minha senha SYNTHETIC_SECRET_999 e email secret@example.invalid');
-    assert.match(await last().innerText(), /aceita apenas as opções disponíveis/);
-    const log = await page.locator('#faisca-log').innerText();
-    assert.doesNotMatch(log, /SYNTHETIC_SECRET_999|secret@example.invalid/);
-    assert.doesNotMatch(await summary(), /SYNTHETIC_SECRET_999|secret@example.invalid/);
-    assert.equal(await summary(), before);
+  await check('R55 hides free text entirely and restores keyboard focus to closed actions', async () => {
+    assert.equal(await page.locator('#faisca-composer').isVisible(), false);
+    assert.equal(await page.locator('#faisca-input').isDisabled(), true);
+    assert.equal(await page.locator('#faisca-send').isDisabled(), true);
+    assert.equal(await page.locator('#faisca-quick-actions button').first().evaluate(
+      button => button === document.activeElement), true);
+    const beforeCount = await page.locator('#faisca-log .assistant').count();
+    const beforeSummary = await summary();
+    await page.evaluate(() => {
+      const input = document.querySelector('#faisca-input');
+      input.value = 'SYNTHETIC_SECRET_999 secret@example.invalid';
+      document.querySelector('#faisca-composer').dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    assert.equal(await page.locator('#faisca-input').inputValue(), '');
+    assert.equal(await page.locator('#faisca-log .assistant').count(), beforeCount);
+    assert.equal(await summary(), beforeSummary);
+    assert.doesNotMatch(await page.locator('#faisca-log').innerText(),
+      /SYNTHETIC_SECRET_999|secret@example.invalid/);
+    assert.match(await summary(), /Nenhum ticket foi aberto/);
   });
 
   await check('R10 reset erases the local triage and does not claim a support ticket', async () => {
@@ -166,6 +177,9 @@ try {
     assert.match(await summary(), /Nenhum ticket foi aberto/);
     assert.match(await last().innerText(), /prévia anônima/);
     assert.doesNotMatch(await last().innerText(), /escreva sua dúvida/i);
+    assert.equal(await page.locator('#faisca-composer').isVisible(), false);
+    assert.equal(await page.locator('#faisca-quick-actions button').first().evaluate(
+      button => button === document.activeElement), true);
   });
 
   await check('R10 screen remains responsive and accessible at 320, 390 and 1440 pixels', async () => {

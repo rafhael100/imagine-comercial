@@ -17,7 +17,8 @@ const policy = Object.freeze({
   create: createSupportJourney,
   summary: getSupportJourneySummary,
   welcome: getSupportWelcome,
-  actionLimit: 7
+  actionLimit: 7,
+  textInputEnabled: false
 });
 
 /** Local-only R10 support: no customer identity, persistence or external calls. */

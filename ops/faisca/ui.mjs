@@ -69,9 +69,9 @@ export function mountFaisca(root, config = {}) {
         ![Object.prototype, null].includes(Object.getPrototypeOf(sessionPolicy))) throw new TypeError('Invalid local session policy.');
     const fields = Object.getOwnPropertyDescriptors(sessionPolicy);
     const names = Reflect.ownKeys(fields);
-    if (names.length < 2 || names.length > 5 ||
+    if (names.length < 2 || names.length > 6 ||
         names.some(key => typeof key !== 'string' ||
-          !['create', 'summary', 'quoteSite', 'welcome', 'actionLimit'].includes(key)) ||
+          !['create', 'summary', 'quoteSite', 'welcome', 'actionLimit', 'textInputEnabled'].includes(key)) ||
         ['create', 'summary'].some(key => !fields[key] ||
           !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function') ||
         (fields.quoteSite && (!Object.hasOwn(fields.quoteSite, 'value') ||
@@ -79,7 +79,9 @@ export function mountFaisca(root, config = {}) {
          (fields.welcome && (!Object.hasOwn(fields.welcome, 'value') ||
           typeof fields.welcome.value !== 'function')) ||
         (fields.actionLimit && (!Object.hasOwn(fields.actionLimit, 'value') ||
-          fields.actionLimit.value !== 7))) {
+          fields.actionLimit.value !== 7)) ||
+        (fields.textInputEnabled && (!Object.hasOwn(fields.textInputEnabled, 'value') ||
+          fields.textInputEnabled.value !== false))) {
       throw new TypeError('Incomplete local session policy.');
     }
   }
@@ -88,6 +90,9 @@ export function mountFaisca(root, config = {}) {
   // R53: only checked-in isolated laboratory policies may replace the welcome.
   // Default public and legacy demos keep the original Faísca greeting.
   const getWelcomeForView = sessionPolicy?.welcome ?? getWelcome;
+  // A vetted, locally injected support policy can remove free-text controls.
+  // This is a UI guard; the support turn policy also rejects typed content.
+  const textInputEnabled = sessionPolicy?.textInputEnabled !== false;
   const replyDelayMs = descriptors.replyDelayMs?.value ?? 220;
   const prepareTurn = descriptors.prepareTurn?.value ?? respond;
   if (typeof prepareTurn !== 'function') throw new TypeError('Invalid trusted turn policy.');
@@ -114,6 +119,10 @@ export function mountFaisca(root, config = {}) {
   const actions = byId('faisca-quick-actions');
   const input = byId('faisca-input');
   const send = byId('faisca-send');
+  const composer = byId('faisca-composer');
+  const originalComposerHidden = composer.hidden;
+  const originalInputDisabled = input.disabled;
+  const originalSendDisabled = send.disabled;
   const thinking = byId('faisca-thinking');
   const launcher = byId('faisca-launcher');
   const closed = byId('faisca-closed');
@@ -212,16 +221,21 @@ export function mountFaisca(root, config = {}) {
   }
 
   function setBusy(value) {
-    send.disabled = value;
+    send.disabled = value || !textInputEnabled;
     for (const button of actions.querySelectorAll('button')) button.disabled = value;
     thinking.hidden = !value;
     log.setAttribute('aria-busy', String(value));
     if (value) setState('THINK');
   }
 
+  function focusPrimaryControl() {
+    const control = textInputEnabled ? input : actions.querySelector('button');
+    control?.focus({ preventScroll: true });
+  }
+
   function finishPending() {
     if (!alive || !pending || !pending.ready) return;
-    const focusWasInActions = actions.contains(document.activeElement);
+    const focusWasInActions = pending.focusActions === true || actions.contains(document.activeElement);
     const result = pending.result;
     pending = null;
     if (timer !== null) window.clearTimeout(timer);
@@ -233,7 +247,7 @@ export function mountFaisca(root, config = {}) {
     renderActions(reply.actions);
     setState(shell.hidden ? 'SLEEP' : reply.state || 'TALK');
     refreshSummary();
-    if (focusWasInActions && !shell.hidden) input.focus({ preventScroll: true });
+    if (focusWasInActions && !shell.hidden) focusPrimaryControl();
   }
 
   function turn(event) {
@@ -248,7 +262,8 @@ export function mountFaisca(root, config = {}) {
     if (typeof result.userText === 'string') appendMessage('user', result.userText);
     input.value = '';
     byId('faisca-count').textContent = '0/800';
-    const current = { result, ready: !replyAdapter };
+    // Capture focus intent before the button is disabled and potentially blurred.
+    const current = { result, ready: !replyAdapter, focusActions: !textInputEnabled && event?.type === 'action' };
     pending = current;
     const ownGeneration = generation;
     setBusy(true);
@@ -294,7 +309,7 @@ export function mountFaisca(root, config = {}) {
     if (wasClosed) setState('IDLE');
     if (focusInput) {
       shell.scrollIntoView({ block: 'nearest', behavior: reduceMotion.matches ? 'instant' : 'smooth' });
-      input.focus({ preventScroll: true });
+      focusPrimaryControl();
     }
   }
 
@@ -333,7 +348,7 @@ export function mountFaisca(root, config = {}) {
     refreshSummary();
     setState(shell.hidden ? 'SLEEP' : 'IDLE');
     announce('Conversa reiniciada. O histórico anterior foi apagado desta página.');
-    if (!shell.hidden) input.focus({ preventScroll: true });
+    if (!shell.hidden) focusPrimaryControl();
   }
 
   function updateMotion() {
@@ -372,6 +387,9 @@ export function mountFaisca(root, config = {}) {
     byId('faisca-summary-indicator').textContent = '—';
     byId('faisca-count').textContent = '0/800';
     setBusy(false);
+    composer.hidden = originalComposerHidden;
+    input.disabled = originalInputDisabled;
+    send.disabled = originalSendDisabled;
     shell.hidden = false;
     closed.hidden = true;
     launcher.hidden = true;
@@ -399,13 +417,13 @@ export function mountFaisca(root, config = {}) {
       openChat(button, false);
       if (pending && !pending.ready) {
         announce('Aguarde esta resposta ou reinicie a conversa.');
-        input.focus({ preventScroll: true });
+        focusPrimaryControl();
         return;
       }
       finishPending();
       turn({ type: 'action', id: button.dataset.demoAction });
       shell.scrollIntoView({ block: 'nearest', behavior: reduceMotion.matches ? 'instant' : 'smooth' });
-      input.focus({ preventScroll: true });
+      focusPrimaryControl();
     });
   }
   for (const button of root.querySelectorAll('[data-open-chat]')) on(button, 'click', () => openChat(button));
@@ -427,6 +445,14 @@ export function mountFaisca(root, config = {}) {
   });
   on(byId('faisca-composer'), 'submit', (event) => {
     event.preventDefault();
+    if (!textInputEnabled) {
+      // Clear even script-injected text before replying; never enter the turn.
+      input.value = '';
+      byId('faisca-count').textContent = '0/800';
+      announce('Escolha uma das opções de atendimento.');
+      focusPrimaryControl();
+      return;
+    }
     if (!input.value.trim()) { announce('Escreva uma pergunta ou escolha uma das opções.'); input.focus(); return; }
     turn({ type: 'text', text: input.value });
   });
@@ -452,6 +478,7 @@ export function mountFaisca(root, config = {}) {
   log.setAttribute('aria-live', 'polite');
   log.replaceChildren();
   input.value = '';
+  input.disabled = originalInputDisabled || !textInputEnabled;
   byId('faisca-count').textContent = '0/800';
   summary.open = false;
   feedback.textContent = '';
@@ -468,6 +495,9 @@ export function mountFaisca(root, config = {}) {
   launcher.setAttribute('aria-expanded', 'true');
   // Reveal interaction only after every listener and initial state is installed.
   for (const node of root.querySelectorAll('[data-js-only]')) node.hidden = false;
+  // Reveal JS-only shell first; then retain the closed-composer policy.
+  // Otherwise the generic reveal loop would undo the support restriction.
+  composer.hidden = !textInputEnabled;
   const api = Object.freeze({ mode: replyAdapter ? 'simulated_contract_demo' : 'guided_demo', root,
     open: () => openChat(), close: closeChat, reset: resetConversation, destroy });
   mountedFaiscaRoots.set(root, api);

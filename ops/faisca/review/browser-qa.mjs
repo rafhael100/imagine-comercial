@@ -88,13 +88,24 @@ try {
   await check('anonymous support remains local, closed and copy-only', async () => {
     await page.goto(server.origin + '/support/', { waitUntil: 'load' });
     await page.locator('[data-support-start]').click();
-    await page.locator('#faisca-composer').waitFor({ state: 'visible' });
+    await page.locator('[data-faisca-root][data-faisca-mounted="true"]').waitFor({ state: 'attached' });
+    assert.equal(await page.locator('#faisca-composer').isVisible(), false);
+    assert.equal(await page.locator('#faisca-input').isDisabled(), true);
     await choose('after_sales');
     await choose('r10:topic:technical');
     await choose('r10:service:onepage');
     await choose('r10:detail:contact_form');
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Nenhum ticket foi aberto/);
-    await send('Minha senha é EXEMPLO-SINTETICO-123');
+    const beforeCount = await page.locator('#faisca-log .assistant').count();
+    const beforeSummary = await page.locator('#faisca-summary-text').inputValue();
+    await page.evaluate(() => {
+      document.querySelector('#faisca-input').value = 'EXEMPLO-SINTETICO-123';
+      document.querySelector('#faisca-composer').dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    assert.equal(await page.locator('#faisca-input').inputValue(), '');
+    assert.equal(await page.locator('#faisca-log .assistant').count(), beforeCount);
+    assert.equal(await page.locator('#faisca-summary-text').inputValue(), beforeSummary);
     assert.doesNotMatch(await page.locator('#faisca-log').innerText(), /EXEMPLO-SINTETICO-123/);
   });
 
