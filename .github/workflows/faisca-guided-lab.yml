@@ -1,0 +1,127 @@
+name: Faísca - demonstração guiada e acessibilidade
+
+on:
+  pull_request:
+    paths:
+      - 'ops/faisca/**'
+      - 'tests/faisca-*.test.mjs'
+      - '.github/workflows/faisca-guided-lab.yml'
+      - 'package-lock.json'
+      - 'src/lib/private-loopback-preview.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  faisca-preview:
+    name: Faísca sintético, imagem aprovada e navegador
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Obter código para revisão
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Configurar Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Testar núcleo e integridade da demonstração
+        run: node --test tests/faisca-*.test.mjs
+      - name: Avaliar perguntas R14 em corpus sintético e registrar somente contagens
+        run: |
+          mkdir -p ops/faisca/reports
+          node ops/faisca/evaluation/run.mjs --synthetic > ops/faisca/reports/FAISCA_R14_EVALUATION_SYNTHETIC.json
+      - name: Instalar dependências reproduzíveis
+        run: npm ci --no-audit --no-fund
+      - name: Instalar Chromium de testes
+        run: bash scripts/install-chromium-ci.sh
+      - name: Compilar laboratório Astro separado
+        run: IMAGINE_FAISCA_LAB=1 npx --no-install astro build --config ops/faisca/lab/astro.config.mjs
+      - name: Preparar revisão R21 somente após validar os 7 HTML e o PNG aprovado
+        env:
+          IMAGINE_FAISCA_LAB: '1'
+        run: node ops/faisca/review/build-review.mjs --private-review
+      - name: Verificar jornadas, privacidade, teclado, responsividade e axe
+        run: node ops/faisca/browser-qa.mjs
+      - name: Verificar ativação do componente Astro
+        run: node ops/faisca/lab/browser-qa.mjs
+      - name: Verificar R08 qualificação comercial, confirmação e WCAG
+        run: node ops/faisca/journey/browser-qa.mjs
+      - name: Verificar R10 triagem anônima, privacidade e WCAG
+        run: node ops/faisca/support/browser-qa.mjs
+      - name: Verificar conversa HTTP loopback e reconciliação
+        run: node ops/faisca/server/browser-qa.mjs
+      - name: Verificar iniciador R22 somente leitura no Chromium
+        run: node ops/faisca/review/browser-qa.mjs
+      - name: Compilar Astro Comercial real, mantendo o Faísca público desativado
+        run: npm run build
+      - name: Barrar qualquer vazamento do laboratório Faísca no dist público
+        run: node ops/faisca/composition/public-release-gate.mjs --audit-dist
+      - name: Validar composição R24 Comercial + Faísca sob autenticação privada
+        run: node ops/faisca/composition/browser-qa.mjs
+      - name: Validar R27 Comercial sem JavaScript e com módulo Faísca indisponível
+        run: node ops/faisca/composition/failure-browser-qa.mjs
+      - name: Preparar pacote portátil R29 com o Comercial real sob Basic Auth
+        env:
+          IMAGINE_FAISCA_LAB: '1'
+        run: node ops/faisca/composition/build-portable.mjs --private-review
+      - name: Verificar o pacote R29 extraído no Chromium (sem npm e sem PHP)
+        run: node ops/faisca/composition/portable-browser-qa.mjs
+      - name: Montar kit R38 de staging privado sem iniciar Docker ou VPS
+        env:
+          IMAGINE_FAISCA_LAB: '1'
+        run: node ops/faisca/staging/build-kit.mjs --review-only
+      - name: Conferir hashes e política do kit R38 extraído
+        run: node ops/faisca/output/private-staging-kit/verify-kit.mjs --verify
+      - name: Provar R45 no Nginx real e Chromium (NÃO aceitar skip silencioso)
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/faisca/staging/check-nginx-loopback.py
+          command -v nginx
+          command -v htpasswd
+          node -e "require.resolve('playwright')"
+          python3 ops/faisca/staging/check-nginx-loopback.py --kit ops/faisca/output/private-staging-kit --chromium
+      - name: Disponibilizar pacote de demonstração R21 estritamente para revisão
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: faisca-R22-PRIVATE-REVIEW-ONLY
+          path: |
+            ops/faisca/output/astro/
+            ops/faisca/output/Faisca_Demonstracao_Guiada.html
+            ops/faisca/output/Faisca_R21_AUDIT.json
+            ops/faisca/output/LEIA-ME-FAISCA-R21.txt
+            ops/faisca/output/faisca-review-server.mjs
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
+      - name: Disponibilizar R29 Comercial + Faísca portátil para revisão privada
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: faisca-R29-COMERCIAL-INTEGRADO-PRIVADO
+          path: ops/faisca/output/portable/
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
+      - name: Disponibilizar kit R38 de staging privado APENAS para revisão
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: faisca-R38-STAGING-PRIVADO-NAO-IMPLANTADO
+          path: ops/faisca/output/private-staging-kit/
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
+      - name: Guardar evidências sintéticas para revisão
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: faisca-guided-SYNTHETIC-REVIEW-ONLY
+          path: ops/faisca/reports/
+          if-no-files-found: ignore
+          retention-days: 7
+          include-hidden-files: false

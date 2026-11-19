@@ -1,0 +1,200 @@
+"""CI-only browser journey across compiled Comercial and Portal Laravel/PostgreSQL.
+
+Only loopback ports 18084 (Comercial) and 18083 (Portal) are visited.
+The four original HTTPS Portal CTA URLs are checked exactly, then mapped
+IN MEMORY to loopback for CI navigation. No DNS, VPS, Asaas or real identities.
+"""
+import os
+import uuid
+from urllib.parse import urlsplit
+from playwright.sync_api import sync_playwright
+
+assert os.environ.get("GITHUB_ACTIONS") == "true", "CI only"
+assert os.environ.get("IMAGINE_CROSSREPO_LOOPBACK") == "1", "Explicit test opt-in"
+COMMERCIAL = "http://127.0.0.1:18084/"
+PORTAL = "http://127.0.0.1:18083/_preview/portal"
+PORTAL_ORIGIN = "https://portal-dev.imaginecomunica.com.br"
+EXPECTED = {
+    "onepage": "/_preview/portal/shop?product=onepage",
+    "landing-pages": "/_preview/portal/shop?product=landing-pages",
+    "gestao-google-ads": "/_preview/portal/shop?product=performance&channel=google_ads",
+    "gestao-meta-ads": "/_preview/portal/shop?product=performance&channel=meta_ads",
+}
+PASSWORD = "ci-crossrepo-synthetic-only-2026"
+
+def from_commercial(page, slug):
+    assert page.goto(COMMERCIAL, wait_until="domcontentloaded").status == 200
+    # The seventh editorial ChatGPT Ads offering has no private checkout:
+    # only the original four Portal CTAs may enter the synthetic shop.
+    assert page.locator("[data-quick-hire]").count() == 7
+    chatgpt = page.locator('[data-quick-hire="gestao-chatgpt-ads"] [data-quick-hire-action]')
+    assert chatgpt.count() == 1
+    assert chatgpt.get_attribute("target") == "_blank"
+    assert "noopener" in (chatgpt.get_attribute("rel") or "")
+    assert (chatgpt.get_attribute("href") or "").startswith("https://wa.me/")
+    assert "/_preview/portal/shop" not in (chatgpt.get_attribute("href") or "")
+    for public in ("criacao-de-sites", "sites-por-assinatura"):
+        a = page.locator('[data-quick-hire="' + public + '"] [data-quick-hire-action]')
+        assert a.count() == 1
+        assert a.get_attribute("target") == "_blank"
+        assert "noopener" in (a.get_attribute("rel") or "")
+    a = page.locator('[data-quick-hire="' + slug + '"] [data-quick-hire-action]')
+    assert a.count() == 1
+    original_href = a.get_attribute("href")
+    assert original_href == PORTAL_ORIGIN + EXPECTED[slug], (slug, original_href)
+    parsed = urlsplit(original_href)
+    assert parsed.scheme == "https" and parsed.netloc == "portal-dev.imaginecomunica.com.br"
+    assert parsed.username is None and parsed.password is None and not parsed.fragment
+    assert a.get_attribute("target") is None
+    # The real link is never visited. This changes the in-memory DOM on a
+    # disposable CI Chromium page, preserving the path/query exactly.
+    local_destination = "http://127.0.0.1:18083" + parsed.path + "?" + parsed.query
+    a.evaluate("(element, destination) => element.setAttribute('href', destination)", local_destination)
+    a.click()
+    assert page.url.startswith(PORTAL), (slug, page.url)
+
+def accept_and_create(page, price):
+    assert price in page.locator("body").inner_text(), price
+    page.locator('input[name="offer_ack"]').check()
+    page.get_by_role("button", name="Criar pedido de teste").click()
+    assert "/shop/orders/" in page.url, page.url
+    return page.url
+
+def assert_approved_setup_schedule(page, expected_total, expected_installment):
+    # The Portal owns this HTML and catalog. These are regression assertions,
+    # not client-side pricing data or charges created by the Comercial website.
+    body = page.locator("body").inner_text()
+    assert expected_total in body
+    assert body.count(expected_installment) >= 3, "D0, D30 and D60 installments required"
+    assert "na contratação" in body
+    assert "após 30 dias" in body
+    assert "após 60 dias" in body
+    assert "R$ 79,90/mês" in body
+    assert "90 dias após a contratação" in body
+    assert "independentemente da publicação" in body
+
+def signup(page):
+    page.goto(PORTAL + "/register")
+    user = "demo-cross-" + uuid.uuid4().hex[:10]
+    for name, value in {
+        "name": "Pessoa de teste",
+        "company": "Empresa ficticia CI",
+        "username": user,
+        "password": PASSWORD,
+        "password_confirmation": PASSWORD,
+    }.items():
+        page.locator('[name="' + name + '"]').fill(value)
+    page.get_by_role("button", name="Criar conta e continuar").click()
+    return user
+
+with sync_playwright() as p:
+    chrome = __import__("shutil").which("google-chrome") or __import__("shutil").which("chromium")
+    assert chrome, "System Chromium or Google Chrome required"
+    browser = p.chromium.launch(executable_path=chrome, headless=True, args=["--no-sandbox"])
+    context = browser.new_context(viewport={"width":1280,"height":900})
+    blocked = []
+    def loopback_only(route):
+        url = urlsplit(route.request.url)
+        if url.scheme in ("http","https") and url.hostname != "127.0.0.1":
+            blocked.append(url.hostname)
+            route.abort()
+        else:
+            route.continue_()
+    context.route("**/*", loopback_only)
+    page = context.new_page()
+    try:
+        from_commercial(page, "onepage")
+        assert page.url.rstrip("/") == PORTAL
+        owner_a = signup(page)
+        assert page.url.endswith("/shop?product=onepage"), page.url
+        onepage = accept_and_create(page, "R$ 990,00")
+        assert_approved_setup_schedule(page, "R$ 990,00", "R$ 330,00")
+        # One complete *fake* settlement and briefing, never an Asaas payment.
+        page.locator('[name="sample_ack"]').check()
+        page.locator('[name="outcome"]').select_option("approved")
+        page.get_by_role("button", name="Aplicar resultado de teste").click()
+        for key in ("business","goal","audience","materials"):
+            page.locator('[name="' + key + '"]').fill("Exemplo CI")
+        page.get_by_role("button", name="Salvar briefing de teste").click()
+        assert "Briefing salvo no Portal de teste" in page.locator("body").inner_text()
+        from_commercial(page, "landing-pages")
+        assert page.url.endswith("/shop?product=landing-pages"), page.url
+        landing = accept_and_create(page, "R$ 1.290,00")
+        assert_approved_setup_schedule(page, "R$ 1.290,00", "R$ 430,00")
+        # This order originated from the actual Landing Page CTA.  Queue a
+        # server-valued SANDBOX intent, never a PSP call or browser-set amount.
+        assert page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").count() == 1
+        csrf_landing = page.locator('input[name="_token"]').first.input_value()
+        revision_landing = page.locator('input[name="revision"]').first.input_value()
+        bad_amount = page.request.post(
+            landing + "/sandbox",
+            form={"_token":csrf_landing,"revision":revision_landing,
+                  "sandbox_ack":"1","amount_cents":"1"})
+        assert bad_amount.status == 422, "Client must not submit financial amount"
+        page.locator('[name="sandbox_ack"]').check()
+        page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").click()
+        assert page.url == landing
+        assert page.locator('[name="outcome"]').count() == 0, "Cannot fake PSP settlement"
+        assert page.locator('[name="business"]').count() == 0, "Briefing requires verified receipt"
+        assert "R$ 430,00" in page.locator("body").inner_text()
+        for slug, channel in (("gestao-google-ads","google_ads"),("gestao-meta-ads","meta_ads")):
+            from_commercial(page, slug)
+            assert page.url.endswith(EXPECTED[slug]), page.url
+            assert page.locator('[data-channel-origin="' + channel + '"]').count() == 1
+            assert page.locator('[name="google_media"]').input_value() == ""
+            assert page.locator('[name="meta_media"]').input_value() == ""
+            field = "google_media" if channel == "google_ads" else "meta_media"
+            page.locator('[name="' + field + '"]').fill("700")
+            order = accept_and_create(page, "20%")
+            assert "R$ 140,00" in page.locator("body").inner_text(), slug
+            assert "R$ 700,00" in page.locator("body").inner_text(), slug
+            assert order not in (onepage, landing)
+        page.goto(PORTAL + "/client/services")
+        assert page.locator('tr[data-customer-order]').count() == 4
+        # A second individual synthetic customer in the SAME test company cannot
+        # enumerate, view or mutate the first customer's orders at HTTP layer.
+        page.goto(PORTAL)
+        page.get_by_role("button", name="Sair", exact=True).click()
+        from_commercial(page, "gestao-google-ads")
+        assert page.url.rstrip("/") == PORTAL
+        owner_b = signup(page)
+        assert owner_b != owner_a
+        assert page.url.endswith("/shop?product=performance&channel=google_ads")
+        page.goto(PORTAL + "/client/services")
+        assert page.locator('tr[data-customer-order]').count() == 0
+        assert page.request.get(onepage).status == 404
+        assert page.request.get(landing).status == 404
+        page.goto(PORTAL + "/shop?product=onepage")
+        csrf_token = page.locator('input[name="_token"]').first.input_value()
+        assert page.request.post(onepage + "/payment", form={"_token":csrf_token, "revision":"0", "outcome":"approved", "sample_ack":"1"}).status == 404
+        # Rate-limited Sandbox writes are reserved for legitimate scoped
+        # scenarios; foreign read access has already been rejected (404).
+        # A second customer creates a separate provider intent from the Google
+        # Ads CTA. This remains a synthetic SERVER-PRICED honorarium of R$140,
+        # with R$700 media payable independently to Google (not Imagine).
+        from_commercial(page, "gestao-google-ads")
+        assert page.url.endswith("/shop?product=performance&channel=google_ads")
+        page.locator('[name="google_media"]').fill("700")
+        second_order = accept_and_create(page, "20%")
+        assert "R$ 140,00" in page.locator("body").inner_text()
+        assert "R$ 700,00" in page.locator("body").inner_text()
+        assert second_order != landing
+        page.locator('[name="sandbox_ack"]').check()
+        page.get_by_role("button", name="Gerar cobrança no Asaas sandbox").click()
+        assert page.url == second_order
+        assert page.locator('[name="outcome"]').count() == 0
+        assert page.locator('[name="business"]').count() == 0
+        page.goto(PORTAL + "/client/services")
+        assert page.locator('tr[data-customer-order]').count() == 1
+        page.goto(PORTAL)
+        page.get_by_role("button", name="Sair", exact=True).click()
+        page.locator('[name="username"]').fill(owner_a)
+        page.locator('[name="password"]').fill(PASSWORD)
+        page.get_by_role("button", name="Entrar", exact=True).click()
+        page.goto(PORTAL + "/client/services")
+        assert page.locator('tr[data-customer-order]').count() == 4
+        assert not blocked, "Unexpected external network requests: " + str(blocked)
+        print("PASS cross-repo HTTP/Chromium four CTAs: TWO server-valued Landing/Google Sandbox intents, no manual settlement, signed PG18 ownership, v4 quotes; NO PSP/DEPLOY")
+    finally:
+        context.close()
+        browser.close()

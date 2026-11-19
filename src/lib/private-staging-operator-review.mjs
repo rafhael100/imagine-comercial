@@ -1,0 +1,105 @@
+/**
+ * F167 — single, non-deploying operator review of PRIVATE staging.
+ * Requirements are independently checked by F164/F165/F166/F159.
+ * A passing report is diagnostic evidence only; none of the checks
+ * proves public production authorization or remote tenant privacy.
+ */
+import {reviewPrivateStagingImage} from './private-staging-image-policy.mjs';
+import {reviewStagingBuildIntegrity} from './staging-build-integrity.mjs';
+import {reviewPrivateStagingHtpasswd} from './private-staging-htpasswd-review.mjs';
+import {reviewPrivateStagingHttp} from './private-staging-http-gate.mjs';
+import {sitePages} from '../data/services.mjs';
+import {legacyUrls} from '../data/legacy-urls.mjs';
+import {join} from 'node:path';
+import {readApprovedFile} from './read-approved-file.mjs';
+import {readProtectedDist} from './read-protected-dist.mjs';
+
+export async function reviewStagingOperatorCandidate({
+  root,image,expectedTreeSha256,htpasswdPath,basicAuth,port,transport
+}={}){
+  // Order matters: reject local package or secret problems BEFORE network.
+  const imageReview=reviewPrivateStagingImage(image);
+  const bytes=reviewStagingBuildIntegrity({root,expectedTreeSha256});
+  const authFile=reviewPrivateStagingHtpasswd(htpasswdPath);
+  if(!imageReview.immutableDigestSyntax||!bytes.exactTreeBytesVerified||
+     !authFile.filePermissionsPrivate||!authFile.bcryptHashSyntaxPresent)
+    throw Error('F167: private staging prerequisites not satisfied');
+  // F234: read only pinned, versioned static paths. F165 validated the full
+  // tree before this point; F233 checks it again after HTTP.
+  const expectedHtmlByPath=new Map(sitePages.map(page=>[
+    page.path,
+    readApprovedFile(join(root,page.path==='/'?'index.html':
+      page.path.slice(1)+'index.html'),1024*1024,'staging HTML')
+  ]));
+  expectedHtmlByPath.set('__404_html__',
+    readApprovedFile(join(root,'404.html'),1024*1024,'staging 404 HTML'));
+  // F235: every non-HTML file in the already pinned static tree must also
+  // match what the private Nginx endpoint actually serves.
+  const expectedAssetsByPath=new Map(readProtectedDist(root)
+    .filter(file=>!file.path.endsWith('.html'))
+    .map(file=>['/'+file.path,file.bytes]));
+  // F232: the operator's final decision must check every current and historical
+  // path, not only the smaller smoke-test fixture.
+  const http=await reviewPrivateStagingHttp({port,basicAuth,transport,fullCoverage:true,expectedHtmlByPath,expectedAssetsByPath});
+  const publicCount=sitePages.length;
+  const legacyCount=legacyUrls.length;
+  const anonymousCount=new Set([
+    ...sitePages.map(x=>x.path),...legacyUrls.map(x=>x.from),
+    '/robots.txt','/sitemap.xml','/perguntas-frequentes/',
+    '/_astro/__imagine_private_access_probe__.js',
+    ...expectedAssetsByPath.keys()
+  ]).size;
+  // F233: verify the package a second time AFTER the HTTP review. A local
+  // file mutation during an otherwise successful session must fail closed.
+  const stableBytes=reviewStagingBuildIntegrity({root,expectedTreeSha256});
+  if(stableBytes.fileCount!==bytes.fileCount||
+     stableBytes.htmlPages!==bytes.htmlPages||
+     stableBytes.packageBytes!==bytes.packageBytes)
+    throw Error('F233: private staging package changed during HTTP review');
+  if(http.unauthenticatedEntryDenied!==true||
+     http.coverageProfile!=='COMPLETE_PRIVATE_CATALOG_AND_LEGACY'||
+     http.servedHtmlMatchesLocalPinnedBuild!==true||
+     http.servedStaticAssetsMatchPinnedBuild!==true||
+     http.verifiedStaticAssets!==expectedAssetsByPath.size||
+     http.pinnedHtmlComparisons!==sitePages.length+legacyUrls.length||
+     http.unauthenticatedRoutesDenied!==anonymousCount||
+     http.reviewedPublicPages!==publicCount||
+     http.heldLegacyPages!==legacyCount||
+     http.legacyCandidatesStillHeld!==legacyUrls.filter(x=>x.status==='candidate').length||
+     http.totalHttpChecks!==publicCount+legacyCount)
+    throw Error('F167: private staging HTTP evidence incomplete');
+  return Object.freeze({
+    schema:'imagine.comercial.private-staging-operator-review.v1',
+    status:'PRIVATE_CANDIDATE_REVIEWED_STILL_NO_RELEASE_AUTHORITY',
+    scope:'LOOPBACK_ONLY_OPERATOR_DIAGNOSTIC',
+    checks:Object.freeze({
+      imageDigestSyntaxValid:true,
+      exactBuildTreeBytesMatch:true,
+      buildTreeBytesStableAfterHttp:true,
+      servedHtmlMatchesLocalPinnedBuild:true,
+      pinnedHtmlComparisons:http.pinnedHtmlComparisons,
+      servedStaticAssetsMatchPinnedBuild:true,
+      verifiedStaticAssets:http.verifiedStaticAssets,
+      publishedHtmlCount:bytes.htmlPages,
+      validatedFileCount:bytes.fileCount,
+      privateBcryptFileSyntaxAndPermissionsValid:true,
+      unauthenticatedHomepageDenied:true,
+      unauthenticatedRoutesDenied:http.unauthenticatedRoutesDenied,
+      reviewedPublicPages:http.reviewedPublicPages,
+      heldLegacy404Pages:http.heldLegacyPages,
+      authenticatedHttpChecks:http.totalHttpChecks,
+      coverageProfile:'COMPLETE_PRIVATE_CATALOG_AND_LEGACY',
+      legacyCandidatesStillHeld:http.legacyCandidatesStillHeld
+    }),
+    imageProvenanceVerified:false,
+    independentHashPinProvenanceVerified:false,
+    authIdentityAndMfaVerified:false,
+    externalTlsAndNetworkVerified:false,
+    portalCrmOperationalVerified:false,
+    independentAppSecReviewCompleted:false,
+    legacy301ReleaseAuthorized:false,
+    canCollectPublicLeads:false,
+    deploymentAuthorized:false,
+    deploymentPerformed:false
+  });
+}

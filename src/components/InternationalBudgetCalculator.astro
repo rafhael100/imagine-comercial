@@ -1,0 +1,267 @@
+---
+import {CHANNELS} from '../lib/media-budget-calculator.mjs';
+import {contactWhatsAppUrl} from '../data/contact-channels.mjs';
+import {CALCULATOR_CONTACT_OPTIONS} from '../data/calculator-contact-messages.mjs';
+interface Props {locale:'en'|'es'}
+const {locale}=Astro.props;
+const en=locale==='en';
+const t=en?{
+  eyebrow:'Free planning tool · Imagine Performance AI',
+  heading:'How much should your business invest in advertising?',
+  intro:'Choose ad channels and explore a transparent monthly budget suggestion. No signup required.',
+  channels:'1. Choose your advertising channels',
+  goal:'2. What is your goal?',
+  history:'3. Optional: your own historical results',
+  goalLead:'Leads per month',
+  cpl:'Your historical cost per lead (BRL)',
+  cap:'Monthly media limit (BRL), optional',
+  calc:'Calculate my budget',
+  copy:'Copy my study',print:'Print or save this study as PDF',
+  copied:'Study copied. You decide where to share it.',
+  copyError:'Automatic copying was unavailable; review the figures above.',
+  method:'No signup or tracking. Calculations stay in your browser.',
+  min:'Minimum to contract selected channels',
+  recommended:'Suggested monthly media investment',
+  fee:'Estimated management (20% of suggested media; BRL 170 monthly minimum per channel)',
+  floorFee:'Estimated management at minimum media investment',
+  total:'Illustrative monthly economic total (media + management)',
+  activation:'One-time setup: BRL 490 per selected channel',
+  firstCycle:'Illustrative first-cycle economic total (includes one-time setup)',
+  basis:'Breakdown by channel',
+  low:'Your monthly limit is below the suggestion. We will never raise your budget automatically.',
+  contact:'Discuss my plan with Imagine',
+  whatsapp:'Discuss my channels on WhatsApp',
+  whatsappNote:'A fixed message lists only your selected channels, no numbers or personal information. Review and send it yourself in WhatsApp.',
+  disclaimer:'One-time setup is BRL 490 per selected channel. Monthly management is 20% of actual verified ad spend, subject to BRL 170 per contracted channel, assessed independently after a complete calendar month and billed afterwards. The media budget is paid directly to the platforms. Figures are estimates, not an invoice or an amount payable now. Partial initial/final months and pauses need a separate policy decision. No campaigns, contracts or results are guaranteed.',
+  noLead:'Email delivery and automated CRM follow-up are not active yet. You can contact Imagine through the available channels.',
+  leads:'Generate leads',sales:'Increase sales',awareness:'Build awareness',
+  floor:'Minimum',suggest:'Suggested',
+  error:'Please check your channels and numbers. Enter leads and historical CPL together, or leave both blank.'
+}:{
+  eyebrow:'Herramienta gratuita · Imagine Performance AI',
+  heading:'¿Cuánto debería invertir tu empresa en publicidad?',
+  intro:'Elige canales y obtén una sugerencia mensual transparente. No es necesario registrarse.',
+  channels:'1. Elige tus canales publicitarios',
+  goal:'2. ¿Cuál es tu objetivo?',
+  history:'3. Opcional: resultados históricos propios',
+  goalLead:'Leads al mes',
+  cpl:'Tu costo histórico por lead (BRL)',
+  cap:'Límite mensual para publicidad (BRL), opcional',
+  calc:'Calcular mi presupuesto',
+  copy:'Copiar mi estudio',print:'Imprimir o guardar el estudio como PDF',
+  copied:'Estudio copiado. Tú decides dónde compartirlo.',
+  copyError:'No fue posible copiar automáticamente; consulta los importes arriba.',
+  method:'Sin registro ni seguimiento. El cálculo se realiza en tu navegador.',
+  min:'Inversión mínima para contratar los canales',
+  recommended:'Inversión mensual recomendada',
+  fee:'Gestión estimada (20% de la publicidad sugerida; mínimo de R$ 170 por canal al mes)',
+  floorFee:'Gestión estimada con inversión mínima en publicidad',
+  total:'Total económico mensual orientativo (publicidad + gestión)',
+  activation:'Activación única: R$ 490 por canal seleccionado',
+  firstCycle:'Total económico inicial orientativo (incluye activación única)',
+  basis:'Distribución por canal',
+  low:'Tu límite mensual está por debajo de la sugerencia. No incrementaremos automáticamente tu presupuesto.',
+  contact:'Hablar de mi plan con Imagine',
+  whatsapp:'Hablar sobre mis canales por WhatsApp',
+  whatsappNote:'Un mensaje aprobado incluye solo los canales seleccionados, sin importes ni datos personales. Revisa y confirma el envío en WhatsApp.',
+  disclaimer:'La activación única cuesta R$ 490 por canal seleccionado. La gestión mensual es el 20% de la inversión publicitaria real y verificada, con mínimo de R$ 170 por canal contratado, calculado de forma independiente al finalizar cada mes completo y cobrado después. La publicidad se paga directamente a las plataformas. Son estimaciones, no una factura ni un importe a pagar ahora. Los meses iniciales/finales parciales y las pausas requieren una decisión específica. No se inicia ninguna campaña ni se garantizan resultados.',
+  noLead:'El envío por e-mail y la nutrición automática en el CRM todavía no están disponibles. Puedes contactar con Imagine por sus canales públicos.',
+  leads:'Conseguir leads',sales:'Aumentar ventas',awareness:'Dar a conocer mi marca',
+  floor:'Mínimo',suggest:'Sugerido',
+  error:'Revisa los canales y los importes. Indica la meta de leads y su CPL histórico, o deja ambos en blanco.'
+};
+const money=n=>new Intl.NumberFormat(en?'en-US':'es-ES',{style:'currency',currency:'BRL'}).format(n/100);
+const rows=Object.entries(CHANNELS).map(([id,c])=>({id,c}));
+const curatedWhatsApp=CALCULATOR_CONTACT_OPTIONS[locale].map(option=>({
+ key:option.key,href:contactWhatsAppUrl(option.message)
+}));
+const defaultWhatsApp=curatedWhatsApp.find(option=>option.key==='meta_ads')?.href;
+if(!defaultWhatsApp)throw new Error('Missing reviewed default calculator contact');
+---
+<section class="hero"><div class="shell">
+  <p class="eyebrow">{t.eyebrow}</p>
+  <h1>{t.heading}</h1>
+  <p class="lead">{t.intro}</p>
+</div></section>
+<section class="section shell">
+  <div id="intl-budget-calculator" data-locale={locale}>
+    <div class="intl-calc-card">
+      <fieldset>
+        <legend>{t.channels}</legend>
+        {rows.map(({id,c})=>(
+          <label class="intl-calc-option">
+            <input type="checkbox" name="intl-channel" value={id} checked={id==='meta_ads'} />
+            <span><strong>{c.label}</strong> · {t.floor}: {money(c.floorCents)} · {t.suggest}: {money(c.recommendedCents)}</span>
+          </label>
+        ))}
+      </fieldset>
+      <div class="intl-calc-fields">
+        <div><label for="intl-objective">{t.goal}</label><select id="intl-objective"><option value="leads">{t.leads}</option><option value="sales">{t.sales}</option><option value="awareness">{t.awareness}</option></select></div>
+      </div>
+      <p><strong>{t.history}</strong></p>
+      <div class="intl-calc-fields">
+        <div><label for="intl-leads">{t.goalLead}</label><input type="number" min="1" max="100000" id="intl-leads" placeholder="30" autocomplete="off" /></div>
+        <div><label for="intl-cpl">{t.cpl}</label><input type="text" inputmode="decimal" maxlength="10" id="intl-cpl" placeholder="45.00" autocomplete="off" /></div>
+        <div><label for="intl-cap">{t.cap}</label><input type="text" inputmode="decimal" maxlength="10" id="intl-cap" placeholder="2500.00" autocomplete="off" /></div>
+      </div>
+      <button id="intl-calc-run" type="button" class="cta">{t.calc}</button>
+      <p class="calc-hint">{t.method}</p>
+      <p id="intl-calc-error" role="alert" hidden></p>
+    </div>
+    <section id="intl-calc-results" hidden aria-label={t.recommended}>
+      <h2>{t.recommended}</h2>
+      <p id="intl-calc-method"></p>
+      <dl class="intl-calc-result-grid">
+        <div><dt>{t.min}</dt><dd id="intl-calc-min">—</dd></div>
+        <div><dt>{t.recommended}</dt><dd id="intl-calc-suggested">—</dd></div>
+        <div><dt>{t.fee}</dt><dd id="intl-calc-fee">—</dd></div>
+        <div><dt>{t.floorFee}</dt><dd id="intl-calc-fee-at-minimum">—</dd></div>
+        <div><dt>{t.total}</dt><dd id="intl-calc-total">—</dd></div>
+        <div><dt>{t.activation}</dt><dd id="intl-calc-activation">—</dd></div>
+        <div><dt>{t.firstCycle}</dt><dd id="intl-calc-first-cycle">—</dd></div>
+      </dl>
+      <h3>{t.basis}</h3>
+      <ul id="intl-calc-channels"></ul>
+      <p id="intl-calc-limit" hidden role="status">{t.low}</p>
+      <p>{t.disclaimer}</p>
+      <div class="intl-calc-actions">
+        <button type="button" class="cta cta-secondary" id="intl-calc-copy" hidden>{t.copy}</button>
+        <button type="button" class="cta cta-secondary" id="intl-calc-print" hidden>{t.print}</button>
+      </div>
+      <p id="intl-calc-copy-status" role="status" aria-live="polite"></p>
+      <a class="cta" id="intl-calc-whatsapp" href={defaultWhatsApp} target="_blank" rel="noopener noreferrer" aria-describedby="intl-calc-whatsapp-notice">{t.whatsapp}</a>
+      <p id="intl-calc-whatsapp-notice" class="calc-hint">{t.whatsappNote}</p>
+      <div id="intl-reviewed-whatsapp-choices" hidden aria-hidden="true">
+        {curatedWhatsApp.map(option=><a data-intl-calc-contact-key={option.key} href={option.href} tabindex="-1">{t.whatsapp}</a>)}
+      </div>
+      <p><a href={locale==='en'?'/en/contact/':'/es/contact/'}>{t.contact}</a></p>
+      <p class="calc-hint">{t.noLead}</p>
+    </section>
+  </div>
+</section>
+<script>
+  import {calculateMediaBudget,parseMoneyToCents} from '../lib/media-budget-calculator.mjs';
+  const root=document.querySelector<HTMLElement>('#intl-budget-calculator');
+  if(root){
+    const locale=root.dataset.locale==='en'?'en-US':'es-ES';
+    const money=(cents:number)=>new Intl.NumberFormat(locale,{style:'currency',currency:'BRL'}).format(cents/100);
+    const get=<T extends HTMLElement>(selector:string)=>root.querySelector<T>(selector);
+    const copy=get<HTMLButtonElement>('#intl-calc-copy');
+    const print=get<HTMLButtonElement>('#intl-calc-print');
+    const status=get<HTMLElement>('#intl-calc-copy-status');
+    const whatsapp=get<HTMLAnchorElement>('#intl-calc-whatsapp');
+    const contacts=Array.from(root.querySelectorAll<HTMLAnchorElement>('[data-intl-calc-contact-key]'));
+    const defaultWhatsapp=whatsapp?.getAttribute('href')??'';
+    const canCopy=typeof navigator.clipboard?.writeText==='function';
+    let summary='';
+    if(copy&&canCopy){copy.addEventListener('click',async()=>{
+      if(!summary)return;
+      try{
+        await navigator.clipboard.writeText(summary);
+        if(status)status.textContent=locale==='en-US'?
+          'Study copied. You decide where to share it.':
+          'Estudio copiado. Tú decides dónde compartirlo.';
+      }catch{
+        if(status)status.textContent=locale==='en-US'?
+          'Automatic copying was unavailable; review the figures above.':
+          'No fue posible copiar automáticamente; consulta los importes arriba.';
+      }
+    });}
+    print?.addEventListener('click',()=>{if(summary)window.print();});
+    get<HTMLButtonElement>('#intl-calc-run')?.addEventListener('click',()=>{
+      const error=get<HTMLElement>('#intl-calc-error');
+      const results=get<HTMLElement>('#intl-calc-results');
+      if(error){error.hidden=true;error.textContent='';}
+      try{
+        const channels=Array.from(root.querySelectorAll<HTMLInputElement>('input[name="intl-channel"]:checked')).map(x=>x.value);
+        const objective=get<HTMLSelectElement>('#intl-objective')?.value??'leads';
+        const leads=get<HTMLInputElement>('#intl-leads')?.value.trim()??'';
+        const cpl=get<HTMLInputElement>('#intl-cpl')?.value.trim()??'';
+        const limit=get<HTMLInputElement>('#intl-cap')?.value.trim()??'';
+        const p=calculateMediaBudget({
+          channels,objective,targetLeads:leads?Number(leads):0,
+          historicalCplCents:cpl?parseMoneyToCents(cpl):0,
+          monthlyLimitCents:limit?parseMoneyToCents(limit):0
+        });
+        const texts:Record<string,string>={
+          '#intl-calc-min':money(p.minimumMediaCents),
+          '#intl-calc-suggested':money(p.suggestedMediaCents),
+          '#intl-calc-fee':money(p.illustrativeManagementCents),
+          '#intl-calc-fee-at-minimum':money(p.illustrativeManagementAtMinimumMediaCents),
+          '#intl-calc-total':money(p.illustrativeTotalCents),
+          '#intl-calc-activation':money(p.oneTimeActivationCents),
+          '#intl-calc-first-cycle':money(p.illustrativeFirstCycleSubtotalCents),
+          '#intl-calc-method':p.historicalCplSuppliedByVisitor?
+            (locale==='en-US'?'Scenario based on your own historical CPL — not a forecast.':'Escenario basado en tu CPL histórico, no una previsión.') :
+            (locale==='en-US'?'Imagine initial planning references — not a lead forecast.':'Referencias iniciales de Imagine, no una previsión de leads.')
+        };
+        for(const [selector,value] of Object.entries(texts)){
+          const el=get<HTMLElement>(selector);if(el)el.textContent=value;
+        }
+        const list=get<HTMLElement>('#intl-calc-channels');
+        if(list){list.replaceChildren();for(const item of p.channels){
+          const li=document.createElement('li');li.textContent=item.label+': '+(locale==='en-US'?'suggested media ':'publicidad sugerida ')+money(item.suggestedCents)+' · '+(locale==='en-US'?'estimated management ':'gestión estimada ')+money(item.managementAtSuggestedCents)+' · '+(locale==='en-US'?'management floor ':'mínimo de gestión ')+money(p.monthlyManagementMinimumPerChannelCents);
+          list.appendChild(li);
+        }}
+        const below=get<HTMLElement>('#intl-calc-limit');if(below)below.hidden=!p.exceedsMonthlyLimit;
+        summary=[locale==='en-US'?'Imagine advertising study — non-contractual':
+          'Estudio publicitario Imagine — no contractual',
+          ...p.channels.map(item=>item.label+': '+money(item.suggestedCents)),
+          (locale==='en-US'?'Suggested media: ':'Publicidad sugerida: ')+money(p.suggestedMediaCents),
+          (locale==='en-US'?'Estimated management (20%, BRL 170 minimum per channel): ':'Gestión estimada (20%, mínimo R$ 170 por canal): ')+money(p.illustrativeManagementCents),
+          (locale==='en-US'?'Management at minimum media: ':'Gestión con publicidad mínima: ')+money(p.illustrativeManagementAtMinimumMediaCents),
+          (locale==='en-US'?'One-time activation: ':'Activación única: ')+money(p.oneTimeActivationCents),
+          (locale==='en-US'?'Illustrative first-cycle economic total (not an invoice): ':'Total económico inicial orientativo (no es una factura): ')+money(p.illustrativeFirstCycleSubtotalCents)
+        ].join('\n');
+        const contactKey=p.channels.map(item=>item.id).join('+');
+        const curated=contacts.find(item=>item.dataset.intlCalcContactKey===contactKey);
+        if(!curated)throw new Error('Unreviewed calculator contact selection');
+        if(whatsapp)whatsapp.setAttribute('href',curated.getAttribute('href')??defaultWhatsapp);
+        if(status)status.textContent='';
+        if(copy)copy.hidden=!canCopy;
+        if(print)print.hidden=false;
+        if(results){results.hidden=false;results.scrollIntoView({behavior:'smooth',block:'start'});}
+      }catch{
+        summary='';
+        if(whatsapp)whatsapp.setAttribute('href',defaultWhatsapp);
+        if(copy)copy.hidden=true;
+        if(print)print.hidden=true;
+        if(status)status.textContent='';
+        if(results)results.hidden=true;
+        if(error){error.hidden=false;error.textContent=locale==='en-US'?
+          'Check the channels and numbers. Enter leads and historical CPL together or leave both empty.':
+          'Revisa los canales y valores. Indica leads y CPL juntos o deja ambos vacíos.';}
+      }
+    });
+  }
+</script>
+<style>
+  #intl-budget-calculator{max-width:1060px;margin:auto}
+  .intl-calc-card{background:#fff;border:1px solid #e3d7c7;border-radius:16px;padding:clamp(18px,3vw,34px)}
+  fieldset{padding:0;border:0;min-width:0;margin:0 0 26px}
+  legend{font-size:1.15rem;font-weight:800;margin-bottom:14px}
+  .intl-calc-option{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:11px;border:1px solid #e2d5c4;margin-bottom:9px;min-height:52px}
+  .intl-calc-option:has(input:checked){background:#fff8eb;border-color:#a75b00}
+  .intl-calc-option input{width:18px;height:18px;accent-color:#a75b00;flex:none}
+  .intl-calc-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;margin-bottom:22px}
+  .intl-calc-fields label{display:block;font-weight:700;margin-bottom:8px}
+  .intl-calc-fields input,.intl-calc-fields select{width:100%;padding:12px;min-height:48px;border:1px solid #bbb0a3;border-radius:8px;font:inherit}
+  .calc-hint{color:#5f5a52;font-size:.88rem}
+  #intl-calc-error{background:#fff0ee;color:#8a2821;border-left:4px solid #bd3930;padding:12px}
+  #intl-calc-results{margin-top:30px;padding:26px;border-radius:16px;background:#f7f7f8}
+  .intl-calc-result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
+  .intl-calc-result-grid>div{padding:20px;border-radius:11px;background:white;border:1px solid #dedbd5}
+  .intl-calc-result-grid dt{font-size:.88rem;color:#5f5a52}
+  .intl-calc-result-grid dd{font-size:1.4rem;font-weight:800;margin:8px 0 0;color:#794000}
+  .intl-calc-actions{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}
+  button{cursor:pointer}
+  @media print{
+    :global(header),:global(footer),.hero,.intl-calc-card,.intl-calc-actions,.calc-hint{display:none!important}
+    #intl-budget-calculator{max-width:none}
+    #intl-calc-results{background:white!important;padding:0!important;margin:0!important}
+    #intl-calc-results[hidden]{display:none!important}
+    .intl-calc-result-grid>div{break-inside:avoid}
+    @page{size:A4;margin:15mm}
+  }
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a75b00;outline-offset:3px}
+</style>

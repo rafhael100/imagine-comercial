@@ -1,0 +1,66 @@
+---
+import { renderLabView } from '../../render-fragment.mjs';
+import { requireLabMode } from '../../lab-policy.mjs';
+requireLabMode(process.env.IMAGINE_FAISCA_LAB);
+const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE_ROOT });
+---
+<style is:global set:html={view.css} />
+<style>
+  faisca-journey-lab { display: block; }
+  .journey-controls { max-width: 1360px; margin: 1rem auto; padding: 0 24px; display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; }
+  .journey-controls h1 { width: 100%; font-size: 1.2rem; margin: 0; color: #222a27; }
+  .journey-controls p { margin: 0; color: #49514d; }
+  .journey-controls button { font: inherit; font-weight: 700; background: #222a27; color: #fff; border: 0; border-radius: .75rem; padding: .75rem 1rem; cursor: pointer; }
+  .journey-controls button:focus-visible { outline: 3px solid #9a4d00; outline-offset: 3px; }
+  .journey-controls button:disabled { opacity: .6; cursor: default; }
+  .journey-controls [hidden] { display: none; }
+</style>
+<faisca-journey-lab>
+  <section class="journey-controls" aria-label="Demonstração R07">
+    <h1>Faísca · Atendimento e qualificação comercial</h1>
+    <p>Esta página é um laboratório local. As respostas usam conteúdo editorial revisado; nenhuma IA externa, CRM ou atendente está conectado. Não informe dados pessoais.</p>
+    <button type="button" data-journey-start hidden>Ativar conversa R07</button>
+    <p role="status" data-journey-status>Ative a conversa para testar a escolha da solução, a qualificação e o resumo copiável.</p>
+  </section>
+  <div data-faisca-root data-lab-preview set:html={view.markup} />
+</faisca-journey-lab>
+<script>
+  class FaiscaJourneyLabElement extends HTMLElement {
+    #app;
+    #handler;
+    #generation = 0;
+    connectedCallback() {
+      const button = this.querySelector('[data-journey-start]');
+      const status = this.querySelector('[data-journey-status]');
+      if (!button || !status) return;
+      button.hidden = false;
+      const generation = ++this.#generation;
+      this.#handler = async () => {
+        if (this.#app || button.disabled) return;
+        button.disabled = true;
+        status.textContent = 'Preparando laboratório local...';
+        try {
+          const { mountJourney } = await import('../../../journey/journey-ui.mjs');
+          if (!this.isConnected || generation !== this.#generation) return;
+          this.#app = mountJourney(this.querySelector('[data-faisca-root]'));
+          button.hidden = true;
+          status.textContent = 'Conversa local ativada. Confirme a solução e responda às perguntas de qualificação; nada será enviado à equipe.';
+        } catch {
+          if (!this.isConnected || generation !== this.#generation) return;
+          status.textContent = 'A conversa local não pôde ser iniciada. Tente novamente.';
+          button.disabled = false;
+        }
+      };
+      button.addEventListener('click', this.#handler);
+    }
+    disconnectedCallback() {
+      ++this.#generation;
+      const button = this.querySelector('[data-journey-start]');
+      if (button && this.#handler) button.removeEventListener('click', this.#handler);
+      this.#handler = undefined;
+      this.#app?.destroy();
+      this.#app = undefined;
+    }
+  }
+  if (!customElements.get('faisca-journey-lab')) customElements.define('faisca-journey-lab', FaiscaJourneyLabElement);
+</script>

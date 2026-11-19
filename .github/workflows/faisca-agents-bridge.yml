@@ -1,0 +1,64 @@
+name: Faísca R05 - browser, Node and pinned PHP Agents
+
+on:
+  pull_request:
+    paths:
+      - 'ops/faisca/**'
+      - 'tests/faisca-*.test.mjs'
+      - '.github/workflows/faisca-agents-bridge.yml'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cross-repository-php:
+    name: Conversa real entre browser, Node e PHP sintético
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      IMAGINE_FAISCA_AGENTS_ROOT: ${{ github.workspace }}/.qa/faisca-agents-source
+    steps:
+      - name: Obter a candidata Comercial exata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Obter o componente Agents revisado e fixado
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-ai-agents
+          ref: 59d0bae5340c23b37ea1e693e3a1f3915de3c075
+          path: .qa/faisca-agents-source
+          persist-credentials: false
+      - name: Configurar Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Exigir PHP real e os arquivos revisados
+        run: |
+          set -euo pipefail
+          php -v
+          test "$(git -C .qa/faisca-agents-source rev-parse HEAD)" = "59d0bae5340c23b37ea1e693e3a1f3915de3c075"
+          php -l .qa/faisca-agents-source/tools/faisca_public_bridge.php
+      - name: Instalar dependências reproduzíveis
+        run: npm ci --no-audit --no-fund
+      - name: Instalar Chromium para os testes
+        run: bash scripts/install-chromium-ci.sh
+      - name: Compilar o laboratório isolado
+        run: IMAGINE_FAISCA_LAB=1 npx --no-install astro build --config ops/faisca/lab/astro.config.mjs
+      - name: Provar execução PHP, pins, contexto e reconciliação
+        run: node ops/faisca/agents/check-interop.mjs
+      - name: Provar conversa no navegador com PHP real
+        run: node ops/faisca/agents/browser-qa.mjs
+      - name: Guardar somente evidências sintéticas
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: faisca-agents-R05-SYNTHETIC-REVIEW-ONLY
+          path: ops/faisca/reports/*R05*.json
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false

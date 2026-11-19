@@ -1,0 +1,175 @@
+name: Comercial P0 - four CTA to real Portal HTTP and PostgreSQL (synthetic)
+on:
+  pull_request:
+    paths:
+      - 'ops/review/purchase/test-crossrepo-browser-http.py'
+      - 'ops/review/purchase/test-crossrepo-sandbox-owners.sql'
+      - '.github/workflows/comercial-portal-http-owned-checkout.yml'
+permissions:
+  contents: read
+jobs:
+  private-crossrepo-loopback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact Comercial PR candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: comercial
+          persist-credentials: false
+      - name: Checkout immutable reviewed Portal channel/checkout implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: rafhael100/imagine-portal
+          ref: 3f7750daf4892050ae350b43d3f1e48f75023864
+          path: portal
+          persist-credentials: false
+      - name: Use Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Build reviewed native Astro private candidate, without verifying as public release
+        working-directory: comercial
+        env:
+          GITHUB_ACTIONS: 'true'
+          IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW: '1'
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          node ops/review/purchase/test-native-astro-preview.mjs dist private
+      - name: Build existing isolated Portal runtime (no PSP credentials)
+        run: |
+          set -euo pipefail
+          cd portal
+          docker build -f infra/development/portal-auth/Dockerfile -t imagine-portal-private-auth:local .
+          cd apps/portal/ops/private-purchase
+          docker compose build application
+      - name: Start loopback-only Docker and PostgreSQL18
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          sudo --preserve-env=GITHUB_ACTIONS python3 prepare.py
+          docker compose -f compose.yaml -f compose.ci.yaml config --quiet
+          # Fail-closed signed owner RLS must be initialized BEFORE the first Laravel request.
+          # On the newer Portal candidate the app constructor refuses a database
+          # with missing owner-scope secret/policies; avoid racing the first request.
+          bash check_customer_schema_ci.sh
+          python3 preflight_private_runtime.py --self-test
+          docker compose -f compose.yaml -f compose.ci.yaml up -d --wait database
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-schema.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-work-schema.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < customer-offer-schema.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < sandbox-payment-schema.sql
+          docker compose -f compose.yaml -f compose.ci.yaml up -d application gateway
+          python3 - <<'PY'
+          import time,urllib.request
+          for _ in range(90):
+              try:
+                  assert urllib.request.urlopen('http://127.0.0.1:18083/_rehearsal/purchase',timeout=2).status==200
+                  break
+              except Exception: time.sleep(1)
+          else: raise SystemExit('Isolated Portal not ready')
+          PY
+          test "$(docker inspect imagine-purchase-preview-database-1 --format '{{len .HostConfig.PortBindings}}')" = 0
+          test "$(docker inspect imagine-purchase-preview-application-1 --format '{{len .HostConfig.PortBindings}}')" = 0
+          test "$(docker network inspect imagine-purchase-preview_private --format '{{.Internal}}')" = true
+          test "$(docker inspect imagine-purchase-preview-gateway-1 --format '{{(index (index .HostConfig.PortBindings "8080/tcp") 0).HostIp}}')" = 127.0.0.1
+      - name: Verify current v4 quote and sandbox adapter, no PSP network
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          docker compose exec -T application php tools/test_commerce.php
+          docker compose exec -T application php private-preview-route-gate.test.php
+          python3 test_asaas_sandbox_worker.py
+      - name: Test latest Asaas Sandbox GET-only readiness offline on pinned Portal source
+        working-directory: portal/apps/portal
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: |
+          set -euo pipefail
+          php -l app/Homologation/Commerce/AsaasSandboxReadinessProbe.php
+          php -l tools/test_asaas_sandbox_readonly_probe.php
+          # Injected transport only; no credentials or Asaas calls made.
+          php tools/test_asaas_sandbox_readonly_probe.php
+      - name: Chromium navigates actual Comercial HTML then 4 Portal test orders
+        env:
+          GITHUB_ACTIONS: 'true'
+          IMAGINE_CROSSREPO_LOOPBACK: '1'
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/crossrepo-browser"
+          "$RUNNER_TEMP/crossrepo-browser/bin/pip" install playwright==1.56.0
+          python3 -m http.server 18084 --bind 127.0.0.1 --directory comercial/dist > "$RUNNER_TEMP/comercial-http.log" 2>&1 &
+          site_pid=$!
+          trap 'kill "$site_pid" || true' EXIT
+          python3 - <<'PY'
+          import time,urllib.request
+          for _ in range(30):
+              try:
+                  assert urllib.request.urlopen('http://127.0.0.1:18084/',timeout=2).status==200
+                  break
+              except Exception: time.sleep(1)
+          else: raise SystemExit('Astro loopback not ready')
+          PY
+          "$RUNNER_TEMP/crossrepo-browser/bin/python" comercial/ops/review/purchase/test-crossrepo-browser-http.py
+      - name: Audit synthetic DB order count (no private payload output)
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          count=$(docker compose exec -T database psql -U postgres -d portal_purchase_rehearsal -Atc 'SELECT count(*) FROM purchase_rehearsal.customer_orders')
+          test "$count" = "5"
+          echo 'PASS four orders for customer A and one for customer B, all synthetic; NO-GO.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Exercise Portal customer-owned delivery and staff approval before restore
+        env:
+          PURCHASE_PREVIEW_BASE: http://127.0.0.1:18083/_rehearsal/purchase
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/crossrepo-browser/bin/python" portal/apps/portal/ops/private-purchase/test_customer_flow.py
+          "$RUNNER_TEMP/crossrepo-browser/bin/python" portal/apps/portal/ops/private-purchase/test_customer_work.py
+          echo 'PASS separate portal post-sale and worker unit fixtures; no provider network.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify Landing Page CTA generated server-priced Sandbox ledger
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          landing=$(docker compose exec -T database psql -X -A -t -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal -c "
+            SELECT count(*) FROM purchase_rehearsal.sandbox_payment_intents i
+            JOIN purchase_rehearsal.customer_orders o ON o.id=i.order_id
+            WHERE o.product='landing-pages'
+              AND o.payment_source='asaas_sandbox'
+              AND o.payment='pending'
+              AND i.amount_cents=43000
+              AND i.state='queued';")
+          test "$landing" = 1
+          google=$(docker compose exec -T database psql -X -A -t -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal -c "
+            SELECT count(*) FROM purchase_rehearsal.sandbox_payment_intents i
+            JOIN purchase_rehearsal.customer_orders o ON o.id=i.order_id
+            WHERE o.product='performance'
+              AND o.payment_source='asaas_sandbox'
+              AND o.payment='pending'
+              AND i.amount_cents=14000
+              AND i.state='queued';")
+          test "$google" = 1
+          echo 'PASS Landing and Google Ads CTAs → R$430/R$140 server-owned Sandbox intents; no PSP POST.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Prove signed FORCE RLS denies raw SQL enumeration and forged claims
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: |
+          set -euo pipefail
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < test_customer_scope.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < test_customer_work_scope.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < test_sandbox_scope.sql
+          docker compose exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d portal_purchase_rehearsal < ../../../../../comercial/ops/review/purchase/test-crossrepo-sandbox-owners.sql
+          echo 'PASS two legitimate, distinct owners isolated by signed HMAC, and forged SQL admin/payment edits denied.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify PostgreSQL18 backup/restore with signed RLS intact
+        working-directory: portal/apps/portal/ops/private-purchase
+        env:
+          P0_PG_RESTORE_CI: '1'
+        run: |
+          set -euo pipefail
+          bash ./verify_pg_restore_ci.sh
+          echo 'PASS disposable backup and restore after cross-application checkout; VPS not affected.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Shut down only isolated CI services and erase disposable database
+        if: always()
+        working-directory: portal/apps/portal/ops/private-purchase
+        run: docker compose -f compose.yaml -f compose.ci.yaml down --volumes || true

@@ -1,0 +1,186 @@
+{
+  "schema": "faisca.commercial-f357-integrated-source.v1",
+  "commonAncestor": "a4f4eb9687b6dfd9c0d45e88e8345cc37198cd6e",
+  "commercialHead": "3adc79ff6ea78f1d4a629101ce85cf7cc1bedbd2",
+  "faiscaR38Head": "0c7fa2297f1566c86f0b97eaf6d8a877adae5a10",
+  "mergeCommit": "9ad6b95fe81b2f51453f70af897ece7a2979ff4a",
+  "expectedChangeCount": 33,
+  "counts": {
+    "imported_unmodified": 29,
+    "already_identical": 1,
+    "reviewed_commercial_conflict": 3
+  },
+  "policy": {
+    "releaseAuthorized": false,
+    "productionPublished": false,
+    "externalModelEnabled": false,
+    "operationalEffects": false
+  },
+  "files": [
+    {
+      "path": ".github/workflows/comercial-portal-v5-http-parity.yml",
+      "sha": "a81c7679550f0e5237dc53affe16e600c12eb77a",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": ".github/workflows/validate.yml",
+      "sha": "7e629b6ba4f5cd308756d35c3f3dcb56c8905e0a",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "docs/COMERCIAL-PORTAL-V5-HTTP-PARITY.md",
+      "sha": "1100c13355f58a188cbea90d58ae86997f737c11",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "docs/SEO-ACTIVE-HTML-EVIDENCE.md",
+      "sha": "3a0d503212a8a33df4429ebfcaed514f7e18aa0e",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "docs/SEO-ACTIVE-HTML-ROBOTS-INTEGRATION.md",
+      "sha": "b334676c522fccd395fb2b22ee5ebe65ec84e557",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "docs/SEO-TOKEN-METADATA-ACCURACY-PIN.md",
+      "sha": "72a6ede5f9b3a63527dc3fcd5b9b77f55b1e7e23",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "docs/release/COMERCIAL-PT-EN-ES-CUTOVER-REVIEW.md",
+      "sha": "bab62f799929faf7189e16eacde8b66b7377fba6",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "docs/release/F310-LEGACY-HTTP-CONTINUITY-BEFORE-AFTER.md",
+      "sha": "c634fa6cea7bad4a36e44d838c1dff92dd602aa8",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "ops/review/purchase/portal-choice-handoff-gate.mjs",
+      "sha": "740fc1b1b0b9f836740bbb9db1be461ad860757a",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "ops/review/purchase/test-crossrepo-v5-browser-http.py",
+      "sha": "938f706ffc6ff493eade55a52f617ab174534759",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "ops/review/purchase/test-native-astro-preview.mjs",
+      "sha": "9e68a9f67522a581434cefdd3c01ed125dc21268",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "scripts/browser-qa.mjs",
+      "sha": "aba2bddb645fe37cecc18edebed772f190a7a80a",
+      "resolution": "reviewed_commercial_conflict"
+    },
+    {
+      "path": "scripts/capture-legacy-http-operator.mjs",
+      "sha": "e1b18a1d88f21c6c5f165a3e4ceb42c6872b676a",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "scripts/review-legacy-http-operator.mjs",
+      "sha": "f7ef6a5c8dba9fff35889cdcdb9472203c8cbe43",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "scripts/test-pinned-html-declaration-gate-ci.mjs",
+      "sha": "0436a595dd0da896b774338b686127ae0a8e0c81",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "scripts/test-pinned-robots-path-gate-ci.mjs",
+      "sha": "7e8fba30e83fd0aa677998a36d08ba76bb6b55ff",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "src/components/CommercialChoicePreview.astro",
+      "sha": "283861fb1f975027b0ecac0dc93caececf6995fa",
+      "resolution": "reviewed_commercial_conflict"
+    },
+    {
+      "path": "src/data/reviewed-quote-choice-href.mjs",
+      "sha": "c72edef06a411b642c6afb7c56cf8784400a1b34",
+      "resolution": "already_identical"
+    },
+    {
+      "path": "src/lib/active-html-reader.mjs",
+      "sha": "f74d56c758c3d24d1fd1a821df1ce1dad9f7a63a",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "src/lib/external-private-file-path.mjs",
+      "sha": "95df37aaf3d7fde373563d80fd91126107755970",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "src/lib/html-anchor-reader.mjs",
+      "sha": "c1b52fc3aaedff301c326482b006c66f35910b2f",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "src/lib/jsonld-output-contract.mjs",
+      "sha": "e6ae04c4d1dfb4d2a6ae5ac24528bbc616de2a4a",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "src/lib/public-quote-channel-breakdown.mjs",
+      "sha": "ff5513d77959094cfd082a204a354e0bed3fd050",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "src/lib/seo-output-contract.mjs",
+      "sha": "1270d4cc59bb7c347f82d6174ce0aa02e267d0a2",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "src/lib/site-head-inventory.mjs",
+      "sha": "c1e5bf36c927d52c7510e899d891be2161f7c74a",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "tests/ci-immutable-actions.test.mjs",
+      "sha": "60660de20187d56c015f4433f589a97a3c09aeb0",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "tests/commercial-choice-preview.test.mjs",
+      "sha": "f9a65ad277991462935428d14b31a6a5879f6eb0",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "tests/legacy-http-private-path-boundary.test.mjs",
+      "sha": "c923d356dfcd027c2eed933a838dc82c35dad387",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "tests/portal-choice-handoff-gate.test.mjs",
+      "sha": "8a3920e7bbecfb53538a13805a0ca481b0afbf1f",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "tests/public-quote-channel-breakdown.test.mjs",
+      "sha": "6575d3f862996a0582fc78d06496300ab05160a9",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "tests/reviewed-quote-contact.test.mjs",
+      "sha": "89261faf99d6327783da91573b8f6e95e0d6409b",
+      "resolution": "reviewed_commercial_conflict"
+    },
+    {
+      "path": "tests/seo-active-html-evidence.test.mjs",
+      "sha": "f9f82677e9afaef89e1500544db9b9cde8adcf84",
+      "resolution": "imported_unmodified"
+    },
+    {
+      "path": "tests/seo-audit-pin.test.mjs",
+      "sha": "3609f5b56c1092735054d15325a687d5874a9b4f",
+      "resolution": "imported_unmodified"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+services:
+  simulation:
+    image: imagine-purchase-preview:local
+    container_name: imagine-customer-simulation
+    entrypoint: ["php"]
+    command: ["-S", "0.0.0.0:8080", "/demo/app.php"]
+    user: "33:33"
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
+    ports: ["127.0.0.1:18085:8080"]
+    environment:
+      IMAGINE_CUSTOMER_SIMULATION: private-demo-v1
+    volumes:
+      - ./:/demo:ro
+      - /srv/imagine/customer-demo-data:/data:rw
+    networks: [demo]
+networks:
+  demo:
+    driver: bridge

@@ -1,0 +1,222 @@
+---
+import OfferArtwork from './OfferArtwork.astro';
+import CommercialChoicePreview from './CommercialChoicePreview.astro';
+import {buildServices as services} from '../lib/build-catalog.mjs';
+import {composeCuratedContactLinks} from '../data/contact-objectives.mjs';
+import {contactWhatsAppUrl} from '../data/contact-channels.mjs';
+import {REVIEWED_OFFERS,reviewedPrivatePortalUrl} from '../../ops/review/purchase/private-portal-handoff-policy.mjs';
+// A commercial preview must not expose the private Portal to public visitors.
+const privatePortalBuild=process.env.GITHUB_ACTIONS==='true' && process.env.IMAGINE_ASTRO_PRIVATE_PORTAL_PREVIEW==='1';
+const portalPreviewHref=(slug:string):string=>privatePortalBuild && Object.hasOwn(REVIEWED_OFFERS,slug)
+  ? reviewedPrivatePortalUrl(slug) : '';
+const offerCopy:Record<string,{tag:string,outcome:string,forWhom:string,includes:string[],price:string,setup?:string,installment?:string,monthly?:string,media?:string,availability?:string}>={
+ 'criacao-de-sites':{
+  tag:'Presença completa',outcome:'Uma vitrine profissional para sua empresa na internet.',
+  forWhom:'Para negócios que precisam apresentar vários serviços, diferenciais e formas de contato.',
+  includes:['Estrutura de páginas organizada','Visual adaptado a celular e computador','Fundamentos de SEO e navegação'],
+  price:'Formato, implantação e condições definidos na proposta.'
+ },
+ 'landing-pages':{
+  tag:'Foco em conversão',outcome:'Uma página feita para apresentar uma oferta e orientar a próxima ação.',
+  forWhom:'Para campanhas, lançamentos e produtos que precisam de uma mensagem objetiva.',
+  includes:['Uma oferta em destaque','Conteúdo e chamadas para ação','Layout responsivo e mensuração planejada'],
+  price:'1ª parcela na contratação; demais em D+30 e D+60. Mensalidade começa D+90 da contratação, independentemente da publicação. Valores sujeitos à confirmação no Portal.',
+  setup:'R$ 1.290',installment:'3× de R$ 430',monthly:'R$ 79,90/mês'
+ },
+ 'onepage':{
+  tag:'Comece com o essencial',outcome:'Tudo o que seu cliente precisa saber em uma única página.',
+  forWhom:'Para quem busca começar com apresentação clara e contatos acessíveis.',
+  includes:['Seções essenciais do negócio','Serviços e canais de contato','Leitura simples em qualquer tela'],
+  price:'1ª parcela na contratação; demais em D+30 e D+60. Mensalidade começa D+90 da contratação, independentemente da publicação. Valores sujeitos à confirmação no Portal.',
+  setup:'R$ 990',installment:'3× de R$ 330',monthly:'R$ 79,90/mês'
+ },
+ 'sites-por-assinatura':{
+  tag:'Modelo de assinatura',outcome:'Um site com implantação e acompanhamento em um modelo recorrente.',
+  forWhom:'Para empresas que preferem organizar a presença digital como serviço contínuo.',
+  includes:['Escopo de implantação definido','Etapas e aprovações organizadas','Condições de recorrência explicadas antes do aceite'],
+  price:'Implantação, mensalidade e vigência dependem do plano confirmado.'
+ },
+ 'gestao-google-ads':{
+  tag:'Pessoas buscando soluções',outcome:'Apareça para pessoas que procuram produtos e serviços como os seus.',
+  forWhom:'Para negócios com demanda de busca e uma oferta pronta para receber contatos.',
+  includes:['Planejamento de palavras e intenção','Estrutura e acompanhamento de campanhas','Medição e ajustes orientados por dados'],
+  price:'Gestão: 20% da mídia efetiva, mínimo R$ 170/mês por canal. Ativação única: R$ 490.',
+  media:'Mídia: mínimo Imagine R$ 1.000/mês · planejamento recomendado a partir de R$ 1.500.'
+ },
+ 'gestao-meta-ads':{
+  tag:'Instagram + Facebook',outcome:'Mostre sua oferta para públicos relevantes no Instagram e Facebook.',
+  forWhom:'Para quem deseja despertar interesse, divulgar novidades e desenvolver demanda.',
+  includes:['Definição de objetivo e públicos','Planejamento de mensagens e formatos','Acompanhamento de campanhas'],
+  price:'Gestão: 20% da mídia efetiva, mínimo R$ 170/mês no canal Meta. Ativação única: R$ 490.',
+  media:'Mídia: mínimo Imagine R$ 700/mês · planejamento recomendado a partir de R$ 1.000.'
+ },
+ 'gestao-chatgpt-ads':{
+  tag:'Canal em validação',outcome:'Conheça as possibilidades de mídia patrocinada no ChatGPT.',
+  forWhom:'Para empresas interessadas em avaliar um novo canal, com piloto condicionado a elegibilidade.',
+  includes:['Estudo de viabilidade','Planejamento de um possível piloto','Acompanhamento sujeito às regras da plataforma'],
+  price:'Parâmetros indicativos da Imagine; contratação ainda indisponível.',
+  media:'Piso de planejamento Imagine: R$ 1.200 de mídia/mês · recomendado a partir de R$ 1.800.',
+  availability:'Canal não habilitado para checkout. Disponibilidade e aprovação dependem da plataforma.'
+ }
+};
+const groups=[
+ {id:'sites-paginas',category:'01 · Sites e páginas',heading:'Sua empresa bem apresentada, com o formato certo.',intro:'Do primeiro site a uma página de campanha: escolha o que seu negócio precisa comunicar.',slugs:['onepage','landing-pages','criacao-de-sites','sites-por-assinatura']},
+ {id:'anuncios-performance',category:'02 · Anúncios e performance',heading:'Leve sua oferta a quem pode se interessar.',intro:'Compare canais e entenda o investimento antes de decidir. A mídia é paga diretamente a cada plataforma.',slugs:['gestao-google-ads','gestao-meta-ads','gestao-chatgpt-ads']}
+];
+const offeredIds=new Set(services.map(service=>service.slug));
+if(Object.keys(offerCopy).some(slug=>!offeredIds.has(slug)) ||
+  groups.flatMap(group=>group.slugs).some(slug=>!offeredIds.has(slug)) ||
+  new Set(groups.flatMap(group=>group.slugs)).size!==services.length)
+  throw new Error('Commercial showcase catalog requires editorial review');
+const bySlug=Object.fromEntries(services.map(service=>[service.slug,service]));
+
+const featuredSlugs=['onepage','landing-pages','gestao-chatgpt-ads','gestao-google-ads'] as const;
+const extraSlugs=['gestao-meta-ads','sites-por-assinatura','criacao-de-sites'] as const;
+const cardText:Record<string,{title:string,benefit:string,action:string,eyebrow:string}>={
+ onepage:{title:'Site Onepage',eyebrow:'Para começar',benefit:'Sua empresa em um site de página única, profissional e fácil de navegar.',action:'Quero minho Site Onepage'},
+ 'landing-pages':{title:'Landing Page',eyebrow:'Para converter',benefit:'Uma página para destacar sua oferta e gerar oportunidades.',action:'Quero minha Landing Page'},
+ 'criacao-de-sites':{title:'Site completo',eyebrow:'Para crescer',benefit:'Mais espaço para seus serviços, sua marca e sua história.',action:'Quero meu site'},
+ 'gestao-google-ads':{title:'Google Ads',eyebrow:'Para quem procura sua solução',benefit:'Apareça no Google para pessoas que procuram seus produtos e serviços.',action:'Quero anunciar no Google'},
+ 'gestao-meta-ads':{title:'Instagram e Facebook',eyebrow:'Meta Ads',benefit:'Anúncios para despertar interesse pela sua marca.',action:'Quero Meta Ads'},
+ 'sites-por-assinatura':{title:'Sites por assinatura',eyebrow:'Outra modalidade',benefit:'Conheça um modelo de site com serviço recorrente.',action:'Consultar planos'},
+ 'gestao-chatgpt-ads':{title:'ChatGPT Ads',eyebrow:'Novo canal de anúncios',benefit:'Leve sua oferta a pessoas explorando soluções no ChatGPT.',action:'Quero anunciar no ChatGPT'}
+};
+if([...featuredSlugs,...extraSlugs].length!==services.length||
+  new Set([...featuredSlugs,...extraSlugs]).size!==services.length||
+  [...featuredSlugs,...extraSlugs].some(slug=>!offeredIds.has(slug)))
+  throw new Error('The four-card sales showcase must retain exactly seven reviewed offers');
+const moneyCards:Record<string,{primary:string,primaryValue:string,secondary:string,secondaryValue:string,note:string}>={
+ 'gestao-chatgpt-ads':{primary:'Ativação',primaryValue:'R$ 490',secondary:'Gestão',secondaryValue:'20%',note:'Mínimo R$ 170/mês por canal · mídia à parte'},
+ onepage:{primary:'Implantação',primaryValue:'R$ 990',secondary:'Mensalidade',secondaryValue:'R$ 79,90',note:'3× R$ 330 · 1ª mensalidade em D+90'},
+ 'landing-pages':{primary:'Implantação',primaryValue:'R$ 1.290',secondary:'Mensalidade',secondaryValue:'R$ 79,90',note:'3× R$ 430 · 1ª mensalidade em D+90'},
+ 'criacao-de-sites':{primary:'Investimento',primaryValue:'Sob proposta',secondary:'Escopo',secondaryValue:'Personalizado',note:'Valores e prazo definidos antes do aceite'},
+ 'gestao-google-ads':{primary:'Ativação',primaryValue:'R$ 490',secondary:'Gestão',secondaryValue:'20%',note:'Mínimo R$ 170/mês por canal · mídia à parte'}
+};
+---
+<section class="quick-hire section" id="solucoes" aria-labelledby="quick-hire-title">
+ <div class="shell">
+  <div class="showcase-head">
+    <div><p class="eyebrow">ENCONTRE SUA SOLUÇÃO</p><h2 id="quick-hire-title">Escolha. Personalize. <span>Comece.</span></h2></div>
+    <a href="/comparar-solucoes/" class="compare-link">Não sabe qual escolher? <strong>Compare aqui</strong> <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="quick-hire-grid">
+    {featuredSlugs.map(slug=>{
+      const service=bySlug[slug];
+      const offer=cardText[slug];
+      const pricing=moneyCards[slug];
+      const preview=portalPreviewHref(slug);
+      return <article id={slug==='gestao-google-ads'?'anuncios-performance':undefined} class={'quick-hire-card feature-'+slug} data-quick-hire={service.slug}>
+        <OfferArtwork slug={slug}/>
+        <div class="offer-body">
+          <p class="offer-eyebrow">{offer.eyebrow}</p>
+          <h3>{offer.title}</h3>
+          <p class="offer-benefit">{offer.benefit}</p>
+          <div class="offer-price-row">
+            <div><span>{pricing.primary}</span><strong>{pricing.primaryValue}</strong></div>
+            <div><span>{pricing.secondary}</span><strong>{pricing.secondaryValue}{slug==='onepage'||slug==='landing-pages'?<small>/mês</small>:null}</strong></div>
+          </div>
+          <p class="offer-term">{pricing.note}</p>
+          {slug==='gestao-chatgpt-ads'&&<p class="offer-note">Planejamento de mídia: R$ 1.200 / 30 dias (R$ 40/dia). Recomendado: R$ 1.800. Veiculação sujeita à aprovação da plataforma.</p>}
+          {slug==='gestao-google-ads'&&<p class="offer-note">Mídia no Google: mínimo R$ 1.000/mês · recomendado R$ 1.500/mês.</p>}
+          <a class="cta quick-hire-action" data-quick-hire-action
+             href={preview || contactWhatsAppUrl(composeCuratedContactLinks(service.slug).message)}
+             target={preview?undefined:'_blank'}
+             rel={preview?'noreferrer nofollow':'noopener noreferrer'}
+             aria-label={preview?'Abrir contratação privada de teste: '+service.label:'Conversar sobre '+service.label+' no WhatsApp'}
+             aria-describedby="quick-hire-notice">
+             {offer.action} <span aria-hidden="true">↗</span>
+          </a>
+          <a class="offer-more" href={'/servicos/'+slug+'/'}>Ver detalhes <span aria-hidden="true">↗</span></a>
+        </div>
+      </article>;
+    })}
+  </div>
+  <div id="mais-solucoes" class="more-services">
+    <span>Também temos:</span>
+    {extraSlugs.map(slug=>{
+      const service=bySlug[slug],offer=cardText[slug],preview=portalPreviewHref(slug);
+      return <article class="mini-offer" data-quick-hire={service.slug}>
+        <span class={'mini-offer-icon mini-'+slug} aria-hidden="true">
+          {slug==='gestao-meta-ads'?'◎':slug==='sites-por-assinatura'?'▣':'✳'}
+        </span>
+        <div class="mini-offer-copy"><strong>{offer.title}</strong><small>{offer.benefit}</small></div>
+        <a class="mini-more" href={'/servicos/'+slug+'/'} aria-label={'Ver detalhes: '+service.label}>Detalhes</a>
+        <a class="mini-cta" data-quick-hire-action
+           href={preview || contactWhatsAppUrl(composeCuratedContactLinks(slug).message)}
+           target={preview?undefined:'_blank'}
+           rel={preview?'noreferrer nofollow':'noopener noreferrer'}
+           aria-label={preview?'Abrir contratação privada de teste: '+service.label:'Conversar sobre '+service.label+' no WhatsApp'}
+           aria-describedby="quick-hire-notice">{offer.action} <span aria-hidden="true">↗</span></a>
+      </article>;
+    })}
+    <a class="see-all" href="/servicos/">Ver todos os serviços <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="checkout-preview" id="fluxo-comercial" aria-labelledby="checkout-flow-title">
+    <div class="flow-caption"><p class="eyebrow">SIMPLES ASSIM</p><h3 id="checkout-flow-title">Primeiro a escolha.<br/>O cadastro fica para o final.</h3><a class="flow-cta" href="#simular-compra">Montar meu orçamento <span aria-hidden="true">↗</span></a></div>
+    <ol>
+      <li><span class="flow-mark">01</span><strong>Escolha</strong></li>
+      <li><span class="flow-mark">02</span><strong>Personalize</strong></li>
+      <li><span class="flow-mark">03</span><strong>Confira</strong></li>
+      <li><span class="flow-mark">04</span><strong>Contrate</strong></li>
+    </ol>
+  </div>
+  <CommercialChoicePreview locale="pt-BR"/>
+  <div class="quick-hire-disclosure"><p id="quick-hire-notice">{privatePortalBuild
+   ? 'Prévia privada de contratação: apenas ofertas homologáveis abrem o Portal de teste; outros serviços seguem para atendimento. Nenhum cadastro, contrato ou pagamento real é iniciado.'
+   : 'Nesta prévia pública, o botão abre uma conversa no WhatsApp sobre o serviço escolhido; nenhum pagamento é realizado aqui. O checkout digital ainda depende da homologação do Portal.'}</p>
+   <a href="/calculadora-de-anuncios/">Quer anunciar? Calcule a verba de mídia <span aria-hidden="true">↗</span></a>
+  </div>
+ </div>
+</section>
+<style>
+ .quick-hire{background:#fffdf9;padding-block:clamp(44px,6vw,80px);scroll-margin-top:90px}
+ .showcase-head{display:flex;justify-content:space-between;align-items:flex-end;gap:22px;margin-bottom:24px}
+ .showcase-head .eyebrow{font-size:.74rem;letter-spacing:.1em;color:#995000;font-weight:800}
+ .showcase-head h2{font-size:clamp(2rem,3.3vw,3.3rem);margin:5px 0 0;letter-spacing:-.047em;line-height:1.12}
+ .showcase-head h2 span{color:#be6300}
+ .compare-link{min-width:220px;max-width:255px;color:#5d5144;font-weight:600;font-size:.86rem;line-height:1.4;text-decoration:none}
+ .compare-link strong{color:#a45000}
+ .quick-hire-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+ .quick-hire-card{position:relative;min-width:0;display:flex;flex-direction:column;border:1px solid #eaded0;border-radius:19px;overflow:hidden;background:#fff;box-shadow:0 8px 24px #30291b09;transition:box-shadow .2s,transform .2s}
+ .quick-hire-card:hover{box-shadow:0 18px 34px #30291b16;transform:translateY(-3px)}
+ .offer-body{display:flex;flex:1;flex-direction:column;padding:19px 16px 16px}
+ .offer-eyebrow{font-size:.72rem;letter-spacing:.04em;font-weight:800;color:#995000;margin:0 0 6px}
+ .offer-body h3{font-size:clamp(1.23rem,1.7vw,1.43rem);line-height:1.19;letter-spacing:-.035em;margin:0 0 8px}
+ .offer-benefit{font-size:.88rem;line-height:1.5;color:#5b564f;margin:0 0 16px;min-height:4.3em}
+ .offer-price-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:auto}
+ .offer-price-row div{display:flex;flex-direction:column;gap:4px;min-width:0;padding:10px 8px;background:#faf7f1;border-radius:9px}
+ .offer-price-row span{font-size:.7rem;color:#66594c}
+ .offer-price-row strong{font-size:clamp(.84rem,1.05vw,1rem);line-height:1.2;color:#242522;white-space:nowrap;letter-spacing:-.035em}
+ .offer-price-row strong small{font-size:.66rem;font-weight:500;color:#655a4f}
+ .offer-term{font-size:.75rem;color:#675e55;line-height:1.43;min-height:2.8em;margin:10px 0 14px}
+ .offer-note{font-size:.74rem;color:#696059;line-height:1.48;margin:-7px 0 12px}
+ .quick-hire-action{display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;text-align:center;font-size:.84rem;font-weight:800;min-height:46px;width:100%;padding:10px}
+ .quick-hire-action::after{content:"";position:absolute;inset:0;border-radius:19px}
+ .quick-hire-card:focus-within{outline:3px solid #b45b00;outline-offset:4px}
+ .offer-more{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:700;font-size:.81rem;color:#874100;min-height:41px;text-decoration:underline;text-underline-offset:3px}
+ .more-services{display:grid;grid-template-columns:1fr repeat(3,minmax(0,2.1fr));gap:9px;align-items:center;margin-top:20px;scroll-margin-top:90px}
+ .more-services>span{font-weight:800;font-size:.82rem;color:#63594e}
+ .mini-offer{position:relative;display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;padding:10px 12px;background:#fff;border:1px solid #e6ded4;border-radius:13px}
+ .mini-offer-icon{display:grid;place-items:center;width:33px;height:33px;background:#fff0dc;border-radius:10px;color:#945117;font-weight:800;font-size:21px}
+ .mini-offer-copy{display:grid;gap:3px;min-width:0}
+ .mini-offer-copy strong{font-size:.87rem;line-height:1.2}
+ .mini-offer-copy small{font-size:.71rem;color:#6a6055;line-height:1.35}
+ .mini-cta::after{content:"";position:absolute;inset:0;border-radius:13px}
+ .mini-more{position:relative;z-index:1;display:none}
+ .mini-cta{display:flex;align-items:center;gap:3px;font-size:.74rem;font-weight:800;color:#945000;text-align:right;text-decoration:none}
+ .see-all{grid-column:2/-1;justify-self:end;color:#995000;font-size:.82rem;text-underline-offset:4px}
+ .checkout-preview{margin:35px 0 0;padding:23px 28px;background:#171b19;color:#fff;border-radius:18px;display:grid;grid-template-columns:280px minmax(0,1fr);gap:24px;align-items:center}
+ .checkout-preview .eyebrow{color:#ffbf79;font-size:.71rem;letter-spacing:.1em}
+ .checkout-preview h3{font-size:1.42rem;margin:6px 0 0;line-height:1.23}
+ .checkout-preview .flow-cta{display:inline-flex;align-items:center;gap:8px;color:#fff5df;min-height:44px;font-weight:780;margin-top:12px;font-size:.87rem;text-underline-offset:4px}
+ .checkout-preview ol{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+ .checkout-preview li{display:grid;justify-items:center;gap:9px;font-size:.84rem;background:#272d29;border-radius:11px;padding:13px 9px;text-align:center}
+ .flow-mark{font-weight:800;color:#ffba6b}
+ .quick-hire-disclosure{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-top:13px}
+ .quick-hire-disclosure p{color:#71685d;font-size:.76rem;line-height:1.5;margin:0;max-width:900px}
+ .quick-hire-disclosure a{font-size:.82rem;font-weight:780;color:#914b00;white-space:nowrap}
+ .quick-hire a:focus-visible{outline:3px solid #a95b00;outline-offset:4px}
+ @media(max-width:1120px){.quick-hire-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.more-services{grid-template-columns:1fr}.more-services>span{margin:5px 0}.see-all{grid-column:1}.mini-more{display:inline;font-size:.72rem;color:#8c4a0b}.checkout-preview{grid-template-columns:1fr}}
+ @media(max-width:650px){.quick-hire-grid{grid-template-columns:1fr}.showcase-head{display:block}.compare-link{display:block;margin-top:14px}.offer-benefit{min-height:0}.offer-art{height:160px}.offer-body{padding:20px}.checkout-preview ol{grid-template-columns:repeat(2,minmax(0,1fr))}.checkout-preview{padding:20px}.quick-hire-disclosure{display:block}.quick-hire-disclosure a{display:inline-block;margin-top:12px;white-space:normal}.mini-offer{grid-template-columns:36px minmax(0,1fr)}.mini-cta{grid-column:2;justify-self:start}.mini-more{display:none}}
+ @media(prefers-reduced-motion:reduce){.quick-hire-card{transition:none}.quick-hire-card:hover{transform:none}}
+</style>

@@ -1,0 +1,114 @@
+---
+/**
+ * Imagine growth signature F330.
+ * Static editorial language only: no implied leads/sales guarantee, tracking,
+ * network requests, cookies, CTA, monetary changes or contract side effects.
+ * The three-stage vocabulary is consistent across sites, CRM, SEO, AI and
+ * Universidade Imagine. Subtle green is restricted to the approved pills;
+ * orange remains the primary Imagine brand colour.
+ */
+interface Props {
+  locale?: 'pt-BR' | 'en' | 'es';
+  variant?: 'feature' | 'signature';
+}
+const {locale='pt-BR',variant='feature'}=Astro.props;
+const content={
+  'pt-BR':{
+    eyebrow:'O JEITO IMAGINE DE CRESCER',
+    title:'De visitas a clientes.',
+    description:'Atraia pessoas, transforme interesse em contatos e crie oportunidades de negócio.',
+    labels:['Visitas','Leads','Clientes'],
+    stages:'Atrair · Conectar · Converter',
+    signature:'Nossa metodologia'
+  },
+  en:{
+    eyebrow:'THE IMAGINE GROWTH METHOD',
+    title:'From visits to customers.',
+    description:'Attract people, turn interest into leads and create opportunities for your business.',
+    labels:['Visits','Leads','Customers'],
+    stages:'Attract · Connect · Convert',
+    signature:'Our methodology'
+  },
+  es:{
+    eyebrow:'EL MÉTODO IMAGINE',
+    title:'De visitas a clientes.',
+    description:'Atrae personas, convierte el interés en contactos y crea oportunidades de negocio.',
+    labels:['Visitas','Leads','Clientes'],
+    stages:'Atraer · Conectar · Convertir',
+    signature:'Nuestra metodología'
+  }
+} as const;
+const copy=content[locale];
+const feature=variant==='feature';
+---
+<div class:list={['growth-method',feature?'growth-feature':'growth-signature']}
+     data-imagine-growth-pillars data-growth-variant={variant}>
+  <div class={feature?'shell growth-panel':'growth-footer-panel'}>
+    {feature ?
+      <div class="growth-copy">
+        <p class="eyebrow">{copy.eyebrow}</p>
+        <h2 id="imagine-growth-method">{copy.title}</h2>
+        <p>{copy.description}</p>
+      </div>
+    :
+      <span class="growth-signature-title">{copy.signature}</span>
+    }
+    <div class="growth-identity">
+      <ul class="growth-pills" aria-label={copy.labels.join(', ')}>
+        <li class="growth-pill" data-growth-stage="visits">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2 12s3.7-6 10-6 10 6 10 6-3.7 6-10 6S2 12 2 12Z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>{copy.labels[0]}</span>
+        </li>
+        <li class="growth-pill" data-growth-stage="leads">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 20v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span>{copy.labels[1]}</span>
+        </li>
+        <li class="growth-pill" data-growth-stage="customers">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m3 17 6-6 4 4 8-8"/>
+            <path d="M15 7h6v6"/>
+          </svg>
+          <span>{copy.labels[2]}</span>
+        </li>
+      </ul>
+      {feature && <p class="growth-process">{copy.stages}</p>}
+    </div>
+  </div>
+</div>
+<style>
+  .growth-method{min-width:0}
+  .growth-feature{padding:clamp(20px,3vw,38px) 0}
+  .growth-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    align-items:center;gap:clamp(16px,3vw,42px);background:#fffdf9;border:1px solid #e5e7dc;
+    border-radius:20px;padding:clamp(20px,3vw,36px);box-shadow:0 7px 25px #283b2110}
+  .growth-copy{min-width:0}
+  .growth-copy .eyebrow{font-size:.72rem;color:#a6550b;font-weight:850;letter-spacing:.11em;margin:0 0 7px}
+  .growth-copy h2{font-size:clamp(1.7rem,2.5vw,2.65rem);line-height:1.12;letter-spacing:-.045em;margin:0 0 10px}
+  .growth-copy>p:last-child{margin:0;max-width:470px;font-size:.96rem;line-height:1.55;color:#585e53}
+  .growth-identity{min-width:0;text-align:center}
+  .growth-pills{list-style:none;margin:0;padding:0;display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap}
+  .growth-pill{display:inline-flex;align-items:center;gap:8px;border-radius:30px;padding:10px 14px;
+    background:#edf3e9;color:#31572c;font-size:.9rem;line-height:1.15;font-weight:780;white-space:nowrap}
+  .growth-pill svg{height:21px;width:21px;flex:none}
+  .growth-process{font-size:.79rem;font-weight:650;letter-spacing:.035em;color:#3e6037;margin:12px 0 0}
+  .growth-signature{margin-top:4px}
+  .growth-footer-panel{display:flex;align-items:center;justify-content:center;gap:15px;flex-wrap:wrap;
+    padding:14px 0}
+  .growth-signature-title{font-size:.79rem;font-weight:750;color:#687265}
+  .growth-signature .growth-pill{font-size:.79rem;padding:6px 10px;gap:6px}
+  .growth-signature .growth-pill svg{width:17px;height:17px}
+  @media(max-width:880px){.growth-panel{grid-template-columns:1fr}.growth-identity{text-align:left}
+    .growth-pills{justify-content:flex-start}.growth-copy>p:last-child{max-width:600px}}
+  @media(max-width:420px){.growth-panel{padding:18px}.growth-pill{font-size:.82rem;padding:9px 11px}
+    .growth-pill svg{height:18px;width:18px}.growth-signature .growth-pills{gap:5px}}
+</style>

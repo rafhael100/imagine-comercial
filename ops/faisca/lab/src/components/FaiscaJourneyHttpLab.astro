@@ -1,0 +1,47 @@
+---
+import { renderLabView } from '../../render-fragment.mjs';
+import { requireLabMode } from '../../lab-policy.mjs';
+requireLabMode(process.env.IMAGINE_FAISCA_LAB);
+const view = await renderLabView({ sourceRoot: import.meta.env.FAISCA_LAB_SOURCE_ROOT, transport: 'loopback_http' });
+---
+<style is:global set:html={view.css} />
+<style>
+  faisca-journey-http-lab { display: block; }
+  .journey-http-controls { max-width: 1360px; margin: 1rem auto; padding: 0 24px; display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+  .journey-http-controls h1 { flex-basis: 100%; font-size: 1.15rem; margin: 0; color: #222a27; }
+  .journey-http-controls p { margin: 0; color: #49514d; overflow-wrap: anywhere; }
+  .journey-http-controls .notice { flex-basis: 100%; }
+  .journey-http-controls button { font: inherit; font-weight: 700; color: #fff; background: #222a27; padding: .75rem 1rem; border: 0; border-radius: .75rem; cursor: pointer; }
+  .journey-http-controls button:focus-visible { outline: 3px solid #9a4d00; outline-offset: 3px; }
+  .journey-http-controls button:disabled { opacity: .65; cursor: default; }
+  .journey-http-controls [hidden] { display: none; }
+  [data-faisca-http-reconciliation] { flex-basis: 100%; white-space: pre-line; }
+</style>
+<faisca-journey-http-lab>
+  <section class="journey-http-controls" aria-label="Controles do laboratório R07">
+    <h1>Faísca · Jornada comercial com confirmação e PHP real</h1>
+    <p class="notice">Laboratório isolado. Use apenas mensagens fictícias; o servidor e o PHP são locais e usam o catálogo comercial aprovado. Nenhuma IA externa, CRM, cobrança ou envio à equipe está conectado.</p>
+    <p class="notice">Uma solução só entra no resumo depois de confirmada. Se uma resposta demorar, consulte a mesma mensagem; não a reenvie.</p>
+    <button type="button" data-faisca-http-start hidden>Ativar conversa R07 de laboratório</button>
+    <button type="button" data-faisca-http-reconcile hidden disabled>Consultar resposta pendente</button>
+    <p data-faisca-http-status role="status">A conversa será carregada quando você ativar.</p>
+    <p data-faisca-http-reconciliation role="status"></p>
+  </section>
+  <div data-faisca-root data-lab-preview set:html={view.markup} />
+</faisca-journey-http-lab>
+<script>
+  import { bindHttpLabHost } from '../../http-host.mjs';
+  class FaiscaJourneyHttpLabElement extends HTMLElement {
+    #binding;
+    connectedCallback() {
+      this.#binding ??= bindHttpLabHost(this, () => import('../../../journey/http-ui.mjs'));
+    }
+    disconnectedCallback() {
+      this.#binding?.destroy();
+      this.#binding = undefined;
+    }
+  }
+  if (!customElements.get('faisca-journey-http-lab')) {
+    customElements.define('faisca-journey-http-lab', FaiscaJourneyHttpLabElement);
+  }
+</script>

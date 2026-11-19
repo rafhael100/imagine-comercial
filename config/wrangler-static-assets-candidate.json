@@ -1,0 +1,12 @@
+{
+  "$comment": "REVIEW ONLY; no deploy authorized; not a default Wrangler config",
+  "name": "imagine-comercial-preview-candidate",
+  "compatibility_date": "2026-11-09",
+  "workers_dev": false,
+  "assets": {
+    "directory": "./dist/",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash",
+    "run_worker_first": false
+  }
+}

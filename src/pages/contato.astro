@@ -1,0 +1,345 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { services } from '../data/services.mjs';
+import {contactChannels,contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
+import {contactObjectives,composeCuratedContactLinks} from '../data/contact-objectives.mjs';
+import {briefingStages,briefingPriorities} from '../data/briefing-curado.mjs';
+// Real, approved public channels derived once at build time for visitors
+// with JavaScript disabled; no customer input or backend request.
+const noJsContacts=services.map(s=>{
+  const intent=composeCuratedContactLinks(s.slug);
+  return Object.freeze({
+    slug:s.slug,label:s.label,
+    whatsappHref:contactWhatsAppUrl(intent.message),
+    emailHref:contactEmailUrl(intent.subject)
+  });
+});
+---
+<BaseLayout
+  title="Contato e orçamento | Imagine Comunicação Digital"
+  description="Entre em contato com a Imagine Comunicação Digital para conversar sobre criação de sites, Landing Pages e performance digital."
+  pathname="/contato/"
+  breadcrumb={[{label:'Contato',path:'/contato/'}]}
+>
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Entre em contato</p>
+      <h1>Conte seu objetivo. Vamos encontrar o próximo passo.</h1>
+      <p class="lead">Escolha o canal de sua preferência para falar com a Imagine. O formulário integrado ao Portal será disponibilizado após homologação.</p>
+      <div class="contact-choice">
+        <label for="service-choice">Qual solução você procura?</label>
+        <select id="service-choice" name="servico" autocomplete="off" aria-describedby="service-help">
+          <option value="">Ainda quero orientação</option>
+          {services.map(s => <option value={s.slug}>{s.label}</option>)}
+        </select>
+        <p id="service-help" role="status" aria-live="polite">Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.</p>
+      </div>
+      <div class="contact-choice">
+        <label for="objective-choice">Qual é o objetivo da conversa? (opcional)</label>
+        <select id="objective-choice" name="objetivo" autocomplete="off" aria-describedby="objective-help">
+          <option value="">Ainda quero avaliar</option>
+          {contactObjectives.map(item => <option value={item.code}>{item.label}</option>)}
+        </select>
+        <p id="objective-help" role="status" aria-live="polite">A seleção só prepara a mensagem. Você decide se deseja abrir o canal externo.</p>
+      </div>
+      <div class="contact-choice">
+        <label for="stage-choice">Em que momento está seu projeto? (opcional)</label>
+        <select id="stage-choice" name="momento" autocomplete="off" aria-describedby="stage-help">
+          <option value="">Prefiro conversar primeiro</option>
+          {briefingStages.map(item => <option value={item.code}>{item.label}</option>)}
+        </select>
+        <p id="stage-help">Use uma opção pronta. Não pedimos dados pessoais nem salvamos sua escolha.</p>
+      </div>
+      <div class="contact-choice">
+        <label for="priority-choice">Qual a prioridade principal? (opcional)</label>
+        <select id="priority-choice" name="prioridade" autocomplete="off" aria-describedby="priority-help">
+          <option value="">Ainda estou definindo</option>
+          {briefingPriorities.map(item => <option value={item.code}>{item.label}</option>)}
+        </select>
+        <p id="priority-help">Sua escolha ajuda a preparar o texto do contato, sem enviar nada pelo site.</p>
+      </div>
+      <div class="contact-reset-controls">
+        <button type="button" id="reset-briefing" class="contact-reset" hidden
+          aria-controls="service-choice objective-choice stage-choice priority-choice message-preview">
+          Limpar escolhas
+        </button>
+      </div>
+      <p id="message-preview" class="message-preview" role="status" aria-live="polite" aria-atomic="true">Prévia da mensagem: Olá, gostaria de conhecer os serviços da Imagine.</p>
+      <p class="contact-process-link"><a href="/como-funciona/">Entenda as etapas do projeto antes de conversar</a> · <a href="/perguntas-frequentes/">Dúvidas frequentes</a></p>
+      <p id="external-channel-notice" class="contact-channel-notice">Os canais abaixo são externos ao site. Ao abrir o WhatsApp, o texto preparado aparece no serviço; confira e confirme o envio. O e-mail abre o aplicativo configurado no seu dispositivo. A Imagine não recebe uma solicitação por meio deste site apenas porque você selecionou um serviço ou objetivo.</p>
+      <div class="cta-row">
+        <a class="cta" id="contact-whatsapp" href={contactWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-describedby="external-channel-notice">Conversar pelo WhatsApp</a>
+        <a class="cta cta-secondary" id="contact-email" href={contactEmailUrl()} aria-describedby="external-channel-notice">Enviar e-mail</a>
+        <button class="cta cta-secondary contact-copy" type="button" id="copy-message" hidden aria-describedby="message-preview external-channel-notice">Copiar mensagem</button>
+        <button class="cta cta-secondary contact-copy" type="button" id="copy-briefing-link" hidden aria-describedby="external-channel-notice">Copiar link deste briefing</button>
+        <button class="cta cta-secondary contact-print" type="button" id="print-briefing" hidden aria-describedby="external-channel-notice">Imprimir resumo do briefing</button>
+      </div>
+      <p id="copy-message-status" class="copy-message-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <p id="copy-briefing-status" class="copy-message-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <section id="print-briefing-summary" class="print-briefing-summary" aria-labelledby="print-briefing-title">
+        <h2 id="print-briefing-title">Resumo do briefing — Imagine</h2>
+        <p>Resumo preparado localmente com opções públicas do catálogo. Nenhum pedido foi enviado pelo site.</p>
+        <dl>
+          <div><dt>Serviço de interesse</dt><dd id="print-briefing-service">A definir</dd></div>
+          <div><dt>Objetivo</dt><dd id="print-briefing-objective">A definir</dd></div>
+          <div><dt>Etapa do projeto</dt><dd id="print-briefing-stage">A definir</dd></div>
+          <div><dt>Prioridade</dt><dd id="print-briefing-priority">A definir</dd></div>
+        </dl>
+        <h3>Mensagem de contato preparada</h3>
+        <p id="print-briefing-message">Olá, gostaria de conhecer os serviços da Imagine.</p>
+        <p>Esta é uma preparação informativa. Escopo, preços, prazos e condições dependem de proposta oficial.</p>
+      </section>
+      <noscript>
+        <section class="contact-nojs-intents" aria-labelledby="contact-nojs-title">
+          <h2 id="contact-nojs-title">Atendimento por serviço, sem JavaScript</h2>
+          <p>Se você veio de uma página de serviço, escolha abaixo o canal correspondente. O texto é preparado, mas somente você decide se abre e envia a mensagem no aplicativo externo.</p>
+          <ul>
+            {noJsContacts.map(item=>(
+              <li id={item.slug} data-nojs-contact={item.slug}>
+                <h3>{item.label}</h3>
+                <div class="contact-nojs-links">
+                  <a data-nojs-whatsapp href={item.whatsappHref} target="_blank" rel="noopener noreferrer">WhatsApp sobre {item.label}</a>
+                  <a data-nojs-email href={item.emailHref}>E-mail sobre {item.label}</a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </noscript>
+    </div>
+  </section>
+  <section class="section section-soft">
+    <div class="shell">
+      <h2>Nossos canais de atendimento</h2>
+      <div class="cards">
+        <article class="card"><h3>E-mail</h3><p><a href={"mailto:"+contactChannels.email}>{contactChannels.email}</a></p></article>
+        <article class="card"><h3>Telefone e WhatsApp</h3><p><a href={"tel:"+contactChannels.phoneE164}>{contactChannels.phoneDisplay}</a><br /><a href={contactChannels.whatsappBaseHref} target="_blank" rel="noopener noreferrer">WhatsApp: {contactChannels.whatsappDisplay}</a></p></article>
+        <article class="card"><h3>Atendimento</h3><p>Segunda a sexta, das 8h às 12h e das 14h às 18h (horário informado no site atual).</p></article>
+      </div>
+      <p>Os canais acima constam no site público atual da Imagine. Devem ser reconfirmados antes da substituição do domínio.</p>
+    </div>
+  </section>
+  <script>
+    import {contactWhatsAppUrl,contactEmailUrl} from '../data/contact-channels.mjs';
+    import {composeCuratedContactLinks,contactObjectives} from '../data/contact-objectives.mjs';
+    import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from '../data/briefing-curado.mjs';
+    import {encodeCuratedBriefingFragment,decodeCuratedBriefingFragment} from '../data/curated-briefing-fragment.mjs';
+    // Somente dados estáticos de serviço: sem cookies, fetch, rastreamento ou PII.
+    const choice = document.querySelector<HTMLSelectElement>('#service-choice');
+    const whatsapp = document.querySelector<HTMLAnchorElement>('#contact-whatsapp');
+    const email = document.querySelector<HTMLAnchorElement>('#contact-email');
+    const help = document.querySelector<HTMLElement>('#service-help');
+    const objective = document.querySelector<HTMLSelectElement>('#objective-choice');
+    const objectiveHelp = document.querySelector<HTMLElement>('#objective-help');
+    const stage = document.querySelector<HTMLSelectElement>('#stage-choice');
+    const priority = document.querySelector<HTMLSelectElement>('#priority-choice');
+    const preview = document.querySelector<HTMLElement>('#message-preview');
+    const copy = document.querySelector<HTMLButtonElement>('#copy-message');
+    const copyStatus = document.querySelector<HTMLElement>('#copy-message-status');
+    const share = document.querySelector<HTMLButtonElement>('#copy-briefing-link');
+    const shareStatus = document.querySelector<HTMLElement>('#copy-briefing-status');
+    const printButton = document.querySelector<HTMLButtonElement>('#print-briefing');
+    const reset = document.querySelector<HTMLButtonElement>('#reset-briefing');
+    const printService = document.querySelector<HTMLElement>('#print-briefing-service');
+    const printObjective = document.querySelector<HTMLElement>('#print-briefing-objective');
+    const printStage = document.querySelector<HTMLElement>('#print-briefing-stage');
+    const printPriority = document.querySelector<HTMLElement>('#print-briefing-priority');
+    const printMessage = document.querySelector<HTMLElement>('#print-briefing-message');
+    if (choice && whatsapp && email && help && objective && objectiveHelp && stage && priority && preview && copy && copyStatus && share && shareStatus && reset) {
+      // Exibir o botão somente em navegadores com API de clipboard disponível.
+      // Sem JS, o botão permanece oculto e os canais estáticos funcionam.
+      if (navigator.clipboard?.writeText) copy.hidden = false;
+      if (navigator.clipboard?.writeText) share.hidden = false;
+      // Print is user-triggered only; the summary contains curated labels,
+      // never free-form personal details, and never leaves the browser.
+      if(printButton && typeof window.print==='function'){
+        printButton.hidden=false;
+        printButton.addEventListener('click',()=>window.print());
+      }
+      // All identifiers originate from the server-reviewed service catalog.
+      // The URL fragment contains only a public service slug, never a lead.
+      // F173: async clipboard results must not confirm an outdated briefing.
+      // Prevent overlapping writes across both buttons until the browser settles.
+      let clipboardRevision=0;
+      let clipboardPending=false;
+      const setClipboardPending=(pending:boolean)=>{
+        clipboardPending=pending;
+        copy.disabled=pending;
+        share.disabled=pending;
+      };
+      const allowed = new Set([...choice.options].map(option => option.value));
+      const allowedObjectives = new Set(['',...contactObjectives.map(item => item.code)]);
+      const allowedStages = new Set(['',...briefingStages.map(item => item.code)]);
+      const allowedPriorities = new Set(['',...briefingPriorities.map(item => item.code)]);
+      const update = () => {
+        clipboardRevision++;
+        reset.hidden = !(choice.value || objective.value || stage.value || priority.value);
+        const selected = choice.selectedOptions[0];
+        const label = selected?.value ? selected.textContent?.trim() : '';
+        if (!allowedObjectives.has(objective.value)) objective.value = '';
+        if (!allowedStages.has(stage.value)) stage.value = '';
+        if (!allowedPriorities.has(priority.value)) priority.value = '';
+        const curated=composeCuratedContactLinks(choice.value,objective.value);
+        const expanded=composeCuratedBriefingLinks(choice.value,objective.value,stage.value,priority.value);
+        const whatsappMessage = expanded.message;
+        const emailSubject = curated.subject;
+        whatsapp.href = contactWhatsAppUrl(whatsappMessage);
+        email.href = (stage.value || priority.value)
+          ? contactEmailUrl(emailSubject,whatsappMessage)
+          : contactEmailUrl(emailSubject);
+        preview.textContent='Prévia da mensagem: '+whatsappMessage;
+        if(printService&&printObjective&&printStage&&printPriority&&printMessage){
+          printService.textContent=label||'Ainda quero orientação';
+          printObjective.textContent=objective.selectedOptions[0]?.textContent?.trim()||'A definir';
+          printStage.textContent=stage.selectedOptions[0]?.textContent?.trim()||'A definir';
+          printPriority.textContent=priority.selectedOptions[0]?.textContent?.trim()||'A definir';
+          printMessage.textContent=whatsappMessage;
+        }
+        copyStatus.textContent='';
+        shareStatus.textContent='';
+        help.textContent = label
+          ? 'Mensagem preparada para ' + label + '. Nenhum dado será enviado pelo site.'
+          : 'Escolha um serviço para preparar uma mensagem de atendimento. Nenhum dado será enviado pelo site.';
+        objectiveHelp.textContent = curated.objectiveLabel
+          ? 'Objetivo selecionado: ' + curated.objectiveLabel + '. Nenhum dado será enviado pelo site.'
+          : 'A seleção só prepara a mensagem. Você decide se deseja abrir o canal externo.';
+      };
+      const applyFragment = () => {
+        const requested = window.location.hash.slice(1);
+        // Legacy #service and canonical F169 hashes are the only business
+        // states allowed in the address bar. Keep real static anchors.
+        const shared=decodeCuratedBriefingFragment('#'+requested);
+        let cleanHash='';
+        if(shared){
+          choice.value=shared.service;
+          objective.value=shared.objective;
+          stage.value=shared.stage;
+          priority.value=shared.priority;
+          cleanHash=encodeCuratedBriefingFragment(
+            shared.service,shared.objective,shared.stage,shared.priority);
+        }else{
+          choice.value=allowed.has(requested) ? requested : '';
+          objective.value='';
+          stage.value='';
+          priority.value='';
+          const isLocalAnchor=/^[a-z][a-z0-9-]{0,63}$/.test(requested)&&
+            document.getElementById(requested)!==null;
+          cleanHash=choice.value?'#'+choice.value:
+            isLocalAnchor?window.location.hash:'';
+        }
+        // F207: an inherited query/hash must not persist in navigation,
+        // history, copied addresses or external channel context.
+        if(window.location.search||window.location.hash!==cleanHash)
+          window.history.replaceState(null,'',window.location.pathname+cleanHash);
+        update();
+      };
+      copy.addEventListener('click', async () => {
+        if (clipboardPending) return;
+        // O texto é composto somente dos catálogos públicos curados.
+        // Não pedimos entrada livre, não armazenamos dados nem enviamos uma solicitação.
+        const message=composeCuratedBriefingLinks(choice.value,objective.value,stage.value,priority.value).message;
+        const ticket=++clipboardRevision;
+        setClipboardPending(true);
+        copyStatus.textContent='';
+        shareStatus.textContent='';
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+          await navigator.clipboard.writeText(message);
+          if (ticket===clipboardRevision) copyStatus.textContent='Mensagem copiada. Cole no canal de sua preferência e confirme o envio.';
+        } catch {
+          if (ticket===clipboardRevision) copyStatus.textContent='Não foi possível copiar automaticamente. Você pode selecionar a prévia acima e copiá-la manualmente.';
+        } finally {
+          setClipboardPending(false);
+        }
+      });
+      share.addEventListener('click', async () => {
+        if (clipboardPending) return;
+        // Build the URL from origin + fixed public route only: never include
+        // current query params, token fragments, contact text or tracking IDs.
+        const fragment=encodeCuratedBriefingFragment(
+          choice.value,objective.value,stage.value,priority.value);
+        const link=window.location.origin+'/contato/'+fragment;
+        const ticket=++clipboardRevision;
+        setClipboardPending(true);
+        copyStatus.textContent='';
+        shareStatus.textContent='';
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+          await navigator.clipboard.writeText(link);
+          if (ticket===clipboardRevision) shareStatus.textContent='Link do briefing copiado. Compartilhe apenas se desejar; o site não recebe seus dados.';
+        } catch {
+          if (ticket===clipboardRevision) shareStatus.textContent='Não foi possível copiar o link automaticamente. Você pode conversar pelos canais acima.';
+        } finally {
+          setClipboardPending(false);
+        }
+      });
+      // F287: clear all temporary curated selections in one deliberate action.
+      // Reset both history fragment and copied-message revision; never send
+      // a request or preserve visitor choices in storage.
+      reset.addEventListener('click',()=>{
+        choice.value='';
+        objective.value='';
+        stage.value='';
+        priority.value='';
+        window.history.replaceState(null,'',window.location.pathname);
+        update();
+        choice.focus();
+      });
+      objective.addEventListener('change', update);
+      stage.addEventListener('change', update);
+      priority.addEventListener('change', update);
+      choice.addEventListener('change', () => {
+        if (!allowed.has(choice.value)) return;
+        // Replace this history entry rather than adding one for every change.
+        // Do not send visitor information, navigate, or change any query field.
+        const fragment = choice.value ? '#' + choice.value : '';
+        window.history.replaceState(null, '', window.location.pathname + fragment);
+        update();
+      });
+      window.addEventListener('hashchange', applyFragment);
+      window.addEventListener('popstate', applyFragment);
+      applyFragment();
+    }
+  </script>
+  <style>
+    .contact-channel-notice { max-width: 740px; margin-top: 24px; font-size: .94rem; color: #56534e; }
+    .contact-nojs-intents{padding:22px;margin-top:28px;border:1px solid #dfcdb7;background:#fffaf4;border-radius:16px}
+    .contact-nojs-intents>ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px;list-style:none;padding:0;margin:18px 0}
+    .contact-nojs-intents>ul>li{background:#fff;border:1px solid #e7d9c8;border-radius:10px;padding:14px;scroll-margin-top:24px}
+    .contact-nojs-intents h3{margin:0 0 10px}
+    .contact-nojs-links{display:grid;gap:10px}
+    .contact-nojs-links a{color:#884100;font-weight:750;text-underline-offset:3px;min-height:44px;display:flex;align-items:center}
+    .contact-copy,.contact-print { cursor: pointer; font: inherit; }
+    .contact-reset-controls{margin-top:16px}
+    .contact-reset{display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;
+      border:1px solid #bba893;border-radius:10px;background:#fff;color:#884100;
+      font:inherit;font-weight:750;cursor:pointer}
+    .contact-reset[hidden]{display:none!important}
+    .contact-reset:hover{background:#fff8ed}
+    .contact-reset:focus-visible{outline:3px solid #b45b00;outline-offset:3px}
+    .contact-print[hidden]{display:none!important}
+    .print-briefing-summary{display:none}
+    @media print{
+      :global(header),:global(footer),:global(main#conteudo > :not(.hero)){display:none!important}
+      .hero{background:none!important;padding:0!important}
+      .hero>.shell>:not(.print-briefing-summary){display:none!important}
+      .print-briefing-summary{display:block!important;color:#171b19;line-height:1.5;padding:12px 0}
+      .print-briefing-summary h2{font-size:1.8rem;margin:0 0 16px}
+      .print-briefing-summary h3{font-size:1.1rem;margin:26px 0 10px}
+      .print-briefing-summary p{max-width:none}
+      .print-briefing-summary dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px;padding-block:18px;border-block:1px solid #ddd}
+      .print-briefing-summary dt{font-weight:700}
+      .print-briefing-summary dd{margin:4px 0 0;overflow-wrap:anywhere}
+    }
+    .contact-copy[hidden] { display: none; }
+    .copy-message-status { max-width: 740px; margin: 12px 0 0; font-size: .9rem; color: #56534e; }
+    .copy-message-status:empty { display: none; }
+    .contact-process-link { margin: 20px 0 0; }
+    .contact-process-link a { color: #884100; font-weight: 750; text-underline-offset: 4px; }
+    .contact-choice { max-width: 490px; margin-top: 22px; }
+    .message-preview { max-width: 660px; overflow-wrap: anywhere; border-left: 4px solid #e29a38; padding: 12px 16px; margin: 24px 0 0; background: #fff8ed; color: #514c43; }
+    .contact-choice label { display: block; font-weight: 800; margin-bottom: 8px; }
+    .contact-choice select { width: 100%; min-height: 48px; padding: 10px 14px; border: 1px solid #bba893; border-radius: 10px; font: inherit; background: white; color: #171b19; }
+    .contact-choice p { margin: 8px 0 0; font-size: .85rem; color: #625c54; }
+  </style>
+</BaseLayout>

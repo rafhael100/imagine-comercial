@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "character": "Faísca",
+  "asset_id": "faisca-approved-master-v1",
+  "file": "assets/faisca-master.png",
+  "sha256": "1ede4d88a38e238523c6db7351f22654ffa40b9f8ee2260ea31b162763d8c87d",
+  "width": 1254,
+  "height": 1254,
+  "size_bytes": 1887660,
+  "format": "image/png",
+  "representation": "approved_3d_style_raster_render",
+  "approval": {
+    "source": "Direção Imagine, aprovação expressa no histórico desta conversa; referência recuperada em 17/11/2026",
+    "decision": "Modelo 100% aprovado; preservar layout e identidade visual",
+    "rights_status": "Material gerado e fornecido nesta conversa; publicação operacional sujeita à revisão do projeto"
+  },
+  "constraints": {
+    "preserve_original_bytes": true,
+    "redesign_allowed": false,
+    "recolor_allowed": false,
+    "crop_character_allowed": false,
+    "has_3d_mesh": false,
+    "has_rig": false,
+    "has_independent_limb_animation": false
+  },
+  "preview_motion": "Transformação CSS discreta do quadro inteiro, desativável; não é animação esquelética 3D",
+  "replaces": "Descrições anteriores do personagem Windows no plano mestre v1, para a identidade visual desta entrega",
+  "repository_publication_authorization": {
+    "reference_date": "2026-11-17",
+    "timezone": "America/Sao_Paulo",
+    "repository": "rafhael100/imagine-comercial",
+    "scope": "approved mascot and R02 project documents/source in review branch and draft PR",
+    "user_statement": "autorizado, aprovado pode publicar o mascote e os documentos",
+    "merge_or_site_deployment_authorized": false
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "commit": "59d0bae5340c23b37ea1e693e3a1f3915de3c075",
+  "files": {
+    "tools/faisca_public_bridge.php": "efaf81ebad30619ff36ba3aa5aa958cbdf6617b281c71ff688f3566a3719a168",
+    "contracts/faisca/public-context-v1.json": "1ae54bb9f1b8113ca4444c27a229d0359d9181290a5c788daa8c6854f12163ec",
+    "src/Domain/MockError.php": "daece0b58e37e03011c8689b0d7cf6dd200a03b01b4c65b282c62d98e780809e",
+    "src/Domain/TenantContext.php": "97cfa0e9bbf7e59e6d2f6fdca1c56adca1ee5e9a2b2b4250d59da31c7328f28d",
+    "src/Contracts/AiSuggestionProvider.php": "3424b09e0b8ad8020261f5dfd1e1c63a7575f8022850c5246e9ae647e5a54011",
+    "src/Contracts/CrmEffectGateway.php": "7671ac4e9c1ed882449ffbd1d7c2f5a0dbd4a69c00a60c6be64d640b5161d541",
+    "src/Domain/Run.php": "c479e230b7d2594ad1e854d1ee22f96bf78bfb5c4c612b9f1d139baac78b474e",
+    "src/Domain/Step.php": "58e2d93c5cd9ced8d3de586b3560e0a1a5f0cfc25977ae3faccae6826da28697",
+    "src/MockCatalog/MockAgentVersionSnapshot.php": "e474f808987e448e3b44e154b75481e8bd08a49fcc53ee16c1236b2bb1f9149e",
+    "src/MockKnowledge/MockKnowledgeSource.php": "10a160a323b4ba7c6a01772a82e71ceccdc70a7b2c8318107f4daeb1230d37d8",
+    "src/MockKnowledge/MockKnowledgeCatalog.php": "6ddc3505c19dde9e97556aecc96e6effdbd66548d16c9db09a6e876e33da581b",
+    "src/MockKnowledge/MockKnowledgeTrace.php": "991052632d84d28ffb9bd2d0458ea2a0d9e5dbbdf0adc3dfa6acf4496f71e842",
+    "src/MockKnowledge/MockRetrievalGrant.php": "ad0c1050a34981b3d47fae689236b7fc80edd9b7cd1d13beeba2bca0150b26b6",
+    "src/MockKnowledge/MockKnowledgeRetriever.php": "0426f4a975552ffec5d2340d8aa17a5db7a3520570384e7d61944605131b0277",
+    "src/MockKnowledge/MockContextEnvelope.php": "b34450c79177ffbe5242bb1f5c0d4243896bcfbce9d946784a0743a39caeb439",
+    "src/Mocks/MockAiSuggestionProvider.php": "881a7651ddd28b2f12b88c614808ca63c3e1eea6e10bb720c915d6a75fabe2f6",
+    "src/MockOrchestration/SupervisedCoordinator.php": "7ce5444f6cc5324b61bce26b09b2b38c5faee61225a3cf3e637d233c6a8cf6e8",
+    "src/Integration/Faisca/DenyOnlyEffectGateway.php": "e9b3506f5ac8bcf035020ddfeea58261d232e6423a4b03423a46b62bb9feca6b",
+    "src/Integration/Faisca/PublicConversationBridge.php": "cbc63af076fe5d3db669f9f972866075ce414b57fb21138de25a1c1ffe0f47ca"
+  },
+  "knowledgeVersion": "faisca-editorial-2",
+  "knowledgeDigest": "fe7daf5ab310acc5a0a600803254344ed02eff7bbd860b731cdf033dcbe4ead7"
+}

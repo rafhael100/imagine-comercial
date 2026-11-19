@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="color-scheme" content="light">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="data:,">
+  <title>Faísca · Uma boa conversa começa aqui | Imagine</title>
+  <style>__FAISCA_CSS__</style>
+</head>
+<body data-faisca-root>
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+  <header class="site-header">
+    <a class="wordmark" href="#conteudo" aria-label="Imagine, início da demonstração"><span class="brand-spark" aria-hidden="true">✳</span> imagine<span class="brand-period">.</span></a>
+    <span class="header-divider" aria-hidden="true"></span>
+    <span class="project-label">PROJETO FAÍSCA</span>
+    <nav class="top-navigation" aria-label="Nesta demonstração">
+      <a href="#jornadas">Como posso ajudar</a>
+      <a href="#sobre">Sobre a prévia</a>
+    </nav>
+    <span class="preview-tag">Prévia de desenvolvimento</span>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <div class="demo-notice"><span class="notice-dot" aria-hidden="true"></span> Demonstração guiada <span aria-hidden="true">·</span> Respostas locais <span aria-hidden="true">·</span> Sem envio de dados</div>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-story">
+        <p class="eyebrow"><span aria-hidden="true">⚡</span> O SEU PRÓXIMO PASSO COMEÇA AQUI</p>
+        <h1 id="hero-title">Prazer, eu sou<br>o <span>Faísca.</span></h1>
+        <p class="hero-description">Vamos encontrar a solução certa para o seu negócio? Eu te ajudo a entender, escolher e seguir em frente.</p>
+        <div class="hero-actions" data-js-only hidden>
+          <button class="button button-dark" type="button" data-demo-action="sell">Vamos conversar <span aria-hidden="true">↗</span></button>
+          <button class="button button-quiet" type="button" data-demo-action="after_sales">Já sou cliente <span aria-hidden="true">→</span></button>
+        </div>
+        <figure class="mascot-stage">
+          <img id="faisca-master" class="mascot-image" src="__FAISCA_IMAGE__" width="1254" height="1254" alt="Faísca, mascote laranja da Imagine, com rosto digital verde-azulado, sorrindo e acenando.">
+          <figcaption><span class="caption-mark" aria-hidden="true">✦</span> Faísca é Imagine.</figcaption>
+        </figure>
+      </div>
+
+      <div class="conversation-column">
+        <section id="faisca-chat" class="chat-shell" aria-labelledby="chat-title">
+          <header class="chat-header">
+            <span class="chat-avatar" aria-hidden="true"><img data-faisca-avatar width="52" height="52" alt=""></span>
+            <div class="chat-identity"><h2 id="chat-title" tabindex="-1">Converse com o Faísca</h2><p><span class="presence-dot" aria-hidden="true"></span> Assistente virtual da Imagine</p></div>
+            <button id="faisca-minimize" class="icon-button" type="button" aria-label="Minimizar conversa com o Faísca" title="Minimizar conversa" data-js-only hidden><span aria-hidden="true">−</span></button>
+          </header>
+          <div class="chat-mode"><span aria-hidden="true">✦</span> Um primeiro encontro. Experimente as três jornadas.</div>
+          <noscript><div class="no-script-note"><strong>O conteúdo abaixo continua disponível.</strong><p>Ative JavaScript para experimentar a conversa guiada local. Nenhuma informação é enviada a serviços.</p></div></noscript>
+          <div id="faisca-log" class="chat-log" role="log" aria-label="Conversa com o Faísca" aria-live="polite" aria-relevant="additions text" aria-atomic="false" tabindex="0"></div>
+          <div id="faisca-thinking" class="thinking-status" hidden><span class="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>Preparando a orientação…</span></div>
+          <div id="faisca-quick-actions" class="quick-actions" role="group" aria-label="Opções para continuar a conversa"></div>
+          <details id="faisca-summary" class="summary-panel" data-js-only hidden>
+            <summary>Seu resumo de interesse <span id="faisca-summary-indicator">—</span></summary>
+            <div class="summary-content">
+              <label class="sr-only" for="faisca-summary-text">Resumo das suas escolhas</label>
+              <textarea id="faisca-summary-text" readonly rows="4" spellcheck="false"></textarea>
+              <div class="summary-buttons"><button id="faisca-copy" class="small-button" type="button">Copiar resumo</button><button class="small-button secondary" type="button" data-demo-action="sell">Rever escolhas</button></div>
+              <p id="faisca-copy-status" class="copy-status" role="status"></p>
+            </div>
+          </details>
+          <form id="faisca-composer" class="composer" data-js-only hidden>
+            <label for="faisca-input">O que você gostaria de saber?</label>
+            <div class="composer-control"><textarea id="faisca-input" name="message" rows="2" maxlength="800" placeholder="Ex.: preciso de um site para minha empresa" aria-describedby="faisca-input-hint faisca-count" autocomplete="off" spellcheck="true"></textarea><button id="faisca-send" type="submit" aria-label="Enviar mensagem" title="Enviar mensagem"><span aria-hidden="true">↑</span></button></div>
+            <div class="composer-help"><span id="faisca-input-hint">Use exemplos. Não informe dados pessoais ou senhas.</span><span id="faisca-count">0/800</span></div>
+          </form>
+          <footer class="chat-footer" data-js-only hidden>
+            <button id="faisca-reset" type="button">Recomeçar conversa</button>
+            <span aria-hidden="true">·</span>
+            <button id="faisca-motion" type="button" aria-pressed="false">Pausar movimento</button>
+          </footer>
+          <p id="faisca-feedback" class="sr-only" role="status"></p>
+        </section>
+        <section id="faisca-closed" class="chat-closed" aria-labelledby="closed-title" hidden><span class="closed-spark" aria-hidden="true">✦</span><h2 id="closed-title">Vamos no seu ritmo.</h2><p>Quando quiser continuar, estou por aqui.</p><button class="button button-dark" type="button" data-open-chat>Retomar conversa <span aria-hidden="true">↗</span></button></section>
+        <p class="chat-footnote">Nesta prévia, as respostas são roteiros locais. Nenhum atendimento, pedido ou contato é enviado.</p>
+      </div>
+    </section>
+
+    <section id="jornadas" class="journeys" aria-labelledby="journeys-title">
+      <div class="section-intro"><p class="eyebrow">DO PRIMEIRO OLÁ AO PRÓXIMO PASSO</p><h2 id="journeys-title">Uma conversa. Três maneiras de ajudar.</h2></div>
+      <div class="journey-list">
+        <article><span class="journey-number" aria-hidden="true">01</span><div><h3>Encontrar sua solução</h3><p>Conte seu objetivo e compare caminhos para presença digital, campanhas e organização de vendas.</p><button type="button" data-demo-action="sell" data-js-only hidden>Explorar soluções <span aria-hidden="true">↗</span></button></div></article>
+        <article><span class="journey-number" aria-hidden="true">02</span><div><h3>Entender antes de decidir</h3><p>Esclareça a diferença entre Onepage e Landing Page e conheça as etapas de uma contratação.</p><button type="button" data-demo-action="faq" data-js-only hidden>Tirar uma dúvida <span aria-hidden="true">↗</span></button></div></article>
+        <article><span class="journey-number" aria-hidden="true">03</span><div><h3>Continuar bem acompanhado</h3><p>Encontre orientação de pós-venda. Pedidos, contratos e dados da sua conta exigem acesso autenticado.</p><button type="button" data-demo-action="after_sales" data-js-only hidden>Ver orientação <span aria-hidden="true">↗</span></button></div></article>
+      </div>
+    </section>
+
+    <section id="sobre" class="about-preview" aria-labelledby="about-title"><div><p class="eyebrow">FEITO PARA EVOLUIR COM A IMAGINE</p><h2 id="about-title">O mesmo Faísca.<br>Uma nova experiência.</h2></div><div><p>Esta é a primeira demonstração do atendimento guiado. Você pode conversar, explorar opções e copiar um resumo das escolhas. O histórico fica apenas nesta página e é apagado ao recomeçar ou recarregar.</p><p>Preços oficiais, CRM, atendimento humano, dados de clientes e inteligência artificial externa ainda não estão conectados. A imagem aprovada recebe somente movimento suave do conjunto; ela ainda não é um modelo 3D articulado.</p></div></section>
+  </main>
+  <footer class="site-footer"><span>Imagine <span aria-hidden="true">✦</span> Faísca</span><span>Prévia local para revisão de produto · Português brasileiro</span></footer>
+  <button id="faisca-launcher" class="faisca-launcher" type="button" aria-controls="faisca-chat" aria-expanded="false" hidden><img data-faisca-avatar width="48" height="48" alt=""><span>Falar com o Faísca</span><span aria-hidden="true">↗</span></button>
+  <script>__FAISCA_SCRIPT__</script>
+</body>
+</html>

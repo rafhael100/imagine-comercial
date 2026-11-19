@@ -1,0 +1,76 @@
+name: Faísca R06 - grounded commercial passages with real PHP
+
+on:
+  pull_request:
+    paths:
+      - 'ops/faisca/**'
+      - 'tests/faisca-*.test.mjs'
+      - '.github/workflows/faisca-grounded-knowledge.yml'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cross-repository-php:
+    name: Conversa real entre browser, Node e PHP sintético
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      IMAGINE_FAISCA_AGENTS_ROOT: ${{ github.workspace }}/.qa/faisca-grounded-agents-source
+    steps:
+      - name: Obter a candidata Comercial exata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Obter o componente Agents revisado e fixado
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: rafhael100/imagine-ai-agents
+          ref: 36caf2ee3585c3f64a6f1d78552550ae5aaebeb0
+          path: .qa/faisca-grounded-agents-source
+          persist-credentials: false
+      - name: Configurar Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Exigir PHP real e os arquivos revisados
+        run: |
+          set -euo pipefail
+          php -v
+          test "$(git -C .qa/faisca-grounded-agents-source rev-parse HEAD)" = "36caf2ee3585c3f64a6f1d78552550ae5aaebeb0"
+          php -l .qa/faisca-grounded-agents-source/tools/faisca_grounded_bridge.php
+      - name: Instalar dependências reproduzíveis
+        run: npm ci --no-audit --no-fund
+      - name: Instalar Chromium para os testes
+        run: bash scripts/install-chromium-ci.sh
+      - name: Compilar o laboratório isolado
+        run: IMAGINE_FAISCA_LAB=1 npx --no-install astro build --config ops/faisca/lab/astro.config.mjs
+      - name: Provar origem, trecho, resposta e contexto em PHP real
+        run: |
+          node scripts/verify-faisca-grounding.mjs
+          node ops/faisca/grounding/check-interop.mjs
+      - name: Provar conversa no navegador com PHP real
+        run: node ops/faisca/grounding/browser-qa.mjs
+      - name: Provar R07 navegador, HTTP, sessões e PHP real
+        run: node ops/faisca/journey/http-browser-qa.mjs
+      - name: Provar R08 qualificação, HTTP, sessões e PHP real
+        run: node ops/faisca/qualification/http-browser-qa.mjs
+      - name: Provar R09 roteamento conversacional com PHP real
+        run: node ops/faisca/model-router/check-grounded-pipeline.mjs
+      - name: Guardar somente evidências sintéticas
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: faisca-grounding-R06-R09-SYNTHETIC-REVIEW-ONLY
+          path: |
+            ops/faisca/reports/*R06*.json
+            ops/faisca/reports/*R07*.json
+            ops/faisca/reports/*R08*.json
+            ops/faisca/reports/*R09*.json
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
