@@ -55,3 +55,27 @@ https://developers.openai.com/api/docs/guides/structured-outputs
 https://developers.openai.com/api/docs/pricing
 
 Sem merge main, DNS, deploy, alteração de VPS ou dados reais. Mascote aprovado e site público preservados.
+
+## Endpoint HTTP privado opcional para testar respostas reais
+
+Além do CLI individual, a R72 agora contém um servidor de revisão em loopback, separado do site público:
+
+- ops/faisca/openai/private-review-http.mjs — escuta somente 127.0.0.1, exige Bearer token dedicado de 32–128 caracteres, nega Origin/cookies/headers de proxy, valida método POST, path e corpo apenas com caseId sintético. HTTP sem CORS e cabeçalhos no-store/noindex/CSP.
+- scripts/faisca-openai-private-review-server.mjs — opt-in explícito; usa OPENAI_API_KEY e FAISCA_REVIEW_BEARER_TOKEN somente do ambiente privado; porta local fixa 4336; não registra segredos.
+- tests/faisca-r72-openai-private-http.test.mjs — testes HTTP reais apenas em 127.0.0.1 com provedor simulado, sem API paga, cobrindo autenticação, rotas, resposta do modelo e falhas 503.
+
+Com as duas variáveis privadas já configuradas, iniciar no terminal privado:
+
+    export IMAGINE_FAISCA_OPENAI_LIVE_TEST=YES_PAY_SYNTHETIC_ONLY
+    node scripts/faisca-openai-private-review-server.mjs
+
+Em outro terminal autorizado, com o token de revisão apenas na variável de ambiente:
+
+    curl --fail-with-body --silent --show-error \
+      -H "Authorization: Bearer $FAISCA_REVIEW_BEARER_TOKEN" \
+      -H "Content-Type: application/json" \
+      --data '{"caseId":"compare"}' \
+      http://127.0.0.1:4336/__faisca_openai_private/respond
+
+O retorno JSON contém um rascunho redigido pelo modelo Terra, a classificação editorial escolhida por Luna e o aviso obrigatório de revisão. Não admite texto livre e não deve ser exposto à internet ou a visitantes reais. Somente um teste (até duas chamadas pagas) cabe na instância antes do limite de gasto/requisições do laboratório. Não usar esse endpoint para publicar o site, criar tickets ou iniciar vendas.
+
