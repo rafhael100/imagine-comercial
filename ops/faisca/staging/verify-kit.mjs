@@ -105,6 +105,8 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
   const configMarkers = [
     'map $request_uri $faisca_review_frame {',
     'map $request_uri $faisca_review_ancestors {',
+    'include /etc/nginx/mime.types;',
+    'default_type application/octet-stream;',
     'auth_basic_user_file /etc/nginx/auth/.htpasswd;',
     'X-Robots-Tag "noindex, nofollow, noarchive"',
     'connect-src \'none\'', 'form-action \'none\'',
