@@ -478,7 +478,6 @@ export function mountFaisca(root, config = {}) {
   log.setAttribute('aria-live', 'polite');
   log.replaceChildren();
   input.value = '';
-  composer.hidden = originalComposerHidden || !textInputEnabled;
   input.disabled = originalInputDisabled || !textInputEnabled;
   byId('faisca-count').textContent = '0/800';
   summary.open = false;
@@ -496,6 +495,9 @@ export function mountFaisca(root, config = {}) {
   launcher.setAttribute('aria-expanded', 'true');
   // Reveal interaction only after every listener and initial state is installed.
   for (const node of root.querySelectorAll('[data-js-only]')) node.hidden = false;
+  // Reveal JS-only shell first; then retain the closed-composer policy.
+  // Otherwise the generic reveal loop would undo the support restriction.
+  composer.hidden = !textInputEnabled;
   const api = Object.freeze({ mode: replyAdapter ? 'simulated_contract_demo' : 'guided_demo', root,
     open: () => openChat(), close: closeChat, reset: resetConversation, destroy });
   mountedFaiscaRoots.set(root, api);
