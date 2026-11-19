@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import {
   prepareModelRouteRequest, retrieveCandidateAnswerIds, verifyModelRouteResponse,
-  localModelRouteFixture, ROUTER_RESPONSE_SCHEMA, ROUTER_CLARIFICATION_IDS
+  localModelRouteFixture, ROUTER_RESPONSE_SCHEMA, ROUTER_CLARIFICATION_IDS,
+  getAnonymousRouteBoundary
 } from './contract.mjs';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
@@ -15,7 +16,9 @@ function plainInput(value) {
     if (keys.length !== 3 || keys.some(key => !['conversationId', 'messageId', 'userText'].includes(key))) return null;
     const descriptors = Object.getOwnPropertyDescriptors(value);
     if (keys.some(key => !Object.hasOwn(descriptors[key], 'value'))) return null;
-    const { conversationId, messageId, userText } = value;
+    const conversationId = descriptors.conversationId.value;
+    const messageId = descriptors.messageId.value;
+    const userText = descriptors.userText.value;
     if (typeof conversationId !== 'string' || !ID_PATTERN.test(conversationId) ||
         typeof messageId !== 'string' || !ID_PATTERN.test(messageId) ||
         typeof userText !== 'string' || userText.length < 1 || userText.length > 800) return null;
@@ -61,8 +64,10 @@ export function createModelRouteRuntime({ provider, timeoutMs = 250, maxEntries 
   function settle(entry, value) {
     if (!live || entry.final) return;
     entry.final = value;
+    // Local fixed replies never reserved a provider slot. Do not decrement
+    // the counter of a different conversation turn still waiting on a provider.
+    if (entry.pending) pending = Math.max(0, pending - 1);
     entry.pending = false;
-    pending = Math.max(0, pending - 1);
     clearTimeout(entry.timer);
     const state = conversations.get(entry.conversationId);
     if (state?.active === entry) state.active = null;
@@ -87,6 +92,13 @@ export function createModelRouteRuntime({ provider, timeoutMs = 250, maxEntries 
   function buildRequest(rawInput) {
     const input = plainInput(rawInput);
     if (!input) return null;
+    const boundary = getAnonymousRouteBoundary(input.userText);
+    if (boundary) return Object.freeze({
+      input, request: null, boundary,
+      fingerprint: sha(JSON.stringify([
+        'faisca.host.boundary.v1', input.conversationId, input.messageId, input.userText
+      ]))
+    });
     const candidateAnswerIds = retrieveCandidateAnswerIds(input.userText);
     const request = prepareModelRouteRequest({
       ...input, candidateAnswerIds,
@@ -99,7 +111,7 @@ export function createModelRouteRuntime({ provider, timeoutMs = 250, maxEntries 
     if (!live) return result('closed', null);
     const prepared = buildRequest(rawInput);
     if (!prepared) return result('invalid_request', null, { reason: 'preflight_or_schema_refused' });
-    const { input, request, fingerprint } = prepared;
+    const { input, request, fingerprint, boundary } = prepared;
     const key = JSON.stringify([input.conversationId, input.messageId]);
     const previous = entries.get(key);
     if (previous) {
@@ -108,7 +120,9 @@ export function createModelRouteRuntime({ provider, timeoutMs = 250, maxEntries 
     }
     if (entries.size >= maxEntries) return result('limit', null);
     const state = conversations.get(input.conversationId) || { active: null };
-    if (state.active?.pending) return result('busy', null, { reason: 'previous_route_unresolved' });
+    // A host-fixed privacy boundary must be available even while an unrelated
+    // editorial request is pending; it dispatches neither provider nor PHP.
+    if (state.active?.pending && !boundary) return result('busy', null, { reason: 'previous_route_unresolved' });
     let resolve;
     const promise = new Promise(yes => { resolve = yes; });
     const entry = {
@@ -117,6 +131,13 @@ export function createModelRouteRuntime({ provider, timeoutMs = 250, maxEntries 
     };
     entries.set(key, entry);
     conversations.set(input.conversationId, state);
+
+    if (boundary) {
+      settle(entry, result('answered', boundary, {
+        delivery: 'fixed_boundary', accepted: true, reason: 'anonymous_operational_boundary'
+      }));
+      return entry.initial;
+    }
 
     // No matching editorial candidate means the host can answer locally. The
     // question is not sent to a provider merely to receive an unsupported result.

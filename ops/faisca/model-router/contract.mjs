@@ -84,6 +84,21 @@ const anonymousBoundaries = Object.freeze({
 const blockedIntents = new Set(['sensitive_input', 'unsupported_instruction', 'too_long', 'invalid_input', 'invalid_session',
   ...Object.keys(anonymousBoundaries)]);
 
+/** Host-only fixed reply for an anonymous operational question. Never use model output. */
+export function getAnonymousRouteBoundary(userText) {
+  if (typeof userText !== 'string' || userText.length < 1 || userText.length > 800) return null;
+  const preflight = respond(createSession(), { type: 'text', text: userText });
+  const intent = preflight.reply.intent;
+  if (!Object.hasOwn(anonymousBoundaries, intent)) return null;
+  const boundary = anonymousBoundaries[intent];
+  return Object.freeze({
+    accepted: true, reason: 'anonymous_operational_boundary',
+    routeStatus: boundary.routeStatus, text: boundary.text,
+    sources: Object.freeze([]), actions: Object.freeze([]),
+    provenance: 'host_fixed_boundary', candidateAnswerIds: Object.freeze([])
+  });
+}
+
 function plainData(value, expected) {
   try {
     if (!value || typeof value !== 'object' || Array.isArray(value) ||
@@ -221,17 +236,9 @@ export function routeWithLocalFixture(rawOptions = {}) {
   const scenario = config.scenario ?? 'success';
   // An anonymous visitor cannot authorize private Portal/CRM operations merely
   // by phrasing them as a natural-language question. Return fixed host copy.
-  const preflight = respond(createSession(), { type: 'text', text: userText });
-  const boundary = anonymousBoundaries[preflight.reply.intent];
+  const boundary = getAnonymousRouteBoundary(userText);
   if (boundary && [conversationId, messageId].every(value =>
-    typeof value === 'string' && ID_PATTERN.test(value))) {
-    return Object.freeze({
-      accepted: true, reason: 'anonymous_operational_boundary',
-      routeStatus: boundary.routeStatus, text: boundary.text,
-      sources: Object.freeze([]), actions: Object.freeze([]),
-      provenance: 'host_fixed_boundary', candidateAnswerIds: Object.freeze([])
-    });
-  }
+    typeof value === 'string' && ID_PATTERN.test(value))) return boundary;
   const candidateAnswerIds = retrieveCandidateAnswerIds(userText);
   const request = prepareModelRouteRequest({
     conversationId, messageId, userText, candidateAnswerIds,
