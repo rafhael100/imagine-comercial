@@ -88,7 +88,13 @@ function safeReviewOutput(response) {
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? []);
     const models = safeReviewList(get('modelIds') ?? [], approvedModels);
-    if (!sources || !models || (status === 'draft_answer' && sources.length === 0)) return null;
+    // R83: a claimed Luna + Terra generated draft must show both model IDs,
+    // exactly once and in the required classification -> answer sequence.
+    // An empty/partial/duplicated provenance list is not evidence of a model reply.
+    if (!sources || !models || (status === 'draft_answer' && (
+      sources.length === 0 || models.length !== 2 ||
+      models[0] !== FAISCA_OPENAI_MODELS.classification ||
+      models[1] !== FAISCA_OPENAI_MODELS.answer))) return null;
     return Object.freeze({ status, answer, sources, models });
   } catch { return null; }
 }
