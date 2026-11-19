@@ -59,6 +59,16 @@ async function walkFiles(root) {
   return Object.freeze({ files: Object.freeze(files), totalBytes });
 }
 
+/** Snapshot builder and verifier share the exact same bounded walk. */
+export async function snapshotPrivateStagingFiles({ kitDir } = {}) {
+  if (typeof kitDir !== 'string') throw new TypeError('R38: kit directory required.');
+  const root = resolve(kitDir);
+  if (!(await lstat(root)).isDirectory() || await realpath(root) !== root) {
+    throw new Error('R38: kit directory must not be a symlink.');
+  }
+  return walkFiles(root);
+}
+
 /** Caller must independently verify the GitHub Actions source SHA. This
  * manifest is an integrity checklist, NOT a signed deployment credential.
  */
