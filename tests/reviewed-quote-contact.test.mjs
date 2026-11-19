@@ -43,7 +43,7 @@ test('F324: unknown locales, products, channels and tiers fail closed',()=>{
  }
 });
 
-test('F357/R28: all 138 quoted CTAs share the verified contact channel and curated allowlist',()=>{
+test('F357: all 138 quoted CTAs share the verified contact channel and exact curated allowlist',()=>{
  let checked=0;
  const choices=[[],['google_ads'],['meta_ads'],['google_ads','meta_ads'],
   ['chatgpt_ads'],['google_ads','chatgpt_ads'],['meta_ads','chatgpt_ads'],

@@ -5,8 +5,9 @@
  * traffic changes, contact submission, CRM or payment integrations.
  */
 import {openSync,writeSync,closeSync,constants} from 'node:fs';
-import {isAbsolute,resolve,sep} from 'node:path';
+import {isAbsolute} from 'node:path';
 import {captureLegacyHttpSnapshot} from '../src/lib/legacy-http-snapshot-capture.mjs';
+import {resolveExternalPrivateFilePath} from '../src/lib/external-private-file-path.mjs';
 
 try{
  const [mode,target]=process.argv.slice(2);
@@ -15,8 +16,7 @@ try{
    process.env.IMAGINE_LEGACY_HTTP_REVIEW!=='1'||
    process.env.GITHUB_ACTIONS==='true'||
    typeof target!=='string'||!isAbsolute(target)||
-   target.includes('\0')||!target.endsWith('.json')||
-   resolve(target).startsWith(resolve('.')+sep))
+   target.includes('\0')||!target.endsWith('.json'))
    throw Error('F-LEGACY-CAPTURE: operator-only external file required');
  const timeoutText=process.env.IMAGINE_LEGACY_HTTP_TIMEOUT_MS??'7000';
  const timeoutMs=Number(timeoutText);
@@ -25,6 +25,7 @@ try{
  if(!Number.isSafeInteger(timeoutMs)||timeoutMs<1000||timeoutMs>10000||
    String(timeoutMs)!==timeoutText)
    throw Error('F-LEGACY-CAPTURE: invalid operator timeout');
+ const privateTarget=resolveExternalPrivateFilePath(target);
  const password=process.env.IMAGINE_STAGING_REVIEW_PASSWORD;
  const auth=local&&typeof password==='string'?
    'Basic '+Buffer.from('reviewer:'+password).toString('base64'):undefined;
@@ -36,7 +37,7 @@ try{
  const file=Buffer.from(JSON.stringify(snapshot,null,2)+'\n','utf8');
  let fd;
  try{
-  fd=openSync(target,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);
+  fd=openSync(privateTarget,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);
   let written=0;
   while(written<file.length)written+=writeSync(fd,file,written,file.length-written);
  }finally{if(fd!==undefined)closeSync(fd);}

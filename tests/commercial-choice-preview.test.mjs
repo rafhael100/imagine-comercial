@@ -84,7 +84,12 @@ test('F324: browser component is an anonymous click-only preview across PT EN ES
  assert.match(pt,/href="#simular-compra">Montar meu orçamento/);
  assert.match(international,/href="#simular-compra">\{copy\.flowAction\}/);
  assert.match(component,/href=\{initialHref\}/);
- assert.match(component,/target="_blank" rel="noopener noreferrer"/);
+ assert.match(component,/target=\{onepagePreviewHref\?undefined:'_blank'\}/);
+ assert.match(component,/rel=\{onepagePreviewHref\?'noreferrer nofollow':'noopener noreferrer'\}/);
+ const browser=component.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+ assert.ok(browser,'The selector script must remain reviewable');
+ assert.doesNotMatch(browser,/ops\/review|portal-dev\.|reviewedCiOnly/,
+  'Build-only authority and private origin must not enter the public browser bundle');
  assert.match(component,/reviewedQuoteChoiceHref\(locale,\{site,channels,tier\}\)/);
  assert.match(component,/eligibleForPublicCheckout|Simulação, não contratação|no public checkout|No hay compra pública activa/);
  assert.doesNotMatch(component,/<(?:form|input|textarea)\b|\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|innerHTML|document\.cookie|FormData|requestSubmit|\.submit\s*\(/);
