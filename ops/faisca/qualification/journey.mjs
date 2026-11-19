@@ -147,6 +147,7 @@ function nextStepReply(session) {
     userText: 'Como avançar?',
     reply: makeReply(guide.text, 'r08_next_steps', [], [
       action('r08:summary', 'Rever resumo copiável'),
+      action('compare_sites', 'Comparar Onepage e Landing Page'),
       action('r08:change_service', labels.changeService),
       action('r08:edit:objective', 'Corrigir minhas respostas')
     ])

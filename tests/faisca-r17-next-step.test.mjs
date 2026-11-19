@@ -69,7 +69,7 @@ test('R17 completed qualification shows a six-action menu and a useful next step
   assert.equal(next.userText, 'Como avançar?');
   assert.deepEqual(next.reply.sources, []);
   assert.deepEqual(next.reply.actions.map(action => action.id),
-    ['r08:summary', 'r08:change_service', 'r08:edit:objective']);
+    ['r08:summary', 'compare_sites', 'r08:change_service', 'r08:edit:objective']);
   assert.match(next.reply.text, /Copie o resumo/);
   assert.equal(completed.profile.contactConsent, 'declined');
   const serviceChange = choose(next.session, 'r08:change_service');
