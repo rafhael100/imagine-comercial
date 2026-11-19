@@ -105,7 +105,7 @@ test('F314 protects all public legacy sitemap paths plus trailing slash variants
  assert.equal(classify(plan,req('/contato/')).decision,'LEGACY_ORIGIN_RETAIN');
  assert.equal(classify(plan,req('/servicos/onepage/')).decision,'REVIEWED_NEW_ASTRO_HTML');
 });
-test('F315 all public sitemap variants remain on the legacy origin for form-like methods',()=>{
+test('F358 all public sitemap variants remain on the legacy origin for form-like methods',()=>{
  const plan=review(syntheticManifest());
  for(const path of legacyPublicSitemapProtectedVariants){
   for(const method of ['POST','PUT','PATCH','DELETE','OPTIONS']){
