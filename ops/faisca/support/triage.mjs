@@ -120,7 +120,9 @@ export function chooseSupportOption(session, field, value) {
 export function reviseSupportOption(session, field) {
   if (!trusted.has(session)) return null;
   const index = fieldOrder.indexOf(field);
-  if (index < 0) return null;
+  // Reject correction of an answer that has not been selected yet. This keeps
+  // unexpected/stale action IDs from creating misleading "corrected" states.
+  if (index < 0 || session[field] === null) return null;
   const values = [session.topic, session.service, session.detail];
   for (let i = index; i < values.length; i++) values[i] = null;
   return state(...values);
