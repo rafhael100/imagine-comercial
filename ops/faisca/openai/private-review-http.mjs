@@ -4,6 +4,7 @@ import { FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
 
 const REVIEW_PATH = '/__faisca_openai_private/respond';
 const MAX_BODY_BYTES = 96;
+const READ_BODY_DEADLINE = Symbol('private-review-body-deadline');
 const tokenPattern = /^[a-zA-Z0-9_-]{32,128}$/;
 const PORT_RANGE = Number.isSafeInteger;
 const securityHeaders = Object.freeze({
@@ -63,6 +64,18 @@ function safeReviewOutput(response) {
   } catch { return null; }
 }
 
+// A Content-Length cap does not prevent a client from sending only some bytes
+// and holding a socket open. Enforce a wall-clock deadline on the body read.
+async function readCaseIdBeforeDeadline(req, timeoutMs) {
+  let timer;
+  try {
+    return await Promise.race([
+      readCaseId(req),
+      new Promise(resolve => { timer = setTimeout(() => resolve(READ_BODY_DEADLINE), timeoutMs); })
+    ]);
+  } finally { clearTimeout(timer); }
+}
+
 function authorized(req, token, hostPort) {
   const supplied = req.headers.authorization;
   const expected = 'Bearer ' + token;
@@ -115,11 +128,12 @@ async function readCaseId(req) {
  * No public hosting, no CORS, no cookies, no visitor text, no access to CRM or
  * Portal, and a single existing budget-gated live lab per server process.
  */
-export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 0 } = {}) {
+export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 0, bodyTimeoutMs = 3000 } = {}) {
   if (!lab || typeof lab.answer !== 'function' || typeof lab.inspect !== 'function' ||
       typeof reviewToken !== 'string' || !tokenPattern.test(reviewToken) ||
       !PORT_RANGE(port) || port < 0 || port > 65535 ||
-      (port !== 0 && port < 1024)) {
+      (port !== 0 && port < 1024) ||
+      !Number.isInteger(bodyTimeoutMs) || bodyTimeoutMs < 50 || bodyTimeoutMs > 30000) {
     throw new TypeError('Private OpenAI review requires a dedicated token and safe loopback port.');
   }
   let active = true, requests = 0;
@@ -130,7 +144,21 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
     if (!authorized(req, reviewToken, server.address().port)) {
       send(res, 403, { status: 'forbidden' }); return;
     }
-    const caseId = await readCaseId(req);
+    const caseId = await readCaseIdBeforeDeadline(req, bodyTimeoutMs);
+    if (caseId === READ_BODY_DEADLINE) {
+      // The request may still be waiting for bytes. Respond without touching
+      // the provider; tear down the stalled connection after writing 408.
+      const socket = req.socket;
+      res.shouldKeepAlive = false;
+      res.once('finish', () => socket.destroy());
+      const payload = JSON.stringify({ status: 'request_timeout' }) + '\n';
+      res.writeHead(408, {
+        ...securityHeaders, Connection: 'close',
+        'Content-Length': Buffer.byteLength(payload)
+      });
+      res.end(payload);
+      return;
+    }
     if (!caseId) { send(res, 400, { status: 'invalid_request' }); return; }
     requests++;
     try {
