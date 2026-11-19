@@ -6,6 +6,11 @@ import {
 import {
   buildNativeOnepagePortalIntent, NATIVE_ONEPAGE_PORTAL_PIN
 } from '../ops/faisca/qualification/portal-native-intent.mjs';
+import { createQualificationPrepareTurn } from '../ops/faisca/qualification/http-runtime.mjs';
+import { CONVERSATION_SCHEMA, validateConversationRequest } from '../ops/faisca/conversation-contract.mjs';
+import { createConversationOutcome } from '../ops/faisca/conversation-runtime.mjs';
+import { createHttpResult } from '../ops/faisca/http-contract.mjs';
+import { validateGroundedHttpResult } from '../ops/faisca/grounding/http-policy.mjs';
 
 const choose = (session, id) => respondQualificationJourney(session, { type: 'action', id });
 function qualified(service = 'goal_presence', consent = 'declined') {
@@ -101,4 +106,37 @@ test('R58 the Portal preparation menu never executes a checkout effect or change
   assert.equal(preview1.reply.sources.length, 0);
   assert.match(preview1.reply.text, /O Faísca não criou conta/);
   assert.equal(completed.profile.contactConsent, 'declined');
+});
+
+test('R58 HTTP contract recognizes only the reviewed local Portal preparation action', () => {
+  const conversationId = 'a'.repeat(32);
+  const prepare = createQualificationPrepareTurn(conversationId);
+  let flow = prepare(null, { type: 'action', id: 'goal_presence' });
+  flow = prepare(flow.session, { type: 'action', id: 'confirm_goal' });
+  for (const id of [
+    'r08:objective:present_company', 'r08:audience:businesses',
+    'r08:materials:ready', 'r08:timeline:flexible', 'r08:contactConsent:declined'
+  ]) flow = prepare(flow.session, { type: 'action', id });
+  const preparation = prepare(flow.session, { type: 'action', id: 'r08:prepare_onepage' });
+  assert.equal(preparation.reply.intent, 'r58_portal_preparation_only');
+  assert.equal(preparation.providerReply, undefined);
+  const request = validateConversationRequest({
+    schema: CONVERSATION_SCHEMA, conversationId,
+    messageId: 'r58_local_http_message_001', locale: 'pt-BR',
+    input: { type: 'action', id: 'r08:prepare_onepage' }
+  });
+  assert.ok(request);
+  const outcome = createConversationOutcome('answered', {
+    reply: preparation.reply, accepted: true, delivery: 'guided_fallback',
+    reason: 'r58_portal_preparation_only'
+  });
+  const response = createHttpResult(request, outcome);
+  assert.equal(validateGroundedHttpResult(response, request, preparation.reply), true);
+  const tampered = { ...preparation.reply, actions: Object.freeze([
+    ...preparation.reply.actions, Object.freeze({ id: 'crm.write', label: 'Write CRM' })
+  ]) };
+  assert.throws(() => createHttpResult(request, createConversationOutcome('answered', {
+    reply: tampered, accepted: true, delivery: 'guided_fallback',
+    reason: 'r58_portal_preparation_only'
+  })), /Invalid laboratory HTTP result/);
 });
