@@ -25,7 +25,13 @@ function readInput(input) {
     if (keys.length !== 2 || !keys.includes('type')) return null;
     const descriptors = Object.getOwnPropertyDescriptors(input);
     if (!Object.hasOwn(descriptors.type, 'value') || !Object.hasOwn(descriptors.id ?? descriptors.text ?? {}, 'value')) return null;
-    if (descriptors.type.value === 'action' && keys.includes('id') && typeof descriptors.id.value === 'string') {
+    if (descriptors.type.value === 'action' && keys.includes('id') &&
+        typeof descriptors.id.value === 'string' &&
+        descriptors.id.value.length > 0 && descriptors.id.value.length <= 96 &&
+        /^[a-z0-9:_.-]+$/.test(descriptors.id.value)) {
+      // R57: actions are bounded, printable ASCII IDs, never free text.
+      // Unknown IDs still reach the existing closed fallback, but oversized,
+      // control and invisible values must not enter the flow or transcript.
       return Object.freeze({ type: 'action', id: descriptors.id.value });
     }
     if (descriptors.type.value === 'text' && keys.includes('text') &&
