@@ -150,6 +150,22 @@ try {
     assert.equal(phpCounts().spawned, 0);
   });
 
+  await check('R68 prequalification Chromium/HTTP masks free text in the visible transcript before any confirmed service', async () => {
+    const unknown = 'MARCADOR_PRIVADO_SINTETICO_R68_UNKNOWN';
+    await sendText(unknown);
+    const unknownTranscript = await page.locator('#faisca-log').innerText();
+    assert.match(unknownTranscript, /Mensagem livre não registrada/);
+    assert.equal(unknownTranscript.includes(unknown), false);
+    assert.equal(phpCounts().spawned, 0, 'Unknown text cannot trigger a PHP process.');
+
+    const classified = 'MARCADOR_PRIVADO_SINTETICO_R68_ONEPAGE';
+    await sendText('Quero avaliar Site Onepage. ' + classified);
+    assert.match(await lastAnswer().innerText(), /Confirme a escolha/);
+    const classifiedTranscript = await page.locator('#faisca-log').innerText();
+    assert.equal(classifiedTranscript.includes(classified), false);
+    assert.equal(phpCounts().spawned, 0, 'A proposed service does not dispatch PHP before explicit confirmation.');
+  });
+
   await check('R08 proposal and closed qualification choices remain local; confirmed service answer is PHP-grounded', async () => {
     await sendText('Quero apresentar minha empresa.');
     assert.match(await lastAnswer().innerText(), /Confirme a escolha/);
