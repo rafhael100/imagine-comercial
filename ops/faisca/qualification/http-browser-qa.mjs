@@ -55,8 +55,8 @@ try {
   assert.ok(files.has('/journey-http-r08/index.html'), 'Build the isolated R08 HTTP route first.');
   assert.deepEqual([...files].filter(path => path.endsWith('.html')).sort(), [
     '/grounded/index.html', '/http/index.html', '/index.html',
-    '/journey-http-r08/index.html', '/journey-http/index.html', '/journey/index.html'
-  ], 'The R08 HTTP lab build must contain only the six reviewed pages.');
+    '/journey-http-r08/index.html', '/journey-http/index.html', '/journey/index.html', '/support/index.html'
+  ], 'The R08 HTTP lab build must contain only the seven reviewed pages.');
   bridge = await prepareGroundedBridge({ ...configuration, scenario: 'delay', delayMs: 2000, processDeadlineMs: 3000 });
   server = await startHttpLab({
     enabled: '1', port: 0, staticDir, createProvider: bridge.createProvider,
