@@ -93,7 +93,7 @@ try {
     assert.equal(await page.locator('#faisca-master').evaluate(image =>
       image.complete && image.naturalWidth === 1254), true);
     await start.click();
-    await page.locator('#faisca-composer').waitFor({ state: 'visible' });
+    await page.locator('[data-faisca-root][data-faisca-mounted="true"]').waitFor({ state: 'attached' });
     assert.equal(await page.locator('[data-faisca-root]').getAttribute('data-faisca-mode'),
       'r10_anonymous_support_lab');
     assert.match(await last().innerText(), /prévia anônima/);
