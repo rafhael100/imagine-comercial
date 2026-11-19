@@ -11,7 +11,7 @@ function fixture() {
       calls++;
       return { status: 'draft_answer',
         text: 'Orientação sintética confirmada apenas para teste privado.',
-        sourceIds: ['faisca.passage.fixture@r06-1'], modelIds: [] };
+        sourceIds: ['faisca.passage.fixture@r06-1'], modelIds: ['gpt-6-luna', 'gpt-6.1-terra'] };
     },
     inspect: () => ({ calls, durableBillingLimit: false })
   };

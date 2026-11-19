@@ -11,7 +11,7 @@ test('R78 private HTTP rejects obvious fabricated commercial claims without echo
     answer: async () => ({
       status: 'draft_answer',
       text: (calls++, currentText),
-      sourceIds: [sourceId], modelIds: []
+      sourceIds: [sourceId], modelIds: ['gpt-6-luna', 'gpt-6.1-terra']
     }),
     inspect: () => ({ calls, durableBillingLimit: false })
   };

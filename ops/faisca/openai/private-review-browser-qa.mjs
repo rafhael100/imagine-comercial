@@ -80,6 +80,28 @@ try {
     assert.deepEqual(blocked, []);
   });
 
+  await check('R83 Chromium refuses a forged draft with zero model provenance', async () => {
+    const endpoint = '**/__faisca_openai_private/respond';
+    await page.route(endpoint, async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        schema: 'faisca.openai-private-review-response.v1',
+        status: 'draft_answer', syntheticCaseId: 'compare',
+        answer: 'Uma resposta fictícia sem o modelo de origem comprovado não deve aparecer.',
+        sources: ['faisca.passage.onepage.description@r06-1'], models: [],
+        requiresEditorialReview: true, publicReady: false, operationalEffects: false
+      }) });
+    });
+    try {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-case').selectOption('compare');
+      await page.locator('#review-send').click();
+      await page.waitForFunction(() => document.querySelector('#review-status')?.textContent?.includes('não concluiu.'));
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
+      assert.equal(await page.locator('#review-sources').innerText(), '');
+      assert.equal(providerCalls, 1, 'Forged HTTP proof must not dispatch the paid provider.');
+    } finally { await page.unroute(endpoint); }
+  });
   await check('R79 incorrect bearer displays neutral refusal and cannot dispatch the provider', async () => {
     await page.locator('#review-token').fill('INVALID_BEARER_TOKEN_SYNTHETIC_123456');
     await page.locator('#review-send').click();
