@@ -7,6 +7,7 @@ const bearer = 'R81_EXTENDED_PRIVATE_REVIEW_TOKEN_123456';
 const key = 'sk-r81-synthetic-browser-fixture-key-98765';
 function answerResponse(payload) {
   return new Response(JSON.stringify({
+    model: Object.hasOwn(payload, 'reply') ? FAISCA_OPENAI_MODELS.answer : FAISCA_OPENAI_MODELS.classification,
     status: 'completed', output: [{
       type: 'message', role: 'assistant',
       content: [{ type: 'output_text', text: JSON.stringify(payload) }]

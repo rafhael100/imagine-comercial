@@ -10,6 +10,7 @@ const approved = () => preparePrivateSyntheticQuestion({
 });
 function output(value) {
   return new Response(JSON.stringify({
+    model: Object.hasOwn(value, 'reply') ? FAISCA_OPENAI_MODELS.answer : FAISCA_OPENAI_MODELS.classification,
     status: 'completed',
     output: [{ type: 'message', role: 'assistant',
       content: [{ type: 'output_text', text: JSON.stringify(value) }] }],

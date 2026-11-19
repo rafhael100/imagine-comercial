@@ -7,6 +7,7 @@ import {
 
 const key = 'sk-test-key-for-fixtures-12345';
 const encode = payload => new Response(JSON.stringify({
+  model: Object.hasOwn(payload, 'reply') ? FAISCA_OPENAI_MODELS.answer : FAISCA_OPENAI_MODELS.classification,
   status: 'completed',
   output: [{
     type: 'message', role: 'assistant',
