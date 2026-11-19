@@ -326,6 +326,14 @@ try {
     assert.match(await lastAnswer().innerText(), /contratação pública ainda não está disponível/i);
     assert.match(await lastAnswer().innerText(), /não enviou o resumo/i);
     assert.equal(phpCounts().spawned, beforeGuidance, 'Copy-only guidance must remain local.');
+    // R58: Onepage preview is a separate deliberate choice, entirely local.
+    assert.equal(await page.locator('#faisca-quick-actions [data-action-id="r08:prepare_onepage"]').isVisible(), true);
+    await quick('r08:prepare_onepage');
+    assert.match(await lastAnswer().innerText(), /cotação calculada pelo Portal/);
+    assert.match(await lastAnswer().innerText(), /aceite explícito/);
+    assert.match(await lastAnswer().innerText(), /contratação pública ainda não está disponível/);
+    assert.equal(phpCounts().spawned, beforeGuidance, 'R58 must not call PHP or Portal.');
+    await quick('r08:next_steps');
     // R20: comparison uses the R06 editorial passage verified by pinned real
     // PHP. The guide itself remains local; comparison is a distinct opt-in.
     const previousComparison = phpCounts();
