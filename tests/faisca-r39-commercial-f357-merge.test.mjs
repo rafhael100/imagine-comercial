@@ -15,6 +15,16 @@ const manifest = JSON.parse(await readFile(
 const gitBlob = bytes => createHash('sha1')
   .update('blob ' + bytes.length + '\0').update(bytes).digest('hex');
 
+// R46: one independently reviewed POST-F357 test-only change. Preserve the
+// complete original F357 manifest and its exact original blob SHA. Any
+// further edit must update this explicit approved successor identity.
+const postMergeReviewed = Object.freeze({
+  'scripts/browser-qa.mjs': Object.freeze({
+    f357Blob: 'aba2bddb645fe37cecc18edebed772f190a7a80a',
+    approvedSuccessorBlob: '417b54a89a789b57fdf4086758fc2a6c6a31755e'
+  })
+});
+
 test('R39 source merge has 33 reviewed blobs from F357, including all conflict resolutions', async () => {
   assert.equal(manifest.schema,'faisca.commercial-f357-integrated-source.v1');
   assert.equal(manifest.commonAncestor,'a4f4eb9687b6dfd9c0d45e88e8345cc37198cd6e');
@@ -28,6 +38,7 @@ test('R39 source merge has 33 reviewed blobs from F357, including all conflict r
   });
   const paths=new Set();
   const count={ imported_unmodified:0, already_identical:0, reviewed_commercial_conflict:0 };
+  let postMergeOverrideCount=0;
   for(const item of manifest.files) {
     assert.deepEqual(Object.keys(item).sort(), ['path','resolution','sha']);
     assert.match(item.path,/^(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+$/);
@@ -38,9 +49,25 @@ test('R39 source merge has 33 reviewed blobs from F357, including all conflict r
     assert.ok(Object.hasOwn(count,item.resolution));
     count[item.resolution]++;
     const bytes=await readFile(new URL(item.path,repoRoot));
-    assert.equal(gitBlob(bytes),item.sha,'The exact reviewed F357 source must be preserved: '+item.path);
+    const actualBlob=gitBlob(bytes);
+    const successor=postMergeReviewed[item.path];
+    if(successor){
+      postMergeOverrideCount++;
+      assert.equal(item.sha,successor.f357Blob,
+        'The original F357 manifest may not be rewritten to hide a later change.');
+      assert.equal(actualBlob,successor.approvedSuccessorBlob,
+        'Only the reviewed F291 timing correction is accepted after F357.');
+      assert.match(bytes.toString('utf8'),
+        /await page\.waitForURL\(host\+'\/#conteudo',\{timeout\}\);/,
+        'The reviewed successor must explicitly await the original skip-link target.');
+    }else{
+      assert.equal(actualBlob,item.sha,
+        'The exact reviewed F357 source must be preserved: '+item.path);
+    }
   }
   assert.deepEqual(count,manifest.counts);
+  assert.equal(postMergeOverrideCount,1,
+    'Exactly one post-F357 test-only successor is permitted in this candidate.');
   assert.deepEqual(
     manifest.files.filter(x=>x.resolution==='reviewed_commercial_conflict').map(x=>x.path),
     ['scripts/browser-qa.mjs','src/components/CommercialChoicePreview.astro',
