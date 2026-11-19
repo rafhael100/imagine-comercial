@@ -64,6 +64,12 @@ jobs:
         run: node ops/faisca/composition/browser-qa.mjs
       - name: Validar R27 Comercial sem JavaScript e com módulo Faísca indisponível
         run: node ops/faisca/composition/failure-browser-qa.mjs
+      - name: Preparar pacote portátil R29 com o Comercial real sob Basic Auth
+        env:
+          IMAGINE_FAISCA_LAB: '1'
+        run: node ops/faisca/composition/build-portable.mjs --private-review
+      - name: Verificar o pacote R29 extraído no Chromium (sem npm e sem PHP)
+        run: node ops/faisca/composition/portable-browser-qa.mjs
       - name: Disponibilizar pacote de demonstração R21 estritamente para revisão
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -75,6 +81,15 @@ jobs:
             ops/faisca/output/Faisca_R21_AUDIT.json
             ops/faisca/output/LEIA-ME-FAISCA-R21.txt
             ops/faisca/output/faisca-review-server.mjs
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: false
+      - name: Disponibilizar R29 Comercial + Faísca portátil para revisão privada
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: faisca-R29-COMERCIAL-INTEGRADO-PRIVADO
+          path: ops/faisca/output/portable/
           if-no-files-found: error
           retention-days: 7
           include-hidden-files: false
