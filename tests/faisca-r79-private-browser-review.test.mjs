@@ -39,7 +39,7 @@ test('R79 GET exposes only a CSP-protected synthetic review screen from exact lo
     assert.ok(html.includes('value="' + label + '"'));
   }
   assert.match(html, /FAISCA_REVIEW_BEARER_TOKEN/);
-  assert.match(html, /Não.*OPENAI_API_KEY/);
+  assert.match(html, /Nunca cole sua OPENAI_API_KEY aqui/);
   assert.ok(html.includes('type="password"'));
   assert.ok(!html.includes('onload=') && !html.includes('onclick='));
   assert.equal((await fetch(server.address + PRIVATE_REVIEW_SCRIPT_PATH)).status, 200);
