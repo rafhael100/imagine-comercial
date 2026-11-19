@@ -98,6 +98,14 @@ test('R10 partial summary does not claim a ticket was opened and retains next ch
   assert.equal(result.session.triage.service, null);
 });
 
+test('R10 completed summary is shown exactly once and never claims delivery', () => {
+  const result = choose(completed(), 'r10:summary');
+  assert.equal(result.reply.intent, 'r10_support_summary');
+  assert.equal(result.reply.text.split('RESUMO DE SUPORTE').length - 1, 1);
+  assert.match(result.reply.text, /Nenhum ticket foi aberto/);
+  assert.equal(result.reply.sources.length, 0);
+});
+
 test('R10 explicit restart clears only the local triage, not an external ticket', () => {
   const result = choose(completed(), 'r10:restart');
   assert.equal(result.session.triage.topic, null);
