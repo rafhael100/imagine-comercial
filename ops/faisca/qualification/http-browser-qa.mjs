@@ -315,7 +315,22 @@ try {
     assert.equal(await page.locator('#faisca-input').inputValue(), '');
     assert.equal(phpCounts().spawned, previousPhp,
       'Sensitive text in pending mode must not reach the PHP source verifier.');
-    await choose('cancel_goal');
+    const beforeCancel = await assistantCount();
+    await page.locator('#faisca-quick-actions [data-action-id="cancel_goal"]').click();
+    try {
+      await waitAnswer(beforeCancel);
+    } catch (error) {
+      console.log('R15 browser cancel diagnostic: ' + JSON.stringify({
+        httpState: await status.getAttribute('data-faisca-http-state'),
+        hostStatus: await rootElement.getAttribute('data-faisca-status'),
+        delivery: await rootElement.getAttribute('data-faisca-delivery'),
+        busy: await page.locator('#faisca-log').getAttribute('aria-busy'),
+        assistantBefore: beforeCancel, assistantAfter: await assistantCount(),
+        actionIds: await page.locator('#faisca-quick-actions button').evaluateAll(items => items.map(item => item.dataset.actionId)),
+        server: server.inspect(), php: phpCounts(), httpErrorCount: httpFailures.length
+      }));
+      throw error;
+    }
     console.log('R15 browser stage: pending choice cancelled');
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     assert.equal(phpCounts().spawned, previousPhp);
