@@ -366,6 +366,20 @@ try {
     await quick('cancel_goal');
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
     assert.equal(phpCounts().spawned, previousPhp);
+    // R63: unknown privacy markers attached to a legitimate service request
+    // must never be reflected in the browser's transcript. This is a real
+    // Chromium → loopback HTTP → R08 session-boundary regression.
+    const syntheticMarker = 'MARCADOR_SINTETICO_PRIVADO_R63_BROWSER';
+    await typed('Quero Landing Page. ' + syntheticMarker);
+    const redactedChat = await page.locator('#faisca-log').innerText();
+    assert.match(redactedChat, /Mensagem livre não registrada/);
+    assert.equal(redactedChat.includes(syntheticMarker), false);
+    assert.match(await lastAnswer().innerText(), /troca de solução está pendente/);
+    assert.equal(await page.locator('#faisca-quick-actions [data-action-id="confirm_goal"]').isVisible(), true);
+    assert.equal(phpCounts().spawned, previousPhp, 'Synthetic private text must not trigger a PHP provider call.');
+    await quick('cancel_goal');
+    assert.match(await page.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
+    assert.equal(phpCounts().spawned, previousPhp);
   });
 
   await check('R08 reset during PHP work destroys its HTTP session and discards late delivery', async () => {
