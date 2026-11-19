@@ -326,6 +326,23 @@ try {
     assert.match(await lastAnswer().innerText(), /contratação pública ainda não está disponível/i);
     assert.match(await lastAnswer().innerText(), /não enviou o resumo/i);
     assert.equal(phpCounts().spawned, beforeGuidance, 'Copy-only guidance must remain local.');
+    // R20: comparison uses the R06 editorial passage verified by pinned real
+    // PHP. The guide itself remains local; comparison is a distinct opt-in.
+    const previousComparison = phpCounts();
+    await page.locator('#faisca-quick-actions [data-action-id="compare_sites"]').click();
+    await waitUnknown();
+    await eventually(() => phpCounts().spawned === previousComparison.spawned + 1,
+      'R20 comparison must dispatch exactly one reviewed PHP candidate.');
+    await eventually(() => phpCounts().completed === previousComparison.completed + 1,
+      'R20 comparison PHP evidence must finish before reconciliation.', 5000);
+    await nextVisibleReply(() => reconcileButton.click());
+    await page.locator('[data-faisca-http-reconciliation]')
+      .filter({ hasText: 'Resposta conciliada:' }).waitFor({ state: 'visible' });
+    assert.equal(await rootElement.getAttribute('data-faisca-status'), 'answered');
+    assert.equal(await rootElement.getAttribute('data-faisca-delivery'), 'simulated');
+    await assertGroundedSource('compare_sites');
+    assert.match(await lastAnswer().innerText(), /RASCUNHO NÃO ENVIADO/);
+    await quick('r08:next_steps');
     await quick('r08:change_service');
     assert.match(await lastAnswer().innerText(), /solução/i);
     await quick('goal_campaign');
@@ -348,14 +365,14 @@ try {
     await page.locator('#faisca-input').fill('Como funciona o projeto?');
     await page.locator('#faisca-send').click();
     await waitUnknown();
-    await eventually(() => phpCounts().spawned === 5, 'The R08 PHP process must start before reset.');
+    await eventually(() => phpCounts().spawned === 6, 'The R08 PHP process must start before reset.');
     assert.equal(await assistantCount(), before);
     await page.locator('#faisca-reset').click();
     await eventually(() => server.inspect().sessions === 0, 'R08 reset must release the server-issued session.');
     await eventually(() => phpCounts().pending === 0, 'R08 reset must terminate the owned PHP child.');
     expectedResetTerminations++;
     await eventually(() => server.inspect().inflight === 0, 'R08 reset must drain HTTP handlers.');
-    assert.equal(phpCounts().spawned, 5);
+    assert.equal(phpCounts().spawned, 6);
     assert.equal(await reconcileButton.isEnabled(), false);
     assert.match(await page.locator('#faisca-summary-text').inputValue(), /Objetivo ainda não selecionado|Nenhuma solução selecionada/);
     await wait(150);
