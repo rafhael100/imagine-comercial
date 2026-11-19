@@ -33,11 +33,11 @@ async function loadStaticFiles(staticDir) {
       const path = prefix + entry.name;
       if (entry.isSymbolicLink()) throw new Error('Symlinks are forbidden in laboratory static files.');
       if (entry.isDirectory()) {
-        if (prefix || !['_astro', 'http', 'grounded', 'journey', 'journey-http', 'journey-http-r08'].includes(entry.name)) throw new Error('Unexpected laboratory static directory.');
+        if (prefix || !['_astro', 'http', 'grounded', 'journey', 'journey-http', 'journey-http-r08', 'support'].includes(entry.name)) throw new Error('Unexpected laboratory static directory.');
         await collect(resolve(directory, entry.name), path + '/');
         continue;
       }
-      if (!entry.isFile() || !(path === 'index.html' || path === 'http/index.html' || path === 'grounded/index.html' || path === 'journey/index.html' || path === 'journey-http/index.html' || path === 'journey-http-r08/index.html' || /^_astro\/[A-Za-z0-9_.-]+\.(?:js|css)$/.test(path))) {
+      if (!entry.isFile() || !(path === 'index.html' || path === 'http/index.html' || path === 'grounded/index.html' || path === 'journey/index.html' || path === 'journey-http/index.html' || path === 'journey-http-r08/index.html' || path === 'support/index.html' || /^_astro\/[A-Za-z0-9_.-]+\.(?:js|css)$/.test(path))) {
         throw new Error('Unexpected laboratory static file.');
       }
       const handle = await open(resolve(directory, entry.name), constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -179,7 +179,7 @@ export async function startHttpLab({ enabled, port = 0, staticDir = defaultStati
       if (!['GET', 'HEAD'].includes(request.method)) throw new HttpLabError(405, 'method_not_allowed');
       if (headers.has('content-length') && headers.get('content-length') !== '0') throw new HttpLabError(400, 'invalid_framing');
       const canonical = path === '/' ? '/index.html' : path === '/http/' ? '/http/index.html'
-        : path === '/grounded/' ? '/grounded/index.html' : path === '/journey/' ? '/journey/index.html' : path === '/journey-http/' ? '/journey-http/index.html' : path === '/journey-http-r08/' ? '/journey-http-r08/index.html' : path;
+        : path === '/grounded/' ? '/grounded/index.html' : path === '/journey/' ? '/journey/index.html' : path === '/journey-http/' ? '/journey-http/index.html' : path === '/journey-http-r08/' ? '/journey-http-r08/index.html' : path === '/support/' ? '/support/index.html' : path;
       const body = files.get(canonical);
       if (!body) throw new HttpLabError(404, 'not_found');
       response.writeHead(200, { ...securityHeaders, 'Content-Length': body.length,
