@@ -53,10 +53,10 @@ export function getJourneySummary(session) {
   return trusted.has(session) ? getSummary(session.coreSession) : getSummary(createSession());
 }
 
-function conclude(session, coreSession, pendingGoal, inner) {
+function conclude(session, coreSession, pendingGoal, inner, typed = false) {
   return Object.freeze({
     session: createState(coreSession, pendingGoal, session.turnIndex + 1),
-    userText: inner.userText,
+    userText: typed ? '[Mensagem livre não registrada]' : inner.userText,
     reply: inner.reply
   });
 }
@@ -74,6 +74,11 @@ export function respondJourney(session, input) {
     });
   }
 
+  // Avoid invoking accessors while detecting a typed message; the core still
+  // validates the entire input. Untrusted prose is never exposed as UI echo.
+  let typed = false;
+  try { typed = Object.getOwnPropertyDescriptor(input, 'type')?.value === 'text'; }
+  catch { /* invalid payload remains handled by the core */ }
   const special = readSpecialAction(input);
   if (special === 'cancel_goal') {
     return conclude(session, session.coreSession, null, {
@@ -113,14 +118,14 @@ export function respondJourney(session, input) {
       userText: inner.userText,
       reply: reply('Posso registrar este objetivo para orientar o atendimento. Confirme a escolha ou continue avaliando outras opções; nenhuma seleção foi alterada até sua confirmação.',
         'journey_confirmation_needed', ['confirm_goal', 'cancel_goal'])
-    });
+    }, typed);
   }
 
   // Comparisons are informational, not evidence that the visitor selected ads.
   // Private/post-sale questions likewise cannot silently replace a sales goal.
   const safeCore = informational.has(inner.reply.intent) || inner.reply.intent === 'grounding_boundary'
     ? session.coreSession : inner.session;
-  return conclude(session, safeCore, session.pendingGoal, inner);
+  return conclude(session, safeCore, session.pendingGoal, inner, typed);
 }
 
 /** Return a supported service only from a live, explicitly confirmed R07 session. */
