@@ -7,6 +7,7 @@ on:
       - 'tests/faisca-*.test.mjs'
       - '.github/workflows/faisca-guided-lab.yml'
       - 'package-lock.json'
+      - 'src/lib/private-loopback-preview.mjs'
   workflow_dispatch:
 
 permissions:
@@ -55,6 +56,10 @@ jobs:
         run: node ops/faisca/server/browser-qa.mjs
       - name: Verificar iniciador R22 somente leitura no Chromium
         run: node ops/faisca/review/browser-qa.mjs
+      - name: Compilar Astro Comercial real, mantendo o Faísca público desativado
+        run: npm run build
+      - name: Validar composição R24 Comercial + Faísca sob autenticação privada
+        run: node ops/faisca/composition/browser-qa.mjs
       - name: Disponibilizar pacote de demonstração R21 estritamente para revisão
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
