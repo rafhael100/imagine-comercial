@@ -46,7 +46,7 @@ test('F35 — every checkout is unauthenticated after clone and SEO Engine stays
   for(const step of checkout){
     assert.match(step,/^[ \t]*persist-credentials:[ \t]*false[ \t]*$/m);
   }
-  assert.match(validate,/ref:[ \t]*2f77051e04266a9ae64bbdb48d7cd951a00d455e/,
+  assert.match(validate,/ref:[ \t]*43953f44492f30546a6f0197e2998ea8a66ceffb/,
     'Independent SEO Engine audit must not use a mutable ref');
   assert.match(validate,/repository:[ \t]*rafhael100\/imagine-portal/,
     'F307 PHP signer must come from the reviewed Portal repository');
