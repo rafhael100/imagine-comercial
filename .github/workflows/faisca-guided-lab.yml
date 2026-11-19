@@ -38,6 +38,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Instalar Chromium de testes
         run: bash scripts/install-chromium-ci.sh
+      - name: Testar R79 navegador privado com Chromium e axe sem API paga
+        run: node ops/faisca/openai/private-review-browser-qa.mjs
       - name: Compilar laboratório Astro separado
         run: IMAGINE_FAISCA_LAB=1 npx --no-install astro build --config ops/faisca/lab/astro.config.mjs
       - name: Preparar revisão R21 somente após validar os 7 HTML e o PNG aprovado

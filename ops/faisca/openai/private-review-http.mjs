@@ -1,6 +1,10 @@
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
+import {
+  PRIVATE_REVIEW_PAGE_PATH, PRIVATE_REVIEW_SCRIPT_PATH, PRIVATE_REVIEW_STYLE_PATH,
+  PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
+} from './private-review-page.mjs';
 
 const REVIEW_PATH = '/__faisca_openai_private/respond';
 const MAX_BODY_BYTES = 96;
@@ -16,6 +20,25 @@ const securityHeaders = Object.freeze({
   'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
   'Content-Type': 'application/json; charset=utf-8'
 });
+
+// Browser review only: static content and script, never secret credentials or
+// an executable action. Both the UI and the API remain bound to loopback.
+const privateAssets = Object.freeze({
+  [PRIVATE_REVIEW_PAGE_PATH]: Object.freeze({ body: PRIVATE_REVIEW_HTML, type: 'text/html; charset=utf-8' }),
+  [PRIVATE_REVIEW_SCRIPT_PATH]: Object.freeze({ body: PRIVATE_REVIEW_JS, type: 'text/javascript; charset=utf-8' }),
+  [PRIVATE_REVIEW_STYLE_PATH]: Object.freeze({ body: PRIVATE_REVIEW_CSS, type: 'text/css; charset=utf-8' })
+});
+const privateBrowserHeaders = Object.freeze({
+  ...securityHeaders,
+  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+  'X-Frame-Options': 'DENY'
+});
+function privateBrowserAllowed(req, port) {
+  return req.socket.remoteAddress === '127.0.0.1' &&
+    req.headers.host === '127.0.0.1:' + port &&
+    (!req.headers.origin || req.headers.origin === 'http://127.0.0.1:' + port) &&
+    !req.headers.cookie && !req.headers['x-forwarded-for'];
+}
 
 function send(res, status, value) {
   res.writeHead(status, securityHeaders);
@@ -91,7 +114,8 @@ function authorized(req, token, hostPort) {
   const a = Buffer.from(supplied), b = Buffer.from(expected);
   return req.socket.remoteAddress === '127.0.0.1' &&
     req.headers.host === '127.0.0.1:' + hostPort &&
-    !req.headers.origin && !req.headers.cookie &&
+    (!req.headers.origin || req.headers.origin === 'http://127.0.0.1:' + hostPort) &&
+    !req.headers.cookie &&
     !req.headers['x-forwarded-for'] &&
     timingSafeEqual(a, b);
 }
@@ -144,6 +168,15 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
   }
   let active = true, requests = 0, inFlight = false;
   const server = createServer(async (req, res) => {
+    if (active && req.method === 'GET' && Object.hasOwn(privateAssets, req.url)) {
+      if (!privateBrowserAllowed(req, server.address().port)) {
+        send(res, 403, { status: 'forbidden' }); return;
+      }
+      const asset = privateAssets[req.url];
+      res.writeHead(200, { ...privateBrowserHeaders, 'Content-Type': asset.type });
+      res.end(asset.body);
+      return;
+    }
     if (!active || req.method !== 'POST' || req.url !== REVIEW_PATH) {
       send(res, 404, { status: 'not_found' }); return;
     }
