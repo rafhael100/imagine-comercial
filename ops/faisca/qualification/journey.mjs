@@ -277,7 +277,11 @@ export function respondQualificationJourney(session, rawInput) {
         return Object.freeze({
           session: createState(result.session, session.profile, 'service_change_pending', session.phase),
           userText: result.userText,
-          reply: result.reply
+          reply: Object.freeze({
+            ...result.reply,
+            text: 'Uma troca de solução está pendente. Sua qualificação atual será mantida até você confirmar a troca.\n\n' +
+              result.reply.text
+          })
         });
       }
       if (result.reply.intent === 'journey_summary') {
