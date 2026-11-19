@@ -169,6 +169,13 @@ export function groundedRespond(session, input) {
   const original = respond(session, input);
   if (preflight.has(original.reply.intent)) return original;
   const type = dataProperty(input, 'type');
+  // Use the same private-account preflight as the Faísca host. R06 must not
+  // return a generic public site recipe for an identified post-sale request.
+  if (type === 'text' && boundaryActions.has(original.reply.intent)) {
+    return localReply(original, 'grounding_boundary', original.reply.intent === 'goal_sales' ? {
+      text: 'Orientação local: esta base de trechos não confirma funcionalidades, disponibilidade ou condições do Imagine CRM. Posso organizar seu interesse em um resumo para conversar com a equipe.'
+    } : {});
+  }
   const route = type === 'action' ? { action: dataProperty(input, 'id') } : routeText(original.userText);
   if (route.local) return localReply(original, route.local, { keepSession: true, session });
   const actionId = route.action;
