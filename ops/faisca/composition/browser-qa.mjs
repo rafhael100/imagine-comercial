@@ -69,6 +69,35 @@ try {
       panelAxe.violations.map(v => v.id).join(','));
   });
 
+  await check('R25 inline assistant runs in the real Comercial page without replacing CTAs', async () => {
+    const disclosure = page.locator('[data-faisca-private-inline]');
+    assert.equal(await disclosure.count(), 1);
+    assert.equal(await disclosure.getAttribute('open'), null);
+    await disclosure.locator('summary').click();
+    assert.equal(await disclosure.getAttribute('open'), '');
+    const frame = page.frameLocator('iframe[data-faisca-inline-frame]');
+    await frame.locator('[data-journey-start]').waitFor({ state: 'visible', timeout: 15000 });
+    assert.equal(await frame.locator('#faisca-composer').isVisible(), false);
+    await frame.locator('[data-journey-start]').click();
+    await frame.locator('#faisca-composer').waitFor({ state: 'visible' });
+    const input = frame.locator('#faisca-input');
+    await input.fill('Quero Onepage.');
+    await frame.locator('#faisca-send').click();
+    await frame.locator('#faisca-quick-actions [data-action-id="confirm_goal"]')
+      .waitFor({ state: 'visible' });
+    await frame.locator('#faisca-quick-actions [data-action-id="confirm_goal"]').click();
+    await frame.locator('#faisca-quick-actions [data-action-id="r08:objective:present_company"]')
+      .waitFor({ state: 'visible' });
+    assert.equal(await frame.locator('[data-faisca-root]').getAttribute('data-faisca-mode'),
+      'r08_local_qualification');
+    assert.match(await frame.locator('#faisca-summary-text').inputValue(), /Site Onepage/);
+    assert.equal(await page.locator('#simular-compra[data-choice-preview]').count(), 1,
+      'Real Comercial quote simulator must remain alongside the inline Faísca.');
+    assert.ok(await page.locator('a[data-purchase-start]').count() >= 1);
+    await disclosure.locator('summary').click();
+    assert.equal(await disclosure.getAttribute('open'), null);
+  });
+
   await check('private Faísca loads R08 on the exact same protected commercial origin', async () => {
     await page.locator('[data-faisca-private-entry] a').click();
     assert.equal(new URL(page.url()).origin, server.origin);
