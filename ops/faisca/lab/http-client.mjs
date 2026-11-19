@@ -168,9 +168,26 @@ export function createHttpConversationClient({ origin = globalThis.location?.ori
     const preflight = respond(createSession(), preflightInput);
     const trustedLocalAction = safe?.input.type === 'action' &&
       (['confirm_goal', 'cancel_goal'].includes(safe.input.id) || safe.input.id.startsWith('r08:'));
-    if (blockedIntents.has(preflight.reply.intent) && !trustedLocalAction) return Promise.resolve(Object.freeze({
-      status: 'answered', delivery: 'guided_fallback', accepted: true, reason: preflight.reply.intent,
-      reply: preflight.reply, mode: 'simulated_lab', operationalEffects: false }));
+    if (blockedIntents.has(preflight.reply.intent) && !trustedLocalAction) {
+      // R15: a private message is refused locally, without a POST. If the
+      // server-authoritative R08 flow is already awaiting a service choice,
+      // keep its two fixed controls visible so the visitor can cancel/confirm.
+      // Never call prepareTurn with sensitive text or forward it to a provider.
+      const inPendingQualification = safe?.input.type === 'text' &&
+        guideSession?.version === 'faisca-qualification-journey-r08-1' &&
+        guideSession.phase === 'service_change_pending';
+      const reply = inPendingQualification
+        ? Object.freeze({ ...preflight.reply, actions: Object.freeze([
+            Object.freeze({ id: 'confirm_goal', label: 'Confirmar a troca' }),
+            Object.freeze({ id: 'cancel_goal', label: 'Manter a solução atual' })
+          ]) })
+        : preflight.reply;
+      return Promise.resolve(Object.freeze({
+        status: 'answered', delivery: 'guided_fallback', accepted: true,
+        reason: preflight.reply.intent, reply,
+        mode: 'simulated_lab', operationalEffects: false
+      }));
+    }
     if (!safe) return Promise.resolve(localOutcome('transport_rejected'));
     let resolve;
     const promise = new Promise(yes => { resolve = yes; });

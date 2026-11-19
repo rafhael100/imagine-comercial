@@ -212,7 +212,9 @@ export function respondQualificationJourney(session, rawInput) {
     }
     return Object.freeze({
       session,
-      userText: input.type === 'text' ? input.text : '',
+      // The pending-confirmation branch bypasses the standard R07 preflight.
+      // Never echo visitor prose here: it might contain credentials or PII.
+      userText: input.type === 'text' ? '[Mensagem livre não registrada]' : '[Ação não aplicada]',
       reply: makeReply('Uma troca de solução está pendente. Confirme a nova opção ou cancele para manter o atendimento atual.',
         'r08_service_change_pending', [], [action('confirm_goal', 'Confirmar a troca'), action('cancel_goal', 'Manter a solução atual')])
     });
