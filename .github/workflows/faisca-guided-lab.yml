@@ -58,6 +58,8 @@ jobs:
         run: node ops/faisca/review/browser-qa.mjs
       - name: Compilar Astro Comercial real, mantendo o Faísca público desativado
         run: npm run build
+      - name: Barrar qualquer vazamento do laboratório Faísca no dist público
+        run: node ops/faisca/composition/public-release-gate.mjs --audit-dist
       - name: Validar composição R24 Comercial + Faísca sob autenticação privada
         run: node ops/faisca/composition/browser-qa.mjs
       - name: Disponibilizar pacote de demonstração R21 estritamente para revisão
