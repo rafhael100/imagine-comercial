@@ -16,7 +16,7 @@ function fakeLab() {
       return Object.freeze({
         status: 'draft_answer',
         text: 'Resposta sintética em revisão editorial: ' + caseId,
-        sourceIds: ['fixture.editorial.source'],
+        sourceIds: ['faisca.passage.onepage.description@r06-1'],
         modelIds: ['gpt-6-luna', 'gpt-6.1-terra']
       });
     },

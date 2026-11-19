@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
 
 const token = 'R78_PRIVATE_CLAIMS_SYNTHETIC_TOKEN_1234567';
-const sourceId = 'faisca.passage.fixture@r06-1';
+const sourceId = 'faisca.passage.onepage.description@r06-1';
 
 test('R78 private HTTP rejects obvious fabricated commercial claims without echo or actions', async t => {
   let currentText = '', calls = 0;

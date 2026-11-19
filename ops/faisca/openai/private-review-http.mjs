@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
+import { getGroundingSources } from '../grounding/catalog.mjs';
 import {
   PRIVATE_REVIEW_PAGE_PATH, PRIVATE_REVIEW_SCRIPT_PATH, PRIVATE_REVIEW_STYLE_PATH,
   PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
@@ -50,6 +51,9 @@ function send(res, status, value) {
 // This is an envelope check, NOT semantic verification of generated prose.
 const reviewIdPattern = /^[a-z0-9][a-z0-9._:/@-]{0,127}$/i;
 const approvedModels = new Set(Object.values(FAISCA_OPENAI_MODELS));
+// R85: editorial citations must be exact IDs from the pinned R06 catalog,
+// not arbitrary strings that merely resemble a reviewed source.
+const approvedEditorialSourceIds = new Set(getGroundingSources().map(source => source.id));
 // This is a narrow, independently enforced rejection list for obvious
 // invented contact/payment/operation claims. Editorial/semantic grounding
 // still requires human review and cannot be certified by a regex.
@@ -86,12 +90,13 @@ function safeReviewOutput(response) {
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
         forbiddenReviewClaims.test(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
-    const sources = safeReviewList(get('sourceIds') ?? []);
+    const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
     const models = safeReviewList(get('modelIds') ?? [], approvedModels);
     // R83: a claimed Luna + Terra generated draft must show both model IDs,
     // exactly once and in the required classification -> answer sequence.
     // An empty/partial/duplicated provenance list is not evidence of a model reply.
-    if (!sources || !models || (status === 'draft_answer' && (
+    if (!sources || !models || sources.length !== new Set(sources).size ||
+        (status === 'draft_answer' && (
       sources.length === 0 || models.length !== 2 ||
       models[0] !== FAISCA_OPENAI_MODELS.classification ||
       models[1] !== FAISCA_OPENAI_MODELS.answer))) return null;

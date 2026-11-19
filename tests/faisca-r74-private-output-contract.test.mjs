@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
 
 const token = 'R74_SAFE_PRIVATE_REVIEW_FIXTURE_TOKEN_12345';
-const source = 'faisca.passage.fixture@r06-1';
+const source = 'faisca.passage.onepage.description@r06-1';
 function fixture(response) {
   let calls = 0;
   return {
