@@ -23,7 +23,7 @@ test('R58: oversized, invisible or non-ASCII action ids fail closed before quali
     'r08:objective:capture_leads ',
     'r08:objective:capture_leads🔥',
     '',
-    'R08:objective:capture_leads'
+    'r08:objective:capture_leads?'
   ];
   for (const id of bad) {
     const result = choose(session, id);
@@ -37,7 +37,7 @@ test('R58: oversized, invisible or non-ASCII action ids fail closed before quali
   }
 });
 
-test('R58: valid action IDs still advance both services and legitimate qualification choices', () => {
+test('R58: valid action IDs, including mixed-case contactConsent, advance both services', () => {
   for (const [service, expected] of [['goal_presence', 'onepage'], ['goal_campaign', 'landing-page']]) {
     const pending = choose(createQualificationJourney(), service);
     const confirmed = choose(pending.session, 'confirm_goal');
