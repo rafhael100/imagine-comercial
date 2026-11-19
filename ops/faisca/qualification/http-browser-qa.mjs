@@ -299,7 +299,13 @@ try {
     executedPHP = true;
   });
 
-  await check('R15 browser masks private text while a service change awaits confirmation', async () => {
+  await check('R15/R17 browser keeps copy-only next steps and masks private text during a proposed change', async () => {
+    const beforeGuidance = phpCounts().spawned;
+    await choose('r08:next_steps');
+    assert.match(await lastAnswer().innerText(), /Como avançar com Site Onepage/);
+    assert.match(await lastAnswer().innerText(), /Portal Imagine/);
+    assert.match(await lastAnswer().innerText(), /não enviou o resumo/i);
+    assert.equal(phpCounts().spawned, beforeGuidance, 'Copy-only guidance must remain local.');
     await choose('r08:change_service');
     assert.match(await lastAnswer().innerText(), /solução/i);
     await choose('goal_campaign');
