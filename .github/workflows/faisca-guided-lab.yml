@@ -62,6 +62,8 @@ jobs:
         run: node ops/faisca/composition/public-release-gate.mjs --audit-dist
       - name: Validar composição R24 Comercial + Faísca sob autenticação privada
         run: node ops/faisca/composition/browser-qa.mjs
+      - name: Validar R27 Comercial sem JavaScript e com módulo Faísca indisponível
+        run: node ops/faisca/composition/failure-browser-qa.mjs
       - name: Disponibilizar pacote de demonstração R21 estritamente para revisão
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
