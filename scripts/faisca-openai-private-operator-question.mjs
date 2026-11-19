@@ -1,5 +1,6 @@
 import { createInterface } from 'node:readline/promises';
 import { createFaiscaOpenAILiveLab } from '../ops/faisca/openai/live-lab.mjs';
+import { createFaiscaLocalReservationLedger } from '../ops/faisca/openai/durable-reservation-ledger.mjs';
 import { preparePrivateSyntheticQuestion } from '../ops/faisca/openai/private-question-gate.mjs';
 
 // R81: Several operator-entered fictional questions can be evaluated using
@@ -11,7 +12,7 @@ const MAX_RESERVED_USD = 10;
 if (process.env.GITHUB_ACTIONS || process.env.CI ||
     process.env.IMAGINE_FAISCA_OPENAI_LIVE_TEST !== 'YES_PAY_SYNTHETIC_ONLY' ||
     process.env.IMAGINE_FAISCA_OPERATOR_QUESTION_TEST !== 'YES_PRIVATE_FICTIONAL_ONLY' ||
-    !process.env.OPENAI_API_KEY) {
+    !process.env.OPENAI_API_KEY || !process.env.FAISCA_PRIVATE_LEDGER_DIR) {
   console.error('R81 fictional question trial is disabled. Configure private secrets and both explicit opt-ins.');
   process.exitCode = 2;
 } else {
@@ -22,12 +23,19 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
   let completed = 0;
   let client;
   try {
+    const reservationLedger = createFaiscaLocalReservationLedger({
+      directory: process.env.FAISCA_PRIVATE_LEDGER_DIR,
+      maxRequests: MAX_REQUESTS,
+      maxBudgetUsd: MAX_RESERVED_USD
+    });
+    await reservationLedger.ready();
     client = createFaiscaOpenAILiveLab({
       enabled: true, apiKey: process.env.OPENAI_API_KEY,
       enableOperatorSyntheticQuestion: true,
       extendedPrivateSession: true,
       maxRequests: MAX_REQUESTS,
-      maxBudgetUsd: MAX_RESERVED_USD
+      maxBudgetUsd: MAX_RESERVED_USD,
+      reservationLedger
     });
     console.log('Laboratório privado Luna + Terra: até 50 perguntas FICTÍCIAS nesta sessão.');
     console.log('Não informe nomes, contatos, dados de clientes, credenciais ou pagamentos.');
@@ -70,7 +78,8 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
       questionsWithResults: completed,
       apiRequestsAttempted: inspection.calls,
       estimatedReservedUsd: Number(inspection.reservedUsd.toFixed(6)),
-      realBilledAmountNotVerified: true
+      realBilledAmountNotVerified: true,
+      localDurableReservationEnabled: true
     }, null, 2));
   } catch {
     console.error('Laboratório não disponível. Revise o ambiente privado sem compartilhar credenciais.');

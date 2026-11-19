@@ -117,7 +117,8 @@ async function receiveBoundedResponse(response, signal) {
 export function createFaiscaOpenAILiveLab({
   enabled = false, apiKey, fetchImpl = globalThis.fetch, timeoutMs = 12000,
   maxBudgetUsd = 0.01, enableOperatorSyntheticQuestion = false,
-  extendedPrivateSession = false, maxRequests = DEFAULT_MAX_REQUESTS
+  extendedPrivateSession = false, maxRequests = DEFAULT_MAX_REQUESTS,
+  reservationLedger = null
 } = {}) {
   if (enabled !== true || typeof apiKey !== 'string' ||
       !/^sk-[A-Za-z0-9_-]{12,}$/.test(apiKey) ||
@@ -129,7 +130,9 @@ export function createFaiscaOpenAILiveLab({
       maxBudgetUsd > (extendedPrivateSession ? MAX_EXTENDED_BUDGET_USD : MAX_BASIC_TEST_BUDGET_USD) ||
       !Number.isInteger(maxRequests) || maxRequests < 1 ||
       maxRequests > (extendedPrivateSession ? MAX_EXTENDED_REQUESTS : DEFAULT_MAX_REQUESTS) ||
-      typeof enableOperatorSyntheticQuestion !== 'boolean') {
+      typeof enableOperatorSyntheticQuestion !== 'boolean' ||
+      (reservationLedger !== null &&
+        (typeof reservationLedger !== 'object' || typeof reservationLedger.reserve !== 'function'))) {
     throw new TypeError('Private OpenAI API trial not explicitly and safely configured.');
   }
   let calls = 0, reservedUsd = 0, busy = false;
@@ -153,6 +156,9 @@ export function createFaiscaOpenAILiveLab({
     if (reservedUsd + estimatedUsd > maxBudgetUsd) {
       throw new Error('Private OpenAI API budget reservation refused.');
     }
+    // Reserve locally AND durably before any request leaves the private process.
+    // A failed/uncertain API call never refunds the durable allocation.
+    if (reservationLedger) await reservationLedger.reserve(estimatedUsd);
     reservedUsd += estimatedUsd;
     calls++;
     const controller = new AbortController();
@@ -276,6 +282,7 @@ export function createFaiscaOpenAILiveLab({
       maxRequests,
       extendedPrivateSession,
       operatorSyntheticTextEnabled: enableOperatorSyntheticQuestion,
+      localDurableReservations: reservationLedger !== null,
       liveEnabledForPublic: false,
       durableBillingLimit: false,
       operationalEffects: false
