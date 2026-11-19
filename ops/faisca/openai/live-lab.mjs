@@ -18,8 +18,12 @@ export const FAISCA_OPENAI_TEST_CASES = Object.freeze({
 });
 const API_URL = 'https://api.openai.com/v1/responses';
 const MAX_API_RESPONSE_BYTES = 32768;
-const MAX_REQUESTS = 2;
-const MAX_TEST_BUDGET_USD = 0.02;
+const DEFAULT_MAX_REQUESTS = 2;
+const MAX_BASIC_TEST_BUDGET_USD = 0.02;
+// R81: the owner approved more API-credit tests. A private operator may
+// explicitly opt in to a larger bounded session, never an unlimited spend.
+const MAX_EXTENDED_REQUESTS = 100;
+const MAX_EXTENDED_BUDGET_USD = 10;
 const rates = Object.freeze({
   'gpt-6-luna': Object.freeze({ input: 0.1, output: 0.5 }),
   'gpt-6.1-terra': Object.freeze({ input: 1, output: 5 })
@@ -112,21 +116,26 @@ async function receiveBoundedResponse(response, signal) {
  */
 export function createFaiscaOpenAILiveLab({
   enabled = false, apiKey, fetchImpl = globalThis.fetch, timeoutMs = 12000,
-  maxBudgetUsd = 0.01, enableOperatorSyntheticQuestion = false
+  maxBudgetUsd = 0.01, enableOperatorSyntheticQuestion = false,
+  extendedPrivateSession = false, maxRequests = DEFAULT_MAX_REQUESTS
 } = {}) {
   if (enabled !== true || typeof apiKey !== 'string' ||
       !/^sk-[A-Za-z0-9_-]{12,}$/.test(apiKey) ||
       typeof fetchImpl !== 'function' ||
       !Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 15000 ||
       typeof maxBudgetUsd !== 'number' || !Number.isFinite(maxBudgetUsd) ||
-      maxBudgetUsd <= 0 || maxBudgetUsd > MAX_TEST_BUDGET_USD ||
+      maxBudgetUsd <= 0 ||
+      typeof extendedPrivateSession !== 'boolean' ||
+      maxBudgetUsd > (extendedPrivateSession ? MAX_EXTENDED_BUDGET_USD : MAX_BASIC_TEST_BUDGET_USD) ||
+      !Number.isInteger(maxRequests) || maxRequests < 1 ||
+      maxRequests > (extendedPrivateSession ? MAX_EXTENDED_REQUESTS : DEFAULT_MAX_REQUESTS) ||
       typeof enableOperatorSyntheticQuestion !== 'boolean') {
     throw new TypeError('Private OpenAI API trial not explicitly and safely configured.');
   }
   let calls = 0, reservedUsd = 0, busy = false;
 
   async function invoke(model, input, instructions, format, maxOutputTokens) {
-    if (calls >= MAX_REQUESTS) throw new Error('Private OpenAI API request limit reached.');
+    if (calls >= maxRequests) throw new Error('Private OpenAI API request limit reached.');
     const payload = {
       model, input, instructions, store: false,
       reasoning: { effort: 'none' },
@@ -264,7 +273,8 @@ export function createFaiscaOpenAILiveLab({
     return Object.freeze({
       schema: FAISCA_OPENAI_LIVE_LAB_SCHEMA,
       calls, reservedUsd, maxBudgetUsd,
-      maxRequests: MAX_REQUESTS,
+      maxRequests,
+      extendedPrivateSession,
       operatorSyntheticTextEnabled: enableOperatorSyntheticQuestion,
       liveEnabledForPublic: false,
       durableBillingLimit: false,

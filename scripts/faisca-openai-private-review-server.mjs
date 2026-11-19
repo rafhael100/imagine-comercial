@@ -11,7 +11,9 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
   try {
     const trial = createFaiscaOpenAILiveLab({
       enabled: true, apiKey: process.env.OPENAI_API_KEY,
-      maxBudgetUsd: 0.01
+      extendedPrivateSession: true,
+      maxRequests: 100,
+      maxBudgetUsd: 10
     });
     server = await startFaiscaOpenAIPrivateReview({
       lab: trial,
