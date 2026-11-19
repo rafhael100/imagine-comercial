@@ -69,15 +69,17 @@ export function mountFaisca(root, config = {}) {
         ![Object.prototype, null].includes(Object.getPrototypeOf(sessionPolicy))) throw new TypeError('Invalid local session policy.');
     const fields = Object.getOwnPropertyDescriptors(sessionPolicy);
     const names = Reflect.ownKeys(fields);
-    if (names.length < 2 || names.length > 4 ||
+    if (names.length < 2 || names.length > 5 ||
         names.some(key => typeof key !== 'string' ||
-          !['create', 'summary', 'quoteSite', 'welcome'].includes(key)) ||
+          !['create', 'summary', 'quoteSite', 'welcome', 'actionLimit'].includes(key)) ||
         ['create', 'summary'].some(key => !fields[key] ||
           !Object.hasOwn(fields[key], 'value') || typeof fields[key].value !== 'function') ||
         (fields.quoteSite && (!Object.hasOwn(fields.quoteSite, 'value') ||
           typeof fields.quoteSite.value !== 'function')) ||
          (fields.welcome && (!Object.hasOwn(fields.welcome, 'value') ||
-          typeof fields.welcome.value !== 'function'))) {
+          typeof fields.welcome.value !== 'function')) ||
+        (fields.actionLimit && (!Object.hasOwn(fields.actionLimit, 'value') ||
+          fields.actionLimit.value !== 7))) {
       throw new TypeError('Incomplete local session policy.');
     }
   }
@@ -173,7 +175,9 @@ export function mountFaisca(root, config = {}) {
 
   function renderActions(items) {
     actions.replaceChildren();
-    for (const item of items.slice(0, 6)) {
+    // Support triage may have 6 choices plus one safe correction button.
+    // Other journeys retain their original six-action limit.
+    for (const item of items.slice(0, sessionPolicy?.actionLimit === 7 ? 7 : 6)) {
       if (!item || typeof item.id !== 'string' || typeof item.label !== 'string') continue;
       const button = make('button', '', item.label);
       button.type = 'button';

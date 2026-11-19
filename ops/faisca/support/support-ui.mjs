@@ -16,7 +16,8 @@ export function getSupportWelcome() { return supportWelcome; }
 const policy = Object.freeze({
   create: createSupportJourney,
   summary: getSupportJourneySummary,
-  welcome: getSupportWelcome
+  welcome: getSupportWelcome,
+  actionLimit: 7
 });
 
 /** Local-only R10 support: no customer identity, persistence or external calls. */
