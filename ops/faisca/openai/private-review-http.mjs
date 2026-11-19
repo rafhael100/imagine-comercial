@@ -151,8 +151,12 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
       const socket = req.socket;
       res.shouldKeepAlive = false;
       res.once('finish', () => socket.destroy());
-      res.writeHead(408, { ...securityHeaders, Connection: 'close' });
-      res.end(JSON.stringify({ status: 'request_timeout' }) + '\n');
+      const payload = JSON.stringify({ status: 'request_timeout' }) + '\n';
+      res.writeHead(408, {
+        ...securityHeaders, Connection: 'close',
+        'Content-Length': Buffer.byteLength(payload)
+      });
+      res.end(payload);
       return;
     }
     if (!caseId) { send(res, 400, { status: 'invalid_request' }); return; }
