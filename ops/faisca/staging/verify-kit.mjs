@@ -117,6 +117,44 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
     'IMAGINE_FAISCA_STAGING_HTPASSWD_PATH',
     'no-new-privileges:true','read_only: true'
   ];
+  // A rehashed manifest is not permission to turn the staging perimeter off.
+  // Substring markers alone can survive inside comments or alongside a later
+  // auth/header override. Require the reviewed active directives and refuse
+  // known Nginx authentication bypasses even in an internally consistent kit.
+  // This check complements, but NEVER replaces, independent source-SHA review
+  // and an operator's nginx -T / HTTP 401 inspection before any staging use.
+  const activeLines = nginx.split(/\r?\n/).map(line =>
+    line.replace(/#.*$/, '').trim()).filter(Boolean);
+  const active = new Set(activeLines);
+  const requiredActive = [
+    'map $request_uri $faisca_review_frame {',
+    'map $request_uri $faisca_review_ancestors {',
+    'include /etc/nginx/mime.types;',
+    'default_type application/octet-stream;',
+    'auth_basic "Imagine Faísca private review";',
+    'auth_basic_user_file /etc/nginx/auth/.htpasswd;',
+    'limit_except GET HEAD { deny all; }'
+  ];
+  const requiredHeaders = [
+    'add_header Cache-Control "private, no-store, max-age=0" always;',
+    'add_header X-Robots-Tag "noindex, nofollow, noarchive" always;',
+    'add_header X-Content-Type-Options "nosniff" always;',
+    'add_header Referrer-Policy "no-referrer" always;',
+    'add_header X-Frame-Options $faisca_review_frame always;',
+    'add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;',
+    'add_header Content-Security-Policy "default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; connect-src \'none\'; font-src \'self\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'; frame-src \'self\'; frame-ancestors $faisca_review_ancestors" always;'
+  ];
+  const actualHeaders = activeLines.filter(line => /^add_header\s/.test(line));
+  const authLines = activeLines.filter(line => /^auth_basic\s/.test(line));
+  const activeConfig = activeLines.join('\n');
+  if (requiredActive.some(line => !active.has(line)) ||
+      actualHeaders.length !== requiredHeaders.length ||
+      actualHeaders.some(line => !requiredHeaders.includes(line)) ||
+      authLines.length !== 1 || authLines[0] !== requiredActive[4] ||
+      /\bauth_basic\s+off\s*;|\bsatisfy\s+any\s*;|\ballow\s+all\s*;/i.test(activeConfig)) {
+    throw new Error('R38: review kit lost its private staging protections.');
+  }
+
   // The original request URI must survive Nginx try_files index redirects.
   // Never admit the old $uri mapping, even if an attacker regenerates hashes.
   if (nginx.includes('map $uri $faisca_review_') ||

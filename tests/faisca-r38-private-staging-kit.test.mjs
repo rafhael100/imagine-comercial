@@ -142,3 +142,56 @@ test('R44 a rehashed Nginx kit still cannot omit the reviewed MIME registry',asy
   await assert.rejects(verifyPrivateStagingKit({kitDir:dir}),
     /lost its private staging protections/);
 });
+
+
+async function rehashNginxFixture(dir, manifestFile, changed) {
+  const nginxFile = join(dir, 'ops/staging/nginx.conf');
+  await writeFile(nginxFile, changed);
+  // Simulate tampering with both the file AND its self-contained manifest.
+  // The verification must inspect policy, not trust self-reported hashes.
+  const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
+  const entry = manifest.files.find(item => item.path === 'ops/staging/nginx.conf');
+  assert.ok(entry);
+  entry.bytes = Buffer.byteLength(changed, 'utf8');
+  entry.sha256 = createHash('sha256').update(changed).digest('hex');
+  manifest.totalBytes = manifest.files.reduce((sum, item) => sum + item.bytes, 0);
+  await writeFile(manifestFile, JSON.stringify(manifest));
+}
+
+test('R65: rehashed staging with auth_basic off fails despite an untouched htpasswd marker', async t => {
+  const { dir, manifestFile } = await fixture(t);
+  const original = await readFile(join(dir, 'ops/staging/nginx.conf'), 'utf8');
+  const changed = original.replace('auth_basic "Imagine Faísca private review";', 'auth_basic off;');
+  assert.notEqual(changed, original);
+  assert.match(changed, /auth_basic_user_file \/etc\/nginx\/auth\/\.htpasswd;/);
+  await rehashNginxFixture(dir, manifestFile, changed);
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }), /lost its private staging protections/);
+});
+
+test('R65: policy marker inside a comment cannot satisfy active staging authentication', async t => {
+  const { dir, manifestFile } = await fixture(t);
+  const original = await readFile(join(dir, 'ops/staging/nginx.conf'), 'utf8');
+  const changed = original.replace('auth_basic_user_file /etc/nginx/auth/.htpasswd;',
+    '# auth_basic_user_file /etc/nginx/auth/.htpasswd;');
+  assert.notEqual(changed, original);
+  await rehashNginxFixture(dir, manifestFile, changed);
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }), /lost its private staging protections/);
+});
+
+test('R65: rehashed extra response header and disabled method restriction are rejected', async t => {
+  for (const mutation of [
+    source => source.replace('limit_except GET HEAD { deny all; }',
+      '# limit_except GET HEAD { deny all; }'),
+    source => source.replace('limit_except GET HEAD { deny all; }',
+      'add_header X-Robots-Tag "index, follow" always;\n        limit_except GET HEAD { deny all; }'),
+    source => source.replace('limit_except GET HEAD { deny all; }',
+      'satisfy any; allow all; limit_except GET HEAD { deny all; }')
+  ]) {
+    const { dir, manifestFile } = await fixture(t);
+    const original = await readFile(join(dir, 'ops/staging/nginx.conf'), 'utf8');
+    const changed = mutation(original);
+    assert.notEqual(changed, original);
+    await rehashNginxFixture(dir, manifestFile, changed);
+    await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }), /lost its private staging protections/);
+  }
+});
