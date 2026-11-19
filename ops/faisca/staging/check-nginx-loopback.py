@@ -189,6 +189,14 @@ def smoke(root):
             site_files = [
                 file for file in manifest['files'] if file['path'].startswith('site/')
             ]
+            mime_for_extension = {
+                '.html': ('text/html',),
+                '.js': ('application/javascript', 'text/javascript'),
+                '.css': ('text/css',),
+                '.txt': ('text/plain',),
+                '.xml': ('application/xml', 'text/xml'),
+                '.png': ('image/png',)
+            }
             matched = 0
             for file in site_files:
                 name = file['path'][5:]
@@ -212,6 +220,11 @@ def smoke(root):
                     code = error.code
                     response_headers = error.headers
                     data = error.read()
+                dot = name.rfind('.')
+                ext = name[dot:].lower() if dot >= 0 else ''
+                allowed_mime = mime_for_extension.get(ext)
+                if allowed_mime is None or response_headers.get_content_type() not in allowed_mime:
+                    raise RuntimeError('Nginx served a script or page with unsafe MIME type')
                 if (code != expected_code or
                         hashlib.sha256(data).hexdigest() != file['sha256'] or
                         len(data) != file['bytes'] or
@@ -219,7 +232,7 @@ def smoke(root):
                         response_headers.get('Set-Cookie')):
                     raise RuntimeError('Nginx served an unreviewed or changed static asset')
                 matched += 1
-            print(f'R43 authenticated Nginx byte parity: {matched}/{len(site_files)}')
+            print(f'R44 Nginx byte and MIME parity: {matched}/{len(site_files)}')
             if matched != len(site_files) or matched < 50:
                 raise RuntimeError('Incomplete Nginx static delivery proof')
         finally:
