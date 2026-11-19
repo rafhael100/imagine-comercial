@@ -116,6 +116,39 @@ try {
     assert.equal(await page.locator('#simular-compra[data-choice-preview]').count(), 1,
       'Real Comercial quote simulator must remain alongside the inline Faísca.');
     assert.ok(await page.locator('a[data-purchase-start]').count() >= 1);
+
+    // R37: the handoff requires completed qualification AND an explicit
+    // click. Never forward free text, contact preference, identity or price.
+    const quote = page.locator('#simular-compra[data-choice-preview]');
+    await quote.locator('[data-choice-site="landing-pages"]').click();
+    const transfer = page.locator('[data-faisca-apply-choice]');
+    await transfer.click();
+    assert.match(await page.locator('[data-faisca-apply-status]').innerText(), /Conclua a qualificação/);
+    assert.equal(await quote.locator('[data-choice-site="landing-pages"]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await frame.locator('[data-faisca-root]').getAttribute('data-faisca-quote-site'), null);
+
+    const chooseWithin = async (id, nextId) => {
+      await frame.locator('#faisca-quick-actions [data-action-id="' + id + '"]').click();
+      await frame.locator('#faisca-quick-actions [data-action-id="' + nextId + '"]')
+        .waitFor({ state: 'visible', timeout: 12000 });
+    };
+    await chooseWithin('r08:objective:present_company', 'r08:audience:businesses');
+    await chooseWithin('r08:audience:businesses', 'r08:materials:ready');
+    await chooseWithin('r08:materials:ready', 'r08:timeline:within_30_days');
+    await chooseWithin('r08:timeline:within_30_days', 'r08:contactConsent:declined');
+    await chooseWithin('r08:contactConsent:declined', 'r08:next_steps');
+    assert.equal(await frame.locator('[data-faisca-root]').getAttribute('data-faisca-quote-site'), 'onepage');
+    await transfer.click();
+    assert.equal(await quote.locator('[data-choice-site="onepage"]').getAttribute('aria-pressed'), 'true');
+    assert.match(await page.locator('[data-faisca-apply-status]').innerText(),
+      /Site Onepage selecionado no simulador local/);
+    assert.equal(await page.locator('#simular-compra form, #simular-compra input[type="email"]').count(), 0);
+    await frame.locator('#faisca-reset').click();
+    assert.equal(await frame.locator('[data-faisca-root]').getAttribute('data-faisca-quote-site'), null);
+    await quote.locator('[data-choice-site="landing-pages"]').click();
+    await transfer.click();
+    assert.match(await page.locator('[data-faisca-apply-status]').innerText(), /Conclua a qualificação/);
+    assert.equal(await quote.locator('[data-choice-site="landing-pages"]').getAttribute('aria-pressed'), 'true');
     await disclosure.locator('summary').click();
     assert.equal(await disclosure.getAttribute('open'), null);
   });
