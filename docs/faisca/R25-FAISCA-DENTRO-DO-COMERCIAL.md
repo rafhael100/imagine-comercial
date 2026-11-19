@@ -15,8 +15,8 @@ O link separado da R24 continua disponível, como alternativa de revisão e fall
 - Controle nativo HTML `<details><summary>...`: abre/fecha com teclado sem JavaScript novo na homepage.
 - Iframe com título, carregamento preguiçoso e `referrerpolicy=no-referrer`. Os módulos continuam sendo os arquivos R22 assinados por SHA-256 no manifesto, servidos sob a mesma origem autenticada.
 - A página comercial mantém `X-Frame-Options: DENY`. **Somente** `/__faisca_preview/journey/` e `/__faisca_preview/support/` recebem `SAMEORIGIN` e `frame-ancestors 'self'`, depois da autenticação. A política geral não é relaxada.
-- O iframe de revisão possui `sandbox=allow-scripts allow-same-origin` para permitir o carregamento correto dos módulos Astro na mesma origem. **Esse conjunto de flags não deve ser tratado como isolamento de segurança contra scripts arbitrários**. O controle de confiança é o build revisado, sua verificação de hashes e o acesso privado.
-- Não há `allow-forms` no sandbox. A interface de demonstração usa somente estado em memória. Não existem endpoints de coleta, checkout, pagamentos, CRM, PHP ou LLM externo.
+- O iframe de revisão possui `sandbox=allow-scripts allow-same-origin allow-forms` para permitir o carregamento correto dos módulos Astro na mesma origem. **Esse conjunto de flags não deve ser tratado como isolamento de segurança contra scripts arbitrários**. O controle de confiança é o build revisado, sua verificação de hashes e o acesso privado.
+- `allow-forms` permite que o navegador dispare o evento do formulário do chat, interceptado pelo JavaScript local. Não libera envio pela rede: a CSP mantém `form-action 'none'` e o servidor somente aceita GET/HEAD. Não existem endpoints de captura, checkout, pagamentos, CRM, PHP ou LLM externo.
 - Um rótulo explícito alerta que a conversa é local/simulada e não deve receber dados pessoais ou senhas.
 
 ## Gates automatizados
