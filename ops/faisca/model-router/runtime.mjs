@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { isSyntheticRouteQuota, reserveSyntheticRouteInvocation } from './synthetic-quota.mjs';
 import {
   prepareModelRouteRequest, retrieveCandidateAnswerIds, verifyModelRouteResponse,
   localModelRouteFixture, ROUTER_RESPONSE_SCHEMA, ROUTER_CLARIFICATION_IDS,
@@ -47,10 +48,11 @@ function result(status, route, { delivery = 'none', accepted = false, reason = s
  * request per conversation, timeout reconciliation and reset semantics.
  * A real provider is intentionally not accepted in this phase.
  */
-export function createModelRouteRuntime({ provider, timeoutMs = 250, maxEntries = 64 } = {}) {
+export function createModelRouteRuntime({ provider, timeoutMs = 250, maxEntries = 64, quota } = {}) {
   if (!provider || provider.kind !== 'simulated' || typeof provider.route !== 'function' ||
       !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 10000 ||
-      !Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 256) {
+      !Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 256 ||
+      (quota !== undefined && !isSyntheticRouteQuota(quota))) {
     throw new TypeError('Only a bounded simulated R09 provider is allowed.');
   }
   const entries = new Map();
@@ -145,6 +147,17 @@ export function createModelRouteRuntime({ provider, timeoutMs = 250, maxEntries 
       const fallback = fixedFallback(request);
       settle(entry, result('answered', fallback, {
         delivery: 'fixed_fallback', accepted: true, reason: 'no_editorial_candidate'
+      }));
+      return entry.initial;
+    }
+
+    // Optional laboratory-only admission. Fixed anonymous boundaries and
+    // questions without a reviewed editorial candidate consume no quota.
+    // Reserve before a provider dispatch; do NOT refund on timeout, failure
+    // or destroy because a future paid provider may have already worked.
+    if (quota && !reserveSyntheticRouteInvocation(quota, input.conversationId)) {
+      settle(entry, result('limit', null, {
+        delivery: 'none', accepted: false, reason: 'synthetic_quota_exhausted'
       }));
       return entry.initial;
     }
