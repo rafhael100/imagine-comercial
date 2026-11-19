@@ -446,6 +446,9 @@ export function mountFaisca(root, config = {}) {
   on(byId('faisca-composer'), 'submit', (event) => {
     event.preventDefault();
     if (!textInputEnabled) {
+      // Clear even script-injected text before replying; never enter the turn.
+      input.value = '';
+      byId('faisca-count').textContent = '0/800';
       announce('Escolha uma das opções de atendimento.');
       focusPrimaryControl();
       return;
