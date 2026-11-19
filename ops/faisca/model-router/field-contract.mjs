@@ -94,7 +94,14 @@ export function prepareFieldRouteRequest(options = {}) {
   const optionsForField = getQualificationFieldOptions(data.field);
   if (!optionsForField || optionsForField.length < 2 || optionsForField.length > 5) return null;
   const preflight = respond(createSession(), { type: 'text', text: data.userText });
-  if (['sensitive_input', 'unsupported_instruction', 'too_long', 'invalid_input', 'invalid_session'].includes(preflight.reply.intent)) return null;
+  // An R08 qualification field must never consume a private support request,
+  // even if the visitor also mentions one of its allowed commercial options.
+  // Route it to the anonymous support boundary instead of recording a goal.
+  if ([
+    'sensitive_input', 'unsupported_instruction', 'too_long', 'invalid_input', 'invalid_session',
+    'after_sales', 'support_status', 'support_issue', 'support_billing',
+    'support_cancel', 'privacy', 'human'
+  ].includes(preflight.reply.intent)) return null;
   const request = Object.freeze({
     schema: FIELD_REQUEST_SCHEMA,
     invocationId: invocationIdFor([data.conversationId, data.messageId, data.field, data.userText].join(':')),
