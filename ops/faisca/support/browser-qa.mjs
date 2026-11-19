@@ -88,6 +88,8 @@ try {
   await check('R10 support lab requires explicit activation and keeps the approved artwork', async () => {
     const start = page.locator('[data-support-start]');
     await start.waitFor({ state: 'visible' });
+    assert.match(await page.locator('[data-support-status]').innerText(), /Organizar atendimento/);
+    assert.doesNotMatch(await page.locator('[data-support-status]').innerText(), /Escolha Pós-venda/i);
     assert.equal(await page.locator('#faisca-composer').isVisible(), false);
     assert.equal(await page.locator('#faisca-log .assistant').count(), 0);
     assert.equal(await page.locator('#faisca-master').evaluate(image =>
@@ -103,6 +105,10 @@ try {
     assert.equal(await page.locator('#faisca-send').isDisabled(), true);
     assert.deepEqual(await page.locator('#faisca-quick-actions button').allTextContents(),
       ['Organizar atendimento']);
+    const activatedStatus = await page.locator('[data-support-status]').innerText();
+    assert.match(activatedStatus, /Escolha Organizar atendimento/);
+    assert.doesNotMatch(activatedStatus, /Escolha Pós-venda/i);
+    assert.match(activatedStatus, /nenhum ticket será aberto/);
   });
 
   await check('R10 support mode asks a closed topic, service and detail before a copy-only summary', async () => {
