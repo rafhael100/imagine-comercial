@@ -111,8 +111,23 @@ try {
     assert.match(await last().innerText(), /Qual é o assunto/);
     await choose('r10:topic:technical');
     assert.match(await last().innerText(), /A qual serviço/);
+    // R54: all six services remain visible alongside the correction action.
+    assert.equal(await page.locator('#faisca-quick-actions button').count(), 7);
+    assert.equal(await page.locator('#faisca-quick-actions [data-action-id="r10:revise:topic"]').isVisible(), true);
+    await choose('r10:revise:topic');
+    assert.match(await last().innerText(), /Qual é o assunto/);
+    await choose('r10:topic:technical');
     await choose('r10:service:onepage');
     assert.match(await last().innerText(), /Qual destas opções/);
+    assert.equal(await page.locator('#faisca-quick-actions button').count(), 7);
+    assert.equal(await page.locator('#faisca-quick-actions [data-action-id="r10:revise:service"]').isVisible(), true);
+    // Buttons must not silently disappear or overflow on narrow screens.
+    await page.setViewportSize({ width: 320, height: 900 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+    await choose('r10:revise:service');
+    assert.match(await last().innerText(), /A qual serviço/);
+    await choose('r10:service:onepage');
+    await page.setViewportSize({ width: 1440, height: 900 });
     await choose('r10:detail:contact_form');
     assert.match(await last().innerText(), /RESUMO DE SUPORTE/);
     assert.match(await summary(), /Site Onepage/);
