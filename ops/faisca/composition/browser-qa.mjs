@@ -225,14 +225,25 @@ try {
   await check('anonymous support runs locally and does not issue an authenticated ticket', async () => {
     await page.goto(server.origin + '/__faisca_preview/support/', { waitUntil: 'load' });
     await page.locator('[data-support-start]').click();
-    await page.locator('#faisca-composer').waitFor({ state: 'visible' });
+    await page.locator('[data-faisca-root][data-faisca-mounted="true"]').waitFor({ state: 'attached' });
+    assert.equal(await page.locator('#faisca-composer').isVisible(), false);
+    assert.equal(await page.locator('#faisca-input').isDisabled(), true);
     await choose('after_sales');
     await choose('r10:topic:technical');
     await choose('r10:service:onepage');
     await choose('r10:detail:contact_form');
     assert.match(await page.locator('#faisca-summary-text').inputValue(),
       /Nenhum ticket foi aberto/);
-    await type('Minha senha é R24_TEST_SECRET_123');
+    const count = await page.locator('#faisca-log .assistant').count();
+    const summary = await page.locator('#faisca-summary-text').inputValue();
+    await page.evaluate(() => {
+      document.querySelector('#faisca-input').value = 'R24_TEST_SECRET_123';
+      document.querySelector('#faisca-composer').dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    assert.equal(await page.locator('#faisca-input').inputValue(), '');
+    assert.equal(await page.locator('#faisca-log .assistant').count(), count);
+    assert.equal(await page.locator('#faisca-summary-text').inputValue(), summary);
     assert.doesNotMatch(await page.locator('#faisca-log').innerText(), /R24_TEST_SECRET_123/);
   });
 
