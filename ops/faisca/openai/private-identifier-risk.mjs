@@ -13,6 +13,15 @@ const sensitiveWords = /\b(?:cpf|cnpj|rg|cep|telefone|celular|whatsapp|e-?mail|p
 // internationalized domains need not match an ASCII TLD to be private.
 const emailOrUrl = /https?:\/\/|\bwww\.|@|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|\barroba\b.{0,35}\bponto\b/u;
 
+// R148: plain hostnames and network literals are identifiers even without
+// a scheme, www. or @. Conservative false positives are safer in a fictional
+// operator-only lab than disclosing a real customer's bare domain to Luna/Terra.
+// Apply after NFKC/NFKD so compatibility/fullwidth dots cannot bypass checks.
+const bareHostname = /(?:^|[^\p{L}\p{N}_@])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}(?![\p{L}\p{N}_-])/u;
+const ipv4Literal = /(?:^|[^\p{L}\p{N}.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\p{L}\p{N}.])/u;
+const ipv6Literal = /(?:^|[^\p{L}\p{N}:])(?:[a-f0-9]{0,4}:){2,}[a-f0-9]{0,4}(?=$|[^\p{L}\p{N}:])/u;
+const localhostName = /\blocalhost\b/u;
+
 /** Fail closed for obvious identifier/contact leakage; never return the input. */
 export function hasPrivateIdentifierRisk(value) {
   if (typeof value !== 'string') return true;
@@ -20,5 +29,7 @@ export function hasPrivateIdentifierRisk(value) {
   const text = value.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu, '').toLowerCase();
   return plausibleContactDigits.test(text) ||
-    sensitiveWords.test(text) || emailOrUrl.test(text);
+    sensitiveWords.test(text) || emailOrUrl.test(text) ||
+    bareHostname.test(text) || ipv4Literal.test(text) ||
+    ipv6Literal.test(text) || localhostName.test(text);
 }
