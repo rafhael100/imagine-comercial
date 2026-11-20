@@ -8,6 +8,8 @@ import { randomUUID } from 'node:crypto';
 const SCHEMA = 'faisca.private-local-reservations.v1';
 const STATE_NAME = 'faisca-reservations.json';
 const LOCK_NAME = '.faisca-reservations.lock';
+const MARKER_NAME = '.faisca-reservations-initialized';
+const MARKER_DATA = 'faisca.private-local-reservations.initialized.v1\n';
 const MAX_REQUESTS = 100;
 const MAX_MICROS = 10_000_000;
 const OPEN_LOCK = constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW;
@@ -34,6 +36,7 @@ export function createFaiscaLocalReservationLedger({
   if (limitMicros < 1) throw new TypeError('Private reservation budget too small.');
   const statePath = join(directory, STATE_NAME);
   const lockPath = join(directory, LOCK_NAME);
+  const markerPath = join(directory, MARKER_NAME);
 
   async function checkDirectory() {
     const dir = await lstat(directory);
@@ -44,15 +47,58 @@ export function createFaiscaLocalReservationLedger({
     }
   }
 
+  // A separate, fsynced marker is written BEFORE the first state update.
+  // If the state later disappears, fail closed instead of silently resetting
+  // credits to zero. Existing R82 state files without a marker are still read
+  // and will acquire a marker on their next reservation (no quota reset).
+  async function hasInitializationMarker() {
+    let file;
+    try {
+      file = await open(markerPath, READ_ONLY);
+    } catch (error) {
+      if (error.code === 'ENOENT') return false;
+      throw error;
+    }
+    try {
+      const info = await file.stat();
+      if (!info.isFile() || info.size !== Buffer.byteLength(MARKER_DATA) ||
+          (info.mode & 0o077) ||
+          (typeof process.getuid === 'function' && info.uid !== process.getuid()) ||
+          await file.readFile('utf8') !== MARKER_DATA) {
+        throw new Error('Private ledger initialization marker requires operator review.');
+      }
+      return true;
+    } finally {
+      await file.close();
+    }
+  }
+
+  async function initializeMarker() {
+    if (await hasInitializationMarker()) return;
+    // Called only while holding the process-shared O_EXCL ledger lock.
+    // A crash before writing valid marker bytes is a hard stop, not a reset.
+    const file = await open(markerPath, OPEN_LOCK, 0o600);
+    try {
+      await file.writeFile(MARKER_DATA);
+      await file.sync();
+    } finally { await file.close(); }
+    const dir = await open(directory, READ_ONLY);
+    try { await dir.sync(); } finally { await dir.close(); }
+  }
+
   async function readState() {
+    const initialized = await hasInitializationMarker();
     let file;
     try {
       file = await open(statePath, READ_ONLY);
     } catch (error) {
-      if (error.code === 'ENOENT') return {
-        schema: SCHEMA, requests: 0, reservedMicros: 0,
-        limitRequests: maxRequests, limitMicros
-      };
+      if (error.code === 'ENOENT') {
+        if (initialized) throw new Error('Private ledger state missing; operator review required.');
+        return {
+          schema: SCHEMA, requests: 0, reservedMicros: 0,
+          limitRequests: maxRequests, limitMicros
+        };
+      }
       throw error;
     }
     try {
@@ -156,6 +202,7 @@ export function createFaiscaLocalReservationLedger({
         ...current, requests: current.requests + 1,
         reservedMicros: current.reservedMicros + micros
       };
+      await initializeMarker();
       await durableWrite(next);
       return Object.freeze({
         requests: next.requests,
