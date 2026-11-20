@@ -369,6 +369,12 @@ export async function startFaiscaOpenAIPrivateReview({
         publicReady: false, operationalEffects: false
       });
     } catch {
+      // A provider error or rejected/unsafe output can represent a paid call
+      // whose completion and cost cannot be trusted. Do not allow repeated
+      // paid attempts in this review process without operator inspection.
+      // This complements the persistent reservation ledger (it does not
+      // reset or refund a reservation, nor certify the provider was charged).
+      providerUnavailable = true;
       send(res, 503, {
         status: 'unavailable',
         message: 'The private AI review could not confirm a safe response.'
