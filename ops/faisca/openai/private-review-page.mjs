@@ -133,6 +133,7 @@ function privateFictionalQuestionPreflight(value) {
     /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u.test(value) ||
     /https?:\/\/|www\.|@/u.test(normalized) ||
     privateBrowserEncodedIdentifierRisk.test(normalized) ||
+    privateBrowserOpaqueEncodingRisk.test(normalized) ||
     privateBrowserNetworkAddressRisk(normalized) ||
     privateBrowserSecretRisk.test(normalized) ||
     /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endereco|senha|token|api[ _-]?key|chave|credencial|otp|totp|pix|cartao|boleto|fatura|reembolso|contrato|nota\s+fiscal)\b/u.test(normalized) ||
@@ -173,6 +174,10 @@ const privateBrowserUnsupportedRank =
 // Match envelopes rather than decoding potentially sensitive source text.
 const privateBrowserEncodedIdentifierRisk =
   /%(?:[0-9a-f]{2}|u[0-9a-f]{4})|&(?:#(?:x[0-9a-f]{1,7}|[0-9]{1,8})|(?:commat|period|colon|sol|bsol|num|percnt));|\\(?:x[0-9a-f]{2}|u(?:[0-9a-f]{4}|\{[0-9a-f]{1,6}\}))/u;
+// R153: independent browser denial of opaque base64-like blocks and
+// quoted-printable escapes before POST and before rendering HTTP 200.
+const privateBrowserOpaqueEncodingRisk =
+  /(?:^|[^\\p{L}\\p{N}_])[a-z0-9+/_-]{28,}={0,2}(?![\\p{L}\\p{N}_])|=[0-9a-f]{2}/u;
 const privateBrowserSecretRisk = /(?:^|[^\p{L}\p{N}_])(?:sk-(?:proj-|svcacct-)?[a-z0-9_-]{16,}|github_pat_[a-z0-9_]{16,}|gh[pousr]_[a-z0-9_]{20,}|xox[baprs]-[a-z0-9-]{16,}|akia[a-z0-9]{16}|bearer\s+[a-z0-9._~+/-]{16,}|-----begin\s+(?:(?:rsa|ec|openssh)\s+)?private\s+key-----)/u;
 const privateBrowserBareHost = /(?:^|[^\p{L}\p{N}_@])(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+(?:\p{L}{2,24}|xn--[a-z0-9-]{2,59})(?![\p{L}\p{N}_-])/u;
 const privateBrowserIpv4 = /(?:^|[^\p{L}\p{N}.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\p{L}\p{N}])/u;
@@ -202,6 +207,7 @@ function privateBrowserReplyEgressSafe(value) {
     /\b(?:preco|valor|custa|custara|cobram|cobramos|mensalidade|implantacao|orcamento|desconto|investimento)\b.{0,28}\p{Nd}{1,8}/u.test(normalized) ||
     /https?:\/\/|\bwww\.|@[a-z0-9.-]+\.[a-z]{2,}/u.test(normalized) ||
     privateBrowserEncodedIdentifierRisk.test(normalized) ||
+    privateBrowserOpaqueEncodingRisk.test(normalized) ||
     privateBrowserNetworkAddressRisk(normalized) ||
     privateBrowserSecretRisk.test(normalized) ||
     /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||

@@ -41,6 +41,13 @@ const secretShape = /(?:^|[^\p{L}\p{N}_])(?:sk-(?:proj-|svcacct-)?[a-z0-9_-]{16,
 const encodedIdentifierEnvelope =
   /%(?:[0-9a-f]{2}|u[0-9a-f]{4})|&(?:#(?:x[0-9a-f]{1,7}|[0-9]{1,8})|(?:commat|period|colon|sol|bsol|num|percnt));|\\(?:x[0-9a-f]{2}|u(?:[0-9a-f]{4}|\{[0-9a-f]{1,6}\}))/u;
 
+// R153: reject opaque base64-like runs and quoted-printable byte notation
+// without decoding, retaining or logging possibly sensitive source text.
+// A 28+ character encoded block can conceal a full contact identifier;
+// conservative false positives are acceptable in a synthetic-only lab.
+const opaqueEncodingEnvelope =
+  /(?:^|[^\\p{L}\\p{N}_])[a-z0-9+/_-]{28,}={0,2}(?![\\p{L}\\p{N}_])|=[0-9a-f]{2}/u;
+
 /** Fail closed for obvious identifier/contact leakage; never return the input. */
 export function hasPrivateIdentifierRisk(value) {
   if (typeof value !== 'string') return true;
@@ -52,5 +59,6 @@ export function hasPrivateIdentifierRisk(value) {
     bareHostname.test(text) || ipv4Literal.test(text) ||
     shortenedPrivateIpv4.test(text) || hexIpv4Alias.test(text) ||
     octalIpv4Alias.test(text) || ipv6Literal.test(text) || localhostName.test(text) ||
-    secretShape.test(text) || encodedIdentifierEnvelope.test(text);
+    secretShape.test(text) || encodedIdentifierEnvelope.test(text) ||
+    opaqueEncodingEnvelope.test(text);
 }
