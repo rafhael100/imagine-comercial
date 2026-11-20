@@ -6,6 +6,7 @@ import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { createHash } from 'node:crypto';
 import { isTrustedPrivateSyntheticQuestion, readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
+import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
 import {
   privateConversationRoute, privateConversationEditorialReply, safePrivateGeneralReply
 } from './private-conversation-policy.mjs';
@@ -270,7 +271,8 @@ export function createFaiscaOpenAILiveLab({
       if (!data || typeof data.reply !== 'string' ||
           data.reply.length < 20 || data.reply.length > 900 ||
           /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(data.reply) ||
-          blockedOutput.test(data.reply.normalize('NFKC')) || hasPrivateIdentifierRisk(data.reply)) {
+          blockedOutput.test(data.reply.normalize('NFKC')) || hasPrivateIdentifierRisk(data.reply) ||
+          hasPrivateUnreviewedPriceClaim(data.reply)) {
         throw new Error('OpenAI answer failed editorial safety checks.');
       }
       return Object.freeze({
@@ -341,7 +343,8 @@ export function createFaiscaOpenAILiveLab({
       );
       const reply = strictObject(terra.parsed, ['reply'])?.reply;
       if (typeof reply !== 'string' || reply.length < 20 || reply.length > 900 ||
-          blockedOutput.test(reply.normalize('NFKC')) || !safePrivateGeneralReply(reply)) {
+          blockedOutput.test(reply.normalize('NFKC')) || !safePrivateGeneralReply(reply) ||
+          hasPrivateUnreviewedPriceClaim(reply)) {
         return privateConversationEditorialReply('confirm');
       }
       return {
