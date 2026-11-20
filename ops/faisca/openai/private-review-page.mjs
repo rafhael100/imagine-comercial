@@ -186,8 +186,10 @@ form?.addEventListener('submit', async event => {
         (fixed && data.syntheticCaseId !== caseId) ||
         data.requiresEditorialReview !== true ||
         typeof data.answer !== 'string' || data.answer.length < 20 || data.answer.length > 900 ||
-        /[\\u0000-\\u001f\\u007f<>]/u.test(data.answer) ||
-        data.sourceRecipeBound !== (editorial ? true : false) ||
+        /[\u0000-\u001f\u007f<>]/u.test(data.answer) ||
+        // Preserve the strict R88 fixed-scenario proof and check free text separately.
+        (fixed && data.sourceRecipeBound !== true) ||
+        (!fixed && data.sourceRecipeBound !== (editorial ? true : false)) ||
         data.publicReady !== false || data.operationalEffects !== false) {
       throw new Error('review_unavailable');
     }
