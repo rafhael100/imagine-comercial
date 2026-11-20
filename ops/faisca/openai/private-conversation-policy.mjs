@@ -42,8 +42,10 @@ export function privateConversationEditorialReply(route) {
 // already changed, even when it contains no price, contact or Imagine name.
 // These are conservative lexical tripwires, not proof of factual correctness.
 // This laboratory has NO tool, Portal, DNS or publication authority.
-const reportedAction = /\b(?:ja\s+)?(?:publiquei|publicamos|configurei|configuramos|ativei|ativamos|enviei|enviamos|agendei|agendamos|cadastrei|cadastramos|integrei|integramos|instalei|instalamos|criei|criamos|aprovei|aprovamos|contratei|contratamos|finalizei|finalizamos|liberei|liberamos)\b/;
-const completedVisitorAsset = /\b(?:seu|sua|seus|suas)\s+(?:site|pagina|landing\s+page|dominio|campanha|formulario|conta|acesso|pedido|projeto)\b.{0,70}\b(?:ja\s+)?(?:foi|foram|esta|estao)\s+(?:publicad[oa]s?|ativad[oa]s?|ativ[oa]s?|configurad[oa]s?|enviad[oa]s?|cadastrad[oa]s?|contratad[oa]s?|concluid[oa]s?|aprovad[oa]s?|liberad[oa]s?|pront[oa]s?|integrad[oa]s?)\b/;
+// A model can imply completed publication with paraphrases (launched, online,
+// hosted) even without saying `publiquei`. No such actions exist in this lab.
+const reportedAction = /\b(?:ja\s+)?(?:publiquei|publicamos|configurei|configuramos|ativei|ativamos|enviei|enviamos|agendei|agendamos|cadastrei|cadastramos|integrei|integramos|instalei|instalamos|criei|criamos|aprovei|aprovamos|contratei|contratamos|finalizei|finalizamos|liberei|liberamos|lancei|lancamos|coloquei|colocamos|subi|subimos|hospedei|hospedamos|disponibilizei|disponibilizamos)\b/;
+const completedVisitorAsset = /\b(?:seu|sua|seus|suas)\s+(?:site|pagina|landing\s+page|dominio|campanha|formulario|conta|acesso|pedido|projeto)\b.{0,70}\b(?:ja\s+)?(?:foi|foram|esta|estao)\s+(?:publicad[oa]s?|ativad[oa]s?|ativ[oa]s?|configurad[oa]s?|enviad[oa]s?|cadastrad[oa]s?|contratad[oa]s?|concluid[oa]s?|aprovad[oa]s?|liberad[oa]s?|pront[oa]s?|integrad[oa]s?|online|no\s+ar|rodando|hospedad[oa]s?|disponiveis?|em\s+funcionamento)\b/;
 const completedVisitorReceipt = /\b(?:publicacao|ativacao|configuracao|integracao|implantacao|cadastro|aprovacao)\s+(?:do|da|de)\s+(?:seu|sua)\b.{0,70}\b(?:ja\s+)?(?:foi|esta)\s+(?:concluid[oa]|finalizad[oa]|confirmad[oa]|realizad[oa])\b/;
 
 export function hasPrivateOperationalClaim(text) {
