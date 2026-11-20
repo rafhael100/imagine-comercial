@@ -2,7 +2,7 @@
 
 ## Risco identificado
 
-O filtro R148 reconhece domínios ASCII sem protocolo, IPv4 e IPv6, porém nomes IDN que contêm letras de outros alfabetos (inclusive homógrafos cirílicos) e alguns separadores de ponto Unicode podem escapar. Exemplos **sintéticos**: `loja.exemplо` (última letra cirílica), `loja.例子`, `loja。example`, `loja․example`, `10。0。0。1`. O caractere de ponto ideográfico U+3002, por exemplo, não é convertido em ponto ASCII por NFKC.
+O filtro R148 reconhece domínios ASCII sem protocolo, IPv4 e IPv6, porém nomes IDN que contêm letras de outros alfabetos (inclusive homógrafos cirílicos) e alguns separadores de ponto Unicode podem escapar. Exemplos **sintéticos**: `loja.exemplо` (última letra cirílica), `loja.例子`, `loja。example`, `loja․example`, `10。0。0。1`, `exemplo.xn--p1ai` (TLD punycode). O caractere de ponto ideográfico U+3002, por exemplo, não é convertido em ponto ASCII por NFKC.
 
 ## Correção privada
 
