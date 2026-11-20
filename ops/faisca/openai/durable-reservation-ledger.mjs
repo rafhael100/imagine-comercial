@@ -162,13 +162,25 @@ export function createFaiscaLocalReservationLedger({
     await checkDirectory();
     // An absent state stays absent: preflight must not create or reset quota.
     const state = await readState();
-    if (requireCapacity &&
-        (state.requests + minimumRequests > maxRequests ||
-         state.reservedMicros >= limitMicros ||
-         state.reservedMicros + minimumMicros > limitMicros)) {
-      throw new Error('Private durable reservation limit reached.');
+    // A stale crash lock is a hard NO-START for all callers of ready(),
+    // including future callers that do not run the separate VPS preflight.
+    // Never remove, follow or "recover" the lock automatically.
+    try {
+      await lstat(lockPath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        throw new Error('Private reservation lock inspection unavailable.');
+      }
+      // No lock observed. reserve() still takes its own atomic O_EXCL lock.
+      if (requireCapacity &&
+          (state.requests + minimumRequests > maxRequests ||
+           state.reservedMicros >= limitMicros ||
+           state.reservedMicros + minimumMicros > limitMicros)) {
+        throw new Error('Private durable reservation limit reached.');
+      }
+      return true;
     }
-    return true;
+    throw new Error('Private reservation locked; operator review required.');
   }
 
   async function reserve(estimatedUsd) {
