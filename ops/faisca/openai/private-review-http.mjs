@@ -4,13 +4,16 @@ import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
 import { getGroundingSources } from '../grounding/catalog.mjs';
+import { privateConversationRoute, safePrivateGeneralReply } from './private-conversation-policy.mjs';
 import {
   PRIVATE_REVIEW_PAGE_PATH, PRIVATE_REVIEW_SCRIPT_PATH, PRIVATE_REVIEW_STYLE_PATH,
-  PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
+  PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_CONVERSATION_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
 } from './private-review-page.mjs';
 
 const REVIEW_PATH = '/__faisca_openai_private/respond';
+const CONVERSATION_PATH = '/__faisca_openai_private/converse';
 const MAX_BODY_BYTES = 96;
+const MAX_CONVERSATION_BODY_BYTES = 1500;
 const READ_BODY_DEADLINE = Symbol('private-review-body-deadline');
 const tokenPattern = /^[a-zA-Z0-9_-]{32,128}$/;
 const PORT_RANGE = Number.isSafeInteger;
@@ -132,13 +135,59 @@ function safeReviewOutput(response, caseId) {
   } catch { return null; }
 }
 
+// R95: conversation output has an independent host-side gate. Real editorial
+// citations require exact text and source order from a pinned R06 recipe.
+// General responses never assert Imagine prices or operational authority.
+function safeConversationOutput(response, input) {
+  try {
+    if (!input || typeof input.question !== 'string' ||
+        !response || typeof response !== 'object' || Array.isArray(response) ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(response))) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(response);
+    const get = key => {
+      const descriptor = descriptors[key];
+      return descriptor && Object.hasOwn(descriptor, 'value') ? descriptor.value : undefined;
+    };
+    const status = get('status'), answer = get('text');
+    if (!['general_answer','editorial_answer','needs_confirmation'].includes(status) ||
+        typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
+        /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
+        forbiddenReviewClaims.test(answer) ||
+        get('publicReady') === true || get('operationalEffects') === true) return null;
+    const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
+    const models = safeReviewList(get('modelIds') ?? [], approvedModels);
+    if (!sources || !models || sources.length !== new Set(sources).size) return null;
+    const route = privateConversationRoute(input.question);
+    if (route === 'rejected') return null;
+    if (status === 'general_answer') {
+      if (route !== 'classify' || sources.length !== 0 || models.length !== 2 ||
+          models[0] !== FAISCA_OPENAI_MODELS.classification ||
+          models[1] !== FAISCA_OPENAI_MODELS.answer ||
+          !safePrivateGeneralReply(answer)) return null;
+      return Object.freeze({ status, answer, sources, models, sourceRecipeBound: false });
+    }
+    if (models.length !== 0) return null;
+    if (status === 'needs_confirmation') {
+      if (sources.length !== 0 ||
+          answer !== 'Essa informação precisa ser confirmada com a equipe da Imagine.') return null;
+      return Object.freeze({ status, answer, sources, models, sourceRecipeBound: false });
+    }
+    if (!['pricing','process'].includes(route)) return null;
+    const approved = getGroundedAnswer(route);
+    const expected = approved?.sources.map(source => source.id);
+    if (!expected || approved.text !== answer || expected.length !== sources.length ||
+        expected.some((id, index) => id !== sources[index])) return null;
+    return Object.freeze({ status, answer, sources, models, sourceRecipeBound: true });
+  } catch { return null; }
+}
+
 // A Content-Length cap does not prevent a client from sending only some bytes
 // and holding a socket open. Enforce a wall-clock deadline on the body read.
-async function readCaseIdBeforeDeadline(req, timeoutMs) {
+async function readRequestBeforeDeadline(req, timeoutMs, conversation) {
   let timer;
   try {
     return await Promise.race([
-      readCaseId(req),
+      readRequest(req, conversation),
       new Promise(resolve => { timer = setTimeout(() => resolve(READ_BODY_DEADLINE), timeoutMs); })
     ]);
   } finally { clearTimeout(timer); }
@@ -158,7 +207,8 @@ function authorized(req, token, hostPort) {
     !req.headers['x-forwarded-for'] &&
     timingSafeEqual(a, b);
 }
-async function readCaseId(req) {
+async function readRequest(req, conversation) {
+  const maxBytes = conversation ? MAX_CONVERSATION_BODY_BYTES : MAX_BODY_BYTES;
   if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(req.headers['content-type'] ?? '')) {
     return null;
   }
@@ -169,18 +219,26 @@ async function readCaseId(req) {
   if (req.headers['transfer-encoding'] || req.headers['content-encoding'] ||
       req.headers.trailer || req.headers.expect ||
       typeof contentLength !== 'string' ||
-      !/^[1-9][0-9]{0,2}$/.test(contentLength) ||
-      Number(contentLength) > MAX_BODY_BYTES) return null;
+      !/^[1-9][0-9]{0,3}$/.test(contentLength) ||
+      Number(contentLength) > maxBytes) return null;
   const chunks = []; let bytes = 0;
   try {
     for await (const part of req) {
       bytes += part.length;
-      if (bytes > MAX_BODY_BYTES) return null;
+      if (bytes > maxBytes) return null;
       chunks.push(part);
     }
     if (bytes !== Number(contentLength)) return null;
     const body = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
       .decode(Buffer.concat(chunks));
+    if (conversation) {
+      // Canonical two-element tuple, not an object with duplicate keys.
+      // Inputs are fictional and are rechecked by the private gate in the lab.
+      const value = JSON.parse(body);
+      if (!Array.isArray(value) || value.length !== 2 || value[0] !== true ||
+          typeof value[1] !== 'string' || value[1].length > 240) return null;
+      return { scope: 'local_operator_lab', attestedSynthetic: true, question: value[1] };
+    }
     // This endpoint has exactly three operator-selected synthetic cases.
     // Do not use JSON.parse here: duplicate object keys silently collapse,
     // allowing ambiguous requests (including an unreviewed earlier caseId).
@@ -197,9 +255,14 @@ async function readCaseId(req) {
  * No public hosting, no CORS, no cookies, no visitor text, no access to CRM or
  * Portal, and a single existing budget-gated live lab per server process.
  */
-export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 0, bodyTimeoutMs = 3000 } = {}) {
+export async function startFaiscaOpenAIPrivateReview({
+  lab, reviewToken, port = 0, bodyTimeoutMs = 3000,
+  enablePrivateConversation = false
+} = {}) {
   if (!lab || typeof lab.answer !== 'function' || typeof lab.inspect !== 'function' ||
       typeof reviewToken !== 'string' || !tokenPattern.test(reviewToken) ||
+      typeof enablePrivateConversation !== 'boolean' ||
+      (enablePrivateConversation && typeof lab.answerPrivateConversation !== 'function') ||
       !PORT_RANGE(port) || port < 0 || port > 65535 ||
       (port !== 0 && port < 1024) ||
       !Number.isInteger(bodyTimeoutMs) || bodyTimeoutMs < 50 || bodyTimeoutMs > 30000) {
@@ -213,17 +276,19 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
       }
       const asset = privateAssets[req.url];
       res.writeHead(200, { ...privateBrowserHeaders, 'Content-Type': asset.type });
-      res.end(asset.body);
+      res.end(enablePrivateConversation && req.url === PRIVATE_REVIEW_PAGE_PATH
+        ? PRIVATE_REVIEW_CONVERSATION_HTML : asset.body);
       return;
     }
-    if (!active || req.method !== 'POST' || req.url !== REVIEW_PATH) {
+    const conversation = enablePrivateConversation && req.url === CONVERSATION_PATH;
+    if (!active || req.method !== 'POST' || (!conversation && req.url !== REVIEW_PATH)) {
       send(res, 404, { status: 'not_found' }); return;
     }
     if (!authorized(req, reviewToken, server.address().port)) {
       send(res, 403, { status: 'forbidden' }); return;
     }
-    const caseId = await readCaseIdBeforeDeadline(req, bodyTimeoutMs);
-    if (caseId === READ_BODY_DEADLINE) {
+    const input = await readRequestBeforeDeadline(req, bodyTimeoutMs, conversation);
+    if (input === READ_BODY_DEADLINE) {
       // The request may still be waiting for bytes. Respond without touching
       // the provider; tear down the stalled connection after writing 408.
       const socket = req.socket;
@@ -237,7 +302,7 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
       res.end(payload);
       return;
     }
-    if (!caseId) { send(res, 400, { status: 'invalid_request' }); return; }
+    if (!input) { send(res, 400, { status: 'invalid_request' }); return; }
     // The live lab implements its own busy guard, but the HTTP boundary must
     // also serialize a misconfigured/injected provider. No parallel API calls
     // or implicit retries may arise from one review server.
@@ -245,12 +310,19 @@ export async function startFaiscaOpenAIPrivateReview({ lab, reviewToken, port = 
     inFlight = true;
     requests++;
     try {
-      const outcome = safeReviewOutput(await lab.answer(caseId), caseId);
+      const reply = await (conversation
+        ? lab.answerPrivateConversation(input) : lab.answer(input));
+      if (conversation && reply === null) {
+        send(res, 400, { status: 'invalid_question' }); return;
+      }
+      const outcome = conversation ? safeConversationOutput(reply, input)
+        : safeReviewOutput(reply, input);
       if (!outcome) throw new Error('Invalid private review output.');
       send(res, 200, {
-        schema: 'faisca.openai-private-review-response.v1',
+        schema: conversation ? 'faisca.openai-private-conversation-response.v1'
+          : 'faisca.openai-private-review-response.v1',
         status: outcome.status,
-        syntheticCaseId: caseId,
+        ...(conversation ? {} : { syntheticCaseId: input }),
         answer: outcome.answer,
         sources: outcome.sources,
         models: outcome.models,
