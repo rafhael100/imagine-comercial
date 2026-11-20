@@ -98,9 +98,16 @@ export function createFaiscaLocalReservationLedger({
     }
   }
 
-  async function ready() {
+  async function ready({ requireCapacity = false } = {}) {
     await checkDirectory();
-    // Read-only preflight: first reservation creates the ledger atomically.
+    // Read-only: parse and validate any persisted state BEFORE declaring a
+    // private operator session ready. An absent ledger is still allowed:
+    // the first reservation creates it atomically, never the preflight.
+    const state = await readState();
+    if (requireCapacity &&
+        (state.requests >= maxRequests || state.reservedMicros >= limitMicros)) {
+      throw new Error('Private durable reservation limit reached.');
+    }
     return true;
   }
 
