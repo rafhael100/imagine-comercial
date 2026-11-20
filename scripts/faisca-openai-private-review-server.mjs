@@ -10,6 +10,7 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
   process.exitCode = 2;
 } else {
   let server;
+  const enablePrivateConversation = process.env.FAISCA_PRIVATE_SYNTHETIC_CONVERSATION === 'YES_SYNTHETIC_ONLY';
   try {
     const reservationLedger = createFaiscaLocalReservationLedger({
       directory: process.env.FAISCA_PRIVATE_LEDGER_DIR,
@@ -19,6 +20,7 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
     const trial = createFaiscaOpenAILiveLab({
       enabled: true, apiKey: process.env.OPENAI_API_KEY,
       extendedPrivateSession: true,
+      enablePrivateConversation,
       maxRequests: 100,
       maxBudgetUsd: 10,
       reservationLedger
@@ -26,12 +28,15 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
     server = await startFaiscaOpenAIPrivateReview({
       lab: trial,
       reviewToken: process.env.FAISCA_REVIEW_BEARER_TOKEN,
+      enablePrivateConversation,
       port: 4336
     });
     // Bind address only, never tokens or the API key.
     console.log('Faísca OpenAI PRIVATE review started on ' + server.address +
-      server.path + '; only synthetic case IDs are accepted.');
-    console.log('Private HTTP GET/browser calls are not enabled; use authenticated POST.');
+      '/__faisca_openai_private/review');
+    console.log(enablePrivateConversation
+      ? 'Fictional operator questions and fixed scenarios are enabled.'
+      : 'Only fixed synthetic scenarios are enabled.');
     const stop = async () => {
       try { await server.close(); }
       finally { process.exitCode = 0; }

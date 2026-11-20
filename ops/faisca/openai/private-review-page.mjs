@@ -1,10 +1,19 @@
-// R79: Browser presentation of *fixed synthetic scenarios only*.
-// This is neither the public Faísca widget nor a raw-message chat interface.
+// Browser presentation of fixed cases and optional operator-attested fictional questions.
 // The browser receives no OpenAI API key; the operator supplies a separate
 // temporary review bearer token only in memory, never in storage or URLs.
 export const PRIVATE_REVIEW_PAGE_PATH = '/__faisca_openai_private/review';
 export const PRIVATE_REVIEW_SCRIPT_PATH = '/__faisca_openai_private/review.js';
 export const PRIVATE_REVIEW_STYLE_PATH = '/__faisca_openai_private/review.css';
+
+const conversationSlot = '<!-- private-conversation -->';
+const conversationFields = String.raw`<fieldset id="review-conversation">
+<legend>Pergunta livre</legend>
+<label for="review-question">Escreva sua pergunta para o Faísca</label>
+<textarea id="review-question" rows="3" minlength="12" maxlength="240"></textarea>
+<label class="help"><input id="review-attestation" type="checkbox">
+Confirmo que a pergunta é fictícia e não contém dados reais.</label>
+<p class="help">Deixe o campo vazio para usar um cenário abaixo.</p>
+</fieldset>`;
 
 export const PRIVATE_REVIEW_HTML = String.raw`<!doctype html>
 <html lang="pt-BR"><head>
@@ -28,7 +37,8 @@ Esta página é local, protegida por SSH e não atende clientes.</p></header>
 <input id="review-token" type="password" spellcheck="false" autocomplete="off" minlength="32" maxlength="128" required>
 <p class="help">Use o token exclusivo definido no servidor como FAISCA_REVIEW_BEARER_TOKEN.
 Nunca cole sua OPENAI_API_KEY aqui.</p>
-<label for="review-case">Pergunta fictícia</label>
+${conversationSlot}
+<label for="review-case">Pergunta fictícia do menu</label>
 <select id="review-case" required>
 <option value="compare">Qual a diferença entre Onepage e Landing Page?</option>
 <option value="process">Como funciona a produção de um site Onepage?</option>
@@ -48,6 +58,9 @@ A execução privada pode consumir créditos da API.</footer>
 </main>
 </body></html>`;
 
+export const PRIVATE_REVIEW_CONVERSATION_HTML =
+  PRIVATE_REVIEW_HTML.replace(conversationSlot, conversationFields);
+
 export const PRIVATE_REVIEW_CSS = String.raw`:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f8faf8;color:#25312c}
 *{box-sizing:border-box}body{margin:0}main{max-width:740px;padding:1.2rem;margin:1.4rem auto}
 header{padding:1.1rem 0}header h1{font-size:2.35rem;letter-spacing:-.06em;margin:.3rem 0}
@@ -55,8 +68,11 @@ header h1 span{color:#f9941d}.eyebrow{color:#865513;letter-spacing:.16em;font-si
 section{border:1px solid #cad5cd;border-radius:15px;padding:1.35rem;margin:1.1rem 0;background:#fff}
 section h2{font-size:1.1rem;margin:0 0 1rem}
 form{display:grid;gap:.7rem}label{font-weight:700}
-input,select,button{font:inherit;min-height:44px;border-radius:8px;padding:.65rem .8rem}
-input,select{border:1px solid #738679;width:100%;background:#fff;color:#25312c}
+input,select,textarea,button{font:inherit;min-height:44px;border-radius:8px;padding:.65rem .8rem}
+input:not([type=checkbox]),select,textarea{border:1px solid #738679;width:100%;background:#fff;color:#25312c}
+fieldset{border:1px solid #cad5cd;border-radius:8px;min-width:0;margin:.4rem 0}
+fieldset textarea{display:block;margin:.45rem 0}
+fieldset input[type=checkbox]{min-height:auto}
 button{border:0;background:#25312c;color:#fff;font-weight:700;cursor:pointer;margin-top:.4rem}
 button:disabled{opacity:.65;cursor:default}
 :focus-visible{outline:3px solid #c76e00;outline-offset:3px}
@@ -70,6 +86,9 @@ footer{padding:.8rem 0;line-height:1.5}
 export const PRIVATE_REVIEW_JS = String.raw`const form = document.getElementById('faisca-review-form');
 const token = document.getElementById('review-token');
 const scenario = document.getElementById('review-case');
+const conversation = document.getElementById('review-conversation');
+const question = document.getElementById('review-question');
+const attestation = document.getElementById('review-attestation');
 const send = document.getElementById('review-send');
 const status = document.getElementById('review-status');
 const answer = document.getElementById('review-answer');
@@ -81,45 +100,61 @@ form?.addEventListener('submit', async event => {
   event.preventDefault();
   if (pending) return;
   const reviewToken = token.value.trim(), caseId = scenario.value;
-  // Clear the DOM immediately; the operator must explicitly supply a new
-  // transient bearer for any further paid request. Never persist it.
-  token.value = '';
-  // All visitor-controlled values are bounded and only the case ID leaves
-  // the browser. Do not store the bearer or the generated text.
+  const text = question?.value.trim().normalize('NFC') ?? '';
+  const openQuestion = Boolean(conversation && (text !== '' || attestation.checked));
   if (!/^[A-Za-z0-9_-]{32,128}$/.test(reviewToken) || !validCases.has(caseId)) {
     status.textContent = 'Confira o token de revisão e escolha uma pergunta fictícia.';
     return;
   }
+  if (openQuestion && (!attestation.checked || text.length < 12)) {
+    status.textContent = 'Escreva a pergunta e confirme que ela é fictícia.';
+    return;
+  }
+  // Never persist the bearer or include it in a URL.
+  token.value = '';
   pending = true;
   send.disabled = true;
   answer.textContent = 'Aguardando a resposta da IA...';
   sources.textContent = '';
   status.textContent = 'Solicitação privada enviada. Nenhum cliente foi consultado.';
   try {
-    const response = await fetch('/__faisca_openai_private/respond', {
+    const endpoint = openQuestion ? 'converse' : 'respond';
+    const response = await fetch('/__faisca_openai_private/' + endpoint, {
       method:'POST', headers: {
         'Content-Type':'application/json',
         Authorization:'Bearer ' + reviewToken
       },
-      body:JSON.stringify({caseId}), redirect:'error',
+      body:JSON.stringify(openQuestion ? [true, text] : {caseId}), redirect:'error',
       credentials:'omit', cache:'no-store', referrerPolicy:'no-referrer'
     });
     const data = await response.json();
-    if (response.status !== 200 ||
-        data?.schema !== 'faisca.openai-private-review-response.v1' ||
-        data.status !== 'draft_answer' || data.syntheticCaseId !== caseId ||
+    if (openQuestion && response.status === 400 && data?.status === 'invalid_question') {
+      answer.textContent = 'Reformule a pergunta fictícia ou confirme o assunto com a equipe.';
+      status.textContent = 'A pergunta não foi enviada à IA.';
+      return;
+    }
+    const schema = openQuestion
+      ? 'faisca.openai-private-conversation-response.v1'
+      : 'faisca.openai-private-review-response.v1';
+    const draft = data?.status === 'general_answer' || data?.status === 'draft_answer';
+    const editorial = data?.status === 'editorial_answer' || data?.status === 'draft_answer';
+    const validStatus = openQuestion
+      ? ['general_answer', 'editorial_answer', 'needs_confirmation'].includes(data?.status)
+      : data?.status === 'draft_answer' && data.syntheticCaseId === caseId;
+    if (response.status !== 200 || data?.schema !== schema || !validStatus ||
         data.requiresEditorialReview !== true ||
         typeof data.answer !== 'string' || data.answer.length > 900 ||
-        !Array.isArray(data.sources) || data.sources.length === 0 ||
-        !Array.isArray(data.models) || data.models.length !== 2 ||
-        data.models[0] !== 'gpt-6-luna' || data.models[1] !== 'gpt-6.1-terra' ||
+        !Array.isArray(data.sources) || (data.sources.length > 0) !== editorial ||
+        !Array.isArray(data.models) || data.models.length !== (draft ? 2 : 0) ||
+        (draft && (data.models[0] !== 'gpt-6-luna' || data.models[1] !== 'gpt-6.1-terra')) ||
         data.publicReady !== false || data.operationalEffects !== false) {
       throw new Error('review_unavailable');
     }
-    // All output, including model text, is displayed as plain text.
     answer.textContent = data.answer;
-    sources.textContent = 'Fontes editoriais: ' + data.sources.join(', ');
-    status.textContent = 'Resposta gerada. Revisão editorial obrigatória; nenhuma operação foi realizada.';
+    if (editorial) sources.textContent = 'Fontes editoriais: ' + data.sources.join(', ');
+    if (draft) status.textContent = 'Resposta gerada. Revisão editorial obrigatória; nenhuma operação foi realizada.';
+    else if (editorial) status.textContent = 'Resposta baseada no material aprovado pela Imagine.';
+    else status.textContent = 'Confirmação da equipe necessária.';
   } catch {
     answer.textContent = 'Resposta indisponível neste teste.';
     status.textContent = 'A revisão privada não concluiu. Confira a sessão e os limites no servidor.';
@@ -128,5 +163,9 @@ form?.addEventListener('submit', async event => {
     send.disabled = false;
   }
 });
-window.addEventListener('pagehide', () => { token.value = ''; });
+window.addEventListener('pagehide', () => {
+  token.value = '';
+  if (question) question.value = '';
+  if (attestation) attestation.checked = false;
+});
 `;
