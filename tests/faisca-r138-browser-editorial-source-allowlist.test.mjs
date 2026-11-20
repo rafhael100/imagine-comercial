@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { PRIVATE_REVIEW_JS } from '../ops/faisca/openai/private-review-page.mjs';
 import { getGroundingSources } from '../ops/faisca/grounding/catalog.mjs';
+import { getGroundedAnswer } from '../ops/faisca/grounding/guide.mjs';
 
 const goodId = 'faisca.passage.onepage.description@r06-1';
 const inventedId = 'faisca.passage.imaginary-sale@r06-1';
 const neutral = 'Uma página fictícia pode apresentar informações gerais de um serviço.';
+const editorial = getGroundedAnswer('pricing');
 
-async function submitSyntheticResponse({ free, sourceId }) {
+async function submitSyntheticResponse({ free, sourceId, answerText = free ? editorial.text : neutral }) {
   let submit;
   let calls = 0;
   const fields = new Map([
@@ -27,7 +29,7 @@ async function submitSyntheticResponse({ free, sourceId }) {
       : 'faisca.openai-private-review-response.v1',
     status: free ? 'editorial_answer' : 'draft_answer',
     ...(free ? {} : { syntheticCaseId: 'compare' }),
-    answer: neutral,
+    answer: answerText,
     sources: [sourceId],
     models: free ? [] : ['gpt-6-luna', 'gpt-6.1-terra'],
     sourceRecipeBound: true,
@@ -75,11 +77,23 @@ for (const free of [false, true]) {
   });
   test('R138: approved editorial ID remains displayable in ' +
     (free ? 'free editorial' : 'fixed') + ' synthetic fixture', async () => {
-    const { calls, fields } = await submitSyntheticResponse({ free, sourceId: goodId });
+    const approvedId = free ? editorial.sources[0].id : goodId;
+    const { calls, fields } = await submitSyntheticResponse({ free, sourceId: approvedId });
     assert.equal(calls, 1);
-    assert.equal(fields.get('review-answer').textContent, neutral);
-    assert.match(fields.get('review-sources').textContent, /faisca\.passage\.onepage\.description@r06-1/);
+    assert.equal(fields.get('review-answer').textContent, free ? editorial.text : neutral);
+    assert.ok(fields.get('review-sources').textContent.includes(approvedId));
     assert.equal(fields.get('review-token').value, '');
     assert.equal(fields.get('review-send').disabled, false);
   });
 }
+
+test('R139: browser rejects invented editorial prose even with approved citation and receipt flag', async () => {
+  const { calls, fields } = await submitSyntheticResponse({
+    free: true, sourceId: editorial.sources[0].id, answerText: neutral
+  });
+  assert.equal(calls, 1);
+  assert.equal(fields.get('review-answer').textContent, 'Resposta indisponível neste teste.');
+  assert.equal(fields.get('review-sources').textContent, '');
+  assert.equal(fields.get('review-token').value, '');
+  assert.equal(fields.get('review-send').disabled, false);
+});

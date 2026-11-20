@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { startFaiscaOpenAIPrivateReview } from './private-review-http.mjs';
+import { getGroundedAnswer } from '../grounding/guide.mjs';
 
 const token = 'R95_PRIVATE_CHROMIUM_TOKEN_ONLY_FIXTURE_2026';
 const report = [], errors = [], external = [];
@@ -120,6 +121,57 @@ try {
       assert.equal(await page.locator('#review-token').inputValue(), '');
       assert.equal(calls, 1, 'Injected reply must not reach the provider');
       assert.equal(fixtureResponses, 1, 'Only one attempted HTTP response');
+    } finally {
+      await page.unroute(pattern);
+    }
+  });
+  await step('R139 Chromium checks exact free editorial text and citations from R06', async () => {
+    const approved = getGroundedAnswer('pricing');
+    assert.equal(approved.sources.length, 1);
+    const approvedId = approved.sources[0].id;
+    const responses = [
+      { answer: approved.text, sources: ['faisca.passage.imaginary-offer@r06-1'], safe: false },
+      { answer: 'Uma oferta fictícia pode apresentar detalhes para um público imaginário.', sources: [approvedId], safe: false },
+      { answer: approved.text, sources: [approvedId], safe: true }
+    ];
+    let intercepted = 0;
+    const pattern = '**/__faisca_openai_private/converse';
+    await page.route(pattern, async route => {
+      const fixture = responses[intercepted++];
+      assert.ok(fixture, 'Unexpected HTTP retry');
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-conversation-response.v1',
+          status: 'editorial_answer',
+          answer: fixture.answer, sources: fixture.sources, models: [],
+          sourceRecipeBound: true, requiresEditorialReview: true,
+          publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      for (const fixture of responses) {
+        await page.locator('#review-token').fill(token);
+        await page.locator('#review-question')
+          .fill('Vale a pena usar uma landing page para divulgar um evento?');
+        await page.locator('#review-attestation').check();
+        await page.locator('#review-send').click();
+        await page.waitForFunction(safe => {
+          const text = document.querySelector('#review-status')?.textContent ?? '';
+          return safe ? text.includes('material editorial aprovado')
+            : text.includes('não concluiu.');
+        }, fixture.safe);
+        assert.equal(await page.locator('#review-answer').innerText(),
+          fixture.safe ? approved.text : 'Resposta indisponível neste teste.');
+        const citations = await page.locator('#review-sources').innerText();
+        assert.equal(citations.includes(approvedId), fixture.safe);
+        assert.equal(await page.locator('#review-token').inputValue(), '');
+        assert.equal(await page.locator('#review-question').inputValue(), '');
+        assert.equal(await page.locator('#review-send').isEnabled(), true);
+      }
+      assert.equal(intercepted, responses.length, 'Only the three operator mock HTTP calls');
+      assert.equal(calls, 1, 'No additional provider access');
     } finally {
       await page.unroute(pattern);
     }

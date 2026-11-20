@@ -1,8 +1,18 @@
 import { getGroundingSources } from '../grounding/catalog.mjs';
+import { getGroundedAnswer } from '../grounding/guide.mjs';
 
 // Pin browser-only editorial source IDs to the same checked-in R06 catalog
 // used by the independent HTTP egress. Never accept plausible invented IDs.
 const REVIEWED_PRIVATE_SOURCE_IDS = Object.freeze(getGroundingSources().map(({ id }) => id));
+// A free-text editorial answer has only two valid host-pinned receipts:
+// exact reviewed prose AND exact ordered citations. A syntactically valid
+// catalog ID alone cannot authorize an invented editorial response.
+const REVIEWED_PRIVATE_EDITORIAL_RECEIPTS = Object.freeze(
+  ['pricing', 'process'].map(id => getGroundedAnswer(id)).filter(Boolean)
+    .map(reply => Object.freeze({
+      text: reply.text, sources: reply.sources.map(source => source.id)
+    }))
+);
 
 // Browser presentation of fixed cases and optional operator-attested fictional questions.
 // The browser receives no OpenAI API key; the operator supplies a separate
@@ -106,6 +116,7 @@ const validCases = new Set(['compare','process','pricing']);
 // Generated from the pinned R06 catalog at build/module load; the browser
 // receives only public editorial IDs, not any private API credentials.
 const reviewedPrivateSourceIds = new Set(${JSON.stringify(REVIEWED_PRIVATE_SOURCE_IDS)});
+const reviewedPrivateEditorialReceipts = ${JSON.stringify(REVIEWED_PRIVATE_EDITORIAL_RECEIPTS)};
 // Privacy preflight in the UI: reject obvious personal data and secrets
 // before even sending a fictional operator question to loopback. The server
 // independently revalidates inputs; a checkbox does not authorize real data.
@@ -292,11 +303,19 @@ form?.addEventListener('submit', async event => {
         reviewedPrivateSourceIds.has(id)) &&
       new Set(data.sources).size === data.sources.length &&
       (editorial ? data.sources.length > 0 : data.sources.length === 0);
+    // An HTTP 200 may contain an allowed citation but a fabricated editorial
+    // answer. The private browser validates exact reviewed pricing/process
+    // text and source order independently of the server's receipt boolean.
+    const editorialReceiptOk = fixed || !editorial ||
+      (Array.isArray(data?.sources) && reviewedPrivateEditorialReceipts.some(receipt =>
+        data.answer === receipt.text &&
+        data.sources.length === receipt.sources.length &&
+        data.sources.every((id, index) => id === receipt.sources[index])));
     const modelsOk = Array.isArray(data?.models) &&
       (generated ? (data.models.length === 2 &&
         data.models[0] === 'gpt-6-luna' && data.models[1] === 'gpt-6.1-terra')
         : data.models.length === 0);
-    if (!validStatus || !sourcesOk || !modelsOk ||
+    if (!validStatus || !sourcesOk || !modelsOk || !editorialReceiptOk ||
         data?.schema !== (fixed
           ? 'faisca.openai-private-review-response.v1'
           : 'faisca.openai-private-conversation-response.v1') ||
