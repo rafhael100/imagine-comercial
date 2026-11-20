@@ -43,8 +43,32 @@ const privateBrowserHeaders = Object.freeze({
   'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
   'X-Frame-Options': 'DENY'
 });
+// Node's HTTP/1 parser retains only the first Host/Authorization header in
+// req.headers, silently hiding a conflicting second header from applications.
+// Reject ambiguous security inputs by inspecting the actual wire headers.
+// Never accept proxy-originated requests for this loopback-only paid lab.
+const singletonPrivateHeaders = new Set([
+  'host', 'origin', 'authorization', 'content-type', 'content-length',
+  'transfer-encoding', 'content-encoding', 'cookie', 'expect', 'trailer'
+]);
+function unambiguousPrivateHeaders(req) {
+  if (!Array.isArray(req.rawHeaders) || req.rawHeaders.length % 2 !== 0) return false;
+  const seen = new Set();
+  for (let i = 0; i < req.rawHeaders.length; i += 2) {
+    const name = req.rawHeaders[i].toLowerCase();
+    if (name === 'forwarded' || name === 'x-real-ip' ||
+        name.startsWith('x-forwarded-')) return false;
+    if (singletonPrivateHeaders.has(name)) {
+      if (seen.has(name)) return false;
+      seen.add(name);
+    }
+  }
+  return seen.has('host');
+}
+
 function privateBrowserAllowed(req, port) {
-  return req.socket.remoteAddress === '127.0.0.1' &&
+  return unambiguousPrivateHeaders(req) &&
+    req.socket.remoteAddress === '127.0.0.1' &&
     req.headers.host === '127.0.0.1:' + port &&
     (!req.headers.origin || req.headers.origin === 'http://127.0.0.1:' + port) &&
     !req.headers.cookie && !req.headers['x-forwarded-for'];
@@ -216,7 +240,8 @@ function authorized(req, token, hostPort) {
     return false;
   }
   const a = Buffer.from(supplied), b = Buffer.from(expected);
-  return req.socket.remoteAddress === '127.0.0.1' &&
+  return unambiguousPrivateHeaders(req) &&
+    req.socket.remoteAddress === '127.0.0.1' &&
     req.headers.host === '127.0.0.1:' + hostPort &&
     (!req.headers.origin || req.headers.origin === 'http://127.0.0.1:' + hostPort) &&
     !req.headers.cookie &&
