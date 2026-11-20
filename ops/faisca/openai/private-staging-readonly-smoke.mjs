@@ -21,6 +21,23 @@ const routes = Object.freeze([
   })
 ]);
 
+// An injected fetch or stream may ignore AbortSignal forever. Give staging
+// smoke a wall-clock deadline even when neither fetch() nor reader.read()
+// cooperates with cancellation. Never await an uncooperative cancel() either.
+async function awaitSmokeOrAbort(pending, signal) {
+  if (signal.aborted) throw new Error('timeout');
+  let onAbort;
+  const cancelled = new Promise((_, reject) => {
+    onAbort = () => reject(new Error('timeout'));
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([pending, cancelled]);
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+  }
+}
+
 async function limitedText(response, signal) {
   if (!response.body) throw new Error('missing body');
   const reader = response.body.getReader();
@@ -29,7 +46,7 @@ async function limitedText(response, signal) {
   try {
     while (true) {
       if (signal.aborted) throw new Error('timeout');
-      const next = await reader.read();
+      const next = await awaitSmokeOrAbort(reader.read(), signal);
       if (next.done) break;
       bytes += next.value.byteLength;
       if (bytes > 20000) throw new Error('oversized');
@@ -37,7 +54,8 @@ async function limitedText(response, signal) {
     }
     return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
   } finally {
-    try { await reader.cancel(); } catch { /* aborted read */ }
+    try { void Promise.resolve(reader.cancel()).catch(() => {}); }
+    catch { /* uncooperative cancel() must not hang smoke */ }
   }
 }
 
@@ -48,13 +66,14 @@ async function limitedText(response, signal) {
  */
 export async function inspectFaiscaPrivateReviewUi({
   origin = 'http://127.0.0.1:4336', fetchImpl = globalThis.fetch,
-  privateConversationEnabled = false
+  privateConversationEnabled = false, timeoutMs = 3000
 } = {}) {
   const checks = [];
   const allowedOrigin = /^http:\/\/127\.0\.0\.1:([1-9][0-9]{0,4})$/.exec(origin);
   if (!allowedOrigin || Number(allowedOrigin[1]) > 65535 ||
       typeof privateConversationEnabled !== 'boolean' ||
-      typeof fetchImpl !== 'function') {
+      typeof fetchImpl !== 'function' || !Number.isInteger(timeoutMs) ||
+      timeoutMs < 50 || timeoutMs > 3000) {
     return Object.freeze({
       schema: FAISCA_PRIVATE_STAGING_SMOKE_SCHEMA,
       status: 'BLOCKED_INVALID_PRIVATE_ORIGIN', requests: 0,
@@ -64,12 +83,12 @@ export async function inspectFaiscaPrivateReviewUi({
   for (const item of routes) {
     let passed = false;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetchImpl(origin + item.path, {
+      const response = await awaitSmokeOrAbort(fetchImpl(origin + item.path, {
         method: 'GET', signal: controller.signal, redirect: 'error', cache: 'no-store',
         credentials: 'omit', referrerPolicy: 'no-referrer'
-      });
+      }), controller.signal);
       const length = response.headers.get('content-length');
       if (length && (!/^[0-9]+$/.test(length) || Number(length) > 20000)) {
         throw new Error('oversized');
