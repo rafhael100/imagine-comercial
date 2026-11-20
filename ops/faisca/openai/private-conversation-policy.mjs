@@ -1,5 +1,6 @@
 import { createSession, respond } from '../core.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
+import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 
 const normalize = value => value.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
 const money = /r\$|[$€£]|\b(?:precos?|valores?|cust[ao]s?|cobra[mn]?|cobram|cobranca|orcamentos?|cotacao|investimento|descontos?|pagamentos?|parcelas?|mensalidades?|reais|brl|usd|pagar|comercializa|gratuit[oa]s?|bonificacoes?)\b/;
@@ -39,6 +40,6 @@ export function privateConversationEditorialReply(route) {
 
 export function safePrivateGeneralReply(text) {
   const normalized = normalize(text);
-  return !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
+  return !hasPrivateIdentifierRisk(text) && !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
     !/\b(?:nosso|nossa|oferecemos|entregamos|garantimos|aprovamos|enviamos|cobramos)\b/.test(normalized);
 }
