@@ -223,6 +223,54 @@ try {
       await page.unroute(pattern);
     }
   });
+  await step('R142 Chromium blocks forged company and price claims in Luna/Terra general HTTP', async () => {
+    const cases = [
+      { answer: 'A Imagine oferece condições especiais para uma campanha fictícia.', safe: false },
+      { answer: 'O preço mensal é R$ 499 para o serviço imaginário.', safe: false },
+      { answer: 'Publicamos uma campanha imaginária de divulgação hoje.', safe: false },
+      { answer: reply, safe: true }
+    ];
+    let requests = 0;
+    const pattern = '**/__faisca_openai_private/converse';
+    await page.route(pattern, async route => {
+      const fixture = cases[requests++];
+      assert.ok(fixture, 'Unexpected retry');
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-conversation-response.v1',
+          status: 'general_answer', answer: fixture.answer,
+          sources: [], models: ['gpt-6-luna','gpt-6.1-terra'],
+          sourceRecipeBound: false, requiresEditorialReview: true,
+          publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      for (const fixture of cases) {
+        await page.locator('#review-token').fill(token);
+        await page.locator('#review-question')
+          .fill('Vale a pena usar uma landing page para divulgar um evento?');
+        await page.locator('#review-attestation').check();
+        await page.locator('#review-send').click();
+        await page.waitForFunction(safe => {
+          const status = document.querySelector('#review-status')?.textContent ?? '';
+          return safe ? status.includes('Resposta gerada.')
+            : status.includes('não concluiu.');
+        }, fixture.safe);
+        assert.equal(await page.locator('#review-answer').innerText(),
+          fixture.safe ? reply : 'Resposta indisponível neste teste.');
+        assert.equal(await page.locator('#review-sources').innerText(), '');
+        assert.equal(await page.locator('#review-token').inputValue(), '');
+        assert.equal(await page.locator('#review-question').inputValue(), '');
+        assert.equal(await page.locator('#review-send').isEnabled(), true);
+      }
+      assert.equal(requests, cases.length);
+      assert.equal(calls, 1, 'No extra provider dispatch');
+    } finally {
+      await page.unroute(pattern);
+    }
+  });
   await step('R95 bearer failure never calls the provider or displays a prior answer',async()=>{
     await page.locator('#review-token').fill('R95_INVALID_BEARER_TEST_01234567890');
     await page.locator('#review-question').fill('Vale a pena usar uma landing page para divulgar um evento?');
