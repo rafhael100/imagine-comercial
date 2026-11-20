@@ -1,3 +1,9 @@
+import { getGroundingSources } from '../grounding/catalog.mjs';
+
+// Pin browser-only editorial source IDs to the same checked-in R06 catalog
+// used by the independent HTTP egress. Never accept plausible invented IDs.
+const REVIEWED_PRIVATE_SOURCE_IDS = Object.freeze(getGroundingSources().map(({ id }) => id));
+
 // Browser presentation of fixed cases and optional operator-attested fictional questions.
 // The browser receives no OpenAI API key; the operator supplies a separate
 // temporary review bearer token only in memory, never in storage or URLs.
@@ -97,6 +103,9 @@ const status = document.getElementById('review-status');
 const answer = document.getElementById('review-answer');
 const sources = document.getElementById('review-sources');
 const validCases = new Set(['compare','process','pricing']);
+// Generated from the pinned R06 catalog at build/module load; the browser
+// receives only public editorial IDs, not any private API credentials.
+const reviewedPrivateSourceIds = new Set(${JSON.stringify(REVIEWED_PRIVATE_SOURCE_IDS)});
 // Privacy preflight in the UI: reject obvious personal data and secrets
 // before even sending a fictional operator question to loopback. The server
 // independently revalidates inputs; a checkbox does not authorize real data.
@@ -279,7 +288,8 @@ form?.addEventListener('submit', async event => {
     const sourcesOk = Array.isArray(data?.sources) &&
       data.sources.length <= 12 &&
       data.sources.every(id => typeof id === 'string' &&
-        /^[a-z0-9][a-z0-9._:/@-]{0,127}$/i.test(id)) &&
+        /^[a-z0-9][a-z0-9._:/@-]{0,127}$/i.test(id) &&
+        reviewedPrivateSourceIds.has(id)) &&
       new Set(data.sources).size === data.sources.length &&
       (editorial ? data.sources.length > 0 : data.sources.length === 0);
     const modelsOk = Array.isArray(data?.models) &&
