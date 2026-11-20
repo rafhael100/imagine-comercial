@@ -35,20 +35,24 @@ async function assertUnavailable(response) {
   assert.equal(JSON.stringify(body).includes('OPENAI_API_KEY'), false);
 }
 
-test('R108 unsafe generated text trips the HTTP circuit breaker: no repeated paid dispatch', async t => {
+test('R108 unsafe generated text fails closed while independent synthetic editorial probes remain possible', async t => {
   let dispatched = 0;
   const server = await startFaiscaOpenAIPrivateReview({
     lab: stub(async () => {
       dispatched++;
-      return { ...safe, text: 'Já publiquei sua página e ativei sua campanha sem autorização.' };
+      return dispatched === 1
+        ? { ...safe, text: 'Já publiquei sua página e ativei sua campanha sem autorização.' }
+        : safe;
     }),
     reviewToken: bearer, enablePrivateConversation: true
   });
   t.after(() => server.close());
   await assertUnavailable(await post(server));
-  assert.equal(server.inspect().providerUnavailable, true);
-  await assertUnavailable(await post(server));
-  assert.equal(dispatched, 1, 'rejected output must not trigger repeated paid requests');
+  assert.equal(server.inspect().providerUnavailable, false, 'a completed, rejected fixture is not an uncertain transport error');
+  const healthy = await post(server);
+  assert.equal(healthy.status, 200);
+  assert.equal((await healthy.json()).answer, safe.text);
+  assert.equal(dispatched, 2, 'only explicit operator requests dispatch, no retry occurs');
 });
 
 test('R108 unexpected provider error is opaque and latches the process until operator review', async t => {
@@ -82,9 +86,9 @@ test('R108 fixed-case provider with invalid editorial provenance cannot be retri
   });
   t.after(() => server.close());
   await assertUnavailable(await post(server, false));
-  assert.equal(server.inspect().providerUnavailable, true);
+  assert.equal(server.inspect().providerUnavailable, false);
   await assertUnavailable(await post(server, false));
-  assert.equal(dispatched, 1);
+  assert.equal(dispatched, 2, 'independent negative fixtures are separately reviewed');
 });
 
 test('R108 valid fictional answer remains available for multiple supervised review requests', async t => {
