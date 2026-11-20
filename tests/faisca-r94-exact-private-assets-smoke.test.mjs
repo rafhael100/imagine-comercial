@@ -7,7 +7,8 @@ const token = 'R94_SYNTHETIC_REVIEW_TOKEN_1234567890';
 const routes = [
   '/__faisca_openai_private/review',
   '/__faisca_openai_private/review.js',
-  '/__faisca_openai_private/review.css'
+  '/__faisca_openai_private/review.css',
+  '/__faisca_openai_private/mascot.png'
 ];
 
 test('R94 loopback static smoke matches the actual reviewed HTML, JS and CSS byte for byte', async t => {
@@ -21,10 +22,10 @@ test('R94 loopback static smoke matches the actual reviewed HTML, JS and CSS byt
 
   const result = await inspectFaiscaPrivateReviewUi({ origin: server.address });
   assert.equal(result.status, 'PRIVATE_UI_READONLY_VERIFIED');
-  assert.equal(result.requests, 3);
+  assert.equal(result.requests, 4);
   assert.equal(result.modelInvocations, 0);
   assert.equal(modelCalls, 0);
-  assert.deepEqual(result.checks.map(item => item.passed), [true, true, true]);
+  assert.deepEqual(result.checks.map(item => item.passed), [true, true, true, true]);
 });
 
 for (const [index, changedPath] of routes.entries()) {
@@ -41,11 +42,16 @@ for (const [index, changedPath] of routes.entries()) {
       requestMethods.push(options.method);
       const response = await fetch(url, options);
       if (!url.endsWith(changedPath)) return response;
-      const reviewed = await response.text();
-      // Preserve every word and the same safe response headers, but alter
-      // one byte of executable/private review content. Old marker-only smoke
-      // incorrectly returned success for such an asset.
       const headers = new Headers(response.headers);
+      if (changedPath.endsWith('.png')) {
+        // Preserve MIME, length, CSP and PNG signature/dimensions; mutate
+        // a single opaque byte, requiring the independent digest to reject.
+        const bytes = Buffer.from(await response.arrayBuffer());
+        bytes[bytes.length - 20] ^= 1;
+        return new Response(bytes, { status: 200, headers });
+      }
+      // Preserve every visible marker word, but alter static page bytes.
+      const reviewed = await response.text();
       headers.delete('content-length');
       return new Response(reviewed + '\n', { status: 200, headers });
     };
