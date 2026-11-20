@@ -96,14 +96,18 @@ function safeReviewOutput(response, caseId) {
         typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
-        (status === 'draft_answer' && hasPrivateIdentifierRisk(answer)) ||
+        hasPrivateIdentifierRisk(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
     const models = safeReviewList(get('modelIds') ?? [], approvedModels);
     // R83: a claimed Luna + Terra generated draft must show both model IDs,
     // exactly once and in the required classification -> answer sequence.
     // An empty/partial/duplicated provenance list is not evidence of a model reply.
+    // An unsupported result is an ungrounded fallback, never a place to
+    // attach real editorial source IDs or Luna/Terra provenance. Apply the
+    // privacy egress gate to *every* status, not only generated drafts.
     if (!sources || !models || sources.length !== new Set(sources).size ||
+        (status === 'unsupported' && (sources.length !== 0 || models.length !== 0)) ||
         (status === 'draft_answer' && (
       sources.length === 0 || models.length !== 2 ||
       models[0] !== FAISCA_OPENAI_MODELS.classification ||
