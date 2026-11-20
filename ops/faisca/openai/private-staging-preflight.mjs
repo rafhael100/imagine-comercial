@@ -71,7 +71,12 @@ export async function inspectFaiscaPrivateStaging({
     });
     // A valid directory alone does not prove that a previous paid session
     // left a readable ledger or any request/budget capacity.
-    await ledger.ready({ requireCapacity: true });
+    // Do not start a session that can pay for Luna but cannot even attempt
+    // Terra. These are conservative admission floors, not guaranteed billing
+    // limits; each actual dispatch still needs an atomic durable reservation.
+    await ledger.ready({
+      requireCapacity: true, minimumRequests: 2, minimumBudgetUsd: 0.01
+    });
     return absentReservationLock(directory);
   }
 } = {}) {
