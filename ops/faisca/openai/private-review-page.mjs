@@ -165,6 +165,21 @@ function privateBrowserReplyEgressSafe(value) {
     privateBrowserUnsupportedProjection.test(normalized)
   );
 }
+// Independent browser egress for Luna/Terra general replies: the private
+// HTTP server already forbids company offers, prices and first-person claims.
+// A misconfigured localhost adapter must not make an unchecked company
+// statement look like an approved model answer merely by supplying model IDs.
+const privateBrowserGeneralMoney = /r\$|[$€£]|\b(?:precos?|valores?|cust[ao]s?|cobra[mn]?|cobram|cobranca|orcamentos?|cotacao|investimento|descontos?|pagamentos?|parcelas?|mensalidades?|reais|brl|usd|pagar|comercializa|gratuit[oa]s?|bonificacoes?)\b/u;
+const privateBrowserGeneralCompany = /\b(?:imagine|faisca|nosso|nossa|oferecemos|entregamos|garantimos|aprovamos|enviamos|cobramos)\b/u;
+const privateBrowserReportedExecution = /\b(?:publiquei|publicamos|configurei|configuramos|ativei|ativamos|enviei|enviamos|agendei|agendamos|cadastrei|cadastramos|integrei|integramos|instalei|instalamos|criei|criamos|aprovei|aprovamos|contratei|contratamos|finalizei|finalizamos|liberei|liberamos|lancei|lancamos|coloquei|colocamos|subi|subimos|hospedei|hospedamos|disponibilizei|disponibilizamos)\b/u;
+function privateBrowserGeneralReplySafe(value) {
+  if (typeof value !== 'string') return false;
+  const normalized = value.normalize('NFKC').normalize('NFKD')
+    .replace(/\p{M}/gu, '').toLowerCase();
+  return !privateBrowserGeneralMoney.test(normalized) &&
+    !privateBrowserGeneralCompany.test(normalized) &&
+    !privateBrowserReportedExecution.test(normalized);
+}
 let pending = false;
 let pageEpoch = 0;
 let currentController = null;
@@ -336,6 +351,8 @@ form?.addEventListener('submit', async event => {
         /[\u0000-\u0009\u000b-\u001f\u007f<>]/u.test(data.answer) ||
         (/\n/u.test(data.answer) && !pinnedEditorialLinefeeds) ||
         !privateBrowserReplyEgressSafe(data.answer) ||
+        (data?.status === 'general_answer' &&
+          !privateBrowserGeneralReplySafe(data.answer)) ||
         // Preserve the strict R88 fixed-scenario proof and check free text separately.
         (fixed && data.sourceRecipeBound !== true) ||
         (!fixed && data.sourceRecipeBound !== (editorial ? true : false)) ||
