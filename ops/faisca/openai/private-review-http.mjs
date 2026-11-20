@@ -20,6 +20,7 @@ const MAX_CONVERSATION_BODY_BYTES = 1500;
 const READ_BODY_DEADLINE = Symbol('private-review-body-deadline');
 const PROVIDER_DEADLINE = Symbol('private-review-provider-deadline');
 const REJECTED_PRIVATE_OUTPUT = Symbol('private-review-rejected-output');
+const CLIENT_DISCONNECTED = Symbol('private-review-client-disconnected');
 const tokenPattern = /^[a-zA-Z0-9_-]{32,128}$/;
 const PORT_RANGE = Number.isSafeInteger;
 const securityHeaders = Object.freeze({
@@ -366,15 +367,27 @@ export async function startFaiscaOpenAIPrivateReview({
     if (inFlight) { send(res, 429, { status: 'busy' }); return; }
     inFlight = true;
     requests++;
-    let providerTimer;
+    let providerTimer, providerDispatched = false;
+    // Losing the HTTP client mid-flight makes provider completion and delivery
+    // uncertain. Never permit another potentially paid dispatch in that
+    // process, even if the detached provider promise eventually resolves.
+    // A clean response emits 'finish' before 'close' and does not trip this.
+    const onPrematureResponseClose = () => {
+      if (providerDispatched && !res.writableFinished) providerUnavailable = true;
+    };
+    res.once('close', onPrematureResponseClose);
     try {
       // The R105 API client has its own deadline, but an injected or future
       // adapter can ignore it. Enforce a separate HTTP completion deadline.
       // Never reuse the session after the outcome is uncertain: the original
       // promise may still complete or charge later despite timing out here.
       const reply = await Promise.race([
-        Promise.resolve().then(() => conversation
-          ? lab.answerPrivateConversation(input) : lab.answer(input)),
+        Promise.resolve().then(() => {
+          // A closed client before dispatch must not consume any API credit.
+          if (res.destroyed) throw CLIENT_DISCONNECTED;
+          providerDispatched = true;
+          return conversation ? lab.answerPrivateConversation(input) : lab.answer(input);
+        }),
         new Promise(resolve => {
           providerTimer = setTimeout(() => resolve(PROVIDER_DEADLINE), providerDeadlineMs);
         })
@@ -389,6 +402,10 @@ export async function startFaiscaOpenAIPrivateReview({
       const outcome = conversation ? safeConversationOutput(reply, input)
         : safeReviewOutput(reply, input);
       if (!outcome) throw REJECTED_PRIVATE_OUTPUT;
+      if (res.destroyed) {
+        providerUnavailable = true;
+        return; // The browser did not receive this reply; require operator review.
+      }
       send(res, 200, {
         schema: conversation ? 'faisca.openai-private-conversation-response.v1'
           : 'faisca.openai-private-review-response.v1',
@@ -407,13 +424,15 @@ export async function startFaiscaOpenAIPrivateReview({
       // but *completed* model outputs remain 503 without opening the breaker,
       // so separate synthetic negative editorial fixtures can be evaluated.
       // In neither case do we retry or release the durable reservation.
-      if (error !== REJECTED_PRIVATE_OUTPUT) providerUnavailable = true;
-      send(res, 503, {
+      if (error !== REJECTED_PRIVATE_OUTPUT && error !== CLIENT_DISCONNECTED) providerUnavailable = true;
+      if (!res.destroyed) send(res, 503, {
         status: 'unavailable',
         message: 'The private AI review could not confirm a safe response.'
       });
     } finally {
       clearTimeout(providerTimer);
+      if (res.destroyed && providerDispatched && !res.writableFinished) providerUnavailable = true;
+      res.off('close', onPrematureResponseClose);
       inFlight = false;
     }
   });
