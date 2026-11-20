@@ -18,6 +18,11 @@ const APPROVED_MASCOT_SHA256 =
 // These exact strings represent a private implementation or action surface.
 const forbiddenContent = Object.freeze([
   /__faisca_preview\//i,
+  // Never allow the paid/private OpenAI review interface, its route names,
+  // bearer configuration or model-response contracts into public Astro HTML.
+  /__faisca_openai_private(?:\/|\b)/i,
+  /faisca\.openai-private-(?:review|conversation)-response\.v1/i,
+  /FAISCA_REVIEW_BEARER_TOKEN|FAISCA_PRIVATE_LEDGER_DIR/i,
   /data-faisca-private-(?:entry|inline)/i,
   /data-faisca-inline-frame/i,
   /(?:src|href)=["'](?:\/)?(?:ops\/faisca|faisca-review-server)/i,
@@ -27,7 +32,7 @@ const forbiddenContent = Object.freeze([
   /Faisca_Demonstracao_Guiada\.html/i,
   /faisca-review-server\.mjs/i
 ]);
-const forbiddenPath = /(^|\/)(?:__faisca_preview|faisca-review-server\.mjs|Faisca_R21_AUDIT\.json|Faisca_Demonstracao_Guiada\.html|ops\/faisca)(\/|$)/i;
+const forbiddenPath = /(^|\/)(?:__faisca_preview|__faisca_openai_private|faisca-review-server\.mjs|Faisca_R21_AUDIT\.json|Faisca_Demonstracao_Guiada\.html|ops\/faisca)(\/|$)/i;
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 
 /**
