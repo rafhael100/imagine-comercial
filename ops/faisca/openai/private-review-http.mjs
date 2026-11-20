@@ -7,6 +7,7 @@ import { getGroundingSources } from '../grounding/catalog.mjs';
 import { privateConversationRoute, safePrivateGeneralReply, hasPrivateOperationalClaim } from './private-conversation-policy.mjs';
 import { readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
+import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
 import {
   PRIVATE_REVIEW_PAGE_PATH, PRIVATE_REVIEW_SCRIPT_PATH, PRIVATE_REVIEW_STYLE_PATH,
   PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_CONVERSATION_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
@@ -130,6 +131,7 @@ function safeReviewOutput(response, caseId) {
         // semantic tripwires to R72/R79 fixed drafts and injected adapters.
         hasPrivateOperationalClaim(answer) ||
         hasPrivateIdentifierRisk(answer) ||
+        hasPrivateUnreviewedPriceClaim(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
     const models = safeReviewList(get('modelIds') ?? [], approvedModels);
@@ -193,6 +195,7 @@ function safeConversationOutput(response, input) {
         typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
+        hasPrivateUnreviewedPriceClaim(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
     const models = safeReviewList(get('modelIds') ?? [], approvedModels);
