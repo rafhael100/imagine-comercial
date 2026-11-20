@@ -1,19 +1,23 @@
+import {
+  PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
+} from './private-review-page.mjs';
+
 export const FAISCA_PRIVATE_STAGING_SMOKE_SCHEMA = 'faisca.private-staging-readonly-smoke.v1';
 const routes = Object.freeze([
   Object.freeze({
     path: '/__faisca_openai_private/review',
     mime: /^text\/html(?:;|$)/i,
-    required: ['Faísca', 'review-token', 'review-case']
+    expected: PRIVATE_REVIEW_HTML
   }),
   Object.freeze({
     path: '/__faisca_openai_private/review.js',
     mime: /^text\/javascript(?:;|$)/i,
-    required: ['validCases', 'textContent', 'credentials']
+    expected: PRIVATE_REVIEW_JS
   }),
   Object.freeze({
     path: '/__faisca_openai_private/review.css',
     mime: /^text\/css(?:;|$)/i,
-    required: [':root', '#review-answer']
+    expected: PRIVATE_REVIEW_CSS
   })
 ]);
 
@@ -78,7 +82,10 @@ export async function inspectFaiscaPrivateReviewUi({
         throw new Error('unreviewed headers');
       }
       const body = await limitedText(response, controller.signal);
-      passed = item.required.every(fragment => body.includes(fragment));
+      // An unreviewed/stale HTML/JS/CSS asset can retain all old marker words.
+      // Require an exact content match with the audited local page modules.
+      // This still does not prove VPS provenance, SHA approval or public safety.
+      passed = body === item.expected;
     } catch { passed = false; }
     finally { clearTimeout(timeout); controller.abort(); }
     checks.push(Object.freeze({ path: item.path, passed }));
