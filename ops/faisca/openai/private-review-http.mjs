@@ -130,6 +130,9 @@ function safeReviewOutput(response, caseId) {
         (status === 'unsupported' && answer !== FAISCA_OPENAI_UNSUPPORTED_FALLBACK) ||
         typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
+         // Reject default-ignorable Unicode at the authoritative HTTP egress,
+         // including U+034F (combining grapheme joiner) missed by Cc/Cf checks.
+         /\p{Default_Ignorable_Code_Point}/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
         // Fixed-case replies also lack any authority to publish a site or
         // activate campaigns. R106 guarded free text; apply the same host
@@ -199,6 +202,9 @@ function safeConversationOutput(response, input) {
     if (!['general_answer','editorial_answer','needs_confirmation'].includes(status) ||
         typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
+         // Reject default-ignorable Unicode at the authoritative HTTP egress,
+         // including U+034F (combining grapheme joiner) missed by Cc/Cf checks.
+         /\p{Default_Ignorable_Code_Point}/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
         hasPrivateUnreviewedPriceClaim(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
