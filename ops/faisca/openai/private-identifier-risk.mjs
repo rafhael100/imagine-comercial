@@ -33,6 +33,14 @@ const localhostName = /\blocalhost\b/u;
 // 'senha' or 'token'. No value is logged, persisted or echoed.
 const secretShape = /(?:^|[^\p{L}\p{N}_])(?:sk-(?:proj-|svcacct-)?[a-z0-9_-]{16,}|github_pat_[a-z0-9_]{16,}|gh[pousr]_[a-z0-9_]{20,}|xox[baprs]-[a-z0-9-]{16,}|akia[a-z0-9]{16}|bearer\s+[a-z0-9._~+/-]{16,}|-----begin\s+(?:(?:rsa|ec|openssh)\s+)?private\s+key-----)/u;
 
+// R152: refuse text-encoded identifier envelopes instead of decoding and
+// accidentally passing hidden contact/credential values to a paid model.
+// This is deliberately conservative: a fictional lab has no need for
+// percent escapes, HTML character references, or JS escape notation.
+// Ordinary "20% de aumento" (not percent-encoded bytes) is still allowed.
+const encodedIdentifierEnvelope =
+  /%(?:[0-9a-f]{2}|u[0-9a-f]{4})|&(?:#(?:x[0-9a-f]{1,7}|[0-9]{1,8})|(?:commat|period|colon|sol|bsol|num|percnt));|\\(?:x[0-9a-f]{2}|u(?:[0-9a-f]{4}|\{[0-9a-f]{1,6}\}))/u;
+
 /** Fail closed for obvious identifier/contact leakage; never return the input. */
 export function hasPrivateIdentifierRisk(value) {
   if (typeof value !== 'string') return true;
@@ -43,5 +51,6 @@ export function hasPrivateIdentifierRisk(value) {
     sensitiveWords.test(text) || emailOrUrl.test(text) ||
     bareHostname.test(text) || ipv4Literal.test(text) ||
     shortenedPrivateIpv4.test(text) || hexIpv4Alias.test(text) ||
-    octalIpv4Alias.test(text) || ipv6Literal.test(text) || localhostName.test(text) || secretShape.test(text);
+    octalIpv4Alias.test(text) || ipv6Literal.test(text) || localhostName.test(text) ||
+    secretShape.test(text) || encodedIdentifierEnvelope.test(text);
 }
