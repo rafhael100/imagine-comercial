@@ -119,6 +119,12 @@ function privateFictionalQuestionPreflight(value) {
     /\b(?:meu\s+cliente|minha\s+empresa\s+se\s+chama|base\s+de\s+clientes|lista\s+de\s+clientes)\b/u.test(normalized)
   );
 }
+// The browser does not trust an HTTP 200 or claimed editorial sources. Mirror
+// the server's deliberately conservative R135/R136 marketing certainty gate:
+// an injected/misconfigured local adapter must not display guaranteed sales
+// or made-up numeric forecasts to the private operator.
+const privateBrowserUnsupportedGuarantee = /\b(?:garante|garantem|garantimos|garantira|garantirao|garantid[oa]s?|assegura|asseguram|asseguramos|promete|prometem|prometemos|prometera|prometerao)\b.{0,75}\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b|\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b.{0,55}\bgarantid[oa]s?\b/;
+const privateBrowserUnsupportedProjection = /\b(?:vai|vamos|ira|irao|iremos|conseguira|conseguiremos)\s+(?:gerar|conseguir|atrair|trazer|obter|entregar|conquistar)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b|\b(?:tera|terao|teremos)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b/;
 // Second egress boundary in the private browser: even a malformed local
 // HTTP adapter must not display obvious contact identifiers, URLs or
 // fabricated "already completed" operational claims to the operator. This
@@ -132,7 +138,9 @@ function privateBrowserReplyEgressSafe(value) {
     /\p{Default_Ignorable_Code_Point}/u.test(value) ||
     /https?:\/\/|\bwww\.|@[a-z0-9.-]+\.[a-z]{2,}/u.test(normalized) ||
     /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||
-    /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|dominio|campanha|loja|anuncio)\s+(?:(?:ja|foi|esta|ficou)\s+){1,3}(?:publicad[ao]|ativad[ao]|entregue|configurad[ao]|rodando|no\s+ar|online)\b/u.test(normalized)
+    /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|dominio|campanha|loja|anuncio)\s+(?:(?:ja|foi|esta|ficou)\s+){1,3}(?:publicad[ao]|ativad[ao]|entregue|configurad[ao]|rodando|no\s+ar|online)\b/u.test(normalized) ||
+    privateBrowserUnsupportedGuarantee.test(normalized) ||
+    privateBrowserUnsupportedProjection.test(normalized)
   );
 }
 let pending = false;
