@@ -53,7 +53,7 @@ test('R77 private HTTP rejects a parallel request before entering the injected p
   assert.equal(server.inspect().requests, 2);
 });
 
-test('R77 provider failure clears the single-flight guard without retry', async t => {
+test('R77/R108 provider exception clears in-flight but conservatively locks future dispatch', async t => {
   let calls = 0;
   const lab = {
     answer: async () => {
@@ -71,7 +71,11 @@ test('R77 provider failure clears the single-flight guard without retry', async 
   assert.equal(server.inspect().inFlight, false);
   assert.equal(calls, 1);
 
+  // Clearing inFlight is not proof that a rejected provider call was free.
+  // R108 keeps the session unavailable until the operator reviews the ledger.
+  assert.equal(server.inspect().providerUnavailable, true);
   const recovered = await post(server);
-  assert.equal(recovered.status, 200);
-  assert.equal(calls, 2);
+  assert.equal(recovered.status, 503);
+  assert.deepEqual(await recovered.json(), { status: 'unavailable' });
+  assert.equal(calls, 1);
 });
