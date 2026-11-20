@@ -220,7 +220,9 @@ import {describeSelectedAdvertisingCosts} from '../lib/public-quote-channel-brea
    const action=root.querySelector('[data-choice-action]');
    if(action){
     const privateOnepage=Boolean(onepagePreviewHref&&onepagePreviewLabel&&contactLabel&&site==='onepage'&&channels.length===0);
-    action.setAttribute('href',privateOnepage?onepagePreviewHref:estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):action.getAttribute('data-choice-fallback'));
+    const reviewedHref=privateOnepage?onepagePreviewHref:estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):null;
+    if(reviewedHref)action.setAttribute('href',reviewedHref);
+    else action.removeAttribute('href'); // No empty-quote URL for context menus or middle clicks.
     if(onepagePreviewHref){
      // The capability is a fixed reviewed link, never derived from form data.
      // Preserve the public link/label unless this private build opted in.
