@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { lstat, realpath, readdir, open } from 'node:fs/promises';
 import { constants } from 'node:fs';
+import { gunzipSync, brotliDecompressSync } from 'node:zlib';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { publicFaiscaEnabled } from '../lab/lab-policy.mjs';
@@ -10,6 +11,7 @@ const sourceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 
 const MAX_FILES = 350;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 160 * 1024 * 1024;
+const compressedFile = /\.(?:gz|br)$/i;
 const textFile = /\.(?:html|js|css|json|xml|txt|webmanifest|map)$/i;
 const APPROVED_MASCOT_SHA256 =
   '1ede4d88a38e238523c6db7351f22654ffa40b9f8ee2260ea31b162763d8c87d';
@@ -92,6 +94,27 @@ export async function auditPublicFaiscaDist({ distDir = resolve(sourceRoot, 'dis
       const raw = data.toString('latin1');
       if (forbiddenContent.some(pattern => pattern.test(raw))) {
         throw new Error('R26: private Faísca code or preview marker leaked into public dist.');
+      }
+      if (compressedFile.test(path)) {
+        // CDNs may serve precompressed public HTML/JS. Plain-byte scanning
+        // cannot see private route markers concealed by gzip or Brotli.
+        // Bound decompression to a single public file's uncompressed limit.
+        let expanded;
+        try {
+          expanded = /\.br$/i.test(path)
+            ? brotliDecompressSync(data, { maxOutputLength: MAX_FILE_BYTES })
+            : gunzipSync(data, { maxOutputLength: MAX_FILE_BYTES });
+        } catch {
+          throw new Error('R26: invalid or oversized compressed public artifact.');
+        }
+        if (forbiddenContent.some(pattern => pattern.test(expanded.toString('latin1')))) {
+          throw new Error('R26: private Faísca code or preview marker leaked into public dist.');
+        }
+        // Also keep the fail-closed UTF-8 policy for compressed web text.
+        const originalPath = path.replace(compressedFile, '');
+        if (textFile.test(originalPath)) {
+          new TextDecoder('utf-8', { fatal: true }).decode(expanded);
+        }
       }
       if (textFile.test(path)) {
         textFilesChecked++;
