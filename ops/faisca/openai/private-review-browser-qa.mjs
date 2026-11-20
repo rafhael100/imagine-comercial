@@ -111,6 +111,41 @@ try {
     } finally { await page.unroute(endpoint); }
   });
 
+  await check('R90 Chromium rejects oversized JSON and excessive/duplicate source IDs without another provider call', async () => {
+    const endpoint = '**/__faisca_openai_private/respond';
+    const baseline = {
+      schema: 'faisca.openai-private-review-response.v1',
+      status: 'draft_answer', syntheticCaseId: 'compare',
+      answer: 'Uma resposta fictícia não pode ser exibida sem um envelope estritamente limitado.',
+      sources: ['faisca.passage.onepage.description@r06-1'],
+      models: ['gpt-6-luna','gpt-6.1-terra'], sourceRecipeBound: true,
+      requiresEditorialReview: true, publicReady: false, operationalEffects: false
+    };
+    for (const forged of [
+      { ...baseline, padding: 'X'.repeat(20000) },
+      { ...baseline, sources: Array(13).fill('faisca.passage.onepage.description@r06-1') },
+      { ...baseline, sources: [
+        'faisca.passage.onepage.description@r06-1',
+        'faisca.passage.onepage.description@r06-1'
+      ] }
+    ]) {
+      await page.route(endpoint, async route => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(forged) });
+      });
+      try {
+        await page.locator('#review-token').fill(token);
+        await page.locator('#review-case').selectOption('compare');
+        await page.locator('#review-send').click();
+        await page.waitForFunction(() => document.querySelector('#review-status')?.textContent?.includes('não concluiu.'));
+        assert.equal(await page.locator('#review-token').inputValue(), '');
+        assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
+        assert.equal(await page.locator('#review-sources').innerText(), '');
+        assert.equal(await page.locator('#review-send').isEnabled(), true);
+        assert.equal(providerCalls, 1, 'A forged response cannot dispatch another model.');
+      } finally { await page.unroute(endpoint); }
+    }
+  });
+
   await check('R83 Chromium refuses a forged draft with zero model provenance', async () => {
     const endpoint = '**/__faisca_openai_private/respond';
     await page.route(endpoint, async route => {
