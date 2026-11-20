@@ -94,6 +94,22 @@ const status = document.getElementById('review-status');
 const answer = document.getElementById('review-answer');
 const sources = document.getElementById('review-sources');
 const validCases = new Set(['compare','process','pricing']);
+// Privacy preflight in the UI: reject obvious personal data and secrets
+// before even sending a fictional operator question to loopback. The server
+// independently revalidates inputs; a checkbox does not authorize real data.
+function privateFictionalQuestionPreflight(value) {
+  if (typeof value !== 'string' || value !== value.trim() ||
+      value !== value.normalize('NFC')) return false;
+  const normalized = value.normalize('NFKC').normalize('NFKD')
+    .replace(/\p{M}/gu, '').toLowerCase();
+  return !(
+    /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u.test(value) ||
+    /https?:\/\/|www\.|@/u.test(normalized) ||
+    /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endereco|senha|token|api[ _-]?key|chave|credencial|otp|totp|pix|cartao|boleto|fatura|reembolso|contrato|nota\s+fiscal)\b/u.test(normalized) ||
+    /(?:\p{Nd}[\s()./-]?){7,}/u.test(value) ||
+    /\b(?:meu\s+cliente|minha\s+empresa\s+se\s+chama|base\s+de\s+clientes|lista\s+de\s+clientes)\b/u.test(normalized)
+  );
+}
 let pending = false;
 const MAX_PRIVATE_RESPONSE_BYTES = 16384;
 // The AbortSignal is advisory to fetch implementations. An injected or
@@ -176,7 +192,7 @@ form?.addEventListener('submit', async event => {
     return;
   }
   if (openQuestion && (!attestation?.checked || typed.trim().length < 12 ||
-      typed.length > 240)) {
+      typed.length > 240 || !privateFictionalQuestionPreflight(typed))) {
     status.textContent = 'Escreva a pergunta e confirme que ela é fictícia.';
     return;
   }
