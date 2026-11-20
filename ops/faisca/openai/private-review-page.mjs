@@ -315,6 +315,10 @@ form?.addEventListener('submit', async event => {
       (generated ? (data.models.length === 2 &&
         data.models[0] === 'gpt-6-luna' && data.models[1] === 'gpt-6.1-terra')
         : data.models.length === 0);
+    // R06 approved recipes contain literal LF line breaks. Allow those only
+    // when the free editorial response matches the exact pinned text and
+    // ordered sources. Never relax this for model output or fixed scenarios.
+    const pinnedEditorialLinefeeds = !fixed && editorial && editorialReceiptOk;
     if (!validStatus || !sourcesOk || !modelsOk || !editorialReceiptOk ||
         data?.schema !== (fixed
           ? 'faisca.openai-private-review-response.v1'
@@ -322,7 +326,8 @@ form?.addEventListener('submit', async event => {
         (fixed && data.syntheticCaseId !== caseId) ||
         data.requiresEditorialReview !== true ||
         typeof data.answer !== 'string' || data.answer.length < 20 || data.answer.length > 900 ||
-        /[\u0000-\u001f\u007f<>]/u.test(data.answer) ||
+        /[\u0000-\u0009\u000b-\u001f\u007f<>]/u.test(data.answer) ||
+        (/\n/u.test(data.answer) && !pinnedEditorialLinefeeds) ||
         !privateBrowserReplyEgressSafe(data.answer) ||
         // Preserve the strict R88 fixed-scenario proof and check free text separately.
         (fixed && data.sourceRecipeBound !== true) ||

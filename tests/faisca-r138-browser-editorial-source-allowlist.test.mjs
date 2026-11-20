@@ -97,3 +97,27 @@ test('R139: browser rejects invented editorial prose even with approved citation
   assert.equal(fields.get('review-token').value, '');
   assert.equal(fields.get('review-send').disabled, false);
 });
+
+
+test('R140: pinned R06 recipe keeps literal LF without allowing CRLF substitution', async () => {
+  assert.ok(editorial.text.includes('\n'), 'Approved editorial text has LF separators');
+  const { calls, fields } = await submitSyntheticResponse({
+    free: true, sourceId: editorial.sources[0].id,
+    answerText: editorial.text.replace(/\n/g, '\r\n')
+  });
+  assert.equal(calls, 1);
+  assert.equal(fields.get('review-answer').textContent, 'Resposta indisponível neste teste.');
+  assert.equal(fields.get('review-sources').textContent, '');
+  assert.equal(fields.get('review-token').value, '');
+});
+
+test('R140: unreviewed additional LF does not bypass exact receipt binding', async () => {
+  const { calls, fields } = await submitSyntheticResponse({
+    free: true, sourceId: editorial.sources[0].id,
+    answerText: editorial.text + '\n'
+  });
+  assert.equal(calls, 1);
+  assert.equal(fields.get('review-answer').textContent, 'Resposta indisponível neste teste.');
+  assert.equal(fields.get('review-sources').textContent, '');
+  assert.equal(fields.get('review-token').value, '');
+});
