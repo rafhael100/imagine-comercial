@@ -11,6 +11,8 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
   process.exitCode = 2;
 } else {
   let server;
+  const enablePrivateConversation =
+    process.env.FAISCA_PRIVATE_SYNTHETIC_CONVERSATION === 'YES_SYNTHETIC_ONLY';
   try {
     // R91: the R86 readiness gate must be enforced by the paid entrypoint,
     // not merely suggested in a separate operator CLI. The reviewed pin is
@@ -29,6 +31,7 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
     const trial = createFaiscaOpenAILiveLab({
       enabled: true, apiKey: process.env.OPENAI_API_KEY,
       extendedPrivateSession: true,
+      enablePrivateConversation,
       maxRequests: 100,
       maxBudgetUsd: 10,
       reservationLedger
@@ -36,12 +39,15 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
     server = await startFaiscaOpenAIPrivateReview({
       lab: trial,
       reviewToken: process.env.FAISCA_REVIEW_BEARER_TOKEN,
+      enablePrivateConversation,
       port: 4336
     });
     // Bind address only, never tokens or the API key.
     console.log('Faísca OpenAI PRIVATE review started on ' + server.address +
       server.path + '; only synthetic case IDs are accepted.');
-    console.log('Static private browser GET is available; only authenticated synthetic POST can call the model.');
+    console.log(enablePrivateConversation
+      ? 'Only authenticated fictional operator questions and fixed synthetic scenarios are enabled.'
+      : 'Only authenticated fixed synthetic scenarios are enabled.');
     const stop = async () => {
       try { await server.close(); }
       finally { process.exitCode = 0; }
