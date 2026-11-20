@@ -107,8 +107,15 @@ export function createFaiscaLocalReservationLedger({
           (typeof process.getuid === 'function' && info.uid !== process.getuid())) {
         throw new Error('Private ledger file has unsafe permissions or shape.');
       }
-      const value = JSON.parse(await file.readFile('utf8'));
+      // JSON.parse silently keeps the LAST occurrence of a duplicate key.
+      // A mutated state such as {"requests":100,"requests":0} could otherwise
+      // pass the numeric checks and reset local spend accounting. R82 writes
+      // canonical JSON.stringify(value) + LF; require that exact encoding.
+      // Any noncanonical/legacy external write fails closed for operator review.
+      const raw = await file.readFile('utf8');
+      const value = JSON.parse(raw);
       if (!value || Object.getPrototypeOf(value) !== Object.prototype ||
+          raw !== JSON.stringify(value) + '\n' ||
           Object.keys(value).sort().join(',') !==
             'limitMicros,limitRequests,requests,reservedMicros,schema' ||
           value.schema !== SCHEMA || value.limitRequests !== maxRequests ||
