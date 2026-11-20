@@ -4,7 +4,7 @@ import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
 import { getGroundingSources } from '../grounding/catalog.mjs';
-import { privateConversationRoute, safePrivateGeneralReply } from './private-conversation-policy.mjs';
+import { privateConversationRoute, safePrivateGeneralReply, hasPrivateOperationalClaim } from './private-conversation-policy.mjs';
 import { readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import {
@@ -101,6 +101,10 @@ function safeReviewOutput(response, caseId) {
         typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
+        // Fixed-case replies also lack any authority to publish a site or
+        // activate campaigns. R106 guarded free text; apply the same host
+        // semantic tripwires to R72/R79 fixed drafts and injected adapters.
+        hasPrivateOperationalClaim(answer) ||
         hasPrivateIdentifierRisk(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
