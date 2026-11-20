@@ -52,10 +52,18 @@ const completedVisitorReceipt = /\b(?:publicacao|ativacao|configuracao|integraca
 // outcomes. This does not certify factual correctness or replace editorial review.
 // Conservative false positives in the synthetic lab are preferable to
 // displaying an unsourced promise to the operator.
-const unsupportedOutcomeGuarantee = /\b(?:garante|garantem|garantid[oa]s?|assegura|asseguram|promete|prometem)\b.{0,75}\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b|\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b.{0,55}\bgarantid[oa]s?\b/;
+const unsupportedOutcomeGuarantee = /\b(?:garante|garantem|garantimos|garantira|garantirao|garantid[oa]s?|assegura|asseguram|asseguramos|promete|prometem|prometemos|prometera|prometerao)\b.{0,75}\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b|\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b.{0,55}\bgarantid[oa]s?\b/;
+
+// A deterministic quantified sales claim is also unsupported, even without
+// saying "garante". This private lab has no customer metrics or predictive
+// authority; e.g. "vai gerar 100 leads" must never appear as a verified fact.
+const unsupportedQuantifiedOutcome = /\b(?:vai|vamos|ira|irao|iremos|conseguira|conseguiremos)\s+(?:gerar|conseguir|atrair|trazer|obter|entregar|conquistar)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b|\b(?:tera|terao|teremos)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b/;
 
 export function hasPrivateUnsupportedOutcomeGuarantee(text) {
-  return typeof text !== 'string' || unsupportedOutcomeGuarantee.test(normalize(text));
+  if (typeof text !== 'string') return true;
+  const normalized = normalize(text);
+  return unsupportedOutcomeGuarantee.test(normalized) ||
+    unsupportedQuantifiedOutcome.test(normalized);
 }
 
 export function hasPrivateOperationalClaim(text) {
