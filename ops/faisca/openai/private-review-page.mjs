@@ -151,6 +151,15 @@ const privateBrowserUnsupportedProjection = /\b(?:vai|vamos|ira|irao|iremos|cons
 // HTTP adapter must not display obvious contact identifiers, URLs or
 // fabricated "already completed" operational claims to the operator. This
 // supplements, never replaces, the stricter host-side editorial/PII gates.
+// R147: browser independence from HTTP 200. A forged model output cannot
+// cite major platforms as evidence, assert a conversion benchmark, or claim
+// an individual visitor's search position without reviewed facts.
+const privateBrowserUnsupportedAuthority =
+  /\b(?:segundo|conforme|de\s+acordo\s+com|dados\s+(?:do|da|de)|pesquisa\s+(?:do|da|de))\s+(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\b/u;
+const privateBrowserUnsupportedKpi =
+  /\b(?:taxa\s+de\s+(?:conversao|cliques?|abertura)|roi|ctr|crescimento|engajamento)\b.{0,45}\d{1,3}(?:[.,]\d{1,2})?\s*%/u;
+const privateBrowserUnsupportedRank =
+  /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|loja)\b.{0,65}\b(?:topo\s+do\s+google|primeir[oa]\s+(?:posicao|pagina|lugar)|top\s*[1-9]\d?)\b/u;
 function privateBrowserReplyEgressSafe(value) {
   if (typeof value !== 'string') return false;
   const normalized = value.normalize('NFKC').normalize('NFKD')
@@ -166,6 +175,9 @@ function privateBrowserReplyEgressSafe(value) {
     /https?:\/\/|\bwww\.|@[a-z0-9.-]+\.[a-z]{2,}/u.test(normalized) ||
     /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||
     /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|dominio|campanha|loja|anuncio)\s+(?:(?:ja|foi|esta|ficou)\s+){1,3}(?:publicad[ao]|ativad[ao]|entregue|configurad[ao]|rodando|no\s+ar|online)\b/u.test(normalized) ||
+    privateBrowserUnsupportedAuthority.test(normalized) ||
+    privateBrowserUnsupportedKpi.test(normalized) ||
+    privateBrowserUnsupportedRank.test(normalized) ||
     privateBrowserUnsupportedGuarantee.test(normalized) ||
     privateBrowserUnsupportedProjection.test(normalized)
   );
