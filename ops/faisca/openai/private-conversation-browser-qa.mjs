@@ -54,6 +54,19 @@ try {
     assert.equal(await page.locator('#review-token').getAttribute('type'),'password');
     assert.equal(calls,0);
   });
+  await step('R132 actual Chromium rejects invisible Unicode before private HTTP', async()=>{
+    for (const marker of ['\u00ad', '\ufeff', '\u2066', '\u200d', '\u034f']) {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-question').fill('Quero um site fictício para ' + marker + ' uma loja imaginária.');
+      await page.locator('#review-attestation').check();
+      await page.locator('#review-send').click();
+      assert.match(await page.locator('#review-status').innerText(), /confirme que ela é fictícia/);
+      assert.equal(calls, 0, 'Never dispatch a question with invisible Unicode');
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(await page.locator('#review-question').inputValue(), '');
+      assert.equal(await page.locator('#review-attestation').isChecked(), false);
+    }
+  });
   await step('R95 typed question requires fictional attestation before dispatch',async()=>{
     await page.locator('#review-token').fill(token);
     await page.locator('#review-question').fill('Vale a pena usar uma landing page para divulgar um evento?');
@@ -78,6 +91,38 @@ try {
     assert.equal(await page.locator('#review-attestation').isChecked(),false);
     assert.equal(calls,1);
     assert.equal(await page.locator('#review-send').isEnabled(),true);
+  });
+  await step('R132 actual Chromium rejects a deceptive HTTP reply with invisible Unicode', async()=>{
+    const pattern = '**/__faisca_openai_private/respond';
+    let fixtureResponses = 0;
+    await page.route(pattern, async route => {
+      fixtureResponses++;
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-review-response.v1',
+          status: 'draft_answer', syntheticCaseId: 'compare',
+          answer: 'Seu site já está \u00ad no ar e pode receber visitantes agora.',
+          sources: ['faisca.passage.onepage.description@r06-1'],
+          models: ['gpt-6-luna', 'gpt-6.1-terra'],
+          sourceRecipeBound: true, requiresEditorialReview: true,
+          publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-send').click();
+      await page.waitForFunction(() =>
+        document.querySelector('#review-status')?.textContent?.includes('não concluiu.'));
+      assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
+      assert.equal(await page.locator('#review-sources').innerText(), '');
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(calls, 1, 'Injected reply must not reach the provider');
+      assert.equal(fixtureResponses, 1, 'Only one attempted HTTP response');
+    } finally {
+      await page.unroute(pattern);
+    }
   });
   await step('R95 bearer failure never calls the provider or displays a prior answer',async()=>{
     await page.locator('#review-token').fill('R95_INVALID_BEARER_TEST_01234567890');
