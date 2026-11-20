@@ -59,5 +59,6 @@ export function hasPrivateIdentifierRisk(value) {
     bareHostname.test(text) || ipv4Literal.test(text) ||
     shortenedPrivateIpv4.test(text) || hexIpv4Alias.test(text) ||
     octalIpv4Alias.test(text) || ipv6Literal.test(text) || localhostName.test(text) ||
-    secretShape.test(text) || encodedIdentifierEnvelope.test(text) ||\n    opaqueEncodingEnvelope.test(text);
+    secretShape.test(text) || encodedIdentifierEnvelope.test(text) ||
+    opaqueEncodingEnvelope.test(text);
 }
