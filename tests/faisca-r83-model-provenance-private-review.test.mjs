@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
+import { FAISCA_OPENAI_UNSUPPORTED_FALLBACK } from '../ops/faisca/openai/live-lab.mjs';
 
 const bearer = 'R83_MODEL_PROVENANCE_TEST_TOKEN_123456';
 const valid = ['gpt-6-luna', 'gpt-6.1-terra'];
@@ -53,7 +54,7 @@ test('R83 private HTTP rejects draft answers with missing, swapped or forged mod
 test('R83 unsupported neutral fallback may correctly have no generated-model provenance', async t => {
   const lab = {
     answer: async () => ({ status: 'unsupported',
-      text: 'Não encontrei suporte editorial confirmado para responder neste teste privado.',
+      text: FAISCA_OPENAI_UNSUPPORTED_FALLBACK,
       sourceIds: [], modelIds: [], publicReady: false, operationalEffects: false }),
     inspect: () => ({ externalAPI: false })
   };

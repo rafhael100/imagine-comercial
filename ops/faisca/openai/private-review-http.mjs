@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
+import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST_CASES, FAISCA_OPENAI_UNSUPPORTED_FALLBACK } from './live-lab.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
 import { getGroundingSources } from '../grounding/catalog.mjs';
@@ -92,7 +92,10 @@ function safeReviewOutput(response, caseId) {
       return prop && Object.hasOwn(prop, 'value') ? prop.value : undefined;
     };
     const status = get('status'), answer = get('text');
+    // A failure-to-ground result is a host-owned fixed fallback, never
+    // provider-authored text that could invent facts or imply an action.
     if (!['draft_answer', 'unsupported'].includes(status) ||
+        (status === 'unsupported' && answer !== FAISCA_OPENAI_UNSUPPORTED_FALLBACK) ||
         typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||

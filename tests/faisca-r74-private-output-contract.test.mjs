@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
+import { FAISCA_OPENAI_UNSUPPORTED_FALLBACK } from '../ops/faisca/openai/live-lab.mjs';
 
 const token = 'R74_SAFE_PRIVATE_REVIEW_FIXTURE_TOKEN_12345';
 const source = 'faisca.passage.onepage.description@r06-1';
@@ -48,7 +49,7 @@ test('R74 HTTP review emits only a bounded safe provider envelope', async t => {
 test('R74 private HTTP accepts the no-model, source-free refusal as an unsupported response', async t => {
   const { res } = await run(t, {
     status: 'unsupported',
-    text: 'Não há orientação editorial suficiente para responder com segurança.'
+    text: FAISCA_OPENAI_UNSUPPORTED_FALLBACK
   });
   assert.equal(res.status, 200);
   const body = await res.json();

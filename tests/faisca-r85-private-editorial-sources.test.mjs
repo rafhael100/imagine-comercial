@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
+import { FAISCA_OPENAI_UNSUPPORTED_FALLBACK } from '../ops/faisca/openai/live-lab.mjs';
 import { getGroundingSources } from '../ops/faisca/grounding/catalog.mjs';
 
 const token = 'R85_PRIVATE_CATALOG_ALLOWLIST_TOKEN_2026';
@@ -95,7 +96,7 @@ test('R85 sources with hostile own-data accessors are rejected without executing
 test('R85 a host-fixed unsupported fallback remains valid without sources or paid-model provenance', async t => {
   const lab={
     answer:async()=>({status:'unsupported',
-      text:'Não encontrei um trecho editorial suficiente para confirmar essa informação.',
+      text:FAISCA_OPENAI_UNSUPPORTED_FALLBACK,
       sourceIds:[],modelIds:[],publicReady:false,operationalEffects:false}),
     inspect:()=>({calls:0})
   };
