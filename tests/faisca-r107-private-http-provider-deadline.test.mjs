@@ -26,10 +26,11 @@ function stub(handler) {
 }
 
 test('R107 uncertain HTTP provider completion returns 503 and permanently blocks later dispatches', async t => {
-  let dispatches = 0, finish;
+  let dispatches = 0, finish, entered;
   const pending = new Promise(resolve => { finish = resolve; });
+  const started = new Promise(resolve => { entered = resolve; });
   const server = await startFaiscaOpenAIPrivateReview({
-    lab: stub(() => { dispatches++; return pending; }),
+    lab: stub(() => { dispatches++; entered(); return pending; }),
     reviewToken: bearer,
     enablePrivateConversation: true,
     providerDeadlineMs: 120
@@ -37,7 +38,7 @@ test('R107 uncertain HTTP provider completion returns 503 and permanently blocks
   t.after(() => server.close());
   const start = performance.now();
   const firstPending = post(server);
-  await new Promise(resolve => setTimeout(resolve, 35));
+  await started;
   const busy = await post(server);
   assert.equal(busy.status, 429);
   const first = await firstPending;
