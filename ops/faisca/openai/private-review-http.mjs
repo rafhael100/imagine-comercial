@@ -95,7 +95,7 @@ function safeReviewOutput(response, caseId) {
     if (!['draft_answer', 'unsupported'].includes(status) ||
         typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
-        forbiddenReviewClaims.test(answer) ||
+        forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
         (status === 'draft_answer' && hasPrivateIdentifierRisk(answer)) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
@@ -155,7 +155,7 @@ function safeConversationOutput(response, input) {
     if (!['general_answer','editorial_answer','needs_confirmation'].includes(status) ||
         typeof answer !== 'string' || answer.length < 20 || answer.length > 900 ||
         /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/u.test(answer) ||
-        forbiddenReviewClaims.test(answer) ||
+        forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
     const models = safeReviewList(get('modelIds') ?? [], approvedModels);
