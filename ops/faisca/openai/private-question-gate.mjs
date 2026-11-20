@@ -16,6 +16,9 @@ const forbidden = [
   /\b(?:senha|token|api[ _-]?key|chave|credencial|codigo\s+de\s+acesso|c[oó]digo\s+de\s+acesso|otp|2fa|totp)\b/i,
   /\b(?:pix|cart[aã]o|fatura|boleto|nota\s+fiscal|pagamento|pedido|contrato|cancelamento|cancelar|reembolso)\b/i,
   /\b(?:meu\s+cliente|minha\s+empresa\s+se\s+chama|meu\s+site\s+est[aá]\s+fora|projeto\s+do\s+cliente)\b/i,
+  // Defense in depth on the authoritative HTTP boundary, not just browser JS.
+  // Never strip soft hyphen, BOM, bidi isolates or other invisible characters.
+  /\p{Default_Ignorable_Code_Point}/u,
   /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u
 ];
 
