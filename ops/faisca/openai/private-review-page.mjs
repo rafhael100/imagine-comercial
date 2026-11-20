@@ -132,6 +132,7 @@ function privateFictionalQuestionPreflight(value) {
     /\p{Default_Ignorable_Code_Point}/u.test(value) ||
     /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u.test(value) ||
     /https?:\/\/|www\.|@/u.test(normalized) ||
+    privateBrowserNetworkAddressRisk(normalized) ||
     /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endereco|senha|token|api[ _-]?key|chave|credencial|otp|totp|pix|cartao|boleto|fatura|reembolso|contrato|nota\s+fiscal)\b/u.test(normalized) ||
     // Match the server's Unicode digit separators (Arabic grouping, fullwidth
     // punctuation after NFKC, plus signs, dashes and mixed-script numerals).
@@ -160,6 +161,16 @@ const privateBrowserUnsupportedKpi =
   /\b(?:taxa\s+de\s+(?:conversao|cliques?|abertura)|roi|ctr|crescimento|engajamento)\b.{0,45}\d{1,3}(?:[.,]\d{1,2})?\s*%/u;
 const privateBrowserUnsupportedRank =
   /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|loja)\b.{0,65}\b(?:topo\s+do\s+google|primeir[oa]\s+(?:posicao|pagina|lugar)|top\s*[1-9]\d?)\b/u;
+// R148: conservative browser-only privacy barrier mirroring the authoritative
+// server. A hostname, IP address or localhost is identifying even if it omits
+// a scheme, a www prefix or a contact handle. No network lookup takes place.
+const privateBrowserBareHost = /(?:^|[^\p{L}\p{N}_@])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}(?![\p{L}\p{N}_-])/u;
+const privateBrowserIpv4 = /(?:^|[^\p{L}\p{N}.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\p{L}\p{N}])/u;
+const privateBrowserIpv6 = /(?:^|[^\p{L}\p{N}:])(?:[a-f0-9]{0,4}:){2,}[a-f0-9]{0,4}(?=$|[^\p{L}\p{N}:])/u;
+function privateBrowserNetworkAddressRisk(text) {
+  return privateBrowserBareHost.test(text) || privateBrowserIpv4.test(text) ||
+    privateBrowserIpv6.test(text) || /\blocalhost\b/u.test(text);
+}
 function privateBrowserReplyEgressSafe(value) {
   if (typeof value !== 'string') return false;
   const normalized = value.normalize('NFKC').normalize('NFKD')
@@ -173,6 +184,7 @@ function privateBrowserReplyEgressSafe(value) {
     /(?:\b(?:usd|brl|eur)\s*\p{Nd}{1,8}\b|\p{Nd}{1,8}(?:[.,]\p{Nd}{1,2})?\s*(?:reais|real|dolares?|euros?)\b)/u.test(normalized) ||
     /\b(?:preco|valor|custa|custara|cobram|cobramos|mensalidade|implantacao|orcamento|desconto|investimento)\b.{0,28}\p{Nd}{1,8}/u.test(normalized) ||
     /https?:\/\/|\bwww\.|@[a-z0-9.-]+\.[a-z]{2,}/u.test(normalized) ||
+    privateBrowserNetworkAddressRisk(normalized) ||
     /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||
     /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|dominio|campanha|loja|anuncio)\s+(?:(?:ja|foi|esta|ficou)\s+){1,3}(?:publicad[ao]|ativad[ao]|entregue|configurad[ao]|rodando|no\s+ar|online)\b/u.test(normalized) ||
     privateBrowserUnsupportedAuthority.test(normalized) ||
