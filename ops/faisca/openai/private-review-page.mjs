@@ -106,7 +106,11 @@ function privateFictionalQuestionPreflight(value) {
     /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u.test(value) ||
     /https?:\/\/|www\.|@/u.test(normalized) ||
     /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endereco|senha|token|api[ _-]?key|chave|credencial|otp|totp|pix|cartao|boleto|fatura|reembolso|contrato|nota\s+fiscal)\b/u.test(normalized) ||
-    /(?:\p{Nd}[\s()./-]?){7,}/u.test(value) ||
+    // Match the server's Unicode digit separators (Arabic grouping, fullwidth
+    // punctuation after NFKC, plus signs, dashes and mixed-script numerals).
+    // This browser check is defense in depth; the server remains authoritative.
+    /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||
+    /\barroba\b.{0,35}\bponto\b/u.test(normalized) ||
     /\b(?:meu\s+cliente|minha\s+empresa\s+se\s+chama|base\s+de\s+clientes|lista\s+de\s+clientes)\b/u.test(normalized)
   );
 }
