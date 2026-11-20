@@ -1,5 +1,6 @@
 import { getGroundingSources } from '../grounding/catalog.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
+import { PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from './private-conversation-policy.mjs';
 
 // Pin browser-only editorial source IDs to the same checked-in R06 catalog
 // used by the independent HTTP egress. Never accept plausible invented IDs.
@@ -117,6 +118,7 @@ const validCases = new Set(['compare','process','pricing']);
 // receives only public editorial IDs, not any private API credentials.
 const reviewedPrivateSourceIds = new Set(${JSON.stringify(REVIEWED_PRIVATE_SOURCE_IDS)});
 const reviewedPrivateEditorialReceipts = ${JSON.stringify(REVIEWED_PRIVATE_EDITORIAL_RECEIPTS)};
+const reviewedPrivateConfirmationText = ${JSON.stringify(PRIVATE_CONVERSATION_CONFIRMATION_TEXT)};
 // Privacy preflight in the UI: reject obvious personal data and secrets
 // before even sending a fictional operator question to loopback. The server
 // independently revalidates inputs; a checkbox does not authorize real data.
@@ -311,6 +313,10 @@ form?.addEventListener('submit', async event => {
         data.answer === receipt.text &&
         data.sources.length === receipt.sources.length &&
         data.sources.every((id, index) => id === receipt.sources[index])));
+    // A 200 response cannot invent a company-specific confirmation message.
+    // It must match the host-owned exact text, independently of the server.
+    const confirmationReceiptOk = data?.status !== 'needs_confirmation' ||
+      (!fixed && data.answer === reviewedPrivateConfirmationText);
     const modelsOk = Array.isArray(data?.models) &&
       (generated ? (data.models.length === 2 &&
         data.models[0] === 'gpt-6-luna' && data.models[1] === 'gpt-6.1-terra')
@@ -320,6 +326,7 @@ form?.addEventListener('submit', async event => {
     // ordered sources. Never relax this for model output or fixed scenarios.
     const pinnedEditorialLinefeeds = !fixed && editorial && editorialReceiptOk;
     if (!validStatus || !sourcesOk || !modelsOk || !editorialReceiptOk ||
+        !confirmationReceiptOk ||
         data?.schema !== (fixed
           ? 'faisca.openai-private-review-response.v1'
           : 'faisca.openai-private-conversation-response.v1') ||
