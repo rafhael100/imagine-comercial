@@ -118,6 +118,7 @@ export function createFaiscaLocalReservationLedger({
     const state = await readState();
     if (requireCapacity &&
         (state.requests + minimumRequests > maxRequests ||
+         state.reservedMicros >= limitMicros ||
          state.reservedMicros + minimumMicros > limitMicros)) {
       throw new Error('Private durable reservation limit reached.');
     }
