@@ -96,6 +96,23 @@ const sources = document.getElementById('review-sources');
 const validCases = new Set(['compare','process','pricing']);
 let pending = false;
 const MAX_PRIVATE_RESPONSE_BYTES = 16384;
+// The AbortSignal is advisory to fetch implementations. An injected or
+// non-cooperative transport may never settle its Promise after abort; the
+// browser must still release the private operator UI at the 35s deadline.
+// The server has its own earlier deadline and fail-closed session breaker.
+async function fetchPrivateBeforeDeadline(url, options, signal) {
+  if (signal.aborted) throw new Error('private_response_timeout');
+  let onAbort;
+  const interrupted = new Promise((_, reject) => {
+    onAbort = () => reject(new Error('private_response_timeout'));
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([fetch(url, options), interrupted]);
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+  }
+}
 // The browser's AbortSignal does not guarantee that a custom or broken
 // ReadableStream will ever resolve reader.read(). Bound each wait independently
 // so the operator can recover after the 35-second UI deadline.
@@ -172,7 +189,7 @@ form?.addEventListener('submit', async event => {
   const timeout = setTimeout(() => controller.abort(), 35000);
   try {
     const endpoint = openQuestion ? 'converse' : 'respond';
-    const response = await fetch('/__faisca_openai_private/' + endpoint, {
+    const response = await fetchPrivateBeforeDeadline('/__faisca_openai_private/' + endpoint, {
       method:'POST', headers: {
         'Content-Type':'application/json',
         Authorization:'Bearer ' + reviewToken
@@ -180,7 +197,7 @@ form?.addEventListener('submit', async event => {
       body:JSON.stringify(openQuestion ? [true,typed] : {caseId}), redirect:'error',
       credentials:'omit', cache:'no-store', referrerPolicy:'no-referrer',
       signal:controller.signal
-    });
+    }, controller.signal);
     if (response.status !== 200) throw new Error('review_unavailable');
     const data = await readBoundedPrivateJson(response, controller.signal);
     const fixed = !openQuestion;
