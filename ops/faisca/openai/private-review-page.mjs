@@ -96,6 +96,22 @@ const sources = document.getElementById('review-sources');
 const validCases = new Set(['compare','process','pricing']);
 let pending = false;
 const MAX_PRIVATE_RESPONSE_BYTES = 16384;
+// The browser's AbortSignal does not guarantee that a custom or broken
+// ReadableStream will ever resolve reader.read(). Bound each wait independently
+// so the operator can recover after the 35-second UI deadline.
+async function readAbortablePrivateChunk(reader, signal) {
+  if (signal.aborted) throw new Error('private_response_timeout');
+  let onAbort;
+  const interrupted = new Promise((_, reject) => {
+    onAbort = () => reject(new Error('private_response_timeout'));
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([reader.read(), interrupted]);
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+  }
+}
 async function readBoundedPrivateJson(response, signal) {
   const declared = response.headers.get('content-length');
   if (declared !== null &&
@@ -109,7 +125,7 @@ async function readBoundedPrivateJson(response, signal) {
   try {
     while (true) {
       if (signal.aborted) throw new Error('private_response_timeout');
-      const item = await reader.read();
+      const item = await readAbortablePrivateChunk(reader, signal);
       if (item.done) break;
       bytes += item.value.byteLength;
       if (bytes > MAX_PRIVATE_RESPONSE_BYTES) throw new Error('private_response_too_large');
@@ -120,7 +136,10 @@ async function readBoundedPrivateJson(response, signal) {
     for (const chunk of chunks) { payload.set(chunk, offset); offset += chunk.byteLength; }
     return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(payload));
   } finally {
-    try { await reader.cancel(); } catch { /* cancellation is best effort */ }
+    // cancel() may itself never settle. Do not trap the UI in cleanup after
+    // a deadline or malformed response. Ignore failures without leaking data.
+    try { void Promise.resolve(reader.cancel()).catch(() => {}); }
+    catch { /* cancellation is best effort */ }
   }
 }
 
