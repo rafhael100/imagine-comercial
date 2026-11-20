@@ -6,9 +6,13 @@ import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-rev
 const origin = 'http://127.0.0.1:4336';
 const headers = new Headers({
   'Content-Type': 'text/html; charset=utf-8',
-  'Cache-Control': 'no-store',
-  'X-Robots-Tag': 'noindex',
-  'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'"
+  'Cache-Control': 'no-store, max-age=0',
+  'Pragma': 'no-cache',
+  'X-Robots-Tag': 'noindex, nofollow, noarchive',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'no-referrer',
+  'X-Frame-Options': 'DENY',
+  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
 });
 
 test('R113 private staging smoke times out even if fetch ignores AbortSignal', async () => {
