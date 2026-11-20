@@ -125,8 +125,8 @@ def from_onepage_selector(page):
     contact_link()
     selector.locator('[data-choice-site="none"]').click()
     check(action.get_attribute("aria-disabled") == "true"
-          and action.get_attribute("href") == "/contato/",
-          "Empty selection must not retain the private handoff")
+          and action.get_attribute("href") is None,
+          "Empty selection must not expose a contact or private handoff URL")
     selector.locator('[data-choice-channel="google_ads"]').click()
     contact_link()
     selector.locator('[data-choice-channel="google_ads"]').click()

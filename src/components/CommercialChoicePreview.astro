@@ -220,7 +220,9 @@ import {describeSelectedAdvertisingCosts} from '../lib/public-quote-channel-brea
    const action=root.querySelector('[data-choice-action]');
    if(action){
     const privateOnepage=Boolean(onepagePreviewHref&&onepagePreviewLabel&&contactLabel&&site==='onepage'&&channels.length===0);
-    action.setAttribute('href',privateOnepage?onepagePreviewHref:estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):action.getAttribute('data-choice-fallback'));
+    const reviewedHref=privateOnepage?onepagePreviewHref:estimate.hasChoice?reviewedQuoteChoiceHref(locale,{site,channels,tier}):null;
+    if(reviewedHref)action.setAttribute('href',reviewedHref);
+    else action.removeAttribute('href'); // No empty-quote URL for context menus or middle clicks.
     if(onepagePreviewHref){
      // The capability is a fixed reviewed link, never derived from form data.
      // Preserve the public link/label unless this private build opted in.
@@ -234,11 +236,16 @@ import {describeSelectedAdvertisingCosts} from '../lib/public-quote-channel-brea
     action.setAttribute('aria-disabled',String(!estimate.hasChoice));
     action.tabIndex=estimate.hasChoice?0:-1;
    }
+   // aria-disabled alone does not block a pointer click on an <a> element.
+   // Empty quotes must never activate even the fallback contact destination.
    const empty=root.querySelector('[data-choice-empty]');
    if(empty)empty.hidden=estimate.hasChoice;
    const copyButton=root.querySelector('[data-choice-copy]');
    if(copyButton){copyButton.hidden=false;copyButton.disabled=!estimate.hasChoice;}
   };
+  root.querySelector('[data-choice-action]')?.addEventListener('click',event=>{
+   if(event.currentTarget.getAttribute('aria-disabled')==='true')event.preventDefault();
+  });
   root.querySelector('[data-choice-copy]')?.addEventListener('click',async()=>{
    const status=root.querySelector('[data-choice-copy-status]');
    if(!status)return;

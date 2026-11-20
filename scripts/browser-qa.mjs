@@ -316,12 +316,20 @@ try {
     assert.equal(await preview.locator('[data-choice-channel-breakdown]').isVisible(),false,
       'F355: no stale channel breakdown when all ads are removed');
     assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'true');
+    assert.equal(await preview.locator('[data-choice-action]').getAttribute('href'),null,
+      'F358: empty quotes must have no URL for context-menu or auxiliary clicks');
+    assert.equal(await preview.locator('[data-choice-action]').evaluate(link=>
+      link.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}))),false,
+      'F357: no website and no ads must prevent native anchor navigation on a pointer click');
     assert.equal(await preview.locator('[data-choice-portal-readiness]').getAttribute('data-code'),
       'no_selection');
     assert.equal(await preview.locator('[data-choice-copy]').isDisabled(),true,
       'F346: an empty quote must not be copied as a real offer');
     assert.equal(await preview.locator('input, form, textarea').count(),0);
     await preview.locator('[data-choice-site="onepage"]').click();
+    assert.equal(await preview.locator('[data-choice-action]').getAttribute('aria-disabled'),'false');
+    assert.ok(await preview.locator('[data-choice-action]').getAttribute('href'),
+      'F358: restored quote must restore the reviewed contact/Portal URL');
     assert.deepEqual(await preview.locator('[data-choice-selected-items] li').allTextContents(),
       ['Site · Onepage']);
     assert.equal(await preview.locator('[data-choice-investment]').isVisible(),false);
