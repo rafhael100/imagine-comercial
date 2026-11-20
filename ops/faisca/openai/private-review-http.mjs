@@ -18,6 +18,7 @@ const MAX_BODY_BYTES = 96;
 const MAX_CONVERSATION_BODY_BYTES = 1500;
 const READ_BODY_DEADLINE = Symbol('private-review-body-deadline');
 const PROVIDER_DEADLINE = Symbol('private-review-provider-deadline');
+const REJECTED_PRIVATE_OUTPUT = Symbol('private-review-rejected-output');
 const tokenPattern = /^[a-zA-Z0-9_-]{32,128}$/;
 const PORT_RANGE = Number.isSafeInteger;
 const securityHeaders = Object.freeze({
@@ -355,7 +356,7 @@ export async function startFaiscaOpenAIPrivateReview({
       }
       const outcome = conversation ? safeConversationOutput(reply, input)
         : safeReviewOutput(reply, input);
-      if (!outcome) throw new Error('Invalid private review output.');
+      if (!outcome) throw REJECTED_PRIVATE_OUTPUT;
       send(res, 200, {
         schema: conversation ? 'faisca.openai-private-conversation-response.v1'
           : 'faisca.openai-private-review-response.v1',
@@ -368,7 +369,13 @@ export async function startFaiscaOpenAIPrivateReview({
         requiresEditorialReview: true,
         publicReady: false, operationalEffects: false
       });
-    } catch {
+    } catch (error) {
+      // Transport/provider exceptions may have incurred a charge despite not
+      // yielding a response. Lock this process until operator review. Unsafe
+      // but *completed* model outputs remain 503 without opening the breaker,
+      // so separate synthetic negative editorial fixtures can be evaluated.
+      // In neither case do we retry or release the durable reservation.
+      if (error !== REJECTED_PRIVATE_OUTPUT) providerUnavailable = true;
       send(res, 503, {
         status: 'unavailable',
         message: 'The private AI review could not confirm a safe response.'
