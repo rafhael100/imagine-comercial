@@ -6,6 +6,7 @@ As R135–R146 bloqueiam várias promessas e preços fictícios, mas textos sint
 ## Alteração técnica
 - A função já usada como barreira comum `hasPrivateUnsupportedOutcomeGuarantee` passa a recusar atribuições inventadas a plataformas/fontes externas, percentuais de desempenho sem receita factual e posições de busca supostamente alcançadas pelo visitante.
 - A barreira de saída no próprio navegador repete independentemente os testes para impedir que um adaptador HTTP com resposta 200 contorne o servidor.
+- O smoke estático R94 continua verificando **bytes exatos** HTML/JS/CSS e digest do mascote. A CI inicial detectou a ampliação do JavaScript de revisão acima do limite anterior de 20 KB. Corrigido o teto independente para **24 KiB** (não foi removido nem relaxado o critério de integridade), acrescentando regressão HTTP read-only que percorre os quatro assets sem invocar modelos.
 - `node --test tests/faisca-r147-private-unsupported-evidence.test.mjs` exercita respostas hostis e neutras com **fixtures totalmente sintéticas** no cliente Luna/Terra (HTTP mock, sem chave real), nos endpoints HTTP privados autenticados em loopback e no JavaScript real da página de revisão executado em VM. Afirmações rejeitadas não devem aparecer no corpo da resposta, não há retry/reembolso implícito, o bearer é apagado e uma orientação genérica segura permanece possível.
 
 ## Limites e gates
