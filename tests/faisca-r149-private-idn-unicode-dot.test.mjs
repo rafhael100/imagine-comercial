@@ -16,13 +16,15 @@ const risky = [
   'O servidor de testes usa 10。0。0。1?',
   'O endereço loja․example aparece na resposta?',
   'A página fictícia menciona loja‧example?',
-  'O domínio fictício loja.рф está na mensagem?'
+  'O domínio fictício loja.рф está na mensagem?',
+  'A campanha utiliza exemplo.xn--p1ai no laboratório?'
 ];
 const unsafeReplies = [
   'A página fictícia pode usar loja.exemplо como endereço.',
   'A página fictícia pode usar loja.例子 como endereço.',
   'O servidor fictício responde em 10。0。0。1.',
-  'A página fictícia pode usar loja․example como endereço.'
+  'A página fictícia pode usar loja․example como endereço.',
+  'O endereço de testes exemplo.xn--p1ai não é autorizado.'
 ];
 const safeQuestion = 'Como estruturar uma landing page para um evento fictício?';
 const safeReply = 'Uma landing page pode organizar informações gerais de um evento fictício.';
