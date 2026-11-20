@@ -48,6 +48,16 @@ const reportedAction = /\b(?:ja\s+)?(?:publiquei|publicamos|configurei|configura
 const completedVisitorAsset = /\b(?:seu|sua|seus|suas)\s+(?:site|pagina|landing\s+page|dominio|campanha|formulario|conta|acesso|pedido|projeto)\b.{0,70}\b(?:ja\s+)?(?:foi|foram|esta|estao)\s+(?:publicad[oa]s?|ativad[oa]s?|ativ[oa]s?|configurad[oa]s?|enviad[oa]s?|cadastrad[oa]s?|contratad[oa]s?|concluid[oa]s?|aprovad[oa]s?|liberad[oa]s?|pront[oa]s?|integrad[oa]s?|online|no\s+ar|rodando|hospedad[oa]s?|disponiveis?|em\s+funcionamento)\b/;
 const completedVisitorReceipt = /\b(?:publicacao|ativacao|configuracao|integracao|implantacao|cadastro|aprovacao)\s+(?:do|da|de)\s+(?:seu|sua)\b.{0,70}\b(?:ja\s+)?(?:foi|esta)\s+(?:concluid[oa]|finalizad[oa]|confirmad[oa]|realizad[oa])\b/;
 
+// Deliberately narrow lexical defense against invented certainty of marketing
+// outcomes. This does not certify factual correctness or replace editorial review.
+// Conservative false positives in the synthetic lab are preferable to
+// displaying an unsourced promise to the operator.
+const unsupportedOutcomeGuarantee = /\b(?:garante|garantem|garantid[oa]s?|assegura|asseguram|promete|prometem)\b.{0,75}\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b|\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b.{0,55}\bgarantid[oa]s?\b/;
+
+export function hasPrivateUnsupportedOutcomeGuarantee(text) {
+  return typeof text !== 'string' || unsupportedOutcomeGuarantee.test(normalize(text));
+}
+
 export function hasPrivateOperationalClaim(text) {
   if (typeof text !== 'string') return true;
   const normalized = normalize(text);
@@ -59,6 +69,7 @@ export function hasPrivateOperationalClaim(text) {
 export function safePrivateGeneralReply(text) {
   if (typeof text !== 'string') return false;
   const normalized = normalize(text);
-  return !hasPrivateIdentifierRisk(text) && !hasPrivateOperationalClaim(text) && !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
+  return !hasPrivateIdentifierRisk(text) && !hasPrivateOperationalClaim(text) &&
+    !hasPrivateUnsupportedOutcomeGuarantee(text) && !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
     !/\b(?:nosso|nossa|oferecemos|entregamos|garantimos|aprovamos|enviamos|cobramos)\b/.test(normalized);
 }
