@@ -62,11 +62,25 @@ const unsupportedOutcomeGuarantee = /\b(?:garante|garantem|garantimos|garantira|
 // authority; e.g. "vai gerar 100 leads" must never appear as a verified fact.
 const unsupportedQuantifiedOutcome = /\b(?:vai|vamos|ira|irao|iremos|conseguira|conseguiremos)\s+(?:gerar|conseguir|atrair|trazer|obter|entregar|conquistar)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b|\b(?:tera|terao|teremos)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b/;
 
+// R147: a live model has no source-of-truth for third-party studies,
+// performance percentages or a visitor's search placement. Do not let a
+// plausible citation ("according to Google") impersonate evidence: this
+// private lab has no approved source for those factual claims.
+const unsupportedExternalAttribution =
+  /\b(?:segundo|conforme|de\s+acordo\s+com|dados\s+(?:do|da|de)|pesquisa\s+(?:do|da|de))\s+(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\b/u;
+const unsupportedUnverifiedKpi =
+  /\b(?:taxa\s+de\s+(?:conversao|cliques?|abertura)|roi|ctr|crescimento|engajamento)\b.{0,45}\d{1,3}(?:[.,]\d{1,2})?\s*%/u;
+const unsupportedSearchPlacement =
+  /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|loja)\b.{0,65}\b(?:topo\s+do\s+google|primeir[oa]\s+(?:posicao|pagina|lugar)|top\s*[1-9]\d?)\b/u;
+
 export function hasPrivateUnsupportedOutcomeGuarantee(text) {
   if (typeof text !== 'string') return true;
   const normalized = normalize(text);
   return unsupportedOutcomeGuarantee.test(normalized) ||
-    unsupportedQuantifiedOutcome.test(normalized);
+    unsupportedQuantifiedOutcome.test(normalized) ||
+    unsupportedExternalAttribution.test(normalized) ||
+    unsupportedUnverifiedKpi.test(normalized) ||
+    unsupportedSearchPlacement.test(normalized);
 }
 
 export function hasPrivateOperationalClaim(text) {
