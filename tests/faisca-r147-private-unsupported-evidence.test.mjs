@@ -7,6 +7,7 @@ import { retrieveCandidateAnswerIds } from '../ops/faisca/model-router/contract.
 import { getGroundedAnswer } from '../ops/faisca/grounding/guide.mjs';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
 import { PRIVATE_REVIEW_JS } from '../ops/faisca/openai/private-review-page.mjs';
+import { inspectFaiscaPrivateReviewUi } from '../ops/faisca/openai/private-staging-readonly-smoke.mjs';
 
 const fabricated = [
   'Segundo o Google, todo site Onepage vende mais.',
@@ -175,4 +176,20 @@ test('R147 actual private browser JavaScript rejects a forged HTTP 200 for fixed
     assert.equal(requests, 1);
     assert.equal(fields.get('review-answer').textContent, neutral);
   }
+});
+
+test('R147 expanded private browser JS remains byte-pinned and passes bounded readonly HTTP staging smoke', async t => {
+  let modelCalls = 0;
+  const server = await startFaiscaOpenAIPrivateReview({
+    lab: { answer: async () => { modelCalls++; throw new Error('Static smoke must not call Luna/Terra.'); },
+      inspect: () => ({ fixtureOnly: true }) },
+    reviewToken: 'R147_SYNTHETIC_READONLY_1234567890_ABCDEFG'
+  });
+  t.after(() => server.close());
+  const result = await inspectFaiscaPrivateReviewUi({ origin: server.address });
+  assert.equal(result.status, 'PRIVATE_UI_READONLY_VERIFIED');
+  assert.equal(result.requests, 4);
+  assert.deepEqual(result.checks.map(item => item.passed), [true, true, true, true]);
+  assert.equal(modelCalls, 0);
+  assert.equal(result.publicReady, false);
 });
