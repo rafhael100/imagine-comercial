@@ -198,15 +198,26 @@ form?.addEventListener('submit', async event => {
   // Only a validated fictional question or one of the three fixed case IDs
   // can leave this temporary browser session. Never persist the bearer.
   if (!/^[A-Za-z0-9_-]{32,128}$/.test(reviewToken) || !validCases.has(caseId)) {
+    // Invalid bearer or scenario must not retain accidentally pasted input.
+    if (question) question.value = '';
+    if (attestation) attestation.checked = false;
     status.textContent = 'Confira o token de revisão e escolha uma pergunta fictícia.';
     return;
   }
   if (openQuestion && (!attestation?.checked || typed.trim().length < 12 ||
       typed.length > 240 || !privateFictionalQuestionPreflight(typed))) {
+    // A rejected private question may contain accidentally pasted personal
+    // information. Never leave it in the textarea for another attempt.
+    if (question) question.value = '';
+    if (attestation) attestation.checked = false;
     status.textContent = 'Escreva a pergunta e confirme que ela é fictícia.';
     return;
   }
   pending = true;
+  // Drop operator text from the DOM before the first fetch; only the local
+  // request closure holds the fictional string until the request finishes.
+  if (question) question.value = '';
+  if (attestation) attestation.checked = false;
   send.disabled = true;
   answer.textContent = 'Aguardando a resposta da IA...';
   sources.textContent = '';
