@@ -38,8 +38,25 @@ export function privateConversationEditorialReply(route) {
   };
 }
 
-export function safePrivateGeneralReply(text) {
+// An LLM may make an ungrounded claim that the operator's site/domain was
+// already changed, even when it contains no price, contact or Imagine name.
+// These are conservative lexical tripwires, not proof of factual correctness.
+// This laboratory has NO tool, Portal, DNS or publication authority.
+const reportedAction = /\b(?:ja\s+)?(?:publiquei|publicamos|configurei|configuramos|ativei|ativamos|enviei|enviamos|agendei|agendamos|cadastrei|cadastramos|integrei|integramos|instalei|instalamos|criei|criamos|aprovei|aprovamos|contratei|contratamos|finalizei|finalizamos|liberei|liberamos)\b/;
+const completedVisitorAsset = /\b(?:seu|sua|seus|suas)\s+(?:site|pagina|landing\s+page|dominio|campanha|formulario|conta|acesso|pedido|projeto)\b.{0,70}\b(?:ja\s+)?(?:foi|foram|esta|estao)\s+(?:publicad[oa]s?|ativad[oa]s?|ativ[oa]s?|configurad[oa]s?|enviad[oa]s?|cadastrad[oa]s?|contratad[oa]s?|concluid[oa]s?|aprovad[oa]s?|liberad[oa]s?|pront[oa]s?|integrad[oa]s?)\b/;
+const completedVisitorReceipt = /\b(?:publicacao|ativacao|configuracao|integracao|implantacao|cadastro|aprovacao)\s+(?:do|da|de)\s+(?:seu|sua)\b.{0,70}\b(?:ja\s+)?(?:foi|esta)\s+(?:concluid[oa]|finalizad[oa]|confirmad[oa]|realizad[oa])\b/;
+
+export function hasPrivateOperationalClaim(text) {
+  if (typeof text !== 'string') return true;
   const normalized = normalize(text);
-  return !hasPrivateIdentifierRisk(text) && !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
+  return reportedAction.test(normalized) ||
+    completedVisitorAsset.test(normalized) ||
+    completedVisitorReceipt.test(normalized);
+}
+
+export function safePrivateGeneralReply(text) {
+  if (typeof text !== 'string') return false;
+  const normalized = normalize(text);
+  return !hasPrivateIdentifierRisk(text) && !hasPrivateOperationalClaim(text) && !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
     !/\b(?:nosso|nossa|oferecemos|entregamos|garantimos|aprovamos|enviamos|cobramos)\b/.test(normalized);
 }
