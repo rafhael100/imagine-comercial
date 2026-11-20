@@ -59,6 +59,24 @@ function responseFormat(name, properties) {
   };
 }
 
+// An injected/non-conforming transport may ignore AbortSignal and leave
+// fetch() or ReadableStreamDefaultReader.read() unresolved forever. Bound
+// waiting independently of transport cooperation; never retry or refund
+// a durably reserved private request after an uncertain timeout.
+async function awaitAbortable(pending, signal) {
+  if (signal.aborted) throw new Error('OpenAI private test unavailable.');
+  let onAbort;
+  const interrupted = new Promise((_, reject) => {
+    onAbort = () => reject(new Error('OpenAI private test unavailable.'));
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([pending, interrupted]);
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+  }
+}
+
 async function receiveBoundedResponse(response, signal, expectedModel) {
   if (response.status !== 200 ||
       !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(response.headers.get('content-type') ?? '') ||
@@ -73,14 +91,16 @@ async function receiveBoundedResponse(response, signal, expectedModel) {
   try {
     while (true) {
       if (signal.aborted) throw new Error('OpenAI private test unavailable.');
-      const next = await reader.read();
+      const next = await awaitAbortable(reader.read(), signal);
       if (next.done) break;
       size += next.value.byteLength;
       if (size > MAX_API_RESPONSE_BYTES) throw new Error('OpenAI private test unavailable.');
       pieces.push(Buffer.from(next.value));
     }
   } finally {
-    try { await reader.cancel(); } catch { /* Do not trust a partial body. */ }
+    // Never let an uncooperative stream's cancel() promise hang the error path.
+    // AbortController above remains the primary network cancellation mechanism.
+    try { void reader.cancel().catch(() => {}); } catch { /* Ignore cancel failure. */ }
   }
   if (size < 2) throw new Error('OpenAI private test unavailable.');
   let data;
@@ -173,14 +193,14 @@ export function createFaiscaOpenAILiveLab({
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetchImpl(API_URL, {
+      const response = await awaitAbortable(fetchImpl(API_URL, {
         method: 'POST', body, signal: controller.signal, redirect: 'error',
         headers: {
           Authorization: 'Bearer ' + apiKey,
           'Content-Type': 'application/json',
           Accept: 'application/json'
         }
-      });
+      }), controller.signal);
       return await receiveBoundedResponse(response, controller.signal, model);
     } catch {
       // Never expose API error bodies or configuration in the UI/log.
