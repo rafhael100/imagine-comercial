@@ -98,7 +98,7 @@ test('R150 authenticated loopback rejects IPv4 aliases without any provider disp
     assert.equal(response.status, 400, question);
     const body = await response.text();
     assert.equal(body.includes(question), false);
-    assert.equal(body.includes('loja.exemplо'), false);
+    assert.equal(body.includes('0x7f000001'), false);
   }
   assert.equal(calls, 0);
 });
