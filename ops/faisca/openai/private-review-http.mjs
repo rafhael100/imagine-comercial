@@ -5,7 +5,7 @@ import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
 import { getGroundingSources } from '../grounding/catalog.mjs';
-import { privateConversationRoute, safePrivateGeneralReply, hasPrivateOperationalClaim } from './private-conversation-policy.mjs';
+import { privateConversationRoute, safePrivateGeneralReply, hasPrivateOperationalClaim, hasPrivateUnsupportedOutcomeGuarantee } from './private-conversation-policy.mjs';
 import { readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
@@ -140,6 +140,7 @@ function safeReviewOutput(response, caseId) {
         hasPrivateOperationalClaim(answer) ||
         hasPrivateIdentifierRisk(answer) ||
         hasPrivateUnreviewedPriceClaim(answer) ||
+         hasPrivateUnsupportedOutcomeGuarantee(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
     const models = safeReviewList(get('modelIds') ?? [], approvedModels);
@@ -207,6 +208,7 @@ function safeConversationOutput(response, input) {
          /\p{Default_Ignorable_Code_Point}/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
         hasPrivateUnreviewedPriceClaim(answer) ||
+         hasPrivateUnsupportedOutcomeGuarantee(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
     const sources = safeReviewList(get('sourceIds') ?? [], approvedEditorialSourceIds);
     const models = safeReviewList(get('modelIds') ?? [], approvedModels);
