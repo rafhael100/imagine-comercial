@@ -1,6 +1,7 @@
 import {
   getAnonymousRouteBoundary, retrieveCandidateAnswerIds
 } from '../model-router/contract.mjs';
+import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 
 export const PRIVATE_SYNTHETIC_QUESTION_SCHEMA = 'faisca.private-operator-synthetic-question.v1';
 const trusted = new WeakSet();
@@ -44,7 +45,8 @@ export function readPrivateSyntheticQuestion(raw) {
       [...question].length < 12 || [...question].length > MAX_CHARS ||
       Buffer.byteLength(question, 'utf8') > MAX_BYTES ||
       question.split(/\s+/u).length < 3 ||
-      forbidden.some(rule => rule.test(question))) return null;
+      forbidden.some(rule => rule.test(question)) ||
+      hasPrivateIdentifierRisk(question)) return null;
   return question;
 }
 
