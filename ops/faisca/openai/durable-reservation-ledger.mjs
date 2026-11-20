@@ -162,6 +162,21 @@ export function createFaiscaLocalReservationLedger({
     await checkDirectory();
     // An absent state stays absent: preflight must not create or reset quota.
     const state = await readState();
+    // A stale crash lock is a hard NO-START for all callers of ready(),
+    // including future callers that do not run the separate VPS preflight.
+    // Never remove, follow or "recover" the lock automatically.
+    let locked = false;
+    try {
+      await lstat(lockPath);
+      locked = true;
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        throw new Error('Private reservation lock inspection unavailable.');
+      }
+    }
+    if (locked) throw new Error('Private reservation locked; operator review required.');
+    // A concurrent reservation can acquire the lock immediately afterwards:
+    // every paid dispatch must still use reserve()'s atomic O_EXCL guard.
     if (requireCapacity &&
         (state.requests + minimumRequests > maxRequests ||
          state.reservedMicros >= limitMicros ||
