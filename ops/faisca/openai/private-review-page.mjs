@@ -76,6 +76,34 @@ const answer = document.getElementById('review-answer');
 const sources = document.getElementById('review-sources');
 const validCases = new Set(['compare','process','pricing']);
 let pending = false;
+const MAX_PRIVATE_RESPONSE_BYTES = 16384;
+async function readBoundedPrivateJson(response, signal) {
+  const declared = response.headers.get('content-length');
+  if (declared !== null &&
+      (!/^[0-9]+$/.test(declared) || Number(declared) > MAX_PRIVATE_RESPONSE_BYTES)) {
+    throw new Error('private_response_too_large');
+  }
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('private_response_missing');
+  const chunks = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      if (signal.aborted) throw new Error('private_response_timeout');
+      const item = await reader.read();
+      if (item.done) break;
+      bytes += item.value.byteLength;
+      if (bytes > MAX_PRIVATE_RESPONSE_BYTES) throw new Error('private_response_too_large');
+      chunks.push(item.value);
+    }
+    const payload = new Uint8Array(bytes);
+    let offset = 0;
+    for (const chunk of chunks) { payload.set(chunk, offset); offset += chunk.byteLength; }
+    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(payload));
+  } finally {
+    try { await reader.cancel(); } catch { /* cancellation is best effort */ }
+  }
+}
 
 form?.addEventListener('submit', async event => {
   event.preventDefault();
@@ -95,6 +123,8 @@ form?.addEventListener('submit', async event => {
   answer.textContent = 'Aguardando a resposta da IA...';
   sources.textContent = '';
   status.textContent = 'Solicitação privada enviada. Nenhum cliente foi consultado.';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 35000);
   try {
     const response = await fetch('/__faisca_openai_private/respond', {
       method:'POST', headers: {
@@ -102,16 +132,22 @@ form?.addEventListener('submit', async event => {
         Authorization:'Bearer ' + reviewToken
       },
       body:JSON.stringify({caseId}), redirect:'error',
-      credentials:'omit', cache:'no-store', referrerPolicy:'no-referrer'
+      credentials:'omit', cache:'no-store', referrerPolicy:'no-referrer',
+      signal:controller.signal
     });
-    const data = await response.json();
-    if (response.status !== 200 ||
+    if (response.status !== 200) throw new Error('review_unavailable');
+    const data = await readBoundedPrivateJson(response, controller.signal);
+    if (
         data?.schema !== 'faisca.openai-private-review-response.v1' ||
         data.status !== 'draft_answer' || data.syntheticCaseId !== caseId ||
         data.requiresEditorialReview !== true ||
-        typeof data.answer !== 'string' || data.answer.length > 900 ||
+        typeof data.answer !== 'string' || data.answer.length < 20 || data.answer.length > 900 ||
+        /[\u0000-\u001f\u007f<>]/u.test(data.answer) ||
         data.sourceRecipeBound !== true ||
-        !Array.isArray(data.sources) || data.sources.length === 0 ||
+        !Array.isArray(data.sources) || data.sources.length === 0 || data.sources.length > 12 ||
+        data.sources.some(id => typeof id !== 'string' ||
+          !/^[a-z0-9][a-z0-9._:/@-]{0,127}$/i.test(id)) ||
+        new Set(data.sources).size !== data.sources.length ||
         !Array.isArray(data.models) || data.models.length !== 2 ||
         data.models[0] !== 'gpt-6-luna' || data.models[1] !== 'gpt-6.1-terra' ||
         data.publicReady !== false || data.operationalEffects !== false) {
@@ -125,6 +161,7 @@ form?.addEventListener('submit', async event => {
     answer.textContent = 'Resposta indisponível neste teste.';
     status.textContent = 'A revisão privada não concluiu. Confira a sessão e os limites no servidor.';
   } finally {
+    clearTimeout(timeout);
     pending = false;
     send.disabled = false;
   }
