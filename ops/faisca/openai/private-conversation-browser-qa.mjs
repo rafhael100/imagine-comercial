@@ -69,6 +69,54 @@ try {
       assert.equal(await page.locator('#review-attestation').isChecked(), false);
     }
   });
+  await step('R151 Chromium refuses credential-shaped input and forged HTTP 200 output', async () => {
+    // No real secret appears in the repository: an obviously fake value
+    // is assembled only in the running synthetic browser test.
+    const fakeSecret = 'sk-' + 'R'.repeat(30);
+    await page.locator('#review-token').fill(token);
+    await page.locator('#review-question')
+      .fill('Posso usar ' + fakeSecret + ' numa landing page fictícia?');
+    await page.locator('#review-attestation').check();
+    await page.locator('#review-send').click();
+    assert.match(await page.locator('#review-status').innerText(), /confirme que ela é fictícia/);
+    assert.equal(calls, 0, 'secret-shaped input must fail before provider dispatch');
+    assert.equal(await page.locator('#review-token').inputValue(), '');
+    assert.equal(await page.locator('#review-question').inputValue(), '');
+    assert.equal(await page.locator('#review-attestation').isChecked(), false);
+
+    const path = '**/__faisca_openai_private/converse';
+    let intercepted = 0;
+    await page.route(path, async route => {
+      intercepted++;
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-conversation-response.v1',
+          status: 'general_answer',
+          answer: 'Uma orientação fictícia contém ' + fakeSecret + ' neste exemplo.',
+          sources: [], models: ['gpt-6-luna', 'gpt-6.1-terra'],
+          sourceRecipeBound: false, requiresEditorialReview: true,
+          publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-question')
+        .fill('Vale a pena usar uma landing page para divulgar um evento?');
+      await page.locator('#review-attestation').check();
+      await page.locator('#review-send').click();
+      await page.waitForFunction(() =>
+        document.querySelector('#review-status')?.textContent?.includes('não concluiu.'));
+      assert.equal(intercepted, 1);
+      assert.equal(calls, 0, 'forged HTTP result cannot dispatch a model');
+      assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
+      assert.equal(await page.locator('#review-sources').innerText(), '');
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(await page.locator('#review-question').inputValue(), '');
+      assert.equal(await page.locator('#review-attestation').isChecked(), false);
+    } finally { await page.unroute(path); }
+  });
   await step('R95 typed question requires fictional attestation before dispatch',async()=>{
     await page.locator('#review-token').fill(token);
     await page.locator('#review-question').fill('Vale a pena usar uma landing page para divulgar um evento?');
