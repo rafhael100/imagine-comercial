@@ -115,6 +115,8 @@ function privateFictionalQuestionPreflight(value) {
   );
 }
 let pending = false;
+let pageEpoch = 0;
+let currentController = null;
 const MAX_PRIVATE_RESPONSE_BYTES = 16384;
 // The AbortSignal is advisory to fetch implementations. An injected or
 // non-cooperative transport may never settle its Promise after abort; the
@@ -183,6 +185,10 @@ async function readBoundedPrivateJson(response, signal) {
 form?.addEventListener('submit', async event => {
   event.preventDefault();
   if (pending) return;
+  // An invalid second attempt must never leave a previous response and its
+  // editorial citations onscreen as if they belonged to the new question.
+  answer.textContent = 'Nenhuma resposta validada para esta solicitação.';
+  sources.textContent = '';
   const reviewToken = token.value.trim(), caseId = scenario.value;
   const typed = question?.value ?? '';
   const openQuestion = Boolean(conversation && (typed.trim() !== '' || attestation?.checked));
@@ -205,7 +211,9 @@ form?.addEventListener('submit', async event => {
   answer.textContent = 'Aguardando a resposta da IA...';
   sources.textContent = '';
   status.textContent = 'Solicitação privada enviada. Nenhum cliente foi consultado.';
+  const requestEpoch = pageEpoch;
   const controller = new AbortController();
+  currentController = controller;
   const timeout = setTimeout(() => controller.abort(), 35000);
   try {
     const endpoint = openQuestion ? 'converse' : 'respond';
@@ -220,6 +228,9 @@ form?.addEventListener('submit', async event => {
     }, controller.signal);
     if (response.status !== 200) throw new Error('review_unavailable');
     const data = await readBoundedPrivateJson(response, controller.signal);
+    // A bfcache restoration must not render a late response belonging to a
+    // session the operator already left, even if abort was ignored by fetch.
+    if (requestEpoch !== pageEpoch) return;
     const fixed = !openQuestion;
     const validStatus = fixed ? data?.status === 'draft_answer' :
       ['general_answer','editorial_answer','needs_confirmation'].includes(data?.status);
@@ -260,10 +271,13 @@ form?.addEventListener('submit', async event => {
       status.textContent = 'Esta pergunta requer confirmação da equipe da Imagine.';
     }
   } catch {
-    answer.textContent = 'Resposta indisponível neste teste.';
-    status.textContent = 'A revisão privada não concluiu. Confira a sessão e os limites no servidor.';
+    if (requestEpoch === pageEpoch) {
+      answer.textContent = 'Resposta indisponível neste teste.';
+      status.textContent = 'A revisão privada não concluiu. Confira a sessão e os limites no servidor.';
+    }
   } finally {
     clearTimeout(timeout);
+    if (currentController === controller) currentController = null;
     if (question) question.value = '';
     if (attestation) attestation.checked = false;
     pending = false;
@@ -271,6 +285,11 @@ form?.addEventListener('submit', async event => {
   }
 });
 window.addEventListener('pagehide', () => {
+  pageEpoch++;
+  currentController?.abort();
+  answer.textContent = 'A resposta validada aparecerá aqui após uma chamada real.';
+  sources.textContent = '';
+  status.textContent = 'Sessão privada encerrada; forneça um novo token.';
   token.value = '';
   if (question) question.value = '';
   if (attestation) attestation.checked = false;
