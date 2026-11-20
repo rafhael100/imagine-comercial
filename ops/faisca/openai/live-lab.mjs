@@ -32,7 +32,8 @@ const rates = Object.freeze({
   'gpt-6-luna': Object.freeze({ input: 0.1, output: 0.5 }),
   'gpt-6.1-terra': Object.freeze({ input: 1, output: 5 })
 });
-const fallback = 'Não consegui confirmar uma orientação pela IA neste teste privado. Consulte as informações oficiais da Imagine.';
+export const FAISCA_OPENAI_UNSUPPORTED_FALLBACK = 'Não consegui confirmar uma orientação pela IA neste teste privado. Consulte as informações oficiais da Imagine.';
+const fallback = FAISCA_OPENAI_UNSUPPORTED_FALLBACK;
 const blockedOutput = /https?:|www\.|@[a-z0-9.-]+|R\$\s*\d|<|>|\b(?:pedido|pagamento|ticket|cobranca|cobrança)\s+(?:foi\s+)?(?:criado|realizado|aprovado|confirmado)\b/i;
 
 function strictObject(value, fields) {
