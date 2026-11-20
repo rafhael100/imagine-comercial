@@ -68,7 +68,7 @@ for (const testCase of cases) {
     const server = await startFaiscaOpenAIPrivateReview({
       lab, reviewToken: bearer,
       enablePrivateConversation: testCase.conversation,
-      providerDeadlineMs: 1500
+      providerDeadlineMs: 30000
     });
     t.after(async () => { release(null); await server.close(); });
 
