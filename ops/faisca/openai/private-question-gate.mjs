@@ -34,13 +34,7 @@ function dataOnly(value) {
   } catch { return null; }
 }
 
-/**
- * Accept ONLY an operator-attested fictional public-services question with
- * reviewed editorial candidates. Do not use this to handle real visitor input
- * or silently send its contents to OpenAI. The LLM transport remains disabled
- * for this type until a separate verified adapter and staging gate exists.
- */
-export function preparePrivateSyntheticQuestion(raw) {
+export function readPrivateSyntheticQuestion(raw) {
   const data = dataOnly(raw);
   if (!data || data.scope !== 'local_operator_lab' || data.attestedSynthetic !== true ||
       typeof data.question !== 'string' ||
@@ -50,8 +44,19 @@ export function preparePrivateSyntheticQuestion(raw) {
       [...question].length < 12 || [...question].length > MAX_CHARS ||
       Buffer.byteLength(question, 'utf8') > MAX_BYTES ||
       question.split(/\s+/u).length < 3 ||
-      forbidden.some(rule => rule.test(question)) ||
-      getAnonymousRouteBoundary(question) !== null) return null;
+      forbidden.some(rule => rule.test(question))) return null;
+  return question;
+}
+
+/**
+ * Accept ONLY an operator-attested fictional public-services question with
+ * reviewed editorial candidates. Do not use this to handle real visitor input
+ * or silently send its contents to OpenAI. The LLM transport remains disabled
+ * for this type until a separate verified adapter and staging gate exists.
+ */
+export function preparePrivateSyntheticQuestion(raw) {
+  const question = readPrivateSyntheticQuestion(raw);
+  if (!question || getAnonymousRouteBoundary(question) !== null) return null;
   const candidateAnswerIds = retrieveCandidateAnswerIds(question);
   if (candidateAnswerIds.length < 1) return null;
   const output = Object.freeze({

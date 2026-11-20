@@ -1,5 +1,5 @@
 import {
-  PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
+  PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_CONVERSATION_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
 } from './private-review-page.mjs';
 
 export const FAISCA_PRIVATE_STAGING_SMOKE_SCHEMA = 'faisca.private-staging-readonly-smoke.v1';
@@ -47,11 +47,13 @@ async function limitedText(response, signal) {
  * invocation, customer text, reverse proxy or public host is involved.
  */
 export async function inspectFaiscaPrivateReviewUi({
-  origin = 'http://127.0.0.1:4336', fetchImpl = globalThis.fetch
+  origin = 'http://127.0.0.1:4336', fetchImpl = globalThis.fetch,
+  privateConversationEnabled = false
 } = {}) {
   const checks = [];
   const allowedOrigin = /^http:\/\/127\.0\.0\.1:([1-9][0-9]{0,4})$/.exec(origin);
   if (!allowedOrigin || Number(allowedOrigin[1]) > 65535 ||
+      typeof privateConversationEnabled !== 'boolean' ||
       typeof fetchImpl !== 'function') {
     return Object.freeze({
       schema: FAISCA_PRIVATE_STAGING_SMOKE_SCHEMA,
@@ -85,7 +87,9 @@ export async function inspectFaiscaPrivateReviewUi({
       // An unreviewed/stale HTML/JS/CSS asset can retain all old marker words.
       // Require an exact content match with the audited local page modules.
       // This still does not prove VPS provenance, SHA approval or public safety.
-      passed = body === item.expected;
+      passed = body === (privateConversationEnabled &&
+        item.path === '/__faisca_openai_private/review'
+        ? PRIVATE_REVIEW_CONVERSATION_HTML : item.expected);
     } catch { passed = false; }
     finally { clearTimeout(timeout); controller.abort(); }
     checks.push(Object.freeze({ path: item.path, passed }));
