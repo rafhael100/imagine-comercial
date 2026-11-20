@@ -16,7 +16,7 @@ function syntheticLab() {
   };
 }
 
-test('R86 readonly staging smoke checks only the three reviewed private UI assets', async t => {
+test('R86 readonly staging smoke checks only the four reviewed private UI assets', async t => {
   const lab = syntheticLab();
   const server = await startFaiscaOpenAIPrivateReview({ lab, reviewToken: token, port: 0 });
   t.after(() => server.close());
@@ -28,12 +28,13 @@ test('R86 readonly staging smoke checks only the three reviewed private UI asset
   };
   const report = await inspectFaiscaPrivateReviewUi({ origin: server.address, fetchImpl });
   assert.equal(report.status, 'PRIVATE_UI_READONLY_VERIFIED');
-  assert.equal(report.requests, 3);
-  assert.deepEqual(report.checks.map(x => x.passed), [true,true,true]);
+  assert.equal(report.requests, 4);
+  assert.deepEqual(report.checks.map(x => x.passed), [true,true,true,true]);
   assert.deepEqual(paths.map(x => new URL(x.url).pathname), [
     '/__faisca_openai_private/review',
     '/__faisca_openai_private/review.js',
-    '/__faisca_openai_private/review.css'
+    '/__faisca_openai_private/review.css',
+    '/__faisca_openai_private/mascot.png'
   ]);
   assert.ok(paths.every(item => item.method === 'GET' && !item.hasBearer &&
     item.credentials === 'omit' && item.redirect === 'error' && item.signal));
