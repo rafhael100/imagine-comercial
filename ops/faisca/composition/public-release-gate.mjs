@@ -12,6 +12,7 @@ const MAX_FILES = 350;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 160 * 1024 * 1024;
 const compressedFile = /\.(?:gz|br)$/i;
+const nestedCompressedFile = /(?:\.(?:gz|br)){2,}$/i;
 const textFile = /\.(?:html|js|css|json|xml|txt|webmanifest|map)$/i;
 const APPROVED_MASCOT_SHA256 =
   '1ede4d88a38e238523c6db7351f22654ffa40b9f8ee2260ea31b162763d8c87d';
@@ -55,6 +56,7 @@ export async function auditPublicFaiscaDist({ distDir = resolve(sourceRoot, 'dis
   }
   const paths = new Set();
   let bytesChecked = 0, filesChecked = 0, textFilesChecked = 0;
+  let expandedBytesChecked = 0;
   async function walk(folder, prefix = '') {
     for (const dirent of await readdir(folder, { withFileTypes: true })) {
       const path = prefix + dirent.name;
@@ -96,6 +98,13 @@ export async function auditPublicFaiscaDist({ distDir = resolve(sourceRoot, 'dis
         throw new Error('R26: private Faísca code or preview marker leaked into public dist.');
       }
       if (compressedFile.test(path)) {
+        // Two-stage .gz/.br assets are unnecessary for this reviewed public
+        // release. One-level inspection would let a private route survive
+        // inside the inner layer; fail closed rather than guessing the
+        // origin's Content-Encoding chain.
+        if (nestedCompressedFile.test(path)) {
+          throw new Error('R26: nested compressed public artifacts are forbidden.');
+        }
         // CDNs may serve precompressed public HTML/JS. Plain-byte scanning
         // cannot see private route markers concealed by gzip or Brotli.
         // Bound decompression to a single public file's uncompressed limit.
@@ -106,6 +115,17 @@ export async function auditPublicFaiscaDist({ distDir = resolve(sourceRoot, 'dis
             : gunzipSync(data, { maxOutputLength: MAX_FILE_BYTES });
         } catch {
           throw new Error('R26: invalid or oversized compressed public artifact.');
+        }
+        // A crafted archive can inflate to almost 12 MiB per file. Enforce
+        // a cumulative bound as well, not only an individual-file bound.
+        expandedBytesChecked += expanded.length;
+        if (expandedBytesChecked > MAX_TOTAL_BYTES) {
+          throw new Error('R26: total decompressed public dist byte limit exceeded.');
+        }
+        // Catch a second gzip layer even when the filename lies about it.
+        if (expanded.length >= 3 && expanded[0] === 0x1f &&
+            expanded[1] === 0x8b && expanded[2] === 0x08) {
+          throw new Error('R26: nested gzip payload is forbidden.');
         }
         if (forbiddenContent.some(pattern => pattern.test(expanded.toString('latin1')))) {
           throw new Error('R26: private Faísca code or preview marker leaked into public dist.');
@@ -132,7 +152,7 @@ export async function auditPublicFaiscaDist({ distDir = resolve(sourceRoot, 'dis
   return Object.freeze({
     schema: PUBLIC_LEAK_GATE_SCHEMA,
     inspectedScope: 'compiled_public_dist_only',
-    filesChecked, textFilesChecked, bytesChecked,
+    filesChecked, textFilesChecked, bytesChecked, expandedBytesChecked,
     publicFaiscaEnabled: false, privateFaiscaAssetsDetected: false,
     productionPublished: false, operationalEffects: false
   });
