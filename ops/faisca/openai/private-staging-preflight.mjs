@@ -69,7 +69,9 @@ export async function inspectFaiscaPrivateStaging({
     const ledger = createFaiscaLocalReservationLedger({
       directory, maxRequests: 100, maxBudgetUsd: 10
     });
-    await ledger.ready();
+    // A valid directory alone does not prove that a previous paid session
+    // left a readable ledger or any request/budget capacity.
+    await ledger.ready({ requireCapacity: true });
     return absentReservationLock(directory);
   }
 } = {}) {
