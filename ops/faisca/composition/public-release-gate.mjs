@@ -82,12 +82,22 @@ export async function auditPublicFaiscaDist({ distDir = resolve(sourceRoot, 'dis
       if (sha(data) === APPROVED_MASCOT_SHA256) {
         throw new Error('R26: the unpublished approved Faísca mascot is in public dist.');
       }
+      // The public dist can contain opaque assets and source copied under
+      // unexpected extensions (.mjs, .svg, .log, .wasm, .dat, etc.). Scanning
+      // only recognized UTF-8 text extensions silently misses ASCII private
+      // routes and configuration markers inside those files. Inspect the raw
+      // bytes of EVERY output file before deciding whether to decode it.
+      // latin1 preserves ASCII bytes, including in otherwise binary payloads.
+      // This is a lexical defense, not a decompressor or a secret scanner.
+      const raw = data.toString('latin1');
+      if (forbiddenContent.some(pattern => pattern.test(raw))) {
+        throw new Error('R26: private Faísca code or preview marker leaked into public dist.');
+      }
       if (textFile.test(path)) {
         textFilesChecked++;
-        const body = new TextDecoder('utf-8', { fatal: true }).decode(data);
-        if (forbiddenContent.some(pattern => pattern.test(body))) {
-          throw new Error('R26: private Faísca code or preview marker leaked into public dist.');
-        }
+        // Preserve the existing fail-closed rule for malformed UTF-8 in
+        // recognized web text assets.
+        new TextDecoder('utf-8', { fatal: true }).decode(data);
       }
     }
   }
