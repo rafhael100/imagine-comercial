@@ -3,20 +3,34 @@ import {
 } from './private-review-page.mjs';
 
 export const FAISCA_PRIVATE_STAGING_SMOKE_SCHEMA = 'faisca.private-staging-readonly-smoke.v1';
+// Independent, exact private-asset HTTP policy: an exact HTML/JS/CSS
+// body is insufficient when CSP, CORS, caching or framing headers regress.
+// Do not import the server's live header object here: the smoke must detect
+// a server-side policy change rather than automatically accepting it.
+const reviewedAssetHeaders = Object.freeze({
+  'cache-control': 'no-store, max-age=0',
+  'pragma': 'no-cache',
+  'x-robots-tag': 'noindex, nofollow, noarchive',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'no-referrer',
+  'x-frame-options': 'DENY',
+  'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+});
+
 const routes = Object.freeze([
   Object.freeze({
     path: '/__faisca_openai_private/review',
-    mime: /^text\/html(?:;|$)/i,
+    mime: 'text/html; charset=utf-8',
     expected: PRIVATE_REVIEW_HTML
   }),
   Object.freeze({
     path: '/__faisca_openai_private/review.js',
-    mime: /^text\/javascript(?:;|$)/i,
+    mime: 'text/javascript; charset=utf-8',
     expected: PRIVATE_REVIEW_JS
   }),
   Object.freeze({
     path: '/__faisca_openai_private/review.css',
-    mime: /^text\/css(?:;|$)/i,
+    mime: 'text/css; charset=utf-8',
     expected: PRIVATE_REVIEW_CSS
   })
 ]);
@@ -94,12 +108,12 @@ export async function inspectFaiscaPrivateReviewUi({
         throw new Error('oversized');
       }
       if (response.status !== 200 ||
-          !item.mime.test(response.headers.get('content-type') ?? '') ||
-          !/no-store/i.test(response.headers.get('cache-control') ?? '') ||
-          !/noindex/i.test(response.headers.get('x-robots-tag') ?? '') ||
+          response.headers.get('content-type') !== item.mime ||
+          Object.entries(reviewedAssetHeaders).some(([name, value]) =>
+            response.headers.get(name) !== value) ||
           response.headers.get('access-control-allow-origin') !== null ||
-          response.headers.get('set-cookie') !== null ||
-          !/default-src 'none'/.test(response.headers.get('content-security-policy') ?? '')) {
+          response.headers.get('access-control-allow-credentials') !== null ||
+          response.headers.get('set-cookie') !== null) {
         throw new Error('unreviewed headers');
       }
       const body = await limitedText(response, controller.signal);
