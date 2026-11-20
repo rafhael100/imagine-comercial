@@ -165,22 +165,25 @@ export function createFaiscaLocalReservationLedger({
     // A stale crash lock is a hard NO-START for all callers of ready(),
     // including future callers that do not run the separate VPS preflight.
     // Never remove, follow or "recover" the lock automatically.
+    let locked = false;
     try {
       await lstat(lockPath);
+      locked = true;
     } catch (error) {
       if (error?.code !== 'ENOENT') {
         throw new Error('Private reservation lock inspection unavailable.');
       }
-      // No lock observed. reserve() still takes its own atomic O_EXCL lock.
-      if (requireCapacity &&
-          (state.requests + minimumRequests > maxRequests ||
-           state.reservedMicros >= limitMicros ||
-           state.reservedMicros + minimumMicros > limitMicros)) {
-        throw new Error('Private durable reservation limit reached.');
-      }
-      return true;
     }
-    throw new Error('Private reservation locked; operator review required.');
+    if (locked) throw new Error('Private reservation locked; operator review required.');
+    // A concurrent reservation can acquire the lock immediately afterwards:
+    // every paid dispatch must still use reserve()'s atomic O_EXCL guard.
+    if (requireCapacity &&
+        (state.requests + minimumRequests > maxRequests ||
+         state.reservedMicros >= limitMicros ||
+         state.reservedMicros + minimumMicros > limitMicros)) {
+      throw new Error('Private durable reservation limit reached.');
+    }
+    return true;
   }
 
   async function reserve(estimatedUsd) {
