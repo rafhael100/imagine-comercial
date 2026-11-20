@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { request } from 'node:http';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
+import { FAISCA_OPENAI_UNSUPPORTED_FALLBACK } from '../ops/faisca/openai/live-lab.mjs';
 
 const bearer = 'R121_PRIVATE_SYNTHETIC_DISCONNECT_01234567890';
 const question = 'Uma landing page ajuda a divulgar um evento fictício?';
@@ -70,7 +71,18 @@ for (const testCase of cases) {
       enablePrivateConversation: testCase.conversation,
       providerDeadlineMs: 30000
     });
-    t.after(async () => { release(null); await server.close(); });
+    const eventualSafeReply = testCase.conversation
+      ? {
+          status: 'general_answer',
+          text: 'Uma landing page pode apresentar informações gerais de um evento e orientar sua divulgação.',
+          sourceIds: [], modelIds: ['gpt-6-luna','gpt-6.1-terra'],
+          publicReady: false, operationalEffects: false
+        }
+      : {
+          status: 'unsupported', text: FAISCA_OPENAI_UNSUPPORTED_FALLBACK,
+          sourceIds: [], modelIds: [], publicReady: false, operationalEffects: false
+        };
+    t.after(async () => { release(eventualSafeReply); await server.close(); });
 
     const client = abandonablePost(server, testCase);
     await entered;
@@ -85,7 +97,7 @@ for (const testCase of cases) {
     assert.equal(blocked.status, 503);
     assert.equal((await blocked.json()).status, 'unavailable');
     assert.equal(calls, 1);
-    release(null); // Late provider completion must not reopen the breaker.
+    release(eventualSafeReply); // Even a late *safe* reply cannot reopen the breaker.
     await waitUntil(() => server.inspect().inFlight === false);
     assert.equal(server.inspect().providerUnavailable, true);
     const later = await post(server, testCase);
