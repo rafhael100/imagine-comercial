@@ -98,14 +98,28 @@ export function createFaiscaLocalReservationLedger({
     }
   }
 
-  async function ready({ requireCapacity = false } = {}) {
+  async function ready({
+    requireCapacity = false, minimumRequests = 1, minimumBudgetUsd = 0
+  } = {}) {
+    // A single private answer needs classification (Luna) AND composition
+    // (Terra). Refuse a misleading READY result when only one paid call or an
+    // unusably small budget remains. This is a read-only gate: other workers
+    // can still reserve later, so every actual dispatch rechecks atomically.
+    if (!Number.isSafeInteger(minimumRequests) || minimumRequests < 1 ||
+        minimumRequests > maxRequests ||
+        typeof minimumBudgetUsd !== 'number' ||
+        !Number.isFinite(minimumBudgetUsd) || minimumBudgetUsd < 0 ||
+        minimumBudgetUsd > maxBudgetUsd) {
+      throw new TypeError('Invalid private reservation readiness floor.');
+    }
+    const minimumMicros = Math.ceil(minimumBudgetUsd * 1_000_000);
     await checkDirectory();
-    // Read-only: parse and validate any persisted state BEFORE declaring a
-    // private operator session ready. An absent ledger is still allowed:
-    // the first reservation creates it atomically, never the preflight.
+    // An absent state stays absent: preflight must not create or reset quota.
     const state = await readState();
     if (requireCapacity &&
-        (state.requests >= maxRequests || state.reservedMicros >= limitMicros)) {
+        (state.requests + minimumRequests > maxRequests ||
+         state.reservedMicros >= limitMicros ||
+         state.reservedMicros + minimumMicros > limitMicros)) {
       throw new Error('Private durable reservation limit reached.');
     }
     return true;
