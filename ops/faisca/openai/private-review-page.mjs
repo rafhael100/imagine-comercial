@@ -152,7 +152,7 @@ form?.addEventListener('submit', async event => {
     }
     answer.textContent = data.answer;
     if (editorial) sources.textContent = 'Fontes editoriais: ' + data.sources.join(', ');
-    if (draft) status.textContent = 'Resposta gerada para revisão.';
+    if (draft) status.textContent = 'Resposta gerada. Revisão editorial obrigatória; nenhuma operação foi realizada.';
     else if (editorial) status.textContent = 'Resposta baseada no material aprovado pela Imagine.';
     else status.textContent = 'Confirmação da equipe necessária.';
   } catch {
