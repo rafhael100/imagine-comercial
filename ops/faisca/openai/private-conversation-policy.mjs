@@ -52,7 +52,7 @@ const completedVisitorReceipt = /\b(?:publicacao|ativacao|configuracao|integraca
 // outcomes. This does not certify factual correctness or replace editorial review.
 // Conservative false positives in the synthetic lab are preferable to
 // displaying an unsourced promise to the operator.
-const unsupportedOutcomeGuarantee = /\\b(?:garante|garantem|garantid[oa]s?|assegura|asseguram|promete|prometem)\\b.{0,75}\\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\\s+pagina|primeir[oa]\\s+(?:posicao|lugar)|trafego)\\b|\\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\\s+pagina|primeir[oa]\\s+(?:posicao|lugar)|trafego)\\b.{0,55}\\bgarantid[oa]s?\\b/;
+const unsupportedOutcomeGuarantee = /\b(?:garante|garantem|garantid[oa]s?|assegura|asseguram|promete|prometem)\b.{0,75}\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b|\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b.{0,55}\bgarantid[oa]s?\b/;
 
 export function hasPrivateUnsupportedOutcomeGuarantee(text) {
   return typeof text !== 'string' || unsupportedOutcomeGuarantee.test(normalize(text));
