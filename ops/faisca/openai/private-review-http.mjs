@@ -5,6 +5,7 @@ import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
 import { getGroundingSources } from '../grounding/catalog.mjs';
 import { privateConversationRoute, safePrivateGeneralReply } from './private-conversation-policy.mjs';
+import { readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import {
   PRIVATE_REVIEW_PAGE_PATH, PRIVATE_REVIEW_SCRIPT_PATH, PRIVATE_REVIEW_STYLE_PATH,
   PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_CONVERSATION_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
@@ -303,6 +304,14 @@ export async function startFaiscaOpenAIPrivateReview({
       return;
     }
     if (!input) { send(res, 400, { status: 'invalid_request' }); return; }
+    // Independent HTTP preflight: an injected/misconfigured lab must never see
+    // raw operator input that failed the same synthetic privacy boundary.
+    // Count authorized invalid attempts as before, but never dispatch them.
+    if (conversation && readPrivateSyntheticQuestion(input) === null) {
+      requests++;
+      send(res, 400, { status: 'invalid_question' });
+      return;
+    }
     // The live lab implements its own busy guard, but the HTTP boundary must
     // also serialize a misconfigured/injected provider. No parallel API calls
     // or implicit retries may arise from one review server.
