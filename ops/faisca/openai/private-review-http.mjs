@@ -5,7 +5,7 @@ import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
 import { getGroundingSources } from '../grounding/catalog.mjs';
-import { privateConversationRoute, safePrivateGeneralReply, hasPrivateOperationalClaim, hasPrivateUnsupportedOutcomeGuarantee } from './private-conversation-policy.mjs';
+import { privateConversationRoute, safePrivateGeneralReply, hasPrivateOperationalClaim, hasPrivateUnsupportedOutcomeGuarantee, PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from './private-conversation-policy.mjs';
 import { readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
@@ -225,7 +225,7 @@ function safeConversationOutput(response, input) {
     if (models.length !== 0) return null;
     if (status === 'needs_confirmation') {
       if (sources.length !== 0 ||
-          answer !== 'Essa informação precisa ser confirmada com a equipe da Imagine.') return null;
+          answer !== PRIVATE_CONVERSATION_CONFIRMATION_TEXT) return null;
       return Object.freeze({ status, answer, sources, models, sourceRecipeBound: false });
     }
     if (!['pricing','process'].includes(route)) return null;

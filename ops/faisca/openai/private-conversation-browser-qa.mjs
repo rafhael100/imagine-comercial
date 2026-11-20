@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { startFaiscaOpenAIPrivateReview } from './private-review-http.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
+import { PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from './private-conversation-policy.mjs';
 
 const token = 'R95_PRIVATE_CHROMIUM_TOKEN_ONLY_FIXTURE_2026';
 const report = [], errors = [], external = [];
@@ -171,6 +172,52 @@ try {
         assert.equal(await page.locator('#review-send').isEnabled(), true);
       }
       assert.equal(intercepted, responses.length, 'Only the three operator mock HTTP calls');
+      assert.equal(calls, 1, 'No additional provider access');
+    } finally {
+      await page.unroute(pattern);
+    }
+  });
+  await step('R141 Chromium pins confirmation text even for syntactically valid private HTTP 200', async () => {
+    const responses = [
+      { answer: 'A Imagine aprovou uma condição especial para este teste fictício.', safe: false },
+      { answer: PRIVATE_CONVERSATION_CONFIRMATION_TEXT, safe: true }
+    ];
+    let intercepted = 0;
+    const pattern = '**/__faisca_openai_private/converse';
+    await page.route(pattern, async route => {
+      const fixture = responses[intercepted++];
+      assert.ok(fixture, 'Unexpected retry');
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-conversation-response.v1',
+          status: 'needs_confirmation', answer: fixture.answer,
+          sources: [], models: [], sourceRecipeBound: false,
+          requiresEditorialReview: true, publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      for (const fixture of responses) {
+        await page.locator('#review-token').fill(token);
+        await page.locator('#review-question')
+          .fill('Vale a pena usar uma landing page para divulgar um evento?');
+        await page.locator('#review-attestation').check();
+        await page.locator('#review-send').click();
+        await page.waitForFunction(safe => {
+          const status = document.querySelector('#review-status')?.textContent ?? '';
+          return safe ? status.includes('requer confirmação')
+            : status.includes('não concluiu.');
+        }, fixture.safe);
+        assert.equal(await page.locator('#review-answer').innerText(),
+          fixture.safe ? PRIVATE_CONVERSATION_CONFIRMATION_TEXT
+            : 'Resposta indisponível neste teste.');
+        assert.equal(await page.locator('#review-sources').innerText(), '');
+        assert.equal(await page.locator('#review-token').inputValue(), '');
+        assert.equal(await page.locator('#review-question').inputValue(), '');
+        assert.equal(await page.locator('#review-send').isEnabled(), true);
+      }
+      assert.equal(intercepted, 2);
       assert.equal(calls, 1, 'No additional provider access');
     } finally {
       await page.unroute(pattern);

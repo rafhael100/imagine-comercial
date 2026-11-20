@@ -4,13 +4,14 @@ import vm from 'node:vm';
 import { PRIVATE_REVIEW_JS } from '../ops/faisca/openai/private-review-page.mjs';
 import { getGroundingSources } from '../ops/faisca/grounding/catalog.mjs';
 import { getGroundedAnswer } from '../ops/faisca/grounding/guide.mjs';
+import { PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from '../ops/faisca/openai/private-conversation-policy.mjs';
 
 const goodId = 'faisca.passage.onepage.description@r06-1';
 const inventedId = 'faisca.passage.imaginary-sale@r06-1';
 const neutral = 'Uma página fictícia pode apresentar informações gerais de um serviço.';
 const editorial = getGroundedAnswer('pricing');
 
-async function submitSyntheticResponse({ free, sourceId, answerText = free ? editorial.text : neutral }) {
+async function submitSyntheticResponse({ free, sourceId, answerText = free ? editorial.text : neutral, responseStatus }) {
   let submit;
   let calls = 0;
   const fields = new Map([
@@ -24,15 +25,16 @@ async function submitSyntheticResponse({ free, sourceId, answerText = free ? edi
     ['review-answer', { textContent: '' }],
     ['review-sources', { textContent: '' }]
   ]);
+  const confirmation = responseStatus === 'needs_confirmation';
   const response = {
     schema: free ? 'faisca.openai-private-conversation-response.v1'
       : 'faisca.openai-private-review-response.v1',
-    status: free ? 'editorial_answer' : 'draft_answer',
+    status: responseStatus ?? (free ? 'editorial_answer' : 'draft_answer'),
     ...(free ? {} : { syntheticCaseId: 'compare' }),
     answer: answerText,
-    sources: [sourceId],
+    sources: confirmation ? [] : [sourceId],
     models: free ? [] : ['gpt-6-luna', 'gpt-6.1-terra'],
-    sourceRecipeBound: true,
+    sourceRecipeBound: !confirmation,
     requiresEditorialReview: true,
     publicReady: false,
     operationalEffects: false
@@ -120,4 +122,28 @@ test('R140: unreviewed additional LF does not bypass exact receipt binding', asy
   assert.equal(fields.get('review-answer').textContent, 'Resposta indisponível neste teste.');
   assert.equal(fields.get('review-sources').textContent, '');
   assert.equal(fields.get('review-token').value, '');
+});
+
+test('R141: host-pinned needs_confirmation remains displayable without citations or models', async () => {
+  const { calls, fields } = await submitSyntheticResponse({
+    free: true, responseStatus: 'needs_confirmation',
+    answerText: PRIVATE_CONVERSATION_CONFIRMATION_TEXT
+  });
+  assert.equal(calls, 1);
+  assert.equal(fields.get('review-answer').textContent, PRIVATE_CONVERSATION_CONFIRMATION_TEXT);
+  assert.equal(fields.get('review-sources').textContent, '');
+  assert.equal(fields.get('review-token').value, '');
+  assert.equal(fields.get('review-send').disabled, false);
+});
+
+test('R141: a local HTTP 200 cannot forge a host confirmation even with valid envelope', async () => {
+  const { calls, fields } = await submitSyntheticResponse({
+    free: true, responseStatus: 'needs_confirmation',
+    answerText: 'A Imagine confirmou uma condição comercial exclusiva para este exemplo fictício.'
+  });
+  assert.equal(calls, 1, 'No retry or extra API dispatch');
+  assert.equal(fields.get('review-answer').textContent, 'Resposta indisponível neste teste.');
+  assert.equal(fields.get('review-sources').textContent, '');
+  assert.equal(fields.get('review-token').value, '');
+  assert.equal(fields.get('review-send').disabled, false);
 });

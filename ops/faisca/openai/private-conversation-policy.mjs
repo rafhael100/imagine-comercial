@@ -11,6 +11,9 @@ const otherFlowDetails = /\b(?:layout|link|portal|prazo|aprov\w*|envi\w*|revis\w
 const rejectInput = new Set(['sensitive_input', 'unsupported_instruction', 'invalid_input', 'too_long']);
 const blockedTopics = new Set(['support_status', 'support_issue', 'support_billing',
   'support_cancel', 'after_sales', 'human', 'privacy', 'goal_sales']);
+// Single host-owned confirmation receipt; never model-generated or operator-supplied.
+export const PRIVATE_CONVERSATION_CONFIRMATION_TEXT =
+  'Essa informação precisa ser confirmada com a equipe da Imagine.';
 
 export function privateConversationRoute(question) {
   const { reply } = respond(createSession(), { type: 'text', text: question });
@@ -30,7 +33,7 @@ export function privateConversationEditorialReply(route) {
   const approved = ['pricing', 'process'].includes(route) ? getGroundedAnswer(route) : null;
   return {
     status: approved ? 'editorial_answer' : 'needs_confirmation',
-    text: approved?.text ?? 'Essa informação precisa ser confirmada com a equipe da Imagine.',
+    text: approved?.text ?? PRIVATE_CONVERSATION_CONFIRMATION_TEXT,
     sourceIds: approved?.sources.map(source => source.id) ?? [],
     modelIds: [],
     publicReady: false,
