@@ -57,7 +57,7 @@ test('R92 staging integrity gate, static browser smoke and R87 editorial respons
   t.after(() => server.close());
   const smoke = await inspectFaiscaPrivateReviewUi({ origin: server.address });
   assert.equal(smoke.status, 'PRIVATE_UI_READONLY_VERIFIED');
-  assert.equal(smoke.requests, 3);
+  assert.equal(smoke.requests, 4);
   assert.equal(smoke.modelInvocations, 0);
   assert.equal(calls, 0, 'Static staging smoke must never invoke models.');
 
