@@ -38,6 +38,20 @@ const forbiddenContent = Object.freeze([
 const forbiddenPath = /(^|\/)(?:__faisca_preview|__faisca_openai_private|faisca-review-server\.mjs|Faisca_R21_AUDIT\.json|Faisca_Demonstracao_Guiada\.html|ops\/faisca)(\/|$)/i;
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 
+// Public JS/JSON can contain escaped ASCII route names instead of plain
+// strings. Decode only fixed ASCII escape syntax as an additional lexical
+// check: never eval or parse an untrusted bundle and never treat this as DLP.
+const escapedAscii = /\\(?:u00([0-7][0-9a-f])|x([0-7][0-9a-f])|u\{([0-7]?[0-9a-f])\})/gi;
+function hasForbiddenPublicContent(bytes) {
+  const raw = bytes.toString('latin1');
+  if (forbiddenContent.some(pattern => pattern.test(raw))) return true;
+  // Avoid allocating a second large buffer when no supported escape exists.
+  if (!/\\(?:u00[0-7][0-9a-f]|x[0-7][0-9a-f]|u\{[0-7]?[0-9a-f]\})/i.test(raw)) return false;
+  const unescaped = raw.replace(escapedAscii, (_match, u, x, braced) =>
+    String.fromCharCode(Number.parseInt(u ?? x ?? braced, 16)));
+  return forbiddenContent.some(pattern => pattern.test(unescaped));
+}
+
 /**
  * Release gate for the PUBLIC Astro dist, not a staging switch. A lab bundle
  * must never reach an indexable artifact by accident, even if the build
@@ -93,8 +107,7 @@ export async function auditPublicFaiscaDist({ distDir = resolve(sourceRoot, 'dis
       // bytes of EVERY output file before deciding whether to decode it.
       // latin1 preserves ASCII bytes, including in otherwise binary payloads.
       // This is a lexical defense, not a decompressor or a secret scanner.
-      const raw = data.toString('latin1');
-      if (forbiddenContent.some(pattern => pattern.test(raw))) {
+      if (hasForbiddenPublicContent(data)) {
         throw new Error('R26: private Faísca code or preview marker leaked into public dist.');
       }
       if (compressedFile.test(path)) {
@@ -127,7 +140,7 @@ export async function auditPublicFaiscaDist({ distDir = resolve(sourceRoot, 'dis
             expanded[1] === 0x8b && expanded[2] === 0x08) {
           throw new Error('R26: nested gzip payload is forbidden.');
         }
-        if (forbiddenContent.some(pattern => pattern.test(expanded.toString('latin1')))) {
+        if (hasForbiddenPublicContent(expanded)) {
           throw new Error('R26: private Faísca code or preview marker leaked into public dist.');
         }
         // Also keep the fail-closed UTF-8 policy for compressed web text.
