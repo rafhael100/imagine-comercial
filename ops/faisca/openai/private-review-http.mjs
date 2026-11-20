@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual, createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST_CASES, FAISCA_OPENAI_UNSUPPORTED_FALLBACK } from './live-lab.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
@@ -9,11 +10,14 @@ import { readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
 import {
-  PRIVATE_REVIEW_PAGE_PATH, PRIVATE_REVIEW_SCRIPT_PATH, PRIVATE_REVIEW_STYLE_PATH,
+  PRIVATE_REVIEW_PAGE_PATH, PRIVATE_REVIEW_SCRIPT_PATH, PRIVATE_REVIEW_STYLE_PATH, PRIVATE_REVIEW_MASCOT_PATH,
   PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_CONVERSATION_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
 } from './private-review-page.mjs';
 
 const REVIEW_PATH = '/__faisca_openai_private/respond';
+// Independent pin from the human-approved asset manifest. This endpoint
+// never serves arbitrary files, variants or user-supplied image paths.
+const APPROVED_MASCOT_SHA256 = '1ede4d88a38e238523c6db7351f22654ffa40b9f8ee2260ea31b162763d8c87d';
 const CONVERSATION_PATH = '/__faisca_openai_private/converse';
 const MAX_BODY_BYTES = 96;
 const MAX_CONVERSATION_BODY_BYTES = 1500;
@@ -42,7 +46,7 @@ const privateAssets = Object.freeze({
 });
 const privateBrowserHeaders = Object.freeze({
   ...securityHeaders,
-  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
   'X-Frame-Options': 'DENY'
 });
 // Node's HTTP/1 parser retains only the first Host/Authorization header in
@@ -314,10 +318,26 @@ export async function startFaiscaOpenAIPrivateReview({
       !Number.isInteger(providerDeadlineMs) || providerDeadlineMs < 50 || providerDeadlineMs > 30000) {
     throw new TypeError('Private OpenAI review requires a dedicated token and safe loopback port.');
   }
+  const mascot = await readFile(new URL('../assets/faisca-master.png', import.meta.url));
+  if (mascot.byteLength !== 1887660 ||
+      createHash('sha256').update(mascot).digest('hex') !== APPROVED_MASCOT_SHA256 ||
+      !mascot.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) ||
+      mascot.readUInt32BE(16) !== 1254 || mascot.readUInt32BE(20) !== 1254) {
+    throw new Error('R122: the approved Faísca mascot is missing or changed.');
+  }
   // Once provider completion becomes uncertain, never permit a second paid
   // dispatch from this server. The operator must close, review and restart.
   let active = true, requests = 0, inFlight = false, providerUnavailable = false;
   const server = createServer(async (req, res) => {
+    if (active && req.method === 'GET' && req.url === PRIVATE_REVIEW_MASCOT_PATH) {
+      if (!privateBrowserAllowed(req, server.address().port)) {
+        send(res, 403, { status: 'forbidden' }); return;
+      }
+      res.writeHead(200, { ...privateBrowserHeaders,
+        'Content-Type': 'image/png', 'Content-Length': mascot.byteLength });
+      res.end(mascot);
+      return;
+    }
     if (active && req.method === 'GET' && Object.hasOwn(privateAssets, req.url)) {
       if (!privateBrowserAllowed(req, server.address().port)) {
         send(res, 403, { status: 'forbidden' }); return;

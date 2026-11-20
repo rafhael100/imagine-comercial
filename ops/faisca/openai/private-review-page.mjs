@@ -4,6 +4,7 @@
 export const PRIVATE_REVIEW_PAGE_PATH = '/__faisca_openai_private/review';
 export const PRIVATE_REVIEW_SCRIPT_PATH = '/__faisca_openai_private/review.js';
 export const PRIVATE_REVIEW_STYLE_PATH = '/__faisca_openai_private/review.css';
+export const PRIVATE_REVIEW_MASCOT_PATH = '/__faisca_openai_private/mascot.png';
 
 const conversationSlot = '<!-- private-conversation -->';
 const conversationFields = String.raw`<fieldset id="review-conversation">
@@ -26,7 +27,9 @@ export const PRIVATE_REVIEW_HTML = String.raw`<!doctype html>
 <script type="module" src="/__faisca_openai_private/review.js"></script>
 </head><body>
 <main>
-<header><p class="eyebrow">IMAGINE · LABORATÓRIO PRIVADO</p>
+<header><img src="/__faisca_openai_private/mascot.png" class="mascot"
+width="88" height="88" alt="Faísca, mascote aprovado da Imagine">
+<p class="eyebrow">IMAGINE · LABORATÓRIO PRIVADO</p>
 <h1>Faísca <span aria-hidden="true">✦</span></h1>
 <p>Teste de respostas reais da OpenAI com perguntas <strong>fictícias e aprovadas</strong>.
 Esta página é local, protegida por SSH e não atende clientes.</p></header>
@@ -63,7 +66,7 @@ export const PRIVATE_REVIEW_CONVERSATION_HTML =
 
 export const PRIVATE_REVIEW_CSS = String.raw`:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f8faf8;color:#25312c}
 *{box-sizing:border-box}body{margin:0}main{max-width:740px;padding:1.2rem;margin:1.4rem auto}
-header{padding:1.1rem 0}header h1{font-size:2.35rem;letter-spacing:-.06em;margin:.3rem 0}
+header{padding:1.1rem 0}.mascot{display:block;width:88px;height:88px;object-fit:contain}header h1{font-size:2.35rem;letter-spacing:-.06em;margin:.3rem 0}
 header h1 span{color:#f9941d}.eyebrow{color:#865513;letter-spacing:.16em;font-size:.8rem;font-weight:800}
 section{border:1px solid #cad5cd;border-radius:15px;padding:1.35rem;margin:1.1rem 0;background:#fff}
 section h2{font-size:1.1rem;margin:0 0 1rem}
