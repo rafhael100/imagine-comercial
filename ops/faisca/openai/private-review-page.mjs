@@ -106,7 +106,9 @@ function privateFictionalQuestionPreflight(value) {
   const normalized = value.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu, '').toLowerCase();
   return !(
-    // Reject hidden Unicode formatting beyond the earlier explicit ranges.\n    /\p{Default_Ignorable_Code_Point}/u.test(value) ||\n    /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u.test(value) ||
+    // Reject hidden Unicode formatting beyond the earlier explicit ranges.
+    /\p{Default_Ignorable_Code_Point}/u.test(value) ||
+    /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u.test(value) ||
     /https?:\/\/|www\.|@/u.test(normalized) ||
     /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endereco|senha|token|api[ _-]?key|chave|credencial|otp|totp|pix|cartao|boleto|fatura|reembolso|contrato|nota\s+fiscal)\b/u.test(normalized) ||
     // Match the server's Unicode digit separators (Arabic grouping, fullwidth
