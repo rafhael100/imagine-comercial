@@ -122,16 +122,6 @@ const reviewedPrivateConfirmationText = ${JSON.stringify(PRIVATE_CONVERSATION_CO
 // Privacy preflight in the UI: reject obvious personal data and secrets
 // before even sending a fictional operator question to loopback. The server
 // independently revalidates inputs; a checkbox does not authorize real data.
-// R148: conservative browser-only privacy barrier mirroring the authoritative
-// server. A hostname, IP address or localhost is identifying even if it omits
-// a scheme, a www prefix or a contact handle. No network lookup takes place.
-const privateBrowserBareHost = /(?:^|[^\p{L}\p{N}_@])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}(?![\p{L}\p{N}_-])/u;
-const privateBrowserIpv4 = /(?:^|[^\p{L}\p{N}.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\p{L}\p{N}.])/u;
-const privateBrowserIpv6 = /(?:^|[^\p{L}\p{N}:])(?:[a-f0-9]{0,4}:){2,}[a-f0-9]{0,4}(?=$|[^\p{L}\p{N}:])/u;
-function privateBrowserNetworkAddressRisk(text) {
-  return privateBrowserBareHost.test(text) || privateBrowserIpv4.test(text) ||
-    privateBrowserIpv6.test(text) || /\blocalhost\b/u.test(text);
-}
 function privateFictionalQuestionPreflight(value) {
   if (typeof value !== 'string' || value !== value.trim() ||
       value !== value.normalize('NFC')) return false;
@@ -171,6 +161,16 @@ const privateBrowserUnsupportedKpi =
   /\b(?:taxa\s+de\s+(?:conversao|cliques?|abertura)|roi|ctr|crescimento|engajamento)\b.{0,45}\d{1,3}(?:[.,]\d{1,2})?\s*%/u;
 const privateBrowserUnsupportedRank =
   /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|loja)\b.{0,65}\b(?:topo\s+do\s+google|primeir[oa]\s+(?:posicao|pagina|lugar)|top\s*[1-9]\d?)\b/u;
+// R148: conservative browser-only privacy barrier mirroring the authoritative
+// server. A hostname, IP address or localhost is identifying even if it omits
+// a scheme, a www prefix or a contact handle. No network lookup takes place.
+const privateBrowserBareHost = /(?:^|[^\p{L}\p{N}_@])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}(?![\p{L}\p{N}_-])/u;
+const privateBrowserIpv4 = /(?:^|[^\p{L}\p{N}.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\p{L}\p{N}])/u;
+const privateBrowserIpv6 = /(?:^|[^\p{L}\p{N}:])(?:[a-f0-9]{0,4}:){2,}[a-f0-9]{0,4}(?=$|[^\p{L}\p{N}:])/u;
+function privateBrowserNetworkAddressRisk(text) {
+  return privateBrowserBareHost.test(text) || privateBrowserIpv4.test(text) ||
+    privateBrowserIpv6.test(text) || /\blocalhost\b/u.test(text);
+}
 function privateBrowserReplyEgressSafe(value) {
   if (typeof value !== 'string') return false;
   const normalized = value.normalize('NFKC').normalize('NFKD')
