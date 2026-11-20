@@ -164,7 +164,7 @@ const privateBrowserUnsupportedRank =
 // R148/R149: conservative browser-only privacy barrier mirroring the authoritative
 // server. A hostname, IP address or localhost is identifying even if it omits
 // a scheme, a www prefix or a contact handle. No network lookup takes place.
-const privateBrowserBareHost = /(?:^|[^\p{L}\p{N}_@])(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+\p{L}{2,24}(?![\p{L}\p{N}_-])/u;
+const privateBrowserBareHost = /(?:^|[^\p{L}\p{N}_@])(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+(?:\p{L}{2,24}|xn--[a-z0-9-]{2,59})(?![\p{L}\p{N}_-])/u;
 const privateBrowserIpv4 = /(?:^|[^\p{L}\p{N}.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\p{L}\p{N}])/u;
 const privateBrowserIpv6 = /(?:^|[^\p{L}\p{N}:])(?:[a-f0-9]{0,4}:){2,}[a-f0-9]{0,4}(?=$|[^\p{L}\p{N}:])/u;
 function privateBrowserNetworkAddressRisk(text) {
