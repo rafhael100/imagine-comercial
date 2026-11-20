@@ -132,7 +132,8 @@ function privateFictionalQuestionPreflight(value) {
     /\p{Default_Ignorable_Code_Point}/u.test(value) ||
     /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u.test(value) ||
     /https?:\/\/|www\.|@/u.test(normalized) ||
-    privateBrowserEncodedIdentifierRisk.test(normalized) ||\n    privateBrowserOpaqueEncodingRisk.test(normalized) ||
+    privateBrowserEncodedIdentifierRisk.test(normalized) ||
+    privateBrowserOpaqueEncodingRisk.test(normalized) ||
     privateBrowserNetworkAddressRisk(normalized) ||
     privateBrowserSecretRisk.test(normalized) ||
     /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endereco|senha|token|api[ _-]?key|chave|credencial|otp|totp|pix|cartao|boleto|fatura|reembolso|contrato|nota\s+fiscal)\b/u.test(normalized) ||
@@ -205,7 +206,8 @@ function privateBrowserReplyEgressSafe(value) {
     /(?:\b(?:usd|brl|eur)\s*\p{Nd}{1,8}\b|\p{Nd}{1,8}(?:[.,]\p{Nd}{1,2})?\s*(?:reais|real|dolares?|euros?)\b)/u.test(normalized) ||
     /\b(?:preco|valor|custa|custara|cobram|cobramos|mensalidade|implantacao|orcamento|desconto|investimento)\b.{0,28}\p{Nd}{1,8}/u.test(normalized) ||
     /https?:\/\/|\bwww\.|@[a-z0-9.-]+\.[a-z]{2,}/u.test(normalized) ||
-    privateBrowserEncodedIdentifierRisk.test(normalized) ||\n    privateBrowserOpaqueEncodingRisk.test(normalized) ||
+    privateBrowserEncodedIdentifierRisk.test(normalized) ||
+    privateBrowserOpaqueEncodingRisk.test(normalized) ||
     privateBrowserNetworkAddressRisk(normalized) ||
     privateBrowserSecretRisk.test(normalized) ||
     /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||
