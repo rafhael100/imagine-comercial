@@ -166,10 +166,17 @@ const privateBrowserUnsupportedRank =
 // a scheme, a www prefix or a contact handle. No network lookup takes place.
 const privateBrowserBareHost = /(?:^|[^\p{L}\p{N}_@])(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+(?:\p{L}{2,24}|xn--[a-z0-9-]{2,59})(?![\p{L}\p{N}_-])/u;
 const privateBrowserIpv4 = /(?:^|[^\p{L}\p{N}.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\p{L}\p{N}])/u;
+// R150: independent browser-only guard for shortened/private IPv4 and numeric
+// octal/hexadecimal aliases that a URL parser maps to routable IP literals.
+const privateBrowserShortIpv4 = /(?:^|[^\p{L}\p{N}.])(?:0|10|127|169|172|192)\.(?:[0-9]{1,3}\.){0,2}[0-9]{1,3}(?![\p{L}\p{N}])/u;
+const privateBrowserHexIpv4 = /(?:^|[^\p{L}\p{N}_])0x[0-9a-f]{2,8}(?:\.(?:0x)?[0-9a-f]{1,8}){0,3}(?![\p{L}\p{N}_])/u;
+const privateBrowserOctalIpv4 = /(?:^|[^\p{L}\p{N}.])0[0-7]{2,3}(?:\.[0-7]{1,3}){1,3}(?![\p{L}\p{N}])/u;
 const privateBrowserIpv6 = /(?:^|[^\p{L}\p{N}:])(?:[a-f0-9]{0,4}:){2,}[a-f0-9]{0,4}(?=$|[^\p{L}\p{N}:])/u;
 function privateBrowserNetworkAddressRisk(text) {
   return privateBrowserBareHost.test(text) || privateBrowserIpv4.test(text) ||
-    privateBrowserIpv6.test(text) || /\blocalhost\b/u.test(text);
+    privateBrowserShortIpv4.test(text) || privateBrowserHexIpv4.test(text) ||
+    privateBrowserOctalIpv4.test(text) || privateBrowserIpv6.test(text) ||
+    /\blocalhost\b/u.test(text);
 }
 function privateBrowserReplyEgressSafe(value) {
   if (typeof value !== 'string') return false;
