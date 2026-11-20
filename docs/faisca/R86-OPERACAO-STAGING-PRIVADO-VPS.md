@@ -1,6 +1,6 @@
-# Faísca R86 — pré-homologação privada na VPS Leaseweb
+# Faísca R92 — roteiro de pré-homologação privada na VPS Leaseweb (candidata integrada)
 
-**Base:** R85 #558, SHA `e48df3da89666bb27467e57fe367009809aab963` (6/6 workflows aprovados). Esta entrega é DRAFT/REVIEW ONLY, sobre código de laboratório. Ainda não instalou nada na VPS.
+**Origem:** procedimento R86 #561; adaptado para candidata integrada R92 #566 que preserva controles R87/R88/R90 e R89/R91. Use somente a SHA **completa da HEAD R92 revisada de canal independente**, após a própria R92 ter 6/6 CI e revisão independente. Este roteiro permanece DRAFT/REVIEW ONLY; nenhuma VPS foi configurada automaticamente.
 
 ## Objetivo
 
@@ -18,16 +18,16 @@ O Faísca público permanece desligado. Este é o laboratório da IA na porta 43
 
 ## Gate de revisão
 
-Somente iniciar teste pago na VPS depois de **6/6 workflows verdes na SHA exata da R86**, revisão independente do PR e aprovação da configuração pelo operador. Esse checklist é procedimento, não deploy automático.
+Somente iniciar teste pago na VPS depois de **6/6 workflows verdes na SHA exata da R92**, revisão independente do PR e aprovação da configuração pelo operador. Esse checklist é procedimento, não deploy automático.
 
 ## Procedimento manual proposto — VPS de desenvolvimento, sem produção
 
 Executar a partir de um **checkout separado** e mantendo o Comercial, Portal, CRM e n8n existentes inalterados:
 
 ```bash
-git clone --branch feat/faisca-r86-private-vps-staging-preflight-2026-11-19 \
-  --single-branch https://github.com/rafhael100/imagine-comercial.git "$HOME/faisca-r86-lab"
-cd "$HOME/faisca-r86-lab"
+git clone --branch integration/faisca-r92-private-ui-staging-compose-2026-11-19 \
+  --single-branch https://github.com/rafhael100/imagine-comercial.git "$HOME/faisca-r92-lab"
+cd "$HOME/faisca-r92-lab"
 node --version
 npm ci --no-audit --no-fund
 
@@ -44,7 +44,7 @@ export OPENAI_API_KEY
 export FAISCA_REVIEW_BEARER_TOKEN="$(openssl rand -hex 24)"
 export IMAGINE_FAISCA_OPENAI_LIVE_TEST=YES_PAY_SYNTHETIC_ONLY
 
-# COPIAR a SHA COMPLETA da HEAD R86 aprovada no GitHub, não derivar do clone.
+# COPIAR a SHA COMPLETA da HEAD R92 aprovada no GitHub, não derivar do clone.
 export FAISCA_STAGING_REVIEW_SHA="INSIRA_A_SHA_COMPLETA_REVISADA_DA_PR"
 node scripts/faisca-private-staging-preflight.mjs "$FAISCA_STAGING_REVIEW_SHA"
 ```
@@ -65,7 +65,7 @@ A execução fica em primeiro plano e escuta somente em `127.0.0.1:4336`. Não c
 Em **outro terminal SSH** na VPS, sem chave/token:
 
 ```bash
-cd "$HOME/faisca-r86-lab"
+cd "$HOME/faisca-r92-lab"
 node scripts/faisca-private-staging-readonly-smoke.mjs
 ```
 
