@@ -208,16 +208,25 @@ export function createFaiscaLocalReservationLedger({
     let lock;
     try {
       lock = await open(lockPath, OPEN_LOCK, 0o600);
+      // Persist the exclusive lock before mutating state. If power fails
+      // between a state rename and its directory fsync, a durable lock keeps
+      // the next process in NO-START instead of reusing a stale allowance.
+      await lock.sync();
+      const lockDirectory = await open(directory, READ_ONLY);
+      try { await lockDirectory.sync(); } finally { await lockDirectory.close(); }
       await lock.close();
       lock = null;
     } catch {
       await lock?.close().catch(() => {});
       throw new Error('Private durable reservation busy or unavailable.');
     }
+    let safeToUnlock = false;
     try {
       const current = await readState();
       if (current.requests >= maxRequests ||
           current.reservedMicros + micros > limitMicros) {
+        // No write attempted: an ordinary quota denial may release the lock.
+        safeToUnlock = true;
         throw new Error('Private durable reservation limit reached.');
       }
       const next = {
@@ -226,13 +235,23 @@ export function createFaiscaLocalReservationLedger({
       };
       await initializeMarker();
       await durableWrite(next);
+      // Release only AFTER both state-file sync and directory sync succeeded.
+      // Any I/O or integrity failure has an ambiguous reservation outcome:
+      // keep the durable lock until a human operator reconciles the ledger.
+      safeToUnlock = true;
       return Object.freeze({
         requests: next.requests,
         reservedUsd: next.reservedMicros / 1_000_000,
         durableOnThisHostOnly: true
       });
     } finally {
-      await unlink(lockPath);
+      if (safeToUnlock) {
+        await unlink(lockPath);
+        // A power failure may retain a previously fsynced lock (safe NO-START)
+        // but must not restore an earlier spent balance without a lock.
+        const lockDirectory = await open(directory, READ_ONLY);
+        try { await lockDirectory.sync(); } finally { await lockDirectory.close(); }
+      }
     }
   }
 
