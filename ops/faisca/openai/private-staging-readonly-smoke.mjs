@@ -19,6 +19,10 @@ const reviewedAssetHeaders = Object.freeze({
   'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
 });
 
+// R147: the reviewed JS grew beyond the old 20 KB content limit as the
+// independent evidence guard expanded. Keep a strict 24 KiB cap AND exact
+// byte-for-byte asset matching; never disable this private read-only gate.
+const MAX_PRIVATE_TEXT_ASSET_BYTES = 24 * 1024;
 const approvedMascotBytes = 1887660;
 const approvedMascotDigest = '1ede4d88a38e238523c6db7351f22654ffa40b9f8ee2260ea31b162763d8c87d';
 const routes = Object.freeze([
@@ -118,7 +122,7 @@ export async function inspectFaiscaPrivateReviewUi({
       if (item.exactBytes) {
         if (length === null || !/^[0-9]+$/.test(length) ||
             Number(length) !== item.exactBytes) throw new Error('unexpected mascot length');
-      } else if (length && (!/^[0-9]+$/.test(length) || Number(length) > 20000)) {
+      } else if (length && (!/^[0-9]+$/.test(length) || Number(length) > MAX_PRIVATE_TEXT_ASSET_BYTES)) {
         throw new Error('oversized');
       }
       if (response.status !== 200 ||
@@ -130,7 +134,7 @@ export async function inspectFaiscaPrivateReviewUi({
           response.headers.get('set-cookie') !== null) {
         throw new Error('unreviewed headers');
       }
-      const bytes = await limitedBytes(response, controller.signal, item.exactBytes ?? 20000);
+      const bytes = await limitedBytes(response, controller.signal, item.exactBytes ?? MAX_PRIVATE_TEXT_ASSET_BYTES);
       if (item.expectedDigest) {
         // Independently pin the original human-approved PNG. Status, MIME,
         // dimensions and visible branding alone are not integrity evidence.
