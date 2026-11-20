@@ -21,6 +21,12 @@ const emailOrUrl = /https?:\/\/|\bwww\.|@|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|
 // Apply after NFKC/NFKD so compatibility/fullwidth dots cannot bypass checks.
 const bareHostname = /(?:^|[^\p{L}\p{N}_@])(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+(?:\p{L}{2,24}|xn--[a-z0-9-]{2,59})(?![\p{L}\p{N}_-])/u;
 const ipv4Literal = /(?:^|[^\p{L}\p{N}.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\p{L}\p{N}])/u;
+// R150: WHATWG URL hosts may reinterpret shortened/private IPv4, octal
+// and hexadecimal numeric aliases as routable IPs (e.g. 127.1 -> 127.0.0.1).
+// Block their conservative lexical forms without resolving any addresses.
+const shortenedPrivateIpv4 = /(?:^|[^\p{L}\p{N}.])(?:0|10|127|169|172|192)\.(?:[0-9]{1,3}\.){0,2}[0-9]{1,3}(?![\p{L}\p{N}])/u;
+const hexIpv4Alias = /(?:^|[^\p{L}\p{N}_])0x[0-9a-f]{2,8}(?:\.(?:0x)?[0-9a-f]{1,8}){0,3}(?![\p{L}\p{N}_])/u;
+const octalIpv4Alias = /(?:^|[^\p{L}\p{N}.])0[0-7]{2,3}(?:\.[0-7]{1,3}){1,3}(?![\p{L}\p{N}])/u;
 const ipv6Literal = /(?:^|[^\p{L}\p{N}:])(?:[a-f0-9]{0,4}:){2,}[a-f0-9]{0,4}(?=$|[^\p{L}\p{N}:])/u;
 const localhostName = /\blocalhost\b/u;
 
@@ -33,5 +39,6 @@ export function hasPrivateIdentifierRisk(value) {
   return plausibleContactDigits.test(text) ||
     sensitiveWords.test(text) || emailOrUrl.test(text) ||
     bareHostname.test(text) || ipv4Literal.test(text) ||
-    ipv6Literal.test(text) || localhostName.test(text);
+    shortenedPrivateIpv4.test(text) || hexIpv4Alias.test(text) ||
+    octalIpv4Alias.test(text) || ipv6Literal.test(text) || localhostName.test(text);
 }
