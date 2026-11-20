@@ -117,6 +117,20 @@ function privateFictionalQuestionPreflight(value) {
     /\b(?:meu\s+cliente|minha\s+empresa\s+se\s+chama|base\s+de\s+clientes|lista\s+de\s+clientes)\b/u.test(normalized)
   );
 }
+// Second egress boundary in the private browser: even a malformed local
+// HTTP adapter must not display obvious contact identifiers, URLs or
+// fabricated "already completed" operational claims to the operator. This
+// supplements, never replaces, the stricter host-side editorial/PII gates.
+function privateBrowserReplyEgressSafe(value) {
+  if (typeof value !== 'string') return false;
+  const normalized = value.normalize('NFKC').normalize('NFKD')
+    .replace(/\p{M}/gu, '').toLowerCase();
+  return !(
+    /https?:\/\/|\bwww\.|@[a-z0-9.-]+\.[a-z]{2,}/u.test(normalized) ||
+    /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||
+    /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|dominio|campanha|loja|anuncio)\s+(?:(?:ja|foi|esta|ficou)\s+){1,3}(?:publicad[ao]|ativad[ao]|entregue|configurad[ao]|rodando|no\s+ar|online)\b/u.test(normalized)
+  );
+}
 let pending = false;
 let pageEpoch = 0;
 let currentController = null;
@@ -268,6 +282,7 @@ form?.addEventListener('submit', async event => {
         data.requiresEditorialReview !== true ||
         typeof data.answer !== 'string' || data.answer.length < 20 || data.answer.length > 900 ||
         /[\u0000-\u001f\u007f<>]/u.test(data.answer) ||
+        !privateBrowserReplyEgressSafe(data.answer) ||
         // Preserve the strict R88 fixed-scenario proof and check free text separately.
         (fixed && data.sourceRecipeBound !== true) ||
         (!fixed && data.sourceRecipeBound !== (editorial ? true : false)) ||
