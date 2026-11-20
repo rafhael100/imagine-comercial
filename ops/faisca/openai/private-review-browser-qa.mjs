@@ -146,6 +146,42 @@ try {
     }
   });
 
+  await check('R109 Chromium recovers from a stream that ignores abort without extra model calls', async () => {
+    // This synthetic fetch returns status 200 and an infinite pending body.
+    // Shorten ONLY the 35-second application timer for a deterministic CI test.
+    await page.evaluate(() => {
+      const nativeFetch = window.fetch.bind(window);
+      const nativeTimeout = window.setTimeout.bind(window);
+      window.fetch = (url, options) => String(url).endsWith('/__faisca_openai_private/respond')
+        ? Promise.resolve(new Response(new ReadableStream({ start() {} }), {
+          status: 200, headers: { 'content-type': 'application/json' }
+        }))
+        : nativeFetch(url, options);
+      window.setTimeout = (callback, delay, ...args) =>
+        nativeTimeout(callback, delay === 35000 ? 40 : delay, ...args);
+      window.__r109Restore = () => {
+        window.fetch = nativeFetch;
+        window.setTimeout = nativeTimeout;
+        delete window.__r109Restore;
+      };
+    });
+    try {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-case').selectOption('compare');
+      await page.locator('#review-send').click();
+      await page.waitForFunction(
+        () => document.querySelector('#review-status')?.textContent?.includes('não concluiu.'),
+        null, { timeout: 3000 }
+      );
+      assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(await page.locator('#review-send').isEnabled(), true);
+      assert.equal(providerCalls, 1, 'Hung response fixture never dispatched a provider call');
+    } finally {
+      await page.evaluate(() => window.__r109Restore?.());
+    }
+  });
+
   await check('R83 Chromium refuses a forged draft with zero model provenance', async () => {
     const endpoint = '**/__faisca_openai_private/respond';
     await page.route(endpoint, async route => {
