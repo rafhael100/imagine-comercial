@@ -35,7 +35,7 @@ test('R136: both private HTTP paths fail closed on quantitative outcome hallucin
   t.after(() => server.close());
   const endpoints = [
     ['/__faisca_openai_private/respond', { caseId: 'compare' }],
-    ['/__faisca_openai_private/converse', [true, 'Como funciona uma página para evento fictício?']]
+    ['/__faisca_openai_private/converse', [true, 'Uma landing page ajuda a divulgar eventos?']]
   ];
   for (const claim of [
     'Uma campanha vai gerar 120 leads.',
