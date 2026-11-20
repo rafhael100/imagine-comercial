@@ -1,5 +1,7 @@
+import { createHash } from 'node:crypto';
 import {
-  PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_CONVERSATION_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
+  PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_CONVERSATION_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS,
+  PRIVATE_REVIEW_MASCOT_PATH
 } from './private-review-page.mjs';
 
 export const FAISCA_PRIVATE_STAGING_SMOKE_SCHEMA = 'faisca.private-staging-readonly-smoke.v1';
@@ -17,6 +19,8 @@ const reviewedAssetHeaders = Object.freeze({
   'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
 });
 
+const approvedMascotBytes = 1887660;
+const approvedMascotDigest = '1ede4d88a38e238523c6db7351f22654ffa40b9f8ee2260ea31b162763d8c87d';
 const routes = Object.freeze([
   Object.freeze({
     path: '/__faisca_openai_private/review',
@@ -32,6 +36,12 @@ const routes = Object.freeze([
     path: '/__faisca_openai_private/review.css',
     mime: 'text/css; charset=utf-8',
     expected: PRIVATE_REVIEW_CSS
+  }),
+  Object.freeze({
+    path: PRIVATE_REVIEW_MASCOT_PATH,
+    mime: 'image/png',
+    expectedDigest: approvedMascotDigest,
+    exactBytes: approvedMascotBytes
   })
 ]);
 
@@ -52,7 +62,7 @@ async function awaitSmokeOrAbort(pending, signal) {
   }
 }
 
-async function limitedText(response, signal) {
+async function limitedBytes(response, signal, limit) {
   if (!response.body) throw new Error('missing body');
   const reader = response.body.getReader();
   const chunks = [];
@@ -63,10 +73,10 @@ async function limitedText(response, signal) {
       const next = await awaitSmokeOrAbort(reader.read(), signal);
       if (next.done) break;
       bytes += next.value.byteLength;
-      if (bytes > 20000) throw new Error('oversized');
+      if (bytes > limit) throw new Error('oversized');
       chunks.push(Buffer.from(next.value));
     }
-    return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+    return Buffer.concat(chunks);
   } finally {
     try { void Promise.resolve(reader.cancel()).catch(() => {}); }
     catch { /* uncooperative cancel() must not hang smoke */ }
@@ -75,7 +85,8 @@ async function limitedText(response, signal) {
 
 /**
  * Read-only smoke of the actual private review UI. It only requests static
- * HTML/JS/CSS via GET over loopback. No API token, OpenAI key, POST, model
+ * HTML/JS/CSS and SHA-pinned original mascot PNG via GET over loopback.
+ * No API token, OpenAI key, POST, model
  * invocation, customer text, reverse proxy or public host is involved.
  */
 export async function inspectFaiscaPrivateReviewUi({
@@ -104,7 +115,10 @@ export async function inspectFaiscaPrivateReviewUi({
         credentials: 'omit', referrerPolicy: 'no-referrer'
       }), controller.signal);
       const length = response.headers.get('content-length');
-      if (length && (!/^[0-9]+$/.test(length) || Number(length) > 20000)) {
+      if (item.exactBytes) {
+        if (length === null || !/^[0-9]+$/.test(length) ||
+            Number(length) !== item.exactBytes) throw new Error('unexpected mascot length');
+      } else if (length && (!/^[0-9]+$/.test(length) || Number(length) > 20000)) {
         throw new Error('oversized');
       }
       if (response.status !== 200 ||
@@ -116,13 +130,19 @@ export async function inspectFaiscaPrivateReviewUi({
           response.headers.get('set-cookie') !== null) {
         throw new Error('unreviewed headers');
       }
-      const body = await limitedText(response, controller.signal);
-      // An unreviewed/stale HTML/JS/CSS asset can retain all old marker words.
-      // Require an exact content match with the audited local page modules.
-      // This still does not prove VPS provenance, SHA approval or public safety.
-      passed = body === (privateConversationEnabled &&
-        item.path === '/__faisca_openai_private/review'
-        ? PRIVATE_REVIEW_CONVERSATION_HTML : item.expected);
+      const bytes = await limitedBytes(response, controller.signal, item.exactBytes ?? 20000);
+      if (item.expectedDigest) {
+        // Independently pin the original human-approved PNG. Status, MIME,
+        // dimensions and visible branding alone are not integrity evidence.
+        passed = bytes.length === item.exactBytes &&
+          createHash('sha256').update(bytes).digest('hex') === item.expectedDigest;
+      } else {
+        // An unreviewed/stale HTML/JS/CSS asset can retain old marker words.
+        const body = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        passed = body === (privateConversationEnabled &&
+          item.path === '/__faisca_openai_private/review'
+          ? PRIVATE_REVIEW_CONVERSATION_HTML : item.expected);
+      }
     } catch { passed = false; }
     finally { clearTimeout(timeout); controller.abort(); }
     checks.push(Object.freeze({ path: item.path, passed }));
