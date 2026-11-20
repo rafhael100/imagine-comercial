@@ -10,6 +10,13 @@ const STATE_NAME = 'faisca-reservations.json';
 const LOCK_NAME = '.faisca-reservations.lock';
 const MARKER_NAME = '.faisca-reservations-initialized';
 const MARKER_DATA = 'faisca.private-local-reservations.initialized.v1\n';
+// An independently fsynced, monotonically increasing high-water witness.
+// It detects accidental or single-file rollback of the mutable quota state.
+// It is not an external trusted log or a defense against full host compromise.
+const HIGHWATER_NAME = '.faisca-reservations-highwater.json';
+const HIGHWATER_MARKER_NAME = '.faisca-reservations-highwater-initialized';
+const HIGHWATER_SCHEMA = 'faisca.private-local-reservations.highwater.v1';
+const HIGHWATER_MARKER_DATA = HIGHWATER_SCHEMA + '\n';
 const MAX_REQUESTS = 100;
 const MAX_MICROS = 10_000_000;
 const OPEN_LOCK = constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW;
@@ -37,6 +44,8 @@ export function createFaiscaLocalReservationLedger({
   const statePath = join(directory, STATE_NAME);
   const lockPath = join(directory, LOCK_NAME);
   const markerPath = join(directory, MARKER_NAME);
+  const highwaterPath = join(directory, HIGHWATER_NAME);
+  const highwaterMarkerPath = join(directory, HIGHWATER_MARKER_NAME);
 
   async function checkDirectory() {
     const dir = await lstat(directory);
@@ -86,6 +95,72 @@ export function createFaiscaLocalReservationLedger({
     try { await dir.sync(); } finally { await dir.close(); }
   }
 
+
+  async function hasHighwaterMarker() {
+    let file;
+    try {
+      file = await open(highwaterMarkerPath, READ_ONLY);
+    } catch (error) {
+      if (error.code === 'ENOENT') return false;
+      throw error;
+    }
+    try {
+      const info = await file.stat();
+      if (!info.isFile() || info.size !== Buffer.byteLength(HIGHWATER_MARKER_DATA) ||
+          (info.mode & 0o077) ||
+          (typeof process.getuid === 'function' && info.uid !== process.getuid()) ||
+          await file.readFile('utf8') !== HIGHWATER_MARKER_DATA) {
+        throw new Error('Private high-water marker requires operator review.');
+      }
+      return true;
+    } finally { await file.close(); }
+  }
+
+  async function initializeHighwaterMarker() {
+    if (await hasHighwaterMarker()) return;
+    // Under the durable O_EXCL lock: marker first, then witness, then state.
+    // An incomplete sequence always leaves the lock in place for the operator.
+    const file = await open(highwaterMarkerPath, OPEN_LOCK, 0o600);
+    try { await file.writeFile(HIGHWATER_MARKER_DATA); await file.sync(); }
+    finally { await file.close(); }
+    const dir = await open(directory, READ_ONLY);
+    try { await dir.sync(); } finally { await dir.close(); }
+  }
+
+  async function verifyHighwater(state) {
+    const initialized = await hasHighwaterMarker();
+    let file;
+    try {
+      file = await open(highwaterPath, READ_ONLY);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      if (initialized) throw new Error('Private high-water witness missing; operator review required.');
+      // Legacy R82/R143 state, prior to R145, may have no witness at all.
+      // A successful next reservation installs it without resetting balance.
+      return;
+    }
+    try {
+      const info = await file.stat();
+      if (!initialized || !info.isFile() || info.size > 512 || (info.mode & 0o077) ||
+          (typeof process.getuid === 'function' && info.uid !== process.getuid())) {
+        throw new Error('Private high-water witness requires operator review.');
+      }
+      const raw = await file.readFile('utf8');
+      const witness = JSON.parse(raw);
+      if (!witness || Object.getPrototypeOf(witness) !== Object.prototype ||
+          raw !== JSON.stringify(witness) + '\n' ||
+          Object.keys(witness).sort().join(',') !==
+            'limitMicros,limitRequests,requests,reservedMicros,schema' ||
+          witness.schema !== HIGHWATER_SCHEMA ||
+          witness.limitRequests !== state.limitRequests ||
+          witness.limitMicros !== state.limitMicros ||
+          witness.requests !== state.requests ||
+          witness.reservedMicros !== state.reservedMicros) {
+        throw new Error('Private high-water mismatch; operator review required.');
+      }
+    } finally { await file.close(); }
+  }
+
   async function readState() {
     const initialized = await hasInitializationMarker();
     let file;
@@ -94,10 +169,12 @@ export function createFaiscaLocalReservationLedger({
     } catch (error) {
       if (error.code === 'ENOENT') {
         if (initialized) throw new Error('Private ledger state missing; operator review required.');
-        return {
+        const empty = {
           schema: SCHEMA, requests: 0, reservedMicros: 0,
           limitRequests: maxRequests, limitMicros
         };
+        await verifyHighwater(empty);
+        return empty;
       }
       throw error;
     }
@@ -125,13 +202,14 @@ export function createFaiscaLocalReservationLedger({
           value.reservedMicros < 0 || value.reservedMicros > limitMicros) {
         throw new Error('Private ledger requires operator review.');
       }
+      await verifyHighwater(value);
       return value;
     } finally {
       await file.close();
     }
   }
 
-  async function durableWrite(next) {
+  async function durableWrite(next, target = statePath) {
     const temp = join(directory, '.faisca-reservation-' + randomUUID() + '.tmp');
     let file;
     try {
@@ -140,7 +218,7 @@ export function createFaiscaLocalReservationLedger({
       await file.sync();
       await file.close();
       file = null;
-      await rename(temp, statePath);
+      await rename(temp, target);
       const dir = await open(directory, READ_ONLY);
       try { await dir.sync(); } finally { await dir.close(); }
     } finally {
@@ -234,8 +312,17 @@ export function createFaiscaLocalReservationLedger({
         reservedMicros: current.reservedMicros + micros
       };
       await initializeMarker();
+      await initializeHighwaterMarker();
+      // Write the independent high-water mark *before* making new state
+      // visible. A crash, rollback or partial disk copy cannot present a
+      // lower spent state with a matching valid witness. Ambiguity stays NO-GO.
+      await durableWrite({
+        schema: HIGHWATER_SCHEMA, requests: next.requests,
+        reservedMicros: next.reservedMicros,
+        limitRequests: next.limitRequests, limitMicros: next.limitMicros
+      }, highwaterPath);
       await durableWrite(next);
-      // Release only AFTER both state-file sync and directory sync succeeded.
+      // Release only AFTER witness + state + directory sync succeeded.
       // Any I/O or integrity failure has an ambiguous reservation outcome:
       // keep the durable lock until a human operator reconciles the ledger.
       safeToUnlock = true;
