@@ -80,7 +80,7 @@ test('R113 normal private HTML/JS/CSS loopback smoke still passes without paid c
     origin: server.address, timeoutMs: 2000
   });
   assert.equal(result.status, 'PRIVATE_UI_READONLY_VERIFIED');
-  assert.equal(result.requests, 3);
+  assert.equal(result.requests, 4);
   assert.equal(result.modelInvocations, 0);
   assert.equal(calls, 0);
 });
