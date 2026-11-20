@@ -17,6 +17,7 @@ const CONVERSATION_PATH = '/__faisca_openai_private/converse';
 const MAX_BODY_BYTES = 96;
 const MAX_CONVERSATION_BODY_BYTES = 1500;
 const READ_BODY_DEADLINE = Symbol('private-review-body-deadline');
+const PROVIDER_DEADLINE = Symbol('private-review-provider-deadline');
 const tokenPattern = /^[a-zA-Z0-9_-]{32,128}$/;
 const PORT_RANGE = Number.isSafeInteger;
 const securityHeaders = Object.freeze({
@@ -267,7 +268,7 @@ async function readRequest(req, conversation) {
  */
 export async function startFaiscaOpenAIPrivateReview({
   lab, reviewToken, port = 0, bodyTimeoutMs = 3000,
-  enablePrivateConversation = false
+  providerDeadlineMs = 30000, enablePrivateConversation = false
 } = {}) {
   if (!lab || typeof lab.answer !== 'function' || typeof lab.inspect !== 'function' ||
       typeof reviewToken !== 'string' || !tokenPattern.test(reviewToken) ||
@@ -275,10 +276,13 @@ export async function startFaiscaOpenAIPrivateReview({
       (enablePrivateConversation && typeof lab.answerPrivateConversation !== 'function') ||
       !PORT_RANGE(port) || port < 0 || port > 65535 ||
       (port !== 0 && port < 1024) ||
-      !Number.isInteger(bodyTimeoutMs) || bodyTimeoutMs < 50 || bodyTimeoutMs > 30000) {
+      !Number.isInteger(bodyTimeoutMs) || bodyTimeoutMs < 50 || bodyTimeoutMs > 30000 ||
+      !Number.isInteger(providerDeadlineMs) || providerDeadlineMs < 50 || providerDeadlineMs > 30000) {
     throw new TypeError('Private OpenAI review requires a dedicated token and safe loopback port.');
   }
-  let active = true, requests = 0, inFlight = false;
+  // Once provider completion becomes uncertain, never permit a second paid
+  // dispatch from this server. The operator must close, review and restart.
+  let active = true, requests = 0, inFlight = false, providerUnavailable = false;
   const server = createServer(async (req, res) => {
     if (active && req.method === 'GET' && Object.hasOwn(privateAssets, req.url)) {
       if (!privateBrowserAllowed(req, server.address().port)) {
@@ -297,6 +301,7 @@ export async function startFaiscaOpenAIPrivateReview({
     if (!authorized(req, reviewToken, server.address().port)) {
       send(res, 403, { status: 'forbidden' }); return;
     }
+    if (providerUnavailable) { send(res, 503, { status: 'unavailable' }); return; }
     const input = await readRequestBeforeDeadline(req, bodyTimeoutMs, conversation);
     if (input === READ_BODY_DEADLINE) {
       // The request may still be waiting for bytes. Respond without touching
@@ -324,12 +329,27 @@ export async function startFaiscaOpenAIPrivateReview({
     // The live lab implements its own busy guard, but the HTTP boundary must
     // also serialize a misconfigured/injected provider. No parallel API calls
     // or implicit retries may arise from one review server.
+    if (providerUnavailable) { send(res, 503, { status: 'unavailable' }); return; }
     if (inFlight) { send(res, 429, { status: 'busy' }); return; }
     inFlight = true;
     requests++;
+    let providerTimer;
     try {
-      const reply = await (conversation
-        ? lab.answerPrivateConversation(input) : lab.answer(input));
+      // The R105 API client has its own deadline, but an injected or future
+      // adapter can ignore it. Enforce a separate HTTP completion deadline.
+      // Never reuse the session after the outcome is uncertain: the original
+      // promise may still complete or charge later despite timing out here.
+      const reply = await Promise.race([
+        Promise.resolve().then(() => conversation
+          ? lab.answerPrivateConversation(input) : lab.answer(input)),
+        new Promise(resolve => {
+          providerTimer = setTimeout(() => resolve(PROVIDER_DEADLINE), providerDeadlineMs);
+        })
+      ]);
+      if (reply === PROVIDER_DEADLINE) {
+        providerUnavailable = true;
+        throw new Error('Uncertain private provider completion.');
+      }
       if (conversation && reply === null) {
         send(res, 400, { status: 'invalid_question' }); return;
       }
@@ -353,7 +373,10 @@ export async function startFaiscaOpenAIPrivateReview({
         status: 'unavailable',
         message: 'The private AI review could not confirm a safe response.'
       });
-    } finally { inFlight = false; }
+    } finally {
+      clearTimeout(providerTimer);
+      inFlight = false;
+    }
   });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -364,7 +387,7 @@ export async function startFaiscaOpenAIPrivateReview({
     address,
     path: REVIEW_PATH,
     inspect: () => Object.freeze({
-      active, requests, inFlight, bindAddress: '127.0.0.1',
+      active, requests, inFlight, providerUnavailable, bindAddress: '127.0.0.1',
       publicReady: false, operationalEffects: false,
       liveBudget: lab.inspect()
     }),
