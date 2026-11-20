@@ -8,7 +8,8 @@ import { isTrustedPrivateSyntheticQuestion, readPrivateSyntheticQuestion } from 
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
 import {
-  privateConversationRoute, privateConversationEditorialReply, safePrivateGeneralReply
+  privateConversationRoute, privateConversationEditorialReply, safePrivateGeneralReply,
+  hasPrivateOperationalClaim, hasPrivateUnsupportedOutcomeGuarantee
 } from './private-conversation-policy.mjs';
 
 export const FAISCA_OPENAI_LIVE_LAB_SCHEMA = 'faisca.openai-private-live-lab.v1';
@@ -272,7 +273,12 @@ export function createFaiscaOpenAILiveLab({
           data.reply.length < 20 || data.reply.length > 900 ||
           /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(data.reply) ||
           blockedOutput.test(data.reply.normalize('NFKC')) || hasPrivateIdentifierRisk(data.reply) ||
-          hasPrivateUnreviewedPriceClaim(data.reply)) {
+          hasPrivateUnreviewedPriceClaim(data.reply) ||
+          // R144: the direct fixed-case lab adapter is a safety boundary too.
+          // Never rely solely on the later HTTP/browser consumer to reject an
+          // invented completed operation or a guaranteed marketing outcome.
+          hasPrivateOperationalClaim(data.reply) ||
+          hasPrivateUnsupportedOutcomeGuarantee(data.reply)) {
         throw new Error('OpenAI answer failed editorial safety checks.');
       }
       return Object.freeze({
