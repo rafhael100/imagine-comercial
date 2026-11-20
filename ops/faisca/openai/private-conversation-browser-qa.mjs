@@ -61,9 +61,13 @@ try {
     assert.match(await page.locator('#review-status').innerText(),/confirme que ela é fictícia/);
     assert.equal(calls,0);
     assert.equal(await page.locator('#review-token').inputValue(),'');
+    // R120 privacy guard discards the rejected question and its attestation.
+    assert.equal(await page.locator('#review-question').inputValue(),'');
   });
   await step('R95 private browser submits one fictional question and erases transient input',async()=>{
     await page.locator('#review-token').fill(token);
+    // A new, explicit fictional question is required after every rejection.
+    await page.locator('#review-question').fill('Vale a pena usar uma landing page para divulgar um evento?');
     await page.locator('#review-attestation').check();
     await page.locator('#review-send').click();
     await page.waitForFunction(()=>document.querySelector('#review-status')?.textContent?.includes('Resposta gerada.'));
