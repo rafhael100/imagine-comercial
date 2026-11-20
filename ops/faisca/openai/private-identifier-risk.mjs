@@ -29,6 +29,9 @@ const hexIpv4Alias = /(?:^|[^\p{L}\p{N}_])0x[0-9a-f]{2,8}(?:\.(?:0x)?[0-9a-f]{1,
 const octalIpv4Alias = /(?:^|[^\p{L}\p{N}.])0[0-7]{2,3}(?:\.[0-7]{1,3}){1,3}(?![\p{L}\p{N}])/u;
 const ipv6Literal = /(?:^|[^\p{L}\p{N}:])(?:[a-f0-9]{0,4}:){2,}[a-f0-9]{0,4}(?=$|[^\p{L}\p{N}:])/u;
 const localhostName = /\blocalhost\b/u;
+// R151: recognize credential-shaped values without requiring words like
+// 'senha' or 'token'. No value is logged, persisted or echoed.
+const secretShape = /(?:^|[^\p{L}\p{N}_])(?:sk-(?:proj-|svcacct-)?[a-z0-9_-]{16,}|github_pat_[a-z0-9_]{16,}|gh[pousr]_[a-z0-9_]{20,}|xox[baprs]-[a-z0-9-]{16,}|akia[a-z0-9]{16}|bearer\s+[a-z0-9._~+/-]{16,}|-----begin\s+(?:(?:rsa|ec|openssh)\s+)?private\s+key-----)/u;
 
 /** Fail closed for obvious identifier/contact leakage; never return the input. */
 export function hasPrivateIdentifierRisk(value) {
@@ -40,5 +43,5 @@ export function hasPrivateIdentifierRisk(value) {
     sensitiveWords.test(text) || emailOrUrl.test(text) ||
     bareHostname.test(text) || ipv4Literal.test(text) ||
     shortenedPrivateIpv4.test(text) || hexIpv4Alias.test(text) ||
-    octalIpv4Alias.test(text) || ipv6Literal.test(text) || localhostName.test(text);
+    octalIpv4Alias.test(text) || ipv6Literal.test(text) || localhostName.test(text) || secretShape.test(text);
 }
