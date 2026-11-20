@@ -249,7 +249,7 @@ export function createFaiscaOpenAILiveLab({
       if (!data || typeof data.reply !== 'string' ||
           data.reply.length < 20 || data.reply.length > 900 ||
           /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(data.reply) ||
-          blockedOutput.test(data.reply) || hasPrivateIdentifierRisk(data.reply)) {
+          blockedOutput.test(data.reply.normalize('NFKC')) || hasPrivateIdentifierRisk(data.reply)) {
         throw new Error('OpenAI answer failed editorial safety checks.');
       }
       return Object.freeze({
@@ -320,7 +320,7 @@ export function createFaiscaOpenAILiveLab({
       );
       const reply = strictObject(terra.parsed, ['reply'])?.reply;
       if (typeof reply !== 'string' || reply.length < 20 || reply.length > 900 ||
-          blockedOutput.test(reply) || !safePrivateGeneralReply(reply)) {
+          blockedOutput.test(reply.normalize('NFKC')) || !safePrivateGeneralReply(reply)) {
         return privateConversationEditorialReply('confirm');
       }
       return {
