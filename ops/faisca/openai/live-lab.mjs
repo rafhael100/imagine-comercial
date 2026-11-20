@@ -5,6 +5,7 @@ import {
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { createHash } from 'node:crypto';
 import { isTrustedPrivateSyntheticQuestion, readPrivateSyntheticQuestion } from './private-question-gate.mjs';
+import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import {
   privateConversationRoute, privateConversationEditorialReply, safePrivateGeneralReply
 } from './private-conversation-policy.mjs';
@@ -248,7 +249,9 @@ export function createFaiscaOpenAILiveLab({
       if (!data || typeof data.reply !== 'string' ||
           data.reply.length < 20 || data.reply.length > 900 ||
           /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(data.reply) ||
-          blockedOutput.test(data.reply)) throw new Error('OpenAI answer failed editorial safety checks.');
+          blockedOutput.test(data.reply) || hasPrivateIdentifierRisk(data.reply)) {
+        throw new Error('OpenAI answer failed editorial safety checks.');
+      }
       return Object.freeze({
         schema: FAISCA_OPENAI_LIVE_LAB_SCHEMA,
         status: 'draft_answer',
