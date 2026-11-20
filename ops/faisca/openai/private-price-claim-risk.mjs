@@ -10,11 +10,21 @@ const amountsInWords = new RegExp(
 );
 const unreviewedFreeOffer =
   /\b(?:site|pagina|landing\s+page|servico|plano|implantacao|hospedagem|mensalidade)\b.{0,40}\b(?:gratis|gratuit[oa]s?|sem\s+custo|sem\s+cobrar|sem\s+mensalidade)\b/u;
+// Currency symbols do not require an R$ prefix. A fabricated fee such as
+// "US$ 79", "€ 50" or "¥ 1000" was accepted by the older direct model guard.
+// Reject currency signs conservatively in ALL private model responses.
+const currencySign = /\p{Sc}/u;
+// Numeric fees can also use ISO currency codes or written units without any
+// currency sign; the digits here are not contact identifiers (R98 checks those).
+const numericCurrency = /(?:\b(?:usd|brl|eur)\s*\p{Nd}{1,8}\b|\p{Nd}{1,8}(?:[.,]\p{Nd}{1,2})?\s*(?:reais|real|dolares?|euros?)\b)/u;
+const numericCommercialFee = /\b(?:preco|valor|custa|custara|cobram|cobramos|mensalidade|implantacao|orcamento|desconto|investimento)\b.{0,28}\p{Nd}{1,8}/u;
 
 /** Fail closed on obvious monetary promises expressed without currency digits. */
 export function hasPrivateUnreviewedPriceClaim(value) {
   if (typeof value !== 'string') return true;
   const normalized = value.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu, '').toLowerCase().replace(/\p{Pd}/gu, ' ');
-  return amountsInWords.test(normalized) || unreviewedFreeOffer.test(normalized);
+  return amountsInWords.test(normalized) || unreviewedFreeOffer.test(normalized) ||
+    currencySign.test(normalized) || numericCurrency.test(normalized) ||
+    numericCommercialFee.test(normalized);
 }

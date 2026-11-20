@@ -158,6 +158,11 @@ function privateBrowserReplyEgressSafe(value) {
   return !(
     // Prevent invisible format characters from concealing an unreviewed claim.
     /\p{Default_Ignorable_Code_Point}/u.test(value) ||
+    // R146: a synthetic HTTP 200 from a misconfigured adapter cannot display
+    // a fabricated non-BRL fee in the browser's independent final boundary.
+    /\p{Sc}/u.test(normalized) ||
+    /(?:\b(?:usd|brl|eur)\s*\p{Nd}{1,8}\b|\p{Nd}{1,8}(?:[.,]\p{Nd}{1,2})?\s*(?:reais|real|dolares?|euros?)\b)/u.test(normalized) ||
+    /\b(?:preco|valor|custa|custara|cobram|cobramos|mensalidade|implantacao|orcamento|desconto|investimento)\b.{0,28}\p{Nd}{1,8}/u.test(normalized) ||
     /https?:\/\/|\bwww\.|@[a-z0-9.-]+\.[a-z]{2,}/u.test(normalized) ||
     /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||
     /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|dominio|campanha|loja|anuncio)\s+(?:(?:ja|foi|esta|ficou)\s+){1,3}(?:publicad[ao]|ativad[ao]|entregue|configurad[ao]|rodando|no\s+ar|online)\b/u.test(normalized) ||
