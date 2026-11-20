@@ -72,7 +72,7 @@ test('R152 direct Luna/Terra adapter rejects a forged encoded response with no r
   const answerId = retrieveCandidateAnswerIds(FAISCA_OPENAI_TEST_CASES.compare)[0];
   let calls = 0;
   const lab = createFaiscaOpenAILiveLab({
-    enabled: true, apiKey: 'R152_FAKE_NOT_ISSUED_PROVIDER_TOKEN_123456',
+    enabled: true, apiKey: 'sk-' + 'R152_FAKE_NOT_ISSUED_123456789',
     extendedPrivateSession: true, maxRequests: 2, maxBudgetUsd: 1,
     fetchImpl: async (_url, request) => {
       calls++;
