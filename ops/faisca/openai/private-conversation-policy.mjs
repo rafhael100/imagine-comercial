@@ -66,8 +66,11 @@ const unsupportedQuantifiedOutcome = /\b(?:vai|vamos|ira|irao|iremos|conseguira|
 // performance percentages or a visitor's search placement. Do not let a
 // plausible citation ("according to Google") impersonate evidence: this
 // private lab has no approved source for those factual claims.
+// R156: an unsupported "study/report" or a platform presented as an
+// asserting witness is no more reliable than "according to Google". The
+// private provider has no trusted evidence feed for these statements.
 const unsupportedExternalAttribution =
-  /\b(?:segundo|conforme|de\s+acordo\s+com|dados\s+(?:do|da|de)|pesquisa\s+(?:do|da|de))\s+(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\b/u;
+  /\b(?:segundo|conforme|de\s+acordo\s+com|dados\s+(?:do|da|de)|(?:pesquisa|estudo|relatorio|levantamento)\s+(?:do|da|de))\s+(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\b|\b(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\s+(?:afirma|afirmou|confirma|confirmou|comprova|comprovou|recomenda|recomendou)\b/u;
 const unsupportedUnverifiedKpi =
   /\b(?:taxa\s+de\s+(?:conversao|cliques?|abertura)|roi|ctr|crescimento|engajamento)\b.{0,45}\d{1,3}(?:[.,]\d{1,2})?\s*%/u;
 const unsupportedSearchPlacement =
