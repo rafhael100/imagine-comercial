@@ -59,6 +59,7 @@ export function createFaiscaLocalReservationLedger({
   const providerUncertainPath = join(directory, PROVIDER_UNCERTAIN_NAME);
   const providerDispatchPath = join(directory, PROVIDER_DISPATCH_NAME);
   let ownedDispatch = false;
+  let ownedDispatchIdentity = null;
 
   async function checkDirectory() {
     const dir = await lstat(directory);
@@ -261,13 +262,46 @@ export function createFaiscaLocalReservationLedger({
     throw new Error('Private provider dispatch in flight; operator review required.');
   }
 
+  // R199: a process must never reuse or unlock a dispatch marker that was
+  // replaced after it obtained ownership (same bytes are not enough).
+  // O_NOFOLLOW, inode + device and link-count checks provide a conservative
+  // single-host guard. A hostile writer with the same UID still needs an
+  // independent operating-system trust boundary; this is not a proof of it.
+  async function assertOwnedDispatchMarker() {
+    if (!ownedDispatch || !ownedDispatchIdentity) {
+      throw new Error('Private provider dispatch marker requires operator review.');
+    }
+    let file;
+    try {
+      file = await open(providerDispatchPath, READ_ONLY);
+      const opened = await file.stat();
+      const entry = await lstat(providerDispatchPath);
+      if (!opened.isFile() || !entry.isFile() || entry.isSymbolicLink() ||
+          opened.dev !== ownedDispatchIdentity.dev ||
+          opened.ino !== ownedDispatchIdentity.ino ||
+          opened.dev !== entry.dev || opened.ino !== entry.ino ||
+          opened.nlink !== 1 || (opened.mode & 0o077) ||
+          (typeof process.getuid === 'function' && opened.uid !== process.getuid()) ||
+          opened.size !== Buffer.byteLength(PROVIDER_DISPATCH_DATA) ||
+          await file.readFile('utf8') !== PROVIDER_DISPATCH_DATA) {
+        throw new Error('Private provider dispatch marker requires operator review.');
+      }
+    } catch {
+      throw new Error('Private provider dispatch marker requires operator review.');
+    } finally { await file?.close().catch(() => {}); }
+    return true;
+  }
+
   async function beginPaidDispatch() {
-    // One private Luna -> Terra turn may reuse its OWN durable gate until the
-    // HTTP layer confirms that the response has been written successfully.
-    if (ownedDispatch) return true;
+    // Luna and Terra may share the gate only if its original inode remains.
+    if (ownedDispatch) {
+      await checkDirectory();
+      await assertNoProviderUncertainty();
+      return assertOwnedDispatchMarker();
+    }
     await checkDirectory();
     await assertNoProviderUncertainty();
-    let file;
+    let file, dispatchIdentity;
     try {
       // The underlying O_EXCL reservation is shared by ALL local processes.
       // Never recover or delete another process's marker automatically.
@@ -276,6 +310,8 @@ export function createFaiscaLocalReservationLedger({
       // An I/O failure must leave the marker present but never permit reuse.
       await file.writeFile(PROVIDER_DISPATCH_DATA);
       await file.sync();
+      const info = await file.stat();
+      dispatchIdentity = Object.freeze({ dev: info.dev, ino: info.ino });
     } catch {
       // A partial file also stays present for crash-safe operator review.
       throw new Error('Private provider dispatch unavailable.');
@@ -288,6 +324,7 @@ export function createFaiscaLocalReservationLedger({
       // Never unlink on uncertainty or failed fsync; fail closed.
       throw new Error('Private provider dispatch unavailable.');
     }
+    ownedDispatchIdentity = dispatchIdentity;
     ownedDispatch = true;
     return true;
   }
@@ -296,23 +333,15 @@ export function createFaiscaLocalReservationLedger({
     if (!ownedDispatch) throw new Error('Private provider dispatch not owned.');
     await checkDirectory();
     await assertNoProviderUncertainty();
-    let file;
-    try {
-      file = await open(providerDispatchPath, READ_ONLY);
-      const info = await file.stat();
-      if (!info.isFile() || info.size !== Buffer.byteLength(PROVIDER_DISPATCH_DATA) ||
-          (info.mode & 0o077) || info.nlink !== 1 ||
-          (typeof process.getuid === 'function' && info.uid !== process.getuid()) ||
-          await file.readFile('utf8') !== PROVIDER_DISPATCH_DATA) {
-        throw new Error('Private provider dispatch requires operator review.');
-      }
-    } finally { await file?.close(); }
+    // Refuse to remove a different inode even when its contents are identical.
+    await assertOwnedDispatchMarker();
     // Only THIS ledger instance, after a fully validated provider reply,
     // can release its own marker; failure leaves a conservative NO-START.
     await unlink(providerDispatchPath);
     const dir = await open(directory, READ_ONLY);
     try { await dir.sync(); } finally { await dir.close(); }
     ownedDispatch = false;
+    ownedDispatchIdentity = null;
     return true;
   }
 
