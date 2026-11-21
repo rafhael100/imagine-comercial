@@ -17,10 +17,10 @@ const instructionOverride = [
 const explicitRoleDelimiters =
   /(?:\[\s*im_start\s*\]|\[\s*\/?\s*inst\s*\]|<<\s*sys\s*>>|<\s*\/?\s*(?:system|developer|assistant|user)\s*>|["'](?:role|speaker)["']\s*:\s*["'](?:system|developer)["'])/u;
 const compactOverride = [
-  /(?:ignore|desconsidere|esqueca|esquece|desative|contorne|bypasse)[\\p{L}\\p{N}]{0,110}(?:instrucoes|regras|politicas|sistema|prompts|limites|filtros|seguranca|restricoes)/u,
-  /(?:finja|assuma|atue|aja)[\\p{L}\\p{N}]{0,105}(?:papel|como|modo)[\\p{L}\\p{N}]{0,80}(?:sistema|developer|desenvolvedor|administrador)/u,
+  /(?:ignore|desconsidere|esqueca|esquece|desative|contorne|bypasse)[\p{L}\p{N}]{0,110}(?:instrucoes|regras|politicas|sistema|prompts|limites|filtros|seguranca|restricoes)/u,
+  /(?:finja|assuma|atue|aja)[\p{L}\p{N}]{0,105}(?:papel|como|modo)[\p{L}\p{N}]{0,80}(?:sistema|developer|desenvolvedor|administrador)/u,
   /^(?:system|developer|assistant|usuario|user)\s*:\s*\S/u,
-  /(?:revele|mostre|imprima|exiba|vaze|liste)[\\p{L}\\p{N}]{0,105}(?:prompt|instrucoesinternas|segredos|credenciais|chaves|politicasinternas|mensagemdesistema)/u
+  /(?:revele|mostre|imprima|exiba|vaze|liste)[\p{L}\p{N}]{0,105}(?:prompt|instrucoesinternas|segredos|credenciais|chaves|politicasinternas|mensagemdesistema)/u
 ];
 
 export function hasPrivateSyntheticInstructionOverrideRisk(text) {
