@@ -99,7 +99,7 @@ test('R157 real loopback HTTP runs rejected negative before accepted positive, e
     'GET', 'GET', 'GET', 'GET', 'POST'
   ]);
   assert.equal(fixture.calls(), 1, 'one internal fixture, never any paid model calls');
-  assert.equal(server.inspect().requests, 1);
+  assert.equal(server.inspect().requests, 2, 'server counts the rejected POST and the accepted synthetic POST');
   safeReport(result);
 });
 
