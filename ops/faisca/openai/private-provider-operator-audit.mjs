@@ -1,10 +1,16 @@
 import { open, lstat, realpath } from 'node:fs/promises';
 import { constants } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { isAbsolute, join, normalize } from 'node:path';
 import { auditFaiscaPrivateProviderAggregate } from './private-provider-aggregate-audit.mjs';
 
 const MAX_FILE_BYTES = 1024;
 const OUTCOMES = new Set(['success', 'rejected', 'failed_luna', 'failed_terra']);
+const PIN_KEYS = ['after', 'aggregate', 'before'];
+const validPins = value => value !== null && typeof value === 'object' &&
+  !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype &&
+  Object.keys(value).sort().join(',') === PIN_KEYS.join(',') &&
+  PIN_KEYS.every(key => typeof value[key] === 'string' && /^[a-f0-9]{64}$/u.test(value[key]));
 
 // Never fall back to following symlinks or opening a FIFO in blocking mode.
 const READ_ONLY_NO_FOLLOW = Number.isInteger(constants.O_NOFOLLOW) &&
@@ -25,6 +31,8 @@ const sameMetadata = (left, right) =>
  *
  * This is a best-effort consistency check, NOT an atomic three-file snapshot,
  * a trusted OpenAI attestation, an audit of invoices or public release GO.
+ * R171 optionally binds all three file byte streams to independently pinned
+ * SHA-256 digests. A digest supplied by the same untrusted files is NOT proof.
  */
 export async function inspectFaiscaOfflineOperatorAggregate(options = {}) {
   try {
@@ -35,10 +43,11 @@ export async function inspectFaiscaOfflineOperatorAggregate(options = {}) {
   }
 }
 
-async function inspectUntrustedOfflineEvidence({ directory, outcome } = {}) {
+async function inspectUntrustedOfflineEvidence({ directory, outcome, expectedSha256 } = {}) {
   if (typeof directory !== 'string' || !isAbsolute(directory) ||
       normalize(directory) !== directory || directory.includes('\0') ||
-      !OUTCOMES.has(outcome) || READ_ONLY_NO_FOLLOW === null) {
+      !OUTCOMES.has(outcome) || READ_ONLY_NO_FOLLOW === null ||
+      (expectedSha256 !== undefined && !validPins(expectedSha256))) {
     throw new Error('R169 BLOCKED: invalid private audit configuration.');
   }
 
@@ -82,7 +91,13 @@ async function inspectUntrustedOfflineEvidence({ directory, outcome } = {}) {
         throw new Error('R169 BLOCKED: evidence changed or grew while reading.');
       }
 
-      const raw = buffer.subarray(0, bytes).toString('utf8');
+      const payload = buffer.subarray(0, bytes);
+      if (expectedSha256 !== undefined &&
+          createHash('sha256').update(payload).digest('hex') !==
+          expectedSha256[name.slice(0, -'.json'.length)]) {
+        throw new Error('R171 BLOCKED: evidence did not match independent pin.');
+      }
+      const raw = payload.toString('utf8');
       const value = JSON.parse(raw);
       if (raw !== JSON.stringify(value) + '\n' ||
           value === null || typeof value !== 'object' ||
