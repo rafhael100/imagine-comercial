@@ -166,9 +166,14 @@ export function createFaiscaOpenAILiveLab({
         (typeof reservationLedger !== 'object' || typeof reservationLedger.reserve !== 'function'))) {
     throw new TypeError('Private OpenAI API trial not explicitly and safely configured.');
   }
-  let calls = 0, reservedUsd = 0, busy = false;
+  // After an uncertain paid-provider outcome, no further dispatch from this
+  // lab instance is safe: the original response may still complete/charge.
+  // The separate HTTP server already has a breaker, but direct CLI callers
+  // must also fail closed without relying on that server.
+  let calls = 0, reservedUsd = 0, busy = false, providerCompletionUncertain = false;
 
   async function invoke(model, input, instructions, format, maxOutputTokens) {
+    if (providerCompletionUncertain) throw new Error('OpenAI private test unavailable.');
     if (calls >= maxRequests) throw new Error('Private OpenAI API request limit reached.');
     const payload = {
       model, input, instructions, store: false,
@@ -205,6 +210,9 @@ export function createFaiscaOpenAILiveLab({
       }), controller.signal);
       return await receiveBoundedResponse(response, controller.signal, model);
     } catch {
+      // The request was already durably reserved and dispatched, but may
+      // still complete upstream after a timeout/error. No retry in-process.
+      providerCompletionUncertain = true;
       // Never expose API error bodies or configuration in the UI/log.
       throw new Error('OpenAI private test unavailable.');
     } finally {

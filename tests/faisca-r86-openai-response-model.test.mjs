@@ -58,6 +58,8 @@ test('R86 Terra identity mismatch fails closed after a genuine mocked Luna selec
   assert.equal(dispatches, 2);
   assert.equal(lab.inspect().calls, 2);
   assert.ok(lab.inspect().reservedUsd > 0);
-  await assert.rejects(lab.answer('process'), /request limit reached/);
+  // R187: an uncertain Terra identity is a transport/provenance failure.
+  // The session now latches before the next budget check or network call.
+  await assert.rejects(lab.answer('process'), /OpenAI private test unavailable/);
   assert.equal(dispatches, 2, 'No hidden retry on mismatch.');
 });
