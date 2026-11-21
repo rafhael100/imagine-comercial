@@ -1,5 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtemp, chmod, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createFaiscaLocalReservationLedger } from '../ops/faisca/openai/durable-reservation-ledger.mjs';
+import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
+import { inspectFaiscaPrivateConversationSequence } from '../ops/faisca/openai/private-staging-sequence.mjs';
 import {
   classifyFaiscaFailedPositiveReservations
 } from '../ops/faisca/openai/private-ledger-sequence-proof.mjs';
@@ -56,4 +62,44 @@ test('R163 accepts an already-partly-spent ledger but does not mistake totals fo
     snapshot(5, 50000)), 0);
   assert.equal(classifyFaiscaFailedPositiveReservations(snapshot(5, 50000),
     snapshot(6, 60000)), null);
+});
+
+test('R163 HTTP private sequence rejects an extra third reservation after failed positive reply', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'faisca-r163-'));
+  await chmod(directory, 0o700);
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const ledger = createFaiscaLocalReservationLedger({
+    directory, maxRequests: 4, maxBudgetUsd: 1
+  });
+  let positiveAttempts = 0;
+  const lab = {
+    answer: async () => { throw Error('unreachable synthetic scenario'); },
+    answerPrivateConversation: async () => {
+      positiveAttempts++;
+      await ledger.reserve(0.01);
+      await ledger.reserve(0.02);
+      await ledger.reserve(0.03);
+      throw Error('synthetic private positive failure; no provider involved');
+    },
+    inspect: () => ({ syntheticOnly: true })
+  };
+  const token = 'R163_PRIVATE_SYNTHETIC_ONLY_NO_REAL_BEARER';
+  const server = await startFaiscaOpenAIPrivateReview({
+    lab, reviewToken: token, enablePrivateConversation: true
+  });
+  t.after(() => server.close());
+  const result = await inspectFaiscaPrivateConversationSequence({
+    origin: server.address, reviewToken: token, enabled: true,
+    inspectLedger: () => ledger.inspectReadOnly()
+  });
+  assert.equal(result.status, 'BLOCKED_LEDGER_GATE');
+  assert.equal(result.negativeInputRejected, true);
+  assert.equal(result.positiveEnvelopeAccepted, false);
+  assert.equal(result.failedPositiveReservedRequests, null);
+  assert.equal(result.localLedgerDeltasVerified, false);
+  assert.equal(result.ledgerReconciled, false);
+  assert.equal(result.publicReady, false);
+  assert.equal(positiveAttempts, 1, 'never retry a failed positive request');
+  assert.equal((await ledger.inspectReadOnly()).requests, 3);
+  assert.equal(JSON.stringify(result).includes(token), false);
 });
