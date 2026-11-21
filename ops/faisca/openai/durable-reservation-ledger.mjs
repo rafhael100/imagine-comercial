@@ -22,6 +22,11 @@ const HIGHWATER_MARKER_DATA = HIGHWATER_SCHEMA + '\n';
 // across process restarts; never automatically clear it.
 const PROVIDER_UNCERTAIN_NAME = '.faisca-provider-outcome-uncertain';
 const PROVIDER_UNCERTAIN_DATA = 'faisca.private-provider-outcome-uncertain.v1\n';
+// R196: O_EXCL + fsync dispatch marker is created before a paid network
+// request. Another worker on the same host may not dispatch concurrently.
+// A crash leaves this marker as an intentional permanent NO-START for review.
+const PROVIDER_DISPATCH_NAME = '.faisca-provider-dispatch-inflight';
+const PROVIDER_DISPATCH_DATA = 'faisca.private-provider-dispatch-inflight.v1\n';
 const MAX_REQUESTS = 100;
 const MAX_MICROS = 10_000_000;
 const OPEN_LOCK = constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW;
@@ -52,6 +57,8 @@ export function createFaiscaLocalReservationLedger({
   const highwaterPath = join(directory, HIGHWATER_NAME);
   const highwaterMarkerPath = join(directory, HIGHWATER_MARKER_NAME);
   const providerUncertainPath = join(directory, PROVIDER_UNCERTAIN_NAME);
+  const providerDispatchPath = join(directory, PROVIDER_DISPATCH_NAME);
+  let ownedDispatch = false;
 
   async function checkDirectory() {
     const dir = await lstat(directory);
@@ -246,6 +253,65 @@ export function createFaiscaLocalReservationLedger({
     throw new Error('Private provider outcome uncertain; operator reconciliation required.');
   }
 
+  async function assertNoProviderDispatch() {
+    // Any entry, including an interrupted write, symlink or hardlink, is
+    // treated as an active/ambiguous dispatch. No stale-lock TTL or unlink.
+    try { await lstat(providerDispatchPath); }
+    catch (error) { if (error?.code === 'ENOENT') return; }
+    throw new Error('Private provider dispatch in flight; operator review required.');
+  }
+
+  async function beginPaidDispatch() {
+    if (ownedDispatch) throw new Error('Private provider dispatch already active.');
+    await checkDirectory();
+    await assertNoProviderUncertainty();
+    let file;
+    try {
+      // The underlying O_EXCL reservation is shared by ALL local processes.
+      // Never recover or delete another process's marker automatically.
+      file = await open(providerDispatchPath, OPEN_LOCK, 0o600);
+      ownedDispatch = true;
+      await file.writeFile(PROVIDER_DISPATCH_DATA);
+      await file.sync();
+    } catch {
+      // A partial file also stays present for crash-safe operator review.
+      throw new Error('Private provider dispatch unavailable.');
+    } finally { await file?.close().catch(() => {}); }
+    try {
+      const dir = await open(directory, READ_ONLY);
+      try { await dir.sync(); } finally { await dir.close(); }
+      await assertNoProviderUncertainty();
+    } catch {
+      // Never unlink on uncertainty or failed fsync; fail closed.
+      throw new Error('Private provider dispatch unavailable.');
+    }
+    return true;
+  }
+
+  async function completePaidDispatch() {
+    if (!ownedDispatch) throw new Error('Private provider dispatch not owned.');
+    await checkDirectory();
+    await assertNoProviderUncertainty();
+    let file;
+    try {
+      file = await open(providerDispatchPath, READ_ONLY);
+      const info = await file.stat();
+      if (!info.isFile() || info.size !== Buffer.byteLength(PROVIDER_DISPATCH_DATA) ||
+          (info.mode & 0o077) || info.nlink !== 1 ||
+          (typeof process.getuid === 'function' && info.uid !== process.getuid()) ||
+          await file.readFile('utf8') !== PROVIDER_DISPATCH_DATA) {
+        throw new Error('Private provider dispatch requires operator review.');
+      }
+    } finally { await file?.close(); }
+    // Only THIS ledger instance, after a fully validated provider reply,
+    // can release its own marker; failure leaves a conservative NO-START.
+    await unlink(providerDispatchPath);
+    const dir = await open(directory, READ_ONLY);
+    try { await dir.sync(); } finally { await dir.close(); }
+    ownedDispatch = false;
+    return true;
+  }
+
   async function markOutcomeUncertain() {
     await checkDirectory();
     let file;
@@ -284,6 +350,7 @@ export function createFaiscaLocalReservationLedger({
     const minimumMicros = Math.ceil(minimumBudgetUsd * 1_000_000);
     await checkDirectory();
     await assertNoProviderUncertainty();
+    await assertNoProviderDispatch();
     // An absent state stays absent: preflight must not create or reset quota.
     const state = await readState();
     // A stale crash lock is a hard NO-START for all callers of ready(),
@@ -357,6 +424,7 @@ export function createFaiscaLocalReservationLedger({
     }
     await checkDirectory();
     await assertNoProviderUncertainty();
+    await assertNoProviderDispatch();
     // O_EXCL provides atomic mutual exclusion across processes on ONE host.
     // An existing lock (including a crash remnant) is a hard stop, not a retry.
     let lock;
@@ -379,6 +447,7 @@ export function createFaiscaLocalReservationLedger({
       // Recheck after taking the reservation lock; a separate process may
       // have marked an uncertain completion while we were acquiring it.
       await assertNoProviderUncertainty();
+      await assertNoProviderDispatch();
       const current = await readState();
       if (current.requests >= maxRequests ||
           current.reservedMicros + micros > limitMicros) {
@@ -421,5 +490,8 @@ export function createFaiscaLocalReservationLedger({
     }
   }
 
-  return Object.freeze({ ready, reserve, inspectReadOnly, markOutcomeUncertain });
+  return Object.freeze({
+    ready, reserve, inspectReadOnly, markOutcomeUncertain,
+    beginPaidDispatch, completePaidDispatch
+  });
 }
