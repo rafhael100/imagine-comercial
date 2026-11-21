@@ -176,7 +176,12 @@ export function createFaiscaOpenAILiveLab({
   let holdForHttpDelivery = false, awaitingHttpDeliveryAck = false;
   let heldDispatch = false;
   function startTurn(requireHttpDeliveryAck) {
-    if (busy || awaitingHttpDeliveryAck || providerCompletionUncertain) {
+    // Keep the existing sanitized failure contract of R86/R187/R194 for an
+    // uncertain provider outcome; do not disguise it as ordinary contention.
+    if (providerCompletionUncertain) {
+      throw new Error('OpenAI private test unavailable.');
+    }
+    if (busy || awaitingHttpDeliveryAck) {
       throw new Error('Only one private OpenAI trial can run at once.');
     }
     busy = true;
