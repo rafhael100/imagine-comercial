@@ -262,7 +262,9 @@ export function createFaiscaLocalReservationLedger({
   }
 
   async function beginPaidDispatch() {
-    if (ownedDispatch) throw new Error('Private provider dispatch already active.');
+    // One private Luna -> Terra turn may reuse its OWN durable gate until the
+    // HTTP layer confirms that the response has been written successfully.
+    if (ownedDispatch) return true;
     await checkDirectory();
     await assertNoProviderUncertainty();
     let file;
@@ -426,7 +428,7 @@ export function createFaiscaLocalReservationLedger({
     }
     await checkDirectory();
     await assertNoProviderUncertainty();
-    await assertNoProviderDispatch();
+    if (!ownedDispatch) await assertNoProviderDispatch();
     // O_EXCL provides atomic mutual exclusion across processes on ONE host.
     // An existing lock (including a crash remnant) is a hard stop, not a retry.
     let lock;
@@ -449,7 +451,7 @@ export function createFaiscaLocalReservationLedger({
       // Recheck after taking the reservation lock; a separate process may
       // have marked an uncertain completion while we were acquiring it.
       await assertNoProviderUncertainty();
-      await assertNoProviderDispatch();
+      if (!ownedDispatch) await assertNoProviderDispatch();
       const current = await readState();
       if (current.requests >= maxRequests ||
           current.reservedMicros + micros > limitMicros) {
