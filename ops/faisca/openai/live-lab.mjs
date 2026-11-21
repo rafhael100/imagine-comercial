@@ -210,6 +210,12 @@ export function createFaiscaOpenAILiveLab({
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
+      // R196: a shared, fsynced O_EXCL marker must precede the provider call.
+      // Mocks may omit this new capability; the real durable ledger supplies it.
+      // Never retry or release the marker after an uncertain provider result.
+      if (typeof reservationLedger?.beginPaidDispatch === 'function') {
+        await reservationLedger.beginPaidDispatch();
+      }
       const response = await awaitAbortable(fetchImpl(API_URL, {
         method: 'POST', body, signal: controller.signal, redirect: 'error',
         headers: {
@@ -218,7 +224,14 @@ export function createFaiscaOpenAILiveLab({
           Accept: 'application/json'
         }
       }), controller.signal);
-      return await receiveBoundedResponse(response, controller.signal, model);
+      const completed = await receiveBoundedResponse(response, controller.signal, model);
+      // Only an authenticated, fully parsed successful provider response can
+      // release the single-host network-dispatch marker. HTTP delivery loss is
+      // separately fenced by R194; its crash-before-fsync gap remains a gate.
+      if (typeof reservationLedger?.completePaidDispatch === 'function') {
+        await reservationLedger.completePaidDispatch();
+      }
+      return completed;
     } catch {
       // A reserved request may still complete/charge upstream after an
       // error. Latch locally, and when supported by the durable ledger,
