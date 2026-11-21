@@ -1,11 +1,14 @@
 import { inspectFaiscaPrivateNegativeConversation } from './private-staging-negative-probe.mjs';
 import { inspectFaiscaPrivatePositiveConversation } from './private-staging-positive-probe.mjs';
+import {
+  validFaiscaLocalLedgerSnapshot, matchFaiscaLocalLedgerDelta
+} from './private-ledger-sequence-proof.mjs';
 
 export const FAISCA_PRIVATE_SEQUENCE_SCHEMA = 'faisca.private-staging-conversation-sequence.v1';
 const LOOPBACK = /^http:\/\/127\.0\.0\.1:([1-9][0-9]{0,4})$/u;
 const TOKEN = /^[A-Za-z0-9_-]{32,128}$/u;
 
-function report(status, negative, positive) {
+function report(status, negative, positive, localLedgerDeltasVerified = false) {
   return Object.freeze({
     schema: FAISCA_PRIVATE_SEQUENCE_SCHEMA,
     status,
@@ -19,6 +22,8 @@ function report(status, negative, positive) {
     modelCallsProvenExactlyTwoForPositive: false,
     providerTransportVerified: false,
     ledgerReconciled: false,
+    // Only local single-host counter deltas, not a provider invoice or guarantee.
+    localLedgerDeltasVerified,
     publicReady: false,
     operationalEffects: false
   });
@@ -39,6 +44,9 @@ export async function inspectFaiscaPrivateConversationSequence({
   reviewToken,
   enabled = false,
   fetchImpl = globalThis.fetch,
+  // Optional operator-owned R160 read-only ledger inspector. No path or key
+  // enters this function; the sequence remains valid without this evidence.
+  inspectLedger = null,
   negativeTimeoutMs = 3000,
   positiveTimeoutMs = 30000
 } = {}) {
@@ -46,11 +54,24 @@ export async function inspectFaiscaPrivateConversationSequence({
   if (!match || Number(match[1]) > 65535 || enabled !== true ||
       typeof reviewToken !== 'string' || !TOKEN.test(reviewToken) ||
       typeof fetchImpl !== 'function' ||
+      (inspectLedger !== null && typeof inspectLedger !== 'function') ||
       !Number.isInteger(negativeTimeoutMs) ||
       negativeTimeoutMs < 50 || negativeTimeoutMs > 3000 ||
       !Number.isInteger(positiveTimeoutMs) ||
       positiveTimeoutMs < 50 || positiveTimeoutMs > 35000) {
     return report('BLOCKED_INVALID_PRIVATE_CONFIGURATION');
+  }
+
+  let ledgerBefore;
+  if (inspectLedger) {
+    try {
+      ledgerBefore = await inspectLedger();
+      if (!validFaiscaLocalLedgerSnapshot(ledgerBefore)) {
+        return report('BLOCKED_LEDGER_GATE');
+      }
+    } catch {
+      return report('BLOCKED_LEDGER_GATE');
+    }
   }
 
   let negative;
@@ -69,6 +90,19 @@ export async function inspectFaiscaPrivateConversationSequence({
     return report('BLOCKED_NEGATIVE_GATE', negative);
   }
 
+  if (inspectLedger) {
+    try {
+      const afterNegative = await inspectLedger();
+      if (!matchFaiscaLocalLedgerDelta(ledgerBefore, afterNegative, 0)) {
+        // No positive HTTP request or paid dispatch may follow a mismatch.
+        return report('BLOCKED_LEDGER_GATE', negative);
+      }
+      ledgerBefore = afterNegative;
+    } catch {
+      return report('BLOCKED_LEDGER_GATE', negative);
+    }
+  }
+
   let positive;
   try {
     positive = await inspectFaiscaPrivatePositiveConversation({
@@ -84,5 +118,16 @@ export async function inspectFaiscaPrivateConversationSequence({
       positive.publicReady !== false || positive.operationalEffects !== false) {
     return report('BLOCKED_POSITIVE_GATE', negative, positive);
   }
-  return report('PRIVATE_SYNTHETIC_SEQUENCE_ENVELOPES_VERIFIED', negative, positive);
+  if (inspectLedger) {
+    try {
+      const afterPositive = await inspectLedger();
+      if (!matchFaiscaLocalLedgerDelta(ledgerBefore, afterPositive, 2)) {
+        return report('BLOCKED_LEDGER_GATE', negative, positive);
+      }
+    } catch {
+      return report('BLOCKED_LEDGER_GATE', negative, positive);
+    }
+  }
+  return report('PRIVATE_SYNTHETIC_SEQUENCE_ENVELOPES_VERIFIED',
+    negative, positive, Boolean(inspectLedger));
 }
