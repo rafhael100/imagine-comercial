@@ -122,6 +122,17 @@ const reviewedPrivateConfirmationText = ${JSON.stringify(PRIVATE_CONVERSATION_CO
 // Privacy preflight in the UI: reject obvious personal data and secrets
 // before even sending a fictional operator question to loopback. The server
 // independently revalidates inputs; a checkbox does not authorize real data.
+// R181: independent browser preflight. The server-side R180 gate remains
+// authoritative even if this JavaScript is bypassed or altered.
+function privateBrowserInstructionOverrideRisk(text) {
+  return [
+    /\b(?:ignore|desconsidere|esqueca|esquece|anule|substitua|desative|contorne|bypasse)\b.{0,95}\b(?:instrucoes?|regras?|politicas?|sistema|prompts?|limites?|filtros?|seguranca|restricoes?)\b/u,
+    /\b(?:finja|aja|atue|assuma|comporte.se)\b.{0,80}\b(?:como|papel|modo)\b.{0,75}\b(?:sistema|developer|desenvolvedor|administrador|sem restricoes?)\b/u,
+    /(?:^|[\s\[({])(?:system|developer|assistant|usuario|user)\s*:\s*\S/u,
+    /\b(?:voce|vc)\s+agora\s+(?:e|sera)\s+(?:o|a|um|uma)?\s*(?:sistema|developer|desenvolvedor|administrador)\b/u,
+    /\b(?:revele|mostre|imprima|exiba|vaze|liste)\b.{0,95}\b(?:prompt|instrucoes? internas?|segredos?|credenciais?|chaves?|politicas? internas?|mensagem\s+de\s+sistema)\b/u
+  ].some(pattern => pattern.test(text));
+}
 function privateFictionalQuestionPreflight(value) {
   if (typeof value !== 'string' || value !== value.trim() ||
       value !== value.normalize('NFC')) return false;
@@ -136,6 +147,7 @@ function privateFictionalQuestionPreflight(value) {
     privateBrowserOpaqueEncodingRisk.test(normalized) ||
     privateBrowserNetworkAddressRisk(normalized) ||
     privateBrowserSecretRisk.test(normalized) ||
+    privateBrowserInstructionOverrideRisk(normalized) ||
     /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endereco|senha|token|api[ _-]?key|chave|credencial|otp|totp|pix|cartao|boleto|fatura|reembolso|contrato|nota\s+fiscal)\b/u.test(normalized) ||
     // Match the server's Unicode digit separators (Arabic grouping, fullwidth
     // punctuation after NFKC, plus signs, dashes and mixed-script numerals).
