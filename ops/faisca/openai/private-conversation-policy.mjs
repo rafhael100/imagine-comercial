@@ -96,6 +96,14 @@ const unsupportedWrittenOutStatistics = new RegExp(
   String.raw`\b(?:${unsourcedQuantitySequence}\s+por\s+cento|${unsourcedQuantitySequence}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?|inscricoes?|visitas?|acessos?)|(?:${unsourcedQuantitySequence}|\d{1,3})\s+(?:em|de)\s+cada\s+(?:${unsourcedQuantitySequence}|\d{1,3}))\b`,
   'u'
 );
+// R203: the paid, private assistant cannot perform future operational actions.
+// A first-person commitment or a passive promise about a visitor asset must
+// never be presented as an authorized workflow or confirmed delivery.
+const promisedOperationalAction =
+  /\b(?:eu\s+)?(?:vou|vamos|irei|iremos)\s+(?:publicar|configurar|ativar|enviar|agendar|cadastrar|integrar|instalar|criar|aprovar|contratar|finalizar|liberar|lancar|hospedar|disponibilizar|colocar\s+no\s+ar|abrir\s+(?:um\s+)?(?:ticket|chamado)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))\b/u;
+const promisedVisitorAsset =
+  /\b(?:seu|sua|seus|suas)\s+(?:site|pagina|landing\s+page|dominio|campanha|formulario|conta|acesso|pedido|projeto)\b.{0,70}\b(?:sera|serao|vai\s+ser|vao\s+ser)\s+(?:publicad[oa]s?|ativad[oa]s?|configurad[oa]s?|enviad[oa]s?|cadastrad[oa]s?|contratad[oa]s?|concluid[oa]s?|aprovad[oa]s?|liberad[oa]s?|integrad[oa]s?|hospedad[oa]s?|disponibilizad[oa]s?|colocad[oa]s?\s+no\s+ar)\b/u;
+
 export function hasPrivateUnsupportedOutcomeGuarantee(text) {
   if (typeof text !== 'string') return true;
   const normalized = normalize(text);
@@ -114,7 +122,9 @@ export function hasPrivateOperationalClaim(text) {
   const normalized = normalize(text);
   return reportedAction.test(normalized) ||
     completedVisitorAsset.test(normalized) ||
-    completedVisitorReceipt.test(normalized);
+    completedVisitorReceipt.test(normalized) ||
+    promisedOperationalAction.test(normalized) ||
+    promisedVisitorAsset.test(normalized);
 }
 
 export function safePrivateGeneralReply(text) {
