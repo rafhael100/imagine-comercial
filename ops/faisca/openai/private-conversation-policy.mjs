@@ -85,6 +85,17 @@ const unsupportedUnattributedStatistics =
 const unsupportedUnnamedResearch =
   /\b(?:pesquisas?|estudos?|relatorios?|levantamentos?|estatisticas?|especialistas?)\s+(?:(?:recentes?|independentes?)\s+)?(?:mostram?|indicam?|revelam?|apontam?|comprovam?|confirmam?)\b|\b(?:segundo|conforme|de\s+acordo\s+com)\s+(?:pesquisas?|estudos?|especialistas?|relatorios?|levantamentos?)\b/u;
 
+// R202: numeric metrics in ordinary words and "N in every M" ratios are
+// also invented statistics when free-form answers have no evidence corpus.
+// Keep this scoped to percentages, measurable business results and ratios;
+// general descriptions such as "uma landing page" remain permitted.
+const unsourcedQuantityWord = String.raw`(?:zero|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento|mil)`;
+const unsourcedQuantitySequence =
+  String.raw`${unsourcedQuantityWord}(?:\s+(?:e\s+)?${unsourcedQuantityWord}){0,6}`;
+const unsupportedWrittenOutStatistics = new RegExp(
+  String.raw`\b(?:${unsourcedQuantitySequence}\s+por\s+cento|${unsourcedQuantitySequence}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?|inscricoes?|visitas?|acessos?)|(?:${unsourcedQuantitySequence}|\d{1,3})\s+(?:em|de)\s+cada\s+(?:${unsourcedQuantitySequence}|\d{1,3}))\b`,
+  'u'
+);
 export function hasPrivateUnsupportedOutcomeGuarantee(text) {
   if (typeof text !== 'string') return true;
   const normalized = normalize(text);
@@ -94,7 +105,8 @@ export function hasPrivateUnsupportedOutcomeGuarantee(text) {
     unsupportedUnverifiedKpi.test(normalized) ||
     unsupportedSearchPlacement.test(normalized) ||
     unsupportedUnattributedStatistics.test(normalized) ||
-    unsupportedUnnamedResearch.test(normalized);
+    unsupportedUnnamedResearch.test(normalized) ||
+    unsupportedWrittenOutStatistics.test(normalized);
 }
 
 export function hasPrivateOperationalClaim(text) {
