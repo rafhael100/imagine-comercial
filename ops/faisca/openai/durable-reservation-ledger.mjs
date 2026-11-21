@@ -71,7 +71,7 @@ export function createFaiscaLocalReservationLedger({
     try {
       const info = await file.stat();
       if (!info.isFile() || info.size !== Buffer.byteLength(MARKER_DATA) ||
-          (info.mode & 0o077) ||
+          (info.mode & 0o077) || info.nlink !== 1 ||
           (typeof process.getuid === 'function' && info.uid !== process.getuid()) ||
           await file.readFile('utf8') !== MARKER_DATA) {
         throw new Error('Private ledger initialization marker requires operator review.');
@@ -107,7 +107,7 @@ export function createFaiscaLocalReservationLedger({
     try {
       const info = await file.stat();
       if (!info.isFile() || info.size !== Buffer.byteLength(HIGHWATER_MARKER_DATA) ||
-          (info.mode & 0o077) ||
+          (info.mode & 0o077) || info.nlink !== 1 ||
           (typeof process.getuid === 'function' && info.uid !== process.getuid()) ||
           await file.readFile('utf8') !== HIGHWATER_MARKER_DATA) {
         throw new Error('Private high-water marker requires operator review.');
@@ -141,7 +141,7 @@ export function createFaiscaLocalReservationLedger({
     }
     try {
       const info = await file.stat();
-      if (!initialized || !info.isFile() || info.size > 512 || (info.mode & 0o077) ||
+      if (!initialized || !info.isFile() || info.size > 512 || (info.mode & 0o077) || info.nlink !== 1 ||
           (typeof process.getuid === 'function' && info.uid !== process.getuid())) {
         throw new Error('Private high-water witness requires operator review.');
       }
@@ -180,7 +180,7 @@ export function createFaiscaLocalReservationLedger({
     }
     try {
       const info = await file.stat();
-      if (!info.isFile() || info.size > 512 || (info.mode & 0o077) ||
+      if (!info.isFile() || info.size > 512 || (info.mode & 0o077) || info.nlink !== 1 ||
           (typeof process.getuid === 'function' && info.uid !== process.getuid())) {
         throw new Error('Private ledger file has unsafe permissions or shape.');
       }
