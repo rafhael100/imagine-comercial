@@ -87,7 +87,11 @@ export function auditApprovedOutboundLinks(html){
   for(const tag of anchorOpeningTags(html)){
     const href=requiredAnchorHref(tag);
     if(href===null||href.startsWith('/')||href.startsWith('#'))continue;
-    assert.ok(isApprovedPublicExternalHref(href),
+    // Astro serializes attribute ampersands as &amp; in static HTML.
+    // Decode only that exact serialization for this generated-HTML audit;
+    // the independent DOM/runtime allowlist remains strict and unchanged.
+    const normalizedHref=href.replaceAll('&amp;','&');
+    assert.ok(isApprovedPublicExternalHref(normalizedHref),
       'F149: external destination is not an approved public channel');
     if(blank(tag))assert.ok(relSafe(tag),
       'F149: new-tab external link lacks isolation attributes');

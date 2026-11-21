@@ -7,7 +7,8 @@ import {reviewedFortalezaGuideContact as intent}
 import {contactChannels,contactWhatsAppUrl,contactEmailUrl}
   from '../src/data/contact-channels.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
-import {isApprovedPublicExternalHref} from '../src/lib/outbound-link-contract.mjs';
+import {isApprovedPublicExternalHref,auditApprovedOutboundLinks}
+  from '../src/lib/outbound-link-contract.mjs';
 import {reviewPublicLinks} from '../src/lib/public-link-review.mjs';
 
 test('F361 attributes the already-published Fortaleza guide without inventing a destination',()=>{
@@ -29,6 +30,11 @@ test('F361 attributes the already-published Fortaleza guide without inventing a 
   assert.equal(email.searchParams.get('subject'),subject);
   assert.equal(email.searchParams.get('body'),intent.message);
   assert.equal(isApprovedPublicExternalHref(emailHref),true);
+  // Regression: HTML serialization encodes the mailto query separator.
+  const html='<a href="'+emailHref.replaceAll('&','&amp;')+'">Email</a>';
+  assert.equal(auditApprovedOutboundLinks(html).externalLinksChecked,1);
+  assert.throws(()=>auditApprovedOutboundLinks(html.replace('&amp;body=','&amp;utm_source=bad&amp;body=')),
+    /F149:/);
   assert.equal(reviewPublicLinks([
     {href,target:'_blank',rel:'noopener noreferrer'},
     {href:emailHref}
