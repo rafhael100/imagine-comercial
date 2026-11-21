@@ -125,13 +125,7 @@ const reviewedPrivateConfirmationText = ${JSON.stringify(PRIVATE_CONVERSATION_CO
 // R181: independent browser preflight. The server-side R180 gate remains
 // authoritative even if this JavaScript is bypassed or altered.
 function privateBrowserInstructionOverrideRisk(text) {
-  return [
-    /\b(?:ignore|desconsidere|esqueca|esquece|anule|substitua|desative|contorne|bypasse)\b.{0,95}\b(?:instrucoes?|regras?|politicas?|sistema|prompts?|limites?|filtros?|seguranca|restricoes?)\b/u,
-    /\b(?:finja|aja|atue|assuma|comporte.se)\b.{0,80}\b(?:como|papel|modo)\b.{0,75}\b(?:sistema|developer|desenvolvedor|administrador|sem restricoes?)\b/u,
-    /(?:^|[\s\[({])(?:system|developer|assistant|usuario|user)\s*:\s*\S/u,
-    /\b(?:voce|vc)\s+agora\s+(?:e|sera)\s+(?:o|a|um|uma)?\s*(?:sistema|developer|desenvolvedor|administrador)\b/u,
-    /\b(?:revele|mostre|imprima|exiba|vaze|liste)\b.{0,95}\b(?:prompt|instrucoes? internas?|segredos?|credenciais?|chaves?|politicas? internas?|mensagem\s+de\s+sistema)\b/u
-  ].some(pattern => pattern.test(text));
+  return /\b(?:ignore|desconsidere|esqueca|desative|contorne)\b.{0,80}\b(?:instrucoes?|regras?|politicas?|filtros?|seguranca)\b|(?:^|[\s\[({])(?:system|developer|assistant|user)\s*:\s*\S|\bvoce\s+agora\s+(?:e|sera)\s+(?:o|a)\s+administrador\b|\b(?:revele|imprima|mostre)\b.{0,80}\b(?:prompt|instrucoes? internas?)\b|\b(?:assuma|finja|aja)\b.{0,75}\b(?:papel|como)\b.{0,65}\b(?:administrador|sistema|desenvolvedor)\b/u.test(text);
 }
 function privateFictionalQuestionPreflight(value) {
   if (typeof value !== 'string' || value !== value.trim() ||
