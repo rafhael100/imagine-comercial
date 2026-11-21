@@ -69,6 +69,51 @@ try {
       assert.equal(await page.locator('#review-attestation').isChecked(), false);
     }
   });
+  await step('R205 Chromium rejects forged ungrounded metrics, research and operational promises', async () => {
+    const maliciousProse = [
+      'Oitenta e três por cento dos visitantes preferem páginas curtas.',
+      'Uma campanha trouxe 80 leads ontem, sem verificar dados.',
+      'Quatro em cada cinco visitantes escolhem uma landing page.',
+      'Pesquisas recentes mostram que páginas simples convertem melhor.',
+      'Vou publicar seu site depois da aprovação.',
+      'Seu site será publicado amanhã sem outro procedimento.'
+    ];
+    const path = '**/__faisca_openai_private/converse';
+    let forged = maliciousProse[0], intercepted = 0;
+    await page.route(path, async route => {
+      intercepted++;
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-conversation-response.v1',
+          status: 'general_answer', answer: forged,
+          sources: [], models: ['gpt-6-luna', 'gpt-6.1-terra'],
+          sourceRecipeBound: false, requiresEditorialReview: true,
+          publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      for (const prose of maliciousProse) {
+        forged = prose;
+        await page.locator('#review-token').fill(token);
+        await page.locator('#review-question')
+          .fill('Vale a pena usar uma landing page para divulgar um evento?');
+        await page.locator('#review-attestation').check();
+        await page.locator('#review-send').click();
+        await page.waitForFunction(() =>
+          document.querySelector('#review-status')?.textContent?.includes('não concluiu.'));
+        assert.equal(await page.locator('#review-answer').innerText(),
+          'Resposta indisponível neste teste.');
+        assert.equal(await page.locator('#review-sources').innerText(), '');
+        assert.equal(await page.locator('#review-token').inputValue(), '');
+        assert.equal(await page.locator('#review-question').inputValue(), '');
+        assert.equal(await page.locator('#review-attestation').isChecked(), false);
+      }
+      assert.equal(intercepted, maliciousProse.length);
+      assert.equal(calls, 0, 'Forged HTTP 200 must never invoke a provider');
+    } finally { await page.unroute(path); }
+  });
   await step('R151 Chromium refuses credential-shaped input and forged HTTP 200 output', async () => {
     // No real secret appears in the repository: an obviously fake value
     // is assembled only in the running synthetic browser test.
