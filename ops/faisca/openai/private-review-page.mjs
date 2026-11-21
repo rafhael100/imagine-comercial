@@ -119,9 +119,9 @@ const validCases = new Set(['compare','process','pricing']);
 const reviewedPrivateSourceIds = new Set(${JSON.stringify(REVIEWED_PRIVATE_SOURCE_IDS)});
 const reviewedPrivateEditorialReceipts = ${JSON.stringify(REVIEWED_PRIVATE_EDITORIAL_RECEIPTS)};
 const reviewedPrivateConfirmationText = ${JSON.stringify(PRIVATE_CONVERSATION_CONFIRMATION_TEXT)};
-// Privacy preflight in the UI: reject obvious personal data and secrets
-// before even sending a fictional operator question to loopback. The server
-// independently revalidates inputs; a checkbox does not authorize real data.
+function privateBrowserInstructionOverrideRisk(text) {
+  return /\b(?:ignore|desconsidere|esqueca|desative|contorne)\b.{0,80}\b(?:instrucoes?|regras?|politicas?|filtros?|seguranca)\b|(?:^|[\s\[({])(?:system|developer|assistant|user)\s*:\s*\S|\bvoce\s+agora\s+(?:e|sera)\s+(?:o|a)\s+administrador\b|\b(?:revele|imprima|mostre)\b.{0,80}\b(?:prompt|instrucoes? internas?)\b|\b(?:assuma|finja|aja)\b.{0,75}\b(?:papel|como)\b.{0,65}\b(?:administrador|sistema|desenvolvedor)\b/u.test(text);
+}
 function privateFictionalQuestionPreflight(value) {
   if (typeof value !== 'string' || value !== value.trim() ||
       value !== value.normalize('NFC')) return false;
@@ -136,6 +136,7 @@ function privateFictionalQuestionPreflight(value) {
     privateBrowserOpaqueEncodingRisk.test(normalized) ||
     privateBrowserNetworkAddressRisk(normalized) ||
     privateBrowserSecretRisk.test(normalized) ||
+    privateBrowserInstructionOverrideRisk(normalized) ||
     /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endereco|senha|token|api[ _-]?key|chave|credencial|otp|totp|pix|cartao|boleto|fatura|reembolso|contrato|nota\s+fiscal)\b/u.test(normalized) ||
     // Match the server's Unicode digit separators (Arabic grouping, fullwidth
     // punctuation after NFKC, plus signs, dashes and mixed-script numerals).
@@ -145,16 +146,8 @@ function privateFictionalQuestionPreflight(value) {
     /\b(?:meu\s+cliente|minha\s+empresa\s+se\s+chama|base\s+de\s+clientes|lista\s+de\s+clientes)\b/u.test(normalized)
   );
 }
-// The browser does not trust an HTTP 200 or claimed editorial sources. Mirror
-// the server's deliberately conservative R135/R136 marketing certainty gate:
-// an injected/misconfigured local adapter must not display guaranteed sales
-// or made-up numeric forecasts to the private operator.
 const privateBrowserUnsupportedGuarantee = /\b(?:garante|garantem|garantimos|garantira|garantirao|garantid[oa]s?|assegura|asseguram|asseguramos|promete|prometem|prometemos|prometera|prometerao)\b.{0,75}\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b|\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b.{0,55}\bgarantid[oa]s?\b/;
 const privateBrowserUnsupportedProjection = /\b(?:vai|vamos|ira|irao|iremos|conseguira|conseguiremos)\s+(?:gerar|conseguir|atrair|trazer|obter|entregar|conquistar)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b|\b(?:tera|terao|teremos)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b/;
-// Second egress boundary in the private browser: even a malformed local
-// HTTP adapter must not display obvious contact identifiers, URLs or
-// fabricated "already completed" operational claims to the operator. This
-// supplements, never replaces, the stricter host-side editorial/PII gates.
 // R147: browser independence from HTTP 200. A forged model output cannot
 // cite major platforms as evidence, assert a conversion benchmark, or claim
 // an individual visitor's search position without reviewed facts.
