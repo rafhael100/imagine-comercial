@@ -11,6 +11,7 @@ import {composeReviewedComparisonContact} from './comparison-contact.mjs';
 import {CALCULATOR_CONTACT_OPTIONS} from './calculator-contact-messages.mjs';
 import {localizedSalesMessages} from './localized-sales-messages.mjs';
 import {REVIEWED_QUOTE_MESSAGES} from './reviewed-quote-choice-messages.mjs';
+import {reviewedFortalezaGuideContact} from './reviewed-guide-contact.mjs';
 
 const messages=new Set();
 const subjects=new Set();
@@ -51,6 +52,8 @@ for(const localeMessages of Object.values(localizedSalesMessages))
 for(const localeMessages of Object.values(REVIEWED_QUOTE_MESSAGES))
   for(const message of Object.values(localeMessages))messages.add(message);
 
+// F361: one static guide-provenance message, never a query or visitor value.
+messages.add(reviewedFortalezaGuideContact.message);
 
 if(combinations!==640||messages.size<35||subjects.size<7)
   throw Error('F159: invalid public curated contact catalog');

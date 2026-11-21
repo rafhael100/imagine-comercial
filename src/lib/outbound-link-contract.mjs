@@ -19,6 +19,7 @@ import {resolvePortalLoginLink} from './portal-login-link.mjs';
 import {CALCULATOR_CONTACT_OPTIONS} from '../data/calculator-contact-messages.mjs';
 import {localizedSalesMessages} from '../data/localized-sales-messages.mjs';
 import {REVIEWED_QUOTE_MESSAGES} from '../data/reviewed-quote-choice-messages.mjs';
+import {reviewedFortalezaGuideContact} from '../data/reviewed-guide-contact.mjs';
 
 const attr=(tag,key)=>readStrictHtmlAttribute(tag,key);
 
@@ -57,6 +58,9 @@ for(const offers of Object.values(localizedSalesMessages))
 // F324: exact closed quote-intent catalog; never accept visitor-authored hrefs.
 for(const options of Object.values(REVIEWED_QUOTE_MESSAGES))
   for(const message of Object.values(options))whatsappLinks.add(contactWhatsAppUrl(message));
+
+// F361: only the one guide-specific, preapproved WhatsApp deep link.
+whatsappLinks.add(contactWhatsAppUrl(reviewedFortalezaGuideContact.message));
 
 export function isApprovedPublicExternalHref(href){
   if(typeof href!=='string'||href.length>1024||

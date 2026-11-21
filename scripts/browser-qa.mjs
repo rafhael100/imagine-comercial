@@ -12,6 +12,7 @@ import { sitePages } from '../src/data/services.mjs';
 import {legacyUrls} from '../src/data/legacy-urls.mjs';
 import {articles} from '../src/data/articles.mjs';
 import {relatedGuidesFor} from '../src/data/related-articles.mjs';
+import {reviewedFortalezaGuideContact} from '../src/data/reviewed-guide-contact.mjs';
 import {services} from '../src/data/services.mjs';
 import {preparationQuestions} from '../src/data/commercial-process.mjs';
 import {composeCuratedContactLinks} from '../src/data/contact-objectives.mjs';
@@ -855,6 +856,25 @@ try {
     await page.waitForURL(host+editorialRelated[0].href);
     assert.equal(await page.locator('h1').count(),1,
       'F154 related article navigation retains a single visible H1');
+
+    // F361: candidate-only browser proof of the fixed Fortaleza guide source.
+    // Inspect href and accessibility only; NEVER open WhatsApp or claim a lead.
+    await page.goto(host+'/conteudos/criacao-de-sites-fortaleza-guia/',{waitUntil:'load',timeout});
+    const originCta=page.locator('a[data-guide-origin-proposal]');
+    assert.equal(await originCta.count(),1,'F361 single guide source CTA');
+    assert.equal(await originCta.getAttribute('href'),
+      contactWhatsAppUrl(reviewedFortalezaGuideContact.message));
+    assert.equal(await originCta.getAttribute('target'),'_blank');
+    assert.equal(await originCta.getAttribute('rel'),'noopener noreferrer');
+    assert.equal(await originCta.getAttribute('aria-describedby'),'guide-channel-notice');
+    assert.equal(await page.locator('#guide-channel-notice').isVisible(),true);
+    assert.equal(await page.locator('a[href="/servicos/criacao-de-sites/"]').count()>0,true,
+      'F361 existing service/guide internal link retained');
+    assert.equal(await page.locator('form,input,textarea').count(),0,
+      'F361 provenance is static, without public lead capture');
+    await page.goto(host+'/conteudos/landing-page-ou-site/',{waitUntil:'load',timeout});
+    assert.equal(await page.locator('[data-guide-origin-proposal]').count(),0,
+      'F361 no source message on unrelated guides');
 
 
     // F65: public FAQs require no client-side scripts or personal data.
