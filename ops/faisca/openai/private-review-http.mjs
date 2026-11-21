@@ -336,6 +336,21 @@ export async function startFaiscaOpenAIPrivateReview({
   // Once provider completion becomes uncertain, never permit a second paid
   // dispatch from this server. The operator must close, review and restart.
   let active = true, requests = 0, inFlight = false, providerUnavailable = false;
+  let deliveryFenceStarted = false;
+  let deliveryFence = Promise.resolve();
+  // An HTTP disconnect/deadline can lose a perfectly valid provider reply.
+  // Persist an operator-only no-start marker before a *graceful* shutdown.
+  // Failed persistence never reopens the process. Abrupt host/process death
+  // before fsync still needs an independent reconciliation/lease gate.
+  function latchUncertainDelivery() {
+    providerUnavailable = true;
+    if (deliveryFenceStarted) return;
+    deliveryFenceStarted = true;
+    if (typeof lab.markDeliveryUncertain === 'function') {
+      deliveryFence = Promise.resolve().then(() => lab.markDeliveryUncertain())
+        .catch(() => {}); // Never expose file-system or provider details.
+    }
+  }
   const server = createServer(async (req, res) => {
     if (active && req.method === 'GET' && req.url === PRIVATE_REVIEW_MASCOT_PATH) {
       if (!privateBrowserAllowed(req, server.address().port)) {
@@ -401,7 +416,7 @@ export async function startFaiscaOpenAIPrivateReview({
     // process, even if the detached provider promise eventually resolves.
     // A clean response emits 'finish' before 'close' and does not trip this.
     const onPrematureResponseClose = () => {
-      if (providerDispatched && !res.writableFinished) providerUnavailable = true;
+      if (providerDispatched && !res.writableFinished) latchUncertainDelivery();
     };
     res.once('close', onPrematureResponseClose);
     try {
@@ -421,7 +436,7 @@ export async function startFaiscaOpenAIPrivateReview({
         })
       ]);
       if (reply === PROVIDER_DEADLINE) {
-        providerUnavailable = true;
+        latchUncertainDelivery();
         throw new Error('Uncertain private provider completion.');
       }
       if (conversation && reply === null) {
@@ -431,7 +446,7 @@ export async function startFaiscaOpenAIPrivateReview({
         : safeReviewOutput(reply, input);
       if (!outcome) throw REJECTED_PRIVATE_OUTPUT;
       if (res.destroyed) {
-        providerUnavailable = true;
+        latchUncertainDelivery();
         return; // The browser did not receive this reply; require operator review.
       }
       send(res, 200, {
@@ -452,14 +467,14 @@ export async function startFaiscaOpenAIPrivateReview({
       // but *completed* model outputs remain 503 without opening the breaker,
       // so separate synthetic negative editorial fixtures can be evaluated.
       // In neither case do we retry or release the durable reservation.
-      if (error !== REJECTED_PRIVATE_OUTPUT && error !== CLIENT_DISCONNECTED) providerUnavailable = true;
+      if (error !== REJECTED_PRIVATE_OUTPUT && error !== CLIENT_DISCONNECTED) latchUncertainDelivery();
       if (!res.destroyed) send(res, 503, {
         status: 'unavailable',
         message: 'The private AI review could not confirm a safe response.'
       });
     } finally {
       clearTimeout(providerTimer);
-      if (res.destroyed && providerDispatched && !res.writableFinished) providerUnavailable = true;
+      if (res.destroyed && providerDispatched && !res.writableFinished) latchUncertainDelivery();
       res.off('close', onPrematureResponseClose);
       inFlight = false;
     }
@@ -481,6 +496,7 @@ export async function startFaiscaOpenAIPrivateReview({
       if (!active) return;
       active = false;
       await new Promise(resolve => server.close(resolve));
+      await deliveryFence;
     }
   });
 }
