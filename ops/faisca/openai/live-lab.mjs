@@ -194,7 +194,17 @@ export function createFaiscaOpenAILiveLab({
     }
     // Reserve locally AND durably before any request leaves the private process.
     // A failed/uncertain API call never refunds the durable allocation.
-    if (reservationLedger) await reservationLedger.reserve(estimatedUsd);
+    if (reservationLedger) {
+      try {
+        await reservationLedger.reserve(estimatedUsd);
+      } catch {
+        // The durable store may have committed the reservation before an
+        // acknowledgement was lost. Refuse another reserve or paid dispatch
+        // in this lab instance; leave reconciliation to the private operator.
+        providerCompletionUncertain = true;
+        throw new Error('OpenAI private test unavailable.');
+      }
+    }
     reservedUsd += estimatedUsd;
     calls++;
     const controller = new AbortController();
