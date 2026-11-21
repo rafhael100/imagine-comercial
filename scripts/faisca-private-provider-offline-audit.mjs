@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspectFaiscaOfflineOperatorAggregate } from '../ops/faisca/openai/private-provider-operator-audit.mjs';
 import { createFaiscaIsolatedGitInvocation } from '../ops/faisca/openai/private-operator-git-isolation.mjs';
+import { hasFaiscaSafeTrackedIndex } from '../ops/faisca/openai/private-operator-git-index-proof.mjs';
 
 const exec = promisify(execFile);
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -40,7 +41,15 @@ if (!acknowledged) {
     ], {
       cwd: repo, timeout: 3000, maxBuffer: 8192, env: git.env
     })).stdout.trim();
-    if (head !== sha || dirty !== '') {
+    // A clean porcelain status is insufficient when Git's index has
+    // assume-unchanged or skip-worktree flags that hide tracked edits.
+    // Inspect NUL-delimited tracked entries with the same isolated Git.
+    const trackedIndex = (await exec(git.executable, [
+      ...git.prefix, 'ls-files', '-v', '-z'
+    ], {
+      cwd: repo, timeout: 3000, maxBuffer: 2 * 1024 * 1024, env: git.env
+    })).stdout;
+    if (head !== sha || dirty !== '' || !hasFaiscaSafeTrackedIndex(trackedIndex)) {
       console.error('R167 BLOCKED: independently reviewed, clean checkout required.');
       process.exitCode = 2;
     } else {
