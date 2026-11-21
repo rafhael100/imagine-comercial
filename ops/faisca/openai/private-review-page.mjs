@@ -119,8 +119,15 @@ const validCases = new Set(['compare','process','pricing']);
 const reviewedPrivateSourceIds = new Set(${JSON.stringify(REVIEWED_PRIVATE_SOURCE_IDS)});
 const reviewedPrivateEditorialReceipts = ${JSON.stringify(REVIEWED_PRIVATE_EDITORIAL_RECEIPTS)};
 const reviewedPrivateConfirmationText = ${JSON.stringify(PRIVATE_CONVERSATION_CONFIRMATION_TEXT)};
+// R183: independent browser deny-only check; never send normalized input.
 function privateBrowserInstructionOverrideRisk(text) {
-  return /\b(?:ignore|desconsidere|esqueca|desative|contorne)\b.{0,80}\b(?:instrucoes?|regras?|politicas?|filtros?|seguranca)\b|(?:^|[\s\[({])(?:system|developer|assistant|user)\s*:\s*\S|\bvoce\s+agora\s+(?:e|sera)\s+(?:o|a)\s+administrador\b|\b(?:revele|imprima|mostre)\b.{0,80}\b(?:prompt|instrucoes? internas?)\b|\b(?:assuma|finja|aja)\b.{0,75}\b(?:papel|como)\b.{0,65}\b(?:administrador|sistema|desenvolvedor)\b/u.test(text);
+  const compact = text.replace(/[\s._·-]/gu, '');
+  return /(?:\[im_start\]|\[\/?inst\]|<<sys>>|<\s*\/?\s*(?:system|developer)\s*>|["'](?:role|speaker)["']\s*:\s*["'](?:system|developer)["'])/u.test(text) ||
+    /(?:ignore|desconsidere|esqueca|esquece|desative|contorne|bypasse)[\p{L}\p{N}]{0,110}(?:instrucoes|regras|politicas|sistema|prompts|filtros|seguranca|restricoes)/u.test(compact) ||
+    /(?:finja|assuma|aja|atue)[\p{L}\p{N}]{0,100}(?:papel|como|modo)[\p{L}\p{N}]{0,80}(?:sistema|developer|desenvolvedor|administrador)/u.test(compact) ||
+    /^(?:system|developer|assistant|user|usuario):\S/u.test(compact) ||
+    /voceagora(?:e|sera)(?:o|a|um|uma)?(?:sistema|developer|desenvolvedor|administrador)/u.test(compact) ||
+    /(?:revele|imprima|mostre|exiba)[\p{L}\p{N}]{0,100}(?:prompt|instrucoesinternas|segredos|credenciais|mensagemdesistema)/u.test(compact);
 }
 function privateFictionalQuestionPreflight(value) {
   if (typeof value !== 'string' || value !== value.trim() ||
