@@ -114,12 +114,9 @@ const status = document.getElementById('review-status');
 const answer = document.getElementById('review-answer');
 const sources = document.getElementById('review-sources');
 const validCases = new Set(['compare','process','pricing']);
-// Generated from the pinned R06 catalog at build/module load; the browser
-// receives only public editorial IDs, not any private API credentials.
 const reviewedPrivateSourceIds = new Set(${JSON.stringify(REVIEWED_PRIVATE_SOURCE_IDS)});
 const reviewedPrivateEditorialReceipts = ${JSON.stringify(REVIEWED_PRIVATE_EDITORIAL_RECEIPTS)};
 const reviewedPrivateConfirmationText = ${JSON.stringify(PRIVATE_CONVERSATION_CONFIRMATION_TEXT)};
-// R183: independent browser deny-only check; never send normalized input.
 function privateBrowserInstructionOverrideRisk(text) {
   const compact = text.replace(/[\s._·-]/gu, '');
   return /(?:\[im_start\]|\[\/?inst\]|<<sys>>|<\s*\/?\s*(?:system|developer)\s*>|["'](?:role|speaker)["']\s*:\s*["'](?:system|developer)["'])/u.test(text) ||
@@ -135,7 +132,6 @@ function privateFictionalQuestionPreflight(value) {
   const normalized = value.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu, '').replace(/[\u3002\u2024\u2027]/gu, '.').toLowerCase();
   return !(
-    // R185: Portuguese-only fictional prompts; reject mixed-script lookalikes.
     /(?!\p{Script=Latin})\p{L}/u.test(value) ||
     /\p{Default_Ignorable_Code_Point}/u.test(value) ||
     /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u.test(value) ||
@@ -146,9 +142,6 @@ function privateFictionalQuestionPreflight(value) {
     privateBrowserSecretRisk.test(normalized) ||
     privateBrowserInstructionOverrideRisk(normalized) ||
     /\b(?:cpf|cnpj|rg|passaporte|documentos?|telefone|whatsapp|e-?mail|endereco|senha|token|api[ _-]?key|chave|credencial|otp|totp|pix|cartao|boleto|fatura|reembolso|contrato|nota\s+fiscal)\b/u.test(normalized) ||
-    // Match the server's Unicode digit separators (Arabic grouping, fullwidth
-    // punctuation after NFKC, plus signs, dashes and mixed-script numerals).
-    // This browser check is defense in depth; the server remains authoritative.
     /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||
     /\barroba\b.{0,35}\bponto\b/u.test(normalized) ||
     /\b(?:meu\s+cliente|minha\s+empresa\s+se\s+chama|base\s+de\s+clientes|lista\s+de\s+clientes)\b/u.test(normalized)
@@ -156,25 +149,12 @@ function privateFictionalQuestionPreflight(value) {
 }
 const privateBrowserUnsupportedGuarantee = /\b(?:garante|garantem|garantimos|garantira|garantirao|garantid[oa]s?|assegura|asseguram|asseguramos|promete|prometem|prometemos|prometera|prometerao)\b.{0,75}\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b|\b(?:vendas?|clientes?|leads?|conversoes?|resultados?|ranqueamento|posicoes?|primeira\s+pagina|primeir[oa]\s+(?:posicao|lugar)|trafego)\b.{0,55}\bgarantid[oa]s?\b/;
 const privateBrowserUnsupportedProjection = /\b(?:vai|vamos|ira|irao|iremos|conseguira|conseguiremos)\s+(?:gerar|conseguir|atrair|trazer|obter|entregar|conquistar)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b|\b(?:tera|terao|teremos)\s+(?:ao\s+menos\s+|mais\s+de\s+|no\s+minimo\s+)?\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?)\b/;
-// R147: browser independence from HTTP 200. A forged model output cannot
-// cite major platforms as evidence, assert a conversion benchmark, or claim
-// an individual visitor's search position without reviewed facts.
-// R156: mirror independently the new unreviewed study/report and alleged
-// platform-attestation variants. The HTTP endpoint cannot authorize the
-// browser to present invented research merely by returning HTTP 200.
 const privateBrowserUnsupportedAuthority =
   /\b(?:segundo|conforme|de\s+acordo\s+com|dados\s+(?:do|da|de)|(?:pesquisa|estudo|relatorio|levantamento)\s+(?:do|da|de))\s+(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\b|\b(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\s+(?:afirma|afirmou|confirma|confirmou|comprova|comprovou|recomenda|recomendou)\b/u;
 const privateBrowserUnsupportedKpi =
   /\b(?:taxa\s+de\s+(?:conversao|cliques?|abertura)|roi|ctr|crescimento|engajamento)\b.{0,45}\d{1,3}(?:[.,]\d{1,2})?\s*%/u;
 const privateBrowserUnsupportedRank =
   /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|loja)\b.{0,65}\b(?:topo\s+do\s+google|primeir[oa]\s+(?:posicao|pagina|lugar)|top\s*[1-9]\d?)\b/u;
-// R148/R149: conservative browser-only privacy barrier mirroring the authoritative
-// server. A hostname, IP address or localhost is identifying even if it omits
-// a scheme, a www prefix or a contact handle. No network lookup takes place.
-// R151: independent client boundary for credential-shaped leaks on both sides
-// of an HTTP 200. The server implements the corresponding host-side filter.
-// R152 defense in depth: no encoded identifier or secret can cross the
-// operator/browser boundary, even when an injected HTTP 200 claims success.
 // Match envelopes rather than decoding potentially sensitive source text.
 const privateBrowserEncodedIdentifierRisk =
   /%(?:[0-9a-f]{2}|u[0-9a-f]{4})|&(?:#(?:x[0-9a-f]{1,7}|[0-9]{1,8})|(?:commat|period|colon|sol|bsol|num|percnt));|\\(?:x[0-9a-f]{2}|u(?:[0-9a-f]{4}|\{[0-9a-f]{1,6}\}))/u;
