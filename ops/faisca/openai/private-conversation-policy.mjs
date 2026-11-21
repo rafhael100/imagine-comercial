@@ -94,10 +94,17 @@ export function hasPrivateOperationalClaim(text) {
     completedVisitorReceipt.test(normalized);
 }
 
+// R186: in this Portuguese-only private review, non-Latin letters in model
+// output can camouflage false brand claims or forbidden instructions. Deny
+// mixed-script lookalikes; never transliterate or rewrite model output.
+export function hasPrivateNonLatinOutputRisk(text) {
+  return typeof text !== 'string' || /(?!\p{Script=Latin})\p{L}/u.test(text);
+}
+
 export function safePrivateGeneralReply(text) {
   if (typeof text !== 'string') return false;
   const normalized = normalize(text);
-  return !hasPrivateIdentifierRisk(text) && !hasPrivateOperationalClaim(text) &&
+  return !hasPrivateNonLatinOutputRisk(text) && !hasPrivateIdentifierRisk(text) && !hasPrivateOperationalClaim(text) &&
     !hasPrivateUnsupportedOutcomeGuarantee(text) && !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
     !/\b(?:nosso|nossa|oferecemos|entregamos|garantimos|aprovamos|enviamos|cobramos)\b/.test(normalized);
 }
