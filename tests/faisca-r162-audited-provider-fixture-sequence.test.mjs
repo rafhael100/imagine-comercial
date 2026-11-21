@@ -99,6 +99,7 @@ test('R162 real adapter with mocked API: negative sends no model request, audite
   });
   assert.equal(result.status, 'PRIVATE_SYNTHETIC_SEQUENCE_ENVELOPES_VERIFIED');
   assert.equal(result.localLedgerDeltasVerified, true);
+  assert.equal(result.failedPositiveReservedRequests, null);
   assert.equal(result.apiRequests, 2);
   assert.equal(httpPosts, 2);
   assert.deepEqual(f.providerCalls, [
@@ -127,6 +128,7 @@ for (const [name, errors, expected] of [
     assert.equal(result.negativeInputRejected, true);
     assert.equal(result.positiveEnvelopeAccepted, false);
     assert.equal(result.localLedgerDeltasVerified, false);
+    assert.equal(result.failedPositiveReservedRequests, expected.length);
     assert.equal(result.apiRequests, 2);
     assert.deepEqual(f.providerCalls, expected);
     const snapshot = await f.ledger.inspectReadOnly();
