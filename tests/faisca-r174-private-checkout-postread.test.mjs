@@ -56,5 +56,7 @@ test('R174 private CLI checks before and after the read and prints report only a
   const cli = await readFile(new URL('../scripts/faisca-private-provider-offline-audit.mjs', import.meta.url), 'utf8');
   assert.equal((cli.match(/await inspectCheckout\(git\)/gu) ?? []).length, 2);
   assert.match(cli, /hasFaiscaStableOperatorCheckout\(beforeCheckout, afterCheckout, sha\)/u);
-  assert.ok(cli.indexOf('const afterCheckout = await inspectCheckout(git)') < cli.indexOf('console.log(JSON.stringify(report))'));
+  const finalReportLog = cli.indexOf('console.log(JSON.stringify({');
+  assert.ok(finalReportLog > -1, 'Only the postcheck may emit the final numeric report');
+  assert.ok(cli.indexOf('const afterCheckout = await inspectCheckout(git)') < finalReportLog);
 });
