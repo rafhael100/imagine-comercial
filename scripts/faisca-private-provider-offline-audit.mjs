@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspectFaiscaOfflineOperatorAggregate } from '../ops/faisca/openai/private-provider-operator-audit.mjs';
+import { createFaiscaIsolatedGitInvocation } from '../ops/faisca/openai/private-operator-git-isolation.mjs';
 
 const exec = promisify(execFile);
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -27,11 +28,17 @@ if (!acknowledged) {
   process.exitCode = 2;
 } else {
   try {
-    const head = (await exec('git', ['rev-parse', 'HEAD'], {
-      cwd: repo, timeout: 3000, maxBuffer: 1024
+    if (process.platform === 'win32') {
+      throw new Error('R172 operator audit requires a POSIX private host.');
+    }
+    const git = createFaiscaIsolatedGitInvocation();
+    const head = (await exec(git.executable, [...git.prefix, 'rev-parse', 'HEAD'], {
+      cwd: repo, timeout: 3000, maxBuffer: 1024, env: git.env
     })).stdout.trim();
-    const dirty = (await exec('git', ['status', '--porcelain', '--untracked-files=all'], {
-      cwd: repo, timeout: 3000, maxBuffer: 8192
+    const dirty = (await exec(git.executable, [
+      ...git.prefix, 'status', '--porcelain', '--untracked-files=all'
+    ], {
+      cwd: repo, timeout: 3000, maxBuffer: 8192, env: git.env
     })).stdout.trim();
     if (head !== sha || dirty !== '') {
       console.error('R167 BLOCKED: independently reviewed, clean checkout required.');
