@@ -52,7 +52,7 @@ test('R172 operator CLI uses isolated Git in both SHA and dirty-check, not gener
   assert.match(cli, /createFaiscaIsolatedGitInvocation\(\)/u);
   assert.match(cli, /exec\(git\.executable, \[\.\.\.git\.prefix, 'rev-parse', 'HEAD'\]/u);
   assert.match(cli, /'status', '--porcelain', '--untracked-files=all'/u);
-  assert.equal((cli.match(/env: git\.env/gu) ?? []).length, 2);
+  // HEAD, status and R173 tracked-index inspection must ALL use isolated Git.\n  assert.equal((cli.match(/env: git\.env/gu) ?? []).length, 3);
   assert.equal(cli.includes("exec('git'"), false);
 });
 
