@@ -114,6 +114,52 @@ try {
       assert.equal(calls, 0, 'Forged HTTP 200 must never invoke a provider');
     } finally { await page.unroute(path); }
   });
+  await step('R206 Chromium refuses PII terms and non-Latin lookalikes in forged private HTTP 200', async () => {
+    // Only fabricated prose. Interception never reaches a live provider.
+    const samples = [
+      { answer: 'O CPF deve ser enviado antes de elaborar uma página de divulgação.', safe: false },
+      { answer: 'O token e a senha devem ser compartilhados para ativar o serviço.', safe: false },
+      { answer: 'Uma p\u0430gina pode apresentar os detalhes de um evento fictício.', safe: false },
+      { answer: 'Uma landing page pode apresentar informações sobre eventos com clareza.', safe: true }
+    ];
+    let index = 0;
+    const path = '**/__faisca_openai_private/converse';
+    await page.route(path, async route => {
+      const item = samples[index++];
+      assert.ok(item, 'Unexpected repeated paid dispatch');
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-conversation-response.v1',
+          status: 'general_answer', answer: item.answer,
+          sources: [], models: ['gpt-6-luna', 'gpt-6.1-terra'],
+          sourceRecipeBound: false, requiresEditorialReview: true,
+          publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      for (const sample of samples) {
+        await page.locator('#review-token').fill(token);
+        await page.locator('#review-question')
+          .fill('Vale a pena usar uma landing page para divulgar um evento?');
+        await page.locator('#review-attestation').check();
+        await page.locator('#review-send').click();
+        await page.waitForFunction(safe => {
+          const state = document.querySelector('#review-status')?.textContent ?? '';
+          return safe ? state.includes('Resposta gerada.') : state.includes('não concluiu.');
+        }, sample.safe);
+        assert.equal(await page.locator('#review-answer').innerText(),
+          sample.safe ? sample.answer : 'Resposta indisponível neste teste.');
+        assert.equal(await page.locator('#review-sources').innerText(), '');
+        assert.equal(await page.locator('#review-token').inputValue(), '');
+        assert.equal(await page.locator('#review-question').inputValue(), '');
+        assert.equal(await page.locator('#review-attestation').isChecked(), false);
+      }
+      assert.equal(index, samples.length);
+      assert.equal(calls, 0, 'HTTP substitution cannot trigger OpenAI usage');
+    } finally { await page.unroute(path); }
+  });
   await step('R151 Chromium refuses credential-shaped input and forged HTTP 200 output', async () => {
     // No real secret appears in the repository: an obviously fake value
     // is assembled only in the running synthetic browser test.
