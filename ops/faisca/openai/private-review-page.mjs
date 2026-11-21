@@ -217,17 +217,11 @@ const privateBrowserWordStatistics =
   /\b(?:um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento)(?:\s+(?:e\s+)?\w+){0,4}\s+(?:por\s+cento|(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|inscricoes?|visitas?|acessos?))\b|\b(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\s+(?:em|de)\s+cada\s+(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\b/u;
 const privateBrowserFutureOperation =
   /\b(?:vou|vamos|irei|iremos)\s+(?:publicar|ativar|configurar|cadastrar|integrar|criar|aprovar|contratar|instalar|enviar|agendar|abrir\s+(?:um\s+)?(?:chamado|ticket)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))\b|\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|campanha|pedido)\b.{0,70}\b(?:sera|vai\s+ser)\s+(?:publicad[oa]|ativad[oa]|configurad[oa]|cadastrad[oa]|criad[oa])\b/u;
-// R206: the browser independently refuses personally identifying terminology
-// and non-Latin lookalikes in synthetic model text, even if a forged HTTP 200
-// claims valid Luna/Terra provenance. This is a narrow laboratory egress
-// backstop, not full PII detection. Host-pinned editorial receipts are handled
-// by their exact independent text+sources comparison.
-function privateBrowserGeneratedIdentifierRisk(value) {
-  if (typeof value !== 'string' || /(?!\p{Script=Latin})\p{L}/u.test(value)) return true;
-  const normalized = value.normalize('NFKC').normalize('NFKD')
-    .replace(/\p{M}/gu, '').toLowerCase();
-  return /@|\b(?:cpf|cnpj|rg|cep|telefone|celular|whatsapp|e-?mail|pix|senha|token|credenciais?|otp|totp|2fa|passaporte|chave\s+(?:de\s+api|pix)|conta\s+bancaria|cartao\s+(?:de\s+)?credito|endereco\s+residencial|numero\s+de\s+(?:pedido|contrato|documento))\b/u.test(normalized);
-}
+// R206: second, independent PII/homoglyph gate for generated HTTP 200.
+const privateBrowserGeneratedIdentifierRisk = text =>
+  /(?!\p{Script=Latin})\p{L}/u.test(text) ||
+  /@|\b(?:cpf|cnpj|rg|cep|telefone|celular|whatsapp|e-?mail|pix|senha|token|credenciais?|otp|totp|2fa|passaporte|chave\s+(?:de\s+api|pix)|conta\s+bancaria|cartao\s+(?:de\s+)?credito|endereco\s+residencial|numero\s+de\s+(?:pedido|contrato|documento))\b/u.test(
+    text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase());
 function privateBrowserGeneralReplySafe(value) {
   if (typeof value !== 'string') return false;
   const normalized = value.normalize('NFKC').normalize('NFKD')
