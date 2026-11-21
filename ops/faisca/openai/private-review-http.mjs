@@ -338,6 +338,7 @@ export async function startFaiscaOpenAIPrivateReview({
   let active = true, requests = 0, inFlight = false, providerUnavailable = false;
   let deliveryFenceStarted = false;
   let deliveryFence = Promise.resolve();
+  let deliveryAck = Promise.resolve();
   // An HTTP disconnect/deadline can lose a perfectly valid provider reply.
   // Persist an operator-only no-start marker before a *graceful* shutdown.
   // Failed persistence never reopens the process. Abrupt host/process death
@@ -406,6 +407,9 @@ export async function startFaiscaOpenAIPrivateReview({
     // The live lab implements its own busy guard, but the HTTP boundary must
     // also serialize a misconfigured/injected provider. No parallel API calls
     // or implicit retries may arise from one review server.
+    // Do not start a new paid turn until the previous successful HTTP write
+    // has durably released its same-host dispatch fence.
+    await deliveryAck;
     if (providerUnavailable) { send(res, 503, { status: 'unavailable' }); return; }
     if (inFlight) { send(res, 429, { status: 'busy' }); return; }
     inFlight = true;
@@ -429,7 +433,9 @@ export async function startFaiscaOpenAIPrivateReview({
           // A closed client before dispatch must not consume any API credit.
           if (res.destroyed) throw CLIENT_DISCONNECTED;
           providerDispatched = true;
-          return conversation ? lab.answerPrivateConversation(input) : lab.answer(input);
+          return conversation
+            ? lab.answerPrivateConversation(input, { requireHttpDeliveryAck: true })
+            : lab.answer(input, { requireHttpDeliveryAck: true });
         }),
         new Promise(resolve => {
           providerTimer = setTimeout(() => resolve(PROVIDER_DEADLINE), providerDeadlineMs);
@@ -448,6 +454,15 @@ export async function startFaiscaOpenAIPrivateReview({
       if (res.destroyed) {
         latchUncertainDelivery();
         return; // The browser did not receive this reply; require operator review.
+      }
+      // An upstream completion is not the same as a locally completed HTTP
+      // response. Release the durable cross-process marker only on 'finish'.
+      // Any abrupt death before this handler leaves a permanent NO-START.
+      if (typeof lab.acknowledgeHttpDelivery === 'function') {
+        res.once('finish', () => {
+          deliveryAck = Promise.resolve().then(() => lab.acknowledgeHttpDelivery())
+            .catch(() => { latchUncertainDelivery(); });
+        });
       }
       send(res, 200, {
         schema: conversation ? 'faisca.openai-private-conversation-response.v1'
@@ -496,6 +511,7 @@ export async function startFaiscaOpenAIPrivateReview({
       if (!active) return;
       active = false;
       await new Promise(resolve => server.close(resolve));
+      await deliveryAck;
       await deliveryFence;
     }
   });
