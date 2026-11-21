@@ -271,6 +271,39 @@ export function createFaiscaLocalReservationLedger({
     return true;
   }
 
+  // R160: operator-only read-only inspection for staging reconciliation.
+  // No lock creation, quota reset, provider call, key, prompt or response.
+  // A competing process may complete a reservation immediately after the
+  // second lock check. This is NOT an atomic multi-process snapshot, cannot
+  // prove provider consumption and must never authorize a public launch.
+  async function inspectReadOnly() {
+    await checkDirectory();
+    async function assertNoLock() {
+      try {
+        await lstat(lockPath);
+        throw new Error('Private ledger reservation lock present; operator review required.');
+      } catch (error) {
+        if (error?.code !== 'ENOENT') {
+          throw new Error('Private ledger reservation lock present or uninspectable.');
+        }
+      }
+    }
+    await assertNoLock();
+    const state = await readState();
+    await assertNoLock();
+    return Object.freeze({
+      schema: 'faisca.private-ledger-readonly-snapshot.v1',
+      requests: state.requests,
+      reservedMicros: state.reservedMicros,
+      limitRequests: state.limitRequests,
+      limitMicros: state.limitMicros,
+      atomicAcrossProcesses: false,
+      providerUsageReconciled: false,
+      publicReady: false,
+      operationalEffects: false
+    });
+  }
+
   async function reserve(estimatedUsd) {
     if (typeof estimatedUsd !== 'number' || !Number.isFinite(estimatedUsd) ||
         estimatedUsd <= 0 || estimatedUsd > 10) {
@@ -342,5 +375,5 @@ export function createFaiscaLocalReservationLedger({
     }
   }
 
-  return Object.freeze({ ready, reserve });
+  return Object.freeze({ ready, reserve, inspectReadOnly });
 }
