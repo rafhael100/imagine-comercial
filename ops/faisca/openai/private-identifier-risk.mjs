@@ -4,6 +4,11 @@
 // Unicode compatibility forms (full-width/mathematical digits, etc.) must not
 // evade the ASCII checks used by the older R80/R95 laboratory gate.
 const hiddenControls = /[\p{Cc}\p{Cf}]/u;
+// R197: the private Portuguese output egress must reject non-Latin letters,
+// including visually confusable Cyrillic, Greek, Cherokee and mixed-script
+// spellings that escape word-boundary checks for Imagine, guarantees or prices.
+// The input gate already rejects this; the model response must be independent.
+const nonLatinLetter = /(?!\p{Script=Latin})\p{L}/u;
 // Decimal numerals in Arabic, Persian, Devanagari and mixed scripts are not
 // converted to ASCII by NFKC. Detect them before either the paid request or
 // HTTP egress, including Unicode/Arabic grouping separators.
@@ -51,7 +56,7 @@ const opaqueEncodingEnvelope =
 /** Fail closed for obvious identifier/contact leakage; never return the input. */
 export function hasPrivateIdentifierRisk(value) {
   if (typeof value !== 'string') return true;
-  if (hiddenControls.test(value)) return true;
+  if (hiddenControls.test(value) || nonLatinLetter.test(value)) return true;
   const text = value.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu, '').replace(/[\u3002\u2024\u2027]/gu, '.').toLowerCase();
   return plausibleContactDigits.test(text) ||
