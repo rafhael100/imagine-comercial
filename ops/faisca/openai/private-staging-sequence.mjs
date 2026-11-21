@@ -2,7 +2,7 @@ import { inspectFaiscaPrivateNegativeConversation } from './private-staging-nega
 import { inspectFaiscaPrivatePositiveConversation } from './private-staging-positive-probe.mjs';
 import {
   validFaiscaLocalLedgerSnapshot, matchFaiscaLocalLedgerDelta,
-  classifyFaiscaFailedPositiveReservations
+  classifyFaiscaFailedPositiveReservations, hasFaiscaLocalTwoModelHeadroom
 } from './private-ledger-sequence-proof.mjs';
 
 export const FAISCA_PRIVATE_SEQUENCE_SCHEMA = 'faisca.private-staging-conversation-sequence.v1';
@@ -103,6 +103,12 @@ export async function inspectFaiscaPrivateConversationSequence({
         return report('BLOCKED_LEDGER_GATE', negative);
       }
       ledgerBefore = afterNegative;
+      // R164: avoid a partial two-model attempt when the durable ledger
+      // cannot reserve two further requests. This is only a floor; each
+      // provider dispatch still performs its own atomic cost reservation.
+      if (!hasFaiscaLocalTwoModelHeadroom(ledgerBefore)) {
+        return report('BLOCKED_LEDGER_CAPACITY', negative);
+      }
     } catch {
       return report('BLOCKED_LEDGER_GATE', negative);
     }
