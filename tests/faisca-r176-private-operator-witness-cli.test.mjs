@@ -52,6 +52,10 @@ test('R176 partial, malformed, forged, expired or mismatched operator input bloc
     { ...good, FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_NONCE: 'c'.repeat(32) },
     { ...good, FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_PUBKEY_PEM: 'unsafe' },
     { ...good, FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_WITNESS_JSON: 'not json' },
+    { ...good, FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_WITNESS_JSON:
+      JSON.stringify(JSON.parse(signed()), null, 2) },
+    { ...good, FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_WITNESS_JSON:
+      signed().replace('"publicReady":false', '"publicReady":true,"publicReady":false') },
     { ...good, FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_WITNESS_JSON: signed({ expiresAt: '2026-11-21T09:00:00.000Z' }) },
     { ...good, FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_WITNESS_JSON: 'x'.repeat(3000) },
     { ...good, FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_WITNESS_JSON: JSON.stringify({
