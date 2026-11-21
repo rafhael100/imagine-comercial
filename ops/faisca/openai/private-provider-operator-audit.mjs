@@ -15,7 +15,17 @@ const OUTCOMES = new Set(['success', 'rejected', 'failed_luna', 'failed_terra'])
  * This is NOT a proof that the aggregate came from OpenAI. The three files
  * are not an atomic snapshot, and a compromised host can forge all of them.
  */
-export async function inspectFaiscaOfflineOperatorAggregate({ directory, outcome } = {}) {
+export async function inspectFaiscaOfflineOperatorAggregate(options = {}) {
+  try {
+    return await inspectUntrustedOfflineEvidence(options);
+  } catch {
+    // A raw SyntaxError, ENOENT, or platform-specific I/O exception can echo
+    // content fragments or local private paths if callers log it. Never leak.
+    throw new Error('R168 BLOCKED: private offline evidence rejected.');
+  }
+}
+
+async function inspectUntrustedOfflineEvidence({ directory, outcome } = {}) {
   if (typeof directory !== 'string' || !isAbsolute(directory) ||
       normalize(directory) !== directory || directory.includes('\0') ||
       !OUTCOMES.has(outcome)) {
@@ -57,8 +67,22 @@ export async function inspectFaiscaOfflineOperatorAggregate({ directory, outcome
   const before = await readCanonical('before.json');
   const after = await readCanonical('after.json');
   const evidence = await readCanonical('aggregate.json');
-  if (await realpath(directory) !== directory) {
-    throw new Error('R167 BLOCKED: private audit directory changed.');
+  // Re-read every fixed file and reject mid-inspection changes. This narrows
+  // accidental races but is NOT an atomic snapshot or a trusted source proof.
+  for (const [name, expected] of [
+    ['before.json', before], ['after.json', after], ['aggregate.json', evidence]
+  ]) {
+    const fresh = await readCanonical(name);
+    if (JSON.stringify(fresh) !== JSON.stringify(expected)) {
+      throw new Error('R168 BLOCKED: evidence changed during inspection.');
+    }
+  }
+  const finalDir = await lstat(directory);
+  if (!finalDir.isDirectory() || finalDir.isSymbolicLink() ||
+      (finalDir.mode & 0o077) !== 0 ||
+      (typeof process.getuid === 'function' && finalDir.uid !== process.getuid()) ||
+      await realpath(directory) !== directory) {
+    throw new Error('R168 BLOCKED: private audit directory changed.');
   }
   return auditFaiscaPrivateProviderAggregate({ before, after, evidence, outcome });
 }
