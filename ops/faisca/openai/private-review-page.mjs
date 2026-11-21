@@ -135,7 +135,8 @@ function privateFictionalQuestionPreflight(value) {
   const normalized = value.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu, '').replace(/[\u3002\u2024\u2027]/gu, '.').toLowerCase();
   return !(
-    // Reject hidden Unicode formatting beyond the earlier explicit ranges.
+    // R185: Portuguese-only fictional prompts; reject mixed-script lookalikes.
+    /(?!\p{Script=Latin})\p{L}/u.test(value) ||
     /\p{Default_Ignorable_Code_Point}/u.test(value) ||
     /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u.test(value) ||
     /https?:\/\/|www\.|@/u.test(normalized) ||
