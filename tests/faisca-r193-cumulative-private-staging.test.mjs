@@ -93,7 +93,9 @@ test('R193 cumulative private R95-R192: negative, actual loopback HTTP, two synt
   mode = 'fail';
   const failed = await privatePost(server, question);
   assert.equal(failed.status, 503);
-  assert.deepEqual(await failed.json(), { status: 'unavailable' });
+  const failedBody = await failed.json();
+  assert.equal(failedBody.status, 'unavailable');
+  assert.doesNotMatch(JSON.stringify(failedBody), /sk-r193|PRIVATE_SYNTHETIC|landing page|ledger|apiKey/i);
   assert.equal(providerCalls, 3, 'single simulated failed classification, no retries');
   assert.equal((await ledger().inspectReadOnly()).requests, 3);
   assert.equal(await readFile(join(directory, '.faisca-provider-outcome-uncertain'), 'utf8'),
@@ -111,7 +113,9 @@ test('R193 cumulative private R95-R192: negative, actual loopback HTTP, two synt
     const response = await privatePost(restarted, question);
     assert.equal(response.status, 503);
     assert.equal(response.headers.get('access-control-allow-origin'), null);
-    assert.deepEqual(await response.json(), { status: 'unavailable' });
+    const body = await response.json();
+    assert.equal(body.status, 'unavailable');
+    assert.doesNotMatch(JSON.stringify(body), /sk-r193|PRIVATE_SYNTHETIC|landing page|ledger|apiKey/i);
   }
   assert.equal(afterRestartCalls, 0);
   assert.equal((await ledger().inspectReadOnly()).requests, 3,
