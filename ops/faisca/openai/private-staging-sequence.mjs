@@ -1,14 +1,16 @@
 import { inspectFaiscaPrivateNegativeConversation } from './private-staging-negative-probe.mjs';
 import { inspectFaiscaPrivatePositiveConversation } from './private-staging-positive-probe.mjs';
 import {
-  validFaiscaLocalLedgerSnapshot, matchFaiscaLocalLedgerDelta
+  validFaiscaLocalLedgerSnapshot, matchFaiscaLocalLedgerDelta,
+  classifyFaiscaFailedPositiveReservations
 } from './private-ledger-sequence-proof.mjs';
 
 export const FAISCA_PRIVATE_SEQUENCE_SCHEMA = 'faisca.private-staging-conversation-sequence.v1';
 const LOOPBACK = /^http:\/\/127\.0\.0\.1:([1-9][0-9]{0,4})$/u;
 const TOKEN = /^[A-Za-z0-9_-]{32,128}$/u;
 
-function report(status, negative, positive, localLedgerDeltasVerified = false) {
+function report(status, negative, positive, localLedgerDeltasVerified = false,
+  failedPositiveReservedRequests = null) {
   return Object.freeze({
     schema: FAISCA_PRIVATE_SEQUENCE_SCHEMA,
     status,
@@ -24,6 +26,9 @@ function report(status, negative, positive, localLedgerDeltasVerified = false) {
     ledgerReconciled: false,
     // Only local single-host counter deltas, not a provider invoice or guarantee.
     localLedgerDeltasVerified,
+    // Null = not observed; 0/1/2 = local reservations after failed positive.
+    // Neither a provider billing claim nor permission to retry.
+    failedPositiveReservedRequests,
     publicReady: false,
     operationalEffects: false
   });
@@ -103,6 +108,21 @@ export async function inspectFaiscaPrivateConversationSequence({
     }
   }
 
+  // R163: even a rejected/failed positive response may have reserved
+  // capacity before the provider or HTTP envelope failed. Observe the
+  // local delta, fail closed on drift and never retry or reimburse it.
+  async function blockedPositiveWithAudit(positive) {
+    if (!inspectLedger) return report('BLOCKED_POSITIVE_GATE', negative, positive);
+    try {
+      const afterPositive = await inspectLedger();
+      const reserved = classifyFaiscaFailedPositiveReservations(ledgerBefore, afterPositive);
+      if (reserved === null) return report('BLOCKED_LEDGER_GATE', negative, positive);
+      return report('BLOCKED_POSITIVE_GATE', negative, positive, false, reserved);
+    } catch {
+      return report('BLOCKED_LEDGER_GATE', negative, positive);
+    }
+  }
+
   let positive;
   try {
     positive = await inspectFaiscaPrivatePositiveConversation({
@@ -110,13 +130,13 @@ export async function inspectFaiscaPrivateConversationSequence({
       timeoutMs: positiveTimeoutMs
     });
   } catch {
-    return report('BLOCKED_POSITIVE_GATE', negative);
+    return blockedPositiveWithAudit();
   }
   if (positive?.status !== 'PRIVATE_POSITIVE_ENVELOPE_VERIFIED' ||
       positive.assetRequests !== 4 || positive.apiRequests !== 1 ||
       positive.positiveEnvelopeAccepted !== true ||
       positive.publicReady !== false || positive.operationalEffects !== false) {
-    return report('BLOCKED_POSITIVE_GATE', negative, positive);
+    return blockedPositiveWithAudit(positive);
   }
   if (inspectLedger) {
     try {

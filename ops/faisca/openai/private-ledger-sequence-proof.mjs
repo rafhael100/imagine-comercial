@@ -46,3 +46,26 @@ export function matchFaiscaLocalLedgerDelta(before, after, expectedRequests) {
   // is a NO-GO. This does not establish upstream API or invoice use.
   return after.reservedMicros - before.reservedMicros >= 2;
 }
+
+
+/**
+ * R163: after a failed positive HTTP envelope, observe whether the
+ * single-host ledger reserved zero, one, or two attempts. This is a
+ * strictly bounded forensic clue, NOT upstream transport or billing proof.
+ * Any competing writer or unexpected delta requires manual reconciliation.
+ * No credit is refunded and no automatic retry is authorized.
+ */
+export function classifyFaiscaFailedPositiveReservations(before, after) {
+  if (!validFaiscaLocalLedgerSnapshot(before) ||
+      !validFaiscaLocalLedgerSnapshot(after) ||
+      before.limitRequests !== after.limitRequests ||
+      before.limitMicros !== after.limitMicros ||
+      after.requests < before.requests ||
+      after.reservedMicros < before.reservedMicros) return null;
+  const requests = after.requests - before.requests;
+  const micros = after.reservedMicros - before.reservedMicros;
+  if (requests > 2 ||
+      (requests === 0 && micros !== 0) ||
+      (requests > 0 && micros < requests)) return null;
+  return requests;
+}
