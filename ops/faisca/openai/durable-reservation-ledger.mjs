@@ -21,6 +21,8 @@ const MAX_REQUESTS = 100;
 const MAX_MICROS = 10_000_000;
 const OPEN_LOCK = constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW;
 const READ_ONLY = constants.O_RDONLY | constants.O_NOFOLLOW;
+// A second hard link gives a mutable alias to a private state/witness file.
+// All four persistent files must be single-link inodes, even at mode 0600.
 
 /**
  * Private, single-host, fail-closed reservation ledger for estimated API costs.
@@ -71,7 +73,7 @@ export function createFaiscaLocalReservationLedger({
     try {
       const info = await file.stat();
       if (!info.isFile() || info.size !== Buffer.byteLength(MARKER_DATA) ||
-          (info.mode & 0o077) ||
+          (info.mode & 0o077) || info.nlink !== 1 ||
           (typeof process.getuid === 'function' && info.uid !== process.getuid()) ||
           await file.readFile('utf8') !== MARKER_DATA) {
         throw new Error('Private ledger initialization marker requires operator review.');
@@ -107,7 +109,7 @@ export function createFaiscaLocalReservationLedger({
     try {
       const info = await file.stat();
       if (!info.isFile() || info.size !== Buffer.byteLength(HIGHWATER_MARKER_DATA) ||
-          (info.mode & 0o077) ||
+          (info.mode & 0o077) || info.nlink !== 1 ||
           (typeof process.getuid === 'function' && info.uid !== process.getuid()) ||
           await file.readFile('utf8') !== HIGHWATER_MARKER_DATA) {
         throw new Error('Private high-water marker requires operator review.');
@@ -141,7 +143,7 @@ export function createFaiscaLocalReservationLedger({
     }
     try {
       const info = await file.stat();
-      if (!initialized || !info.isFile() || info.size > 512 || (info.mode & 0o077) ||
+      if (!initialized || !info.isFile() || info.size > 512 || (info.mode & 0o077) || info.nlink !== 1 ||
           (typeof process.getuid === 'function' && info.uid !== process.getuid())) {
         throw new Error('Private high-water witness requires operator review.');
       }
@@ -180,7 +182,7 @@ export function createFaiscaLocalReservationLedger({
     }
     try {
       const info = await file.stat();
-      if (!info.isFile() || info.size > 512 || (info.mode & 0o077) ||
+      if (!info.isFile() || info.size > 512 || (info.mode & 0o077) || info.nlink !== 1 ||
           (typeof process.getuid === 'function' && info.uid !== process.getuid())) {
         throw new Error('Private ledger file has unsafe permissions or shape.');
       }
