@@ -69,3 +69,16 @@ export function classifyFaiscaFailedPositiveReservations(before, after) {
       (requests > 0 && micros < requests)) return null;
   return requests;
 }
+
+
+/**
+ * R164: cheap fail-closed capacity floor before starting the positive
+ * synthetic exchange. Two provider stages need two durable request slots.
+ * The 2-micro floor detects exhausted budgets, not price sufficiency:
+ * actual model dispatch reserves its full estimated cost atomically.
+ */
+export function hasFaiscaLocalTwoModelHeadroom(snapshot) {
+  return validFaiscaLocalLedgerSnapshot(snapshot) &&
+    snapshot.limitRequests - snapshot.requests >= 2 &&
+    snapshot.limitMicros - snapshot.reservedMicros >= 2;
+}
