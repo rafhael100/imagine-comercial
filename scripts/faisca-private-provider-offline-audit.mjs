@@ -8,6 +8,7 @@ import { hasFaiscaSafeTrackedIndex } from '../ops/faisca/openai/private-operator
 import { hasFaiscaStableOperatorCheckout } from '../ops/faisca/openai/private-operator-checkout-recheck.mjs';
 import { inspectFaiscaOperatorWitnessInputs } from '../ops/faisca/openai/private-operator-review-witness-inputs.mjs';
 import { consumeFaiscaIndependentWitnessNonce } from '../ops/faisca/openai/private-independent-review-nonce-ledger.mjs';
+import { hasFaiscaSeparatedIndependentNonceDirectory } from '../ops/faisca/openai/private-operator-nonce-location.mjs';
 
 const exec = promisify(execFile);
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -60,7 +61,11 @@ const witnessGate = inspectFaiscaOperatorWitnessInputs({
 const nonceDirectoryKey = 'FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_NONCE_DIRECTORY';
 const nonceDirectory = process.env[nonceDirectoryKey];
 const nonceGate = witnessGate.verified
-  ? typeof nonceDirectory === 'string' && nonceDirectory.length > 1
+  ? hasFaiscaSeparatedIndependentNonceDirectory({
+    checkout: repo,
+    evidence: process.env.FAISCA_PRIVATE_PROVIDER_AUDIT_DIRECTORY,
+    directory: nonceDirectory
+  })
   : !Object.hasOwn(process.env, nonceDirectoryKey);
 
 if (!acknowledged || !witnessGate.allowed || !nonceGate) {

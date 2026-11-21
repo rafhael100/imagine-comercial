@@ -166,3 +166,24 @@ test('R178 independently pinned evidence is mandatory before the signed single-u
     'faisca-private-provider-offline-audit.mjs'), 'utf8');
   assert.match(script, /NO-GO/u);
 });
+
+test('R179 real signed CLI refuses replay directories in evidence, checkout or their common parent', async t => {
+  const s = await fixture(t);
+  const bad = [
+    s.evidence, s.checkout, s.root,
+    join(s.evidence, 'nonce'),
+    join(s.checkout, 'nonce')
+  ];
+  for (const location of bad) {
+    const result = s.run({
+      ...s.signed,
+      FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_NONCE_DIRECTORY: location
+    });
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /R167 BLOCKED/u);
+    assert.equal(result.stderr.includes(location), false);
+    assert.equal(result.stderr.includes(s.nonce), false);
+  }
+  assert.equal((await readdir(s.registry)).length, 0);
+});
