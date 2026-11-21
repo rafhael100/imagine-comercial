@@ -17,6 +17,11 @@ const HIGHWATER_NAME = '.faisca-reservations-highwater.json';
 const HIGHWATER_MARKER_NAME = '.faisca-reservations-highwater-initialized';
 const HIGHWATER_SCHEMA = 'faisca.private-local-reservations.highwater.v1';
 const HIGHWATER_MARKER_DATA = HIGHWATER_SCHEMA + '\n';
+// R191: a provider error after a paid dispatch is not reconciled by an
+// estimated-cost reservation. Persist an operator-only NO-START marker
+// across process restarts; never automatically clear it.
+const PROVIDER_UNCERTAIN_NAME = '.faisca-provider-outcome-uncertain';
+const PROVIDER_UNCERTAIN_DATA = 'faisca.private-provider-outcome-uncertain.v1\n';
 const MAX_REQUESTS = 100;
 const MAX_MICROS = 10_000_000;
 const OPEN_LOCK = constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW;
@@ -46,6 +51,7 @@ export function createFaiscaLocalReservationLedger({
   const markerPath = join(directory, MARKER_NAME);
   const highwaterPath = join(directory, HIGHWATER_NAME);
   const highwaterMarkerPath = join(directory, HIGHWATER_MARKER_NAME);
+  const providerUncertainPath = join(directory, PROVIDER_UNCERTAIN_NAME);
 
   async function checkDirectory() {
     const dir = await lstat(directory);
@@ -229,6 +235,38 @@ export function createFaiscaLocalReservationLedger({
     }
   }
 
+  async function assertNoProviderUncertainty() {
+    // Presence alone is a hard NO-START, even for a malformed file, symlink,
+    // or interrupted marker write. Never follow or auto-delete this path.
+    try {
+      await lstat(providerUncertainPath);
+    } catch (error) {
+      if (error?.code === 'ENOENT') return;
+    }
+    throw new Error('Private provider outcome uncertain; operator reconciliation required.');
+  }
+
+  async function markOutcomeUncertain() {
+    await checkDirectory();
+    let file;
+    try {
+      file = await open(providerUncertainPath, OPEN_LOCK, 0o600);
+      await file.writeFile(PROVIDER_UNCERTAIN_DATA);
+      await file.sync();
+    } catch (error) {
+      // An existing marker is already a permanent local NO-START; do not
+      // overwrite another process's marker or reveal the provider outcome.
+      if (error?.code !== 'EEXIST') {
+        throw new Error('Private provider uncertainty could not be durably recorded.');
+      }
+    } finally {
+      await file?.close().catch(() => {});
+    }
+    const dir = await open(directory, READ_ONLY);
+    try { await dir.sync(); } finally { await dir.close(); }
+    return true;
+  }
+
   async function ready({
     requireCapacity = false, minimumRequests = 1, minimumBudgetUsd = 0
   } = {}) {
@@ -245,6 +283,7 @@ export function createFaiscaLocalReservationLedger({
     }
     const minimumMicros = Math.ceil(minimumBudgetUsd * 1_000_000);
     await checkDirectory();
+    await assertNoProviderUncertainty();
     // An absent state stays absent: preflight must not create or reset quota.
     const state = await readState();
     // A stale crash lock is a hard NO-START for all callers of ready(),
@@ -278,6 +317,7 @@ export function createFaiscaLocalReservationLedger({
   // prove provider consumption and must never authorize a public launch.
   async function inspectReadOnly() {
     await checkDirectory();
+    await assertNoProviderUncertainty();
     async function assertNoLock() {
       try {
         await lstat(lockPath);
@@ -291,6 +331,7 @@ export function createFaiscaLocalReservationLedger({
     await assertNoLock();
     const state = await readState();
     await assertNoLock();
+    await assertNoProviderUncertainty();
     return Object.freeze({
       schema: 'faisca.private-ledger-readonly-snapshot.v1',
       requests: state.requests,
@@ -314,6 +355,7 @@ export function createFaiscaLocalReservationLedger({
       throw new TypeError('Invalid reservation precision.');
     }
     await checkDirectory();
+    await assertNoProviderUncertainty();
     // O_EXCL provides atomic mutual exclusion across processes on ONE host.
     // An existing lock (including a crash remnant) is a hard stop, not a retry.
     let lock;
@@ -333,6 +375,9 @@ export function createFaiscaLocalReservationLedger({
     }
     let safeToUnlock = false;
     try {
+      // Recheck after taking the reservation lock; a separate process may
+      // have marked an uncertain completion while we were acquiring it.
+      await assertNoProviderUncertainty();
       const current = await readState();
       if (current.requests >= maxRequests ||
           current.reservedMicros + micros > limitMicros) {
@@ -375,5 +420,5 @@ export function createFaiscaLocalReservationLedger({
     }
   }
 
-  return Object.freeze({ ready, reserve, inspectReadOnly });
+  return Object.freeze({ ready, reserve, inspectReadOnly, markOutcomeUncertain });
 }
