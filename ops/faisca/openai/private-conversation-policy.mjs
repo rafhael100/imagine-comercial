@@ -91,9 +91,9 @@ const unsupportedUnnamedResearch =
 // general descriptions such as "uma landing page" remain permitted.
 const unsourcedQuantityWord = String.raw`(?:zero|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento|mil)`;
 const unsourcedQuantitySequence =
-  String.raw`${unsourcedQuantityWord}(?:\\s+(?:e\\s+)?${unsourcedQuantityWord}){0,6}`;
+  String.raw`${unsourcedQuantityWord}(?:\s+(?:e\s+)?${unsourcedQuantityWord}){0,6}`;
 const unsupportedWrittenOutStatistics = new RegExp(
-  String.raw`\\b(?:${unsourcedQuantitySequence}\\s+por\\s+cento|${unsourcedQuantitySequence}\\s+(?:nov[oa]s?\\s+)?(?:vendas?|clientes?|leads?|conversoes?|inscricoes?|visitas?|acessos?)|(?:${unsourcedQuantitySequence}|\\d{1,3})\\s+(?:em|de)\\s+cada\\s+(?:${unsourcedQuantitySequence}|\\d{1,3}))\\b`,
+  String.raw`\b(?:${unsourcedQuantitySequence}\s+por\s+cento|${unsourcedQuantitySequence}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?|inscricoes?|visitas?|acessos?)|(?:${unsourcedQuantitySequence}|\d{1,3})\s+(?:em|de)\s+cada\s+(?:${unsourcedQuantitySequence}|\d{1,3}))\b`,
   'u'
 );
 export function hasPrivateUnsupportedOutcomeGuarantee(text) {
