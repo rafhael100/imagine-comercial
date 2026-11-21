@@ -19,6 +19,11 @@ const forbidden = [
   /\b(?:meu\s+cliente|minha\s+empresa\s+se\s+chama|meu\s+site\s+est[aá]\s+fora|projeto\s+do\s+cliente)\b/i,
   // Defense in depth on the authoritative HTTP boundary, not just browser JS.
   // Never strip soft hyphen, BOM, bidi isolates or other invisible characters.
+  // R184: the operator-only Portuguese lab accepts Latin letters, but not
+  // lookalike Cyrillic/Greek/mixed-script letters (e.g. i/і, a/а, o/ο).
+  // Deny only: never transliterate and forward attacker-authored text.
+  // Symbols and digits remain subject to existing identifier/privacy checks.
+  /(?!\p{Script=Latin})\p{L}/u,
   /\p{Default_Ignorable_Code_Point}/u,
   /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u
 ];
