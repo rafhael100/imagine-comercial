@@ -220,9 +220,19 @@ export function createFaiscaOpenAILiveLab({
       }), controller.signal);
       return await receiveBoundedResponse(response, controller.signal, model);
     } catch {
-      // The request was already durably reserved and dispatched, but may
-      // still complete upstream after a timeout/error. No retry in-process.
+      // A reserved request may still complete/charge upstream after an
+      // error. Latch locally, and when supported by the durable ledger,
+      // persist a NO-START marker across private process restarts.
       providerCompletionUncertain = true;
+      if (typeof reservationLedger?.markOutcomeUncertain === 'function') {
+        try {
+          await reservationLedger.markOutcomeUncertain();
+        } catch {
+          // Preserve generic egress; local latch remains active. If storage
+          // fails before fsync, durable NO-START cannot be proven and the
+          // operator must reconcile the store before any new session.
+        }
+      }
       // Never expose API error bodies or configuration in the UI/log.
       throw new Error('OpenAI private test unavailable.');
     } finally {
