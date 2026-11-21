@@ -9,6 +9,7 @@ import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
 import {
   privateConversationRoute, privateConversationEditorialReply, safePrivateGeneralReply,
+  hasPrivateNonLatinOutputRisk,
   hasPrivateOperationalClaim, hasPrivateUnsupportedOutcomeGuarantee
 } from './private-conversation-policy.mjs';
 
@@ -272,7 +273,7 @@ export function createFaiscaOpenAILiveLab({
       if (!data || typeof data.reply !== 'string' ||
           data.reply.length < 20 || data.reply.length > 900 ||
           /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(data.reply) ||
-          blockedOutput.test(data.reply.normalize('NFKC')) || hasPrivateIdentifierRisk(data.reply) ||
+          blockedOutput.test(data.reply.normalize('NFKC')) || hasPrivateNonLatinOutputRisk(data.reply) || hasPrivateIdentifierRisk(data.reply) ||
           hasPrivateUnreviewedPriceClaim(data.reply) ||
           // R144: the direct fixed-case lab adapter is a safety boundary too.
           // Never rely solely on the later HTTP/browser consumer to reject an
@@ -349,7 +350,7 @@ export function createFaiscaOpenAILiveLab({
       );
       const reply = strictObject(terra.parsed, ['reply'])?.reply;
       if (typeof reply !== 'string' || reply.length < 20 || reply.length > 900 ||
-          blockedOutput.test(reply.normalize('NFKC')) || !safePrivateGeneralReply(reply) ||
+          blockedOutput.test(reply.normalize('NFKC')) || hasPrivateNonLatinOutputRisk(reply) || !safePrivateGeneralReply(reply) ||
           hasPrivateUnreviewedPriceClaim(reply)) {
         return privateConversationEditorialReply('confirm');
       }
