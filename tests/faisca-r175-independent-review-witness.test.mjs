@@ -54,7 +54,7 @@ test('R175 rejects swapped evidences, trial/head/outcome drift, invalid and othe
     { nowMs: nowMs + 10 * 60 * 60_000 },
     { reviewerPublicKeyPem: generateKeyPairSync('ed25519').publicKey.export({ type: 'spki', format: 'pem' }) }
   ]) assert.equal(verifyFaiscaIndependentNumericReview({ ...options(witness), ...changes }), false);
-  const corrupted = { ...witness, signature: 'A' + witness.signature.slice(1) };
+  const corrupted = { ...witness, signature: (witness.signature[0] === 'A' ? 'B' : 'A') + witness.signature.slice(1) };
   assert.equal(verifyFaiscaIndependentNumericReview(options(corrupted)), false);
 });
 
