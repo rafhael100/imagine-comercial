@@ -317,7 +317,9 @@ export function createFaiscaLocalReservationLedger({
   // prove provider consumption and must never authorize a public launch.
   async function inspectReadOnly() {
     await checkDirectory();
-    await assertNoProviderUncertainty();
+    // Keep numeric inspection available for conservative reconciliation even
+    // when a provider outcome is uncertain. This is strictly read-only and
+    // never authorizes a new request; ready()/reserve() still fail closed.
     async function assertNoLock() {
       try {
         await lstat(lockPath);
@@ -331,7 +333,6 @@ export function createFaiscaLocalReservationLedger({
     await assertNoLock();
     const state = await readState();
     await assertNoLock();
-    await assertNoProviderUncertainty();
     return Object.freeze({
       schema: 'faisca.private-ledger-readonly-snapshot.v1',
       requests: state.requests,
