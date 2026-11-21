@@ -389,6 +389,22 @@ export function createFaiscaOpenAILiveLab({
     } finally { busy = false; }
   }
 
+  // R194: HTTP transport can lose the client while a provider call completes
+  // successfully. That delivery outcome is still uncertain to the operator.
+  // Persist the same NO-START fence that provider errors use, even when the
+  // provider returned valid JSON. This is a best-effort ordered shutdown fence,
+  // not a crash-atomic cross-process in-flight lease.
+  async function markDeliveryUncertain() {
+    providerCompletionUncertain = true;
+    if (typeof reservationLedger?.markOutcomeUncertain !== 'function') return false;
+    try {
+      await reservationLedger.markOutcomeUncertain();
+      return true;
+    } catch {
+      throw new Error('OpenAI private test unavailable.');
+    }
+  }
+
   function inspect() {
     return Object.freeze({
       schema: FAISCA_OPENAI_LIVE_LAB_SCHEMA,
@@ -403,5 +419,5 @@ export function createFaiscaOpenAILiveLab({
       operationalEffects: false
     });
   }
-  return Object.freeze({ answer, answerPreparedSyntheticQuestion, answerPrivateConversation, inspect });
+  return Object.freeze({ answer, answerPreparedSyntheticQuestion, answerPrivateConversation, markDeliveryUncertain, inspect });
 }
