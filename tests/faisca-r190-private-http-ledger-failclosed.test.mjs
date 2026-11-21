@@ -32,7 +32,13 @@ async function assertUnavailable(response) {
   assert.equal(response.headers.get('access-control-allow-origin'), null);
   const payload = await response.json();
   assert.equal(payload.status, 'unavailable');
-  assert.equal(payload.message, 'The private AI review could not confirm a safe response.');
+  // First provider rejection includes a generic sentence; subsequent breaker
+  // rejections intentionally disclose only status=unavailable.
+  assert.deepEqual(Object.keys(payload).sort(), Object.hasOwn(payload, 'message')
+    ? ['message', 'status'] : ['status']);
+  if (Object.hasOwn(payload, 'message')) {
+    assert.equal(payload.message, 'The private AI review could not confirm a safe response.');
+  }
   assert.doesNotMatch(JSON.stringify(payload), /secret|ledger|directory|key|token|question|stack/i);
 }
 
