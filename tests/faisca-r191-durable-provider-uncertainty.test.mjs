@@ -50,7 +50,10 @@ test('R191 uncertain paid dispatch persists a NO-START gate across ledger and la
   assert.equal(await readFile(join(directory, MARKER), 'utf8'),
     'faisca.private-provider-outcome-uncertain.v1\n');
   await assert.rejects(ledger().ready(), /operator reconciliation/);
-  await assert.rejects(ledger().inspectReadOnly(), /operator reconciliation/);
+  const snapshot = await ledger().inspectReadOnly();
+  assert.equal(snapshot.requests, 1, 'Offline reconciliation must remain possible');
+  assert.equal(snapshot.providerUsageReconciled, false);
+  assert.equal(snapshot.publicReady, false);
 
   const fresh = lab(ledger(), async () => {
     dispatched++;
@@ -83,5 +86,6 @@ test('R191 repeated halt is idempotent, malformed or symlinked marker fails clos
   await symlink(join(root, 'untrusted-target'), join(directory, MARKER));
   await assert.rejects(ledger().ready(), /operator reconciliation/);
   await assert.rejects(ledger().reserve(0.01), /operator reconciliation/);
-  await assert.rejects(ledger().inspectReadOnly(), /operator reconciliation/);
+  assert.equal((await ledger().inspectReadOnly()).requests, 0,
+    'A hostile marker blocks dispatch but not read-only accounting');
 });
