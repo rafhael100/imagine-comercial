@@ -7,7 +7,16 @@ import { inspectFaiscaOfflineOperatorAggregate } from '../ops/faisca/openai/priv
 const exec = promisify(execFile);
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [sha, outcome] = process.argv.slice(2);
-const acknowledged = process.argv.length === 4 &&
+// SHA-256 pins must come from an independently reviewed channel, not from the
+// same untrusted evidence directory. Never print the environment or its values.
+let expectedSha256;
+try {
+  const raw = process.env.FAISCA_PRIVATE_PROVIDER_AUDIT_PINS_JSON;
+  if (typeof raw === 'string' && raw.length <= 300) expectedSha256 = JSON.parse(raw);
+} catch {
+  // Malformed pins fail closed through the acknowledgment check.
+}
+const acknowledged = expectedSha256 !== undefined && process.argv.length === 4 &&
   /^[0-9a-f]{40}$/u.test(sha ?? '') &&
   ['success', 'rejected', 'failed_luna', 'failed_terra'].includes(outcome) &&
   process.env.FAISCA_PRIVATE_PROVIDER_AUDIT_ACK === 'YES_OFFLINE_NUMERIC_REVIEW_ONLY' &&
@@ -30,7 +39,7 @@ if (!acknowledged) {
     } else {
       const report = await inspectFaiscaOfflineOperatorAggregate({
         directory: process.env.FAISCA_PRIVATE_PROVIDER_AUDIT_DIRECTORY,
-        outcome
+        outcome, expectedSha256
       });
       // Only a known fixed-schema result; never echo source JSON, paths, errors or data.
       console.log(JSON.stringify(report));
