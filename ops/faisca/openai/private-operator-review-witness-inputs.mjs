@@ -35,6 +35,11 @@ export function inspectFaiscaOperatorWitnessInputs({
       return Object.freeze({ allowed: false, verified: false });
     }
     const witness = JSON.parse(raw);
+    // Reject duplicate keys, disguised Unicode escapes and ambiguous JSON
+    // framing BEFORE signature verification. JSON.parse alone drops duplicates.
+    if (raw !== JSON.stringify(witness)) {
+      return Object.freeze({ allowed: false, verified: false });
+    }
     const verified = verifyFaiscaIndependentNumericReview({
       witness, expectedSha: sha, expectedPins: expectedSha256,
       expectedOutcome: outcome, expectedNonce, reviewerPublicKeyPem, nowMs
