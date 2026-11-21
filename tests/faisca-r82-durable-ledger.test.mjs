@@ -111,7 +111,9 @@ test('R82 private OpenAI lab reserves BEFORE dispatch and preserves reservation 
       }),
       fetchImpl: async () => { dispatched++; return fakeResponse({ answerId: 'none' }); }
     });
-    await assert.rejects(restarted.answer('compare'), /durable reservation limit reached/);
+    // R188 suppresses internal durable-ledger errors to avoid exposing private paths.
+    // A failed reservation (including quota denial) is now fail-closed and generic.
+    await assert.rejects(restarted.answer('compare'), /OpenAI private test unavailable/);
     assert.equal(dispatched, 1, 'No second API call after process restart.');
   });
 });
