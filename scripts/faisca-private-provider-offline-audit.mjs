@@ -101,7 +101,7 @@ if (!acknowledged || !witnessGate.allowed || !nonceGate) {
         console.log(JSON.stringify({
           ...report, independentReviewWitnessVerified: witnessGate.verified
         }));
-        // A signed human review still cannot authorize a public operation.
+        // NO-GO: a signed human review still cannot authorize a public operation.
         process.exitCode = report.status === 'COUNTS_MATCH_PENDING_INDEPENDENT_REVIEW' ? 2 : 1;
       }
     }
