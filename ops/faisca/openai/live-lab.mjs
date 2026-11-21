@@ -171,6 +171,24 @@ export function createFaiscaOpenAILiveLab({
   // The separate HTTP server already has a breaker, but direct CLI callers
   // must also fail closed without relying on that server.
   let calls = 0, reservedUsd = 0, busy = false, providerCompletionUncertain = false;
+  // R198: the same-host marker spans Luna, Terra and the private HTTP
+  // response write. Never release it only because upstream replied.
+  let holdForHttpDelivery = false, awaitingHttpDeliveryAck = false;
+  let heldDispatch = false;
+  function startTurn(requireHttpDeliveryAck) {
+    if (busy || awaitingHttpDeliveryAck || providerCompletionUncertain) {
+      throw new Error('Only one private OpenAI trial can run at once.');
+    }
+    busy = true;
+    holdForHttpDelivery = requireHttpDeliveryAck === true;
+  }
+  function finishTurn() {
+    busy = false;
+    if (holdForHttpDelivery && heldDispatch && !providerCompletionUncertain) {
+      awaitingHttpDeliveryAck = true;
+    }
+    holdForHttpDelivery = false;
+  }
 
   async function invoke(model, input, instructions, format, maxOutputTokens) {
     if (providerCompletionUncertain) throw new Error('OpenAI private test unavailable.');
@@ -215,6 +233,7 @@ export function createFaiscaOpenAILiveLab({
       // Never retry or release the marker after an uncertain provider result.
       if (typeof reservationLedger?.beginPaidDispatch === 'function') {
         await reservationLedger.beginPaidDispatch();
+        heldDispatch = true;
       }
       const response = await awaitAbortable(fetchImpl(API_URL, {
         method: 'POST', body, signal: controller.signal, redirect: 'error',
@@ -225,11 +244,13 @@ export function createFaiscaOpenAILiveLab({
         }
       }), controller.signal);
       const completed = await receiveBoundedResponse(response, controller.signal, model);
-      // Only an authenticated, fully parsed successful provider response can
-      // release the single-host network-dispatch marker. HTTP delivery loss is
-      // separately fenced by R194; its crash-before-fsync gap remains a gate.
-      if (typeof reservationLedger?.completePaidDispatch === 'function') {
+      // Direct operator CLI tests release after a validated upstream reply.
+      // HTTP turns keep the durable marker through the response 'finish' event
+      // to close the R196 response-to-browser handoff window between workers.
+      if (!holdForHttpDelivery &&
+          typeof reservationLedger?.completePaidDispatch === 'function') {
         await reservationLedger.completePaidDispatch();
+        heldDispatch = false;
       }
       return completed;
     } catch {
@@ -254,9 +275,8 @@ export function createFaiscaOpenAILiveLab({
     }
   }
 
-  async function answerQuestion(question, messageId) {
-    if (busy) throw new Error('Only one private OpenAI trial can run at once.');
-    busy = true;
+  async function answerQuestion(question, messageId, { requireHttpDeliveryAck = false } = {}) {
+    startTurn(requireHttpDeliveryAck);
     try {
       const boundary = getAnonymousRouteBoundary(question);
       if (boundary) throw new Error('Private operational topics cannot use a model.');
@@ -336,14 +356,14 @@ export function createFaiscaOpenAILiveLab({
         requiresEditorialReview: true,
         operationalEffects: false, publicReady: false
       });
-    } finally { busy = false; }
+    } finally { finishTurn(); }
   }
 
-  async function answer(caseId) {
+  async function answer(caseId, options = {}) {
     if (typeof caseId !== 'string' || !Object.hasOwn(FAISCA_OPENAI_TEST_CASES, caseId)) {
       throw new TypeError('Only reviewed synthetic case IDs are allowed.');
     }
-    return answerQuestion(FAISCA_OPENAI_TEST_CASES[caseId], 'r72_case_' + caseId);
+    return answerQuestion(FAISCA_OPENAI_TEST_CASES[caseId], 'r72_case_' + caseId, options);
   }
 
   /** R80: an explicit extra operator-only capability, never available to HTTP R79 by default. */
@@ -355,7 +375,7 @@ export function createFaiscaOpenAILiveLab({
     return answerQuestion(prepared.question, messageId);
   }
 
-  async function answerPrivateConversation(raw) {
+  async function answerPrivateConversation(raw, { requireHttpDeliveryAck = false } = {}) {
     if (!enablePrivateConversation) throw new TypeError('Private conversation is disabled.');
     const question = readPrivateSyntheticQuestion(raw);
     if (!question) return null;
@@ -363,8 +383,7 @@ export function createFaiscaOpenAILiveLab({
     if (route === 'rejected') return null;
     if (route !== 'classify') return privateConversationEditorialReply(route);
 
-    if (busy) throw new Error('Only one private OpenAI trial can run at once.');
-    busy = true;
+    startTurn(requireHttpDeliveryAck);
     try {
       const input = JSON.stringify({ syntheticQuestion: question });
       const luna = await invoke(
@@ -399,7 +418,27 @@ export function createFaiscaOpenAILiveLab({
         modelIds: [FAISCA_OPENAI_MODELS.classification, FAISCA_OPENAI_MODELS.answer],
         publicReady: false, operationalEffects: false
       };
-    } finally { busy = false; }
+    } finally { finishTurn(); }
+  }
+
+  // HTTP 'finish' means the server has completed writing its response, not
+  // proof that a human read it. A crash/disconnect before this event leaves
+  // the fsynced marker in place for operator-only reconciliation.
+  async function acknowledgeHttpDelivery() {
+    if (!awaitingHttpDeliveryAck || providerCompletionUncertain) return false;
+    try {
+      if (heldDispatch &&
+          typeof reservationLedger?.completePaidDispatch === 'function') {
+        await reservationLedger.completePaidDispatch();
+        heldDispatch = false;
+      }
+      awaitingHttpDeliveryAck = false;
+      return true;
+    } catch {
+      providerCompletionUncertain = true;
+      try { await reservationLedger?.markOutcomeUncertain?.(); } catch {}
+      throw new Error('OpenAI private test unavailable.');
+    }
   }
 
   // R194: HTTP transport can lose the client while a provider call completes
@@ -432,5 +471,8 @@ export function createFaiscaOpenAILiveLab({
       operationalEffects: false
     });
   }
-  return Object.freeze({ answer, answerPreparedSyntheticQuestion, answerPrivateConversation, markDeliveryUncertain, inspect });
+  return Object.freeze({
+    answer, answerPreparedSyntheticQuestion, answerPrivateConversation,
+    acknowledgeHttpDelivery, markDeliveryUncertain, inspect
+  });
 }
