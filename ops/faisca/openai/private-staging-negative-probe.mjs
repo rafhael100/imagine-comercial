@@ -19,6 +19,47 @@ function report(status, assetRequests = 0, apiRequests = 0) {
   });
 }
 
+// R159: HTTP 400 can mean malformed framing, generic validation or a
+// fallback/proxy error rather than rejection by the privacy preflight. Accept
+// only the exact, host-owned error envelope. No model/provider payload, token
+// or question enters the result or a log. A bounded read remains subject to
+// the same wall-clock deadline as the request (even with an ignoring stream).
+async function exactPrivateRejectionBody(response, signal) {
+  const expected = Buffer.from('{"status":"invalid_question"}\n');
+  const declared = response.headers.get('content-length');
+  if (declared !== null && (!/^[0-9]+$/u.test(declared) ||
+      Number(declared) !== expected.length)) return false;
+  if (!response.body) return false;
+  const reader = response.body.getReader();
+  let onAbort;
+  const timeout = new Promise((_, reject) => {
+    onAbort = () => reject(new Error('deadline'));
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  let bytes = 0;
+  const parts = [];
+  try {
+    for (;;) {
+      if (signal.aborted) return false;
+      const part = await Promise.race([reader.read(), timeout]);
+      if (part.done) break;
+      if (!(part.value instanceof Uint8Array)) return false;
+      bytes += part.value.byteLength;
+      if (bytes > expected.length) return false;
+      parts.push(Buffer.from(part.value));
+    }
+    return !signal.aborted && bytes === expected.length &&
+      Buffer.concat(parts).equals(expected);
+  } catch {
+    return false;
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+    // Never await an uncooperative response stream's cancel() on a failure.
+    try { void Promise.resolve(reader.cancel()).catch(() => {}); }
+    catch { /* A malformed stream cannot stall the rejection gate. */ }
+  }
+}
+
 /**
  * R154: one negative, strictly synthetic POST against an already-running
  * loopback operator server. First require exact R153 UI, JS, CSS, mascot and
@@ -82,7 +123,7 @@ export async function inspectFaiscaPrivateNegativeConversation({
       deadline
     ]);
     const headers = response.headers;
-    const passed = response.status === 400 && response.redirected !== true &&
+    let passed = response.status === 400 && response.redirected !== true &&
       headers.get('content-type') === 'application/json; charset=utf-8' &&
       headers.get('cache-control') === 'no-store, max-age=0' &&
       headers.get('x-content-type-options') === 'nosniff' &&
@@ -90,9 +131,14 @@ export async function inspectFaiscaPrivateNegativeConversation({
       headers.get('set-cookie') === null &&
       headers.get('access-control-allow-origin') === null &&
       headers.get('access-control-allow-credentials') === null;
-    // Do not read or print a response body even when the server is modified.
-    try { void Promise.resolve(response.body?.cancel()).catch(() => {}); }
-    catch { /* An uncooperative stream must not hang the gate. */ }
+    // Only the tiny canonical rejection code is inspected, never exposed.
+    // A generic 400 with matching security headers MUST NOT unlock the
+    // positive (potentially paid) stage of the sequence.
+    if (passed) passed = await exactPrivateRejectionBody(response, controller.signal);
+    else {
+      try { void Promise.resolve(response.body?.cancel()).catch(() => {}); }
+      catch { /* An uncooperative stream must not hang the gate. */ }
+    }
     return report(passed ? 'PRIVATE_NEGATIVE_CONVERSATION_VERIFIED' :
       'BLOCKED_PRIVATE_NEGATIVE_CONVERSATION', getRequests, apiRequests);
   } catch {
