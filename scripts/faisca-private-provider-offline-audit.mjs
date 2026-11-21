@@ -6,6 +6,7 @@ import { inspectFaiscaOfflineOperatorAggregate } from '../ops/faisca/openai/priv
 import { createFaiscaIsolatedGitInvocation } from '../ops/faisca/openai/private-operator-git-isolation.mjs';
 import { hasFaiscaSafeTrackedIndex } from '../ops/faisca/openai/private-operator-git-index-proof.mjs';
 import { hasFaiscaStableOperatorCheckout } from '../ops/faisca/openai/private-operator-checkout-recheck.mjs';
+import { inspectFaiscaOperatorWitnessInputs } from '../ops/faisca/openai/private-operator-review-witness-inputs.mjs';
 
 const exec = promisify(execFile);
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -45,7 +46,14 @@ const acknowledged = expectedSha256 !== undefined && process.argv.length === 4 &
   process.env.FAISCA_PRIVATE_PROVIDER_AUDIT_ACK === 'YES_OFFLINE_NUMERIC_REVIEW_ONLY' &&
   !process.env.CI && !process.env.GITHUB_ACTIONS;
 
-if (!acknowledged) {
+// Optional R175 signed witness: all three independent inputs, or none.
+// Partial/expired/forged attestation fails before reading any evidence.
+// Unsigned numeric comparison remains UNATTESTED and always pending review.
+const witnessGate = inspectFaiscaOperatorWitnessInputs({
+  env: process.env, sha, outcome, expectedSha256
+});
+
+if (!acknowledged || !witnessGate.allowed) {
   console.error('R167 BLOCKED: private operator, independent SHA and acknowledgment required.');
   process.exitCode = 2;
 } else {
@@ -70,10 +78,13 @@ if (!acknowledged) {
         console.error('R167 BLOCKED: independently reviewed, clean checkout required.');
         process.exitCode = 2;
       } else {
-        // Only a fixed-schema result; never echo source JSON, paths or errors.
-        console.log(JSON.stringify(report));
-        // A matching count always requires independent human review.
-        // Exit 2 on pending review, 1 on discrepancy: NEVER public GO.
+        // R176: signed HUMAN numeric review is not provider attestation.
+        // Only fixed-schema numeric booleans, never witness JSON, PEM, nonce,
+        // directories, upstream responses, Git output, or error causes.
+        console.log(JSON.stringify({
+          ...report, independentReviewWitnessVerified: witnessGate.verified
+        }));
+        // Matching counts, even signed by a reviewer, remain NO-GO.
         process.exitCode = report.status === 'COUNTS_MATCH_PENDING_INDEPENDENT_REVIEW' ? 2 : 1;
       }
     }
