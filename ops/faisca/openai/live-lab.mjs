@@ -249,6 +249,15 @@ export function createFaiscaOpenAILiveLab({
         }
       }), controller.signal);
       const completed = await receiveBoundedResponse(response, controller.signal, model);
+      // R204: usage returned by the provider must fit the conservative tokens
+      // reserved BEFORE dispatch. A malformed/over-limit response cannot be
+      // treated as a safe completion or release the durable dispatch marker.
+      // Do not auto-adjust, refund, retry or infer reconciliation from a
+      // provider-supplied usage field: require independent operator review.
+      if (completed.usage.inputTokens > estimateInputTokens ||
+          completed.usage.outputTokens > maxOutputTokens) {
+        throw new Error('Private provider usage exceeds the reserved envelope.');
+      }
       // Direct operator CLI tests release after a validated upstream reply.
       // HTTP turns keep the durable marker through the response 'finish' event
       // to close the R196 response-to-browser handoff window between workers.
