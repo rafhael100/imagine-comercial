@@ -7,6 +7,7 @@ import { createFaiscaIsolatedGitInvocation } from '../ops/faisca/openai/private-
 import { hasFaiscaSafeTrackedIndex } from '../ops/faisca/openai/private-operator-git-index-proof.mjs';
 import { hasFaiscaStableOperatorCheckout } from '../ops/faisca/openai/private-operator-checkout-recheck.mjs';
 import { inspectFaiscaOperatorWitnessInputs } from '../ops/faisca/openai/private-operator-review-witness-inputs.mjs';
+import { consumeFaiscaIndependentWitnessNonce } from '../ops/faisca/openai/private-independent-review-nonce-ledger.mjs';
 
 const exec = promisify(execFile);
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -53,7 +54,16 @@ const witnessGate = inspectFaiscaOperatorWitnessInputs({
   env: process.env, sha, outcome, expectedSha256
 });
 
-if (!acknowledged || !witnessGate.allowed) {
+// A signed witness now REQUIRES a separate, persistent 0700 operator-owned
+// nonce directory. A directory without a witness cannot silently downgrade to
+// an unsigned comparison. No directory is created by this CLI.
+const nonceDirectoryKey = 'FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_NONCE_DIRECTORY';
+const nonceDirectory = process.env[nonceDirectoryKey];
+const nonceGate = witnessGate.verified
+  ? typeof nonceDirectory === 'string' && nonceDirectory.length > 1
+  : !Object.hasOwn(process.env, nonceDirectoryKey);
+
+if (!acknowledged || !witnessGate.allowed || !nonceGate) {
   console.error('R167 BLOCKED: private operator, independent SHA and acknowledgment required.');
   process.exitCode = 2;
 } else {
@@ -77,14 +87,21 @@ if (!acknowledged || !witnessGate.allowed) {
       if (!hasFaiscaStableOperatorCheckout(beforeCheckout, afterCheckout, sha)) {
         console.error('R167 BLOCKED: independently reviewed, clean checkout required.');
         process.exitCode = 2;
+      } else if (witnessGate.verified && !(await consumeFaiscaIndependentWitnessNonce({
+        directory: nonceDirectory,
+        nonce: process.env.FAISCA_PRIVATE_PROVIDER_AUDIT_REVIEW_NONCE
+      }))) {
+        // R177: exactly one signed audit per nonce on this operator host.
+        // Race, replay, unsafe registry, or persistence error => no report.
+        console.error('R177 BLOCKED: review nonce unavailable or already consumed.');
+        process.exitCode = 2;
       } else {
-        // R176: signed HUMAN numeric review is not provider attestation.
-        // Only fixed-schema numeric booleans, never witness JSON, PEM, nonce,
-        // directories, upstream responses, Git output, or error causes.
+        // R176-R177: no witness, nonce, directory, prompt, API credential or
+        // private source material is included in the fixed-schema report.
         console.log(JSON.stringify({
           ...report, independentReviewWitnessVerified: witnessGate.verified
         }));
-        // Matching counts, even signed by a reviewer, remain NO-GO.
+        // A signed human review still cannot authorize a public operation.
         process.exitCode = report.status === 'COUNTS_MATCH_PENDING_INDEPENDENT_REVIEW' ? 2 : 1;
       }
     }
