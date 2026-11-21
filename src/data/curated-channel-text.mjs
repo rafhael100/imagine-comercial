@@ -4,7 +4,7 @@
  * policy. No free text, personal data, input forms or network traffic.
  */
 import {services} from './services.mjs';
-import {contactObjectives} from './contact-objectives.mjs';
+import {contactObjectives,composeCuratedContactLinks} from './contact-objectives.mjs';
 import {briefingStages,briefingPriorities,composeCuratedBriefingLinks} from './briefing-curado.mjs';
 import {comparisonOptions} from './service-comparison.mjs';
 import {composeReviewedComparisonContact} from './comparison-contact.mjs';
@@ -54,6 +54,10 @@ for(const localeMessages of Object.values(REVIEWED_QUOTE_MESSAGES))
 
 // F361: one static guide-provenance message, never a query or visitor value.
 messages.add(reviewedFortalezaGuideContact.message);
+subjectBodyPairs.add(
+  composeCuratedContactLinks(reviewedFortalezaGuideContact.serviceSlug).subject+
+  '\0'+reviewedFortalezaGuideContact.message
+);
 
 if(combinations!==640||messages.size<35||subjects.size<7)
   throw Error('F159: invalid public curated contact catalog');

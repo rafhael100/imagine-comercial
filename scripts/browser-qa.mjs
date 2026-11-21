@@ -867,6 +867,12 @@ try {
     assert.equal(await originCta.getAttribute('target'),'_blank');
     assert.equal(await originCta.getAttribute('rel'),'noopener noreferrer');
     assert.equal(await originCta.getAttribute('aria-describedby'),'guide-channel-notice');
+    const emailProposal=page.locator('a[data-guide-origin-email]');
+    assert.equal(await emailProposal.count(),1,'F362 email fallback on one guide');
+    assert.equal(await emailProposal.getAttribute('href'),
+      contactEmailUrl(composeCuratedContactLinks(reviewedFortalezaGuideContact.serviceSlug).subject,
+        reviewedFortalezaGuideContact.message));
+    assert.equal(await emailProposal.getAttribute('aria-describedby'),'guide-channel-notice');
     assert.equal(await page.locator('#guide-channel-notice').isVisible(),true);
     assert.equal(await page.locator('a[href="/servicos/criacao-de-sites/"]').count()>0,true,
       'F361 existing service/guide internal link retained');
@@ -875,6 +881,8 @@ try {
     await page.goto(host+'/conteudos/landing-page-ou-site/',{waitUntil:'load',timeout});
     assert.equal(await page.locator('[data-guide-origin-proposal]').count(),0,
       'F361 no source message on unrelated guides');
+    assert.equal(await page.locator('[data-guide-origin-email]').count(),0,
+      'F362 no source-specific email on unrelated guides');
 
 
     // F65: public FAQs require no client-side scripts or personal data.

@@ -61,6 +61,10 @@ for(const options of Object.values(REVIEWED_QUOTE_MESSAGES))
 
 // F361: only the one guide-specific, preapproved WhatsApp deep link.
 whatsappLinks.add(contactWhatsAppUrl(reviewedFortalezaGuideContact.message));
+mailLinks.add(contactEmailUrl(
+  composeCuratedContactLinks(reviewedFortalezaGuideContact.serviceSlug).subject,
+  reviewedFortalezaGuideContact.message
+));
 
 export function isApprovedPublicExternalHref(href){
   if(typeof href!=='string'||href.length>1024||
