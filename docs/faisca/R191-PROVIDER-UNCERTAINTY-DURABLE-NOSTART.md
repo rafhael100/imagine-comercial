@@ -3,7 +3,7 @@
 ## Lacuna e correção
 R187 impede repetição de despachos Luna/Terra na mesma instância após falha da API. R188/R190 bloqueiam reservas com confirmação ambígua. Porém, um **erro no provedor após uma reserva bem-sucedida** podia perder o bloqueio de R187 ao reiniciar o processo, mesmo com saldo restante no ledger.
 
-R191 acrescenta ao ledger de laboratório um marcador persistente `.faisca-provider-outcome-uncertain` no diretório 0700. Ele é criado com O_EXCL/O_NOFOLLOW, modo 0600 e fsync no arquivo e no diretório. A presença do marcador impede `ready()`, `inspectReadOnly()` e `reserve()`, inclusive em novas instâncias/processos. Não há remoção ou recuperação automática. O adaptador chama `markOutcomeUncertain()` somente após falha/timeout/resposta inválida de uma requisição já reservada e despachada; erros não revelam perguntas, chave ou detalhes do armazenamento.
+R191 acrescenta ao ledger de laboratório um marcador persistente `.faisca-provider-outcome-uncertain` no diretório 0700. Ele é criado com O_EXCL/O_NOFOLLOW, modo 0600 e fsync no arquivo e no diretório. A presença do marcador impede `ready()` e `reserve()`, inclusive em novas instâncias/processos. **`inspectReadOnly()` permanece disponível** para reconciliação numérica local, sem novas reservas e sem comprovação de faturamento. Não há remoção ou recuperação automática. O adaptador chama `markOutcomeUncertain()` somente após falha/timeout/resposta inválida de uma requisição já reservada e despachada; erros não revelam perguntas, chave ou detalhes do armazenamento.
 
 ## Prova executável
 `node --test tests/faisca-r191-durable-provider-uncertainty.test.mjs`
