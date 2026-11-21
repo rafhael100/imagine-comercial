@@ -272,7 +272,8 @@ export function createFaiscaLocalReservationLedger({
       // The underlying O_EXCL reservation is shared by ALL local processes.
       // Never recover or delete another process's marker automatically.
       file = await open(providerDispatchPath, OPEN_LOCK, 0o600);
-      ownedDispatch = true;
+      // Do not claim ownership until BOTH file and directory are fsynced.
+      // An I/O failure must leave the marker present but never permit reuse.
       await file.writeFile(PROVIDER_DISPATCH_DATA);
       await file.sync();
     } catch {
@@ -287,6 +288,7 @@ export function createFaiscaLocalReservationLedger({
       // Never unlink on uncertainty or failed fsync; fail closed.
       throw new Error('Private provider dispatch unavailable.');
     }
+    ownedDispatch = true;
     return true;
   }
 
