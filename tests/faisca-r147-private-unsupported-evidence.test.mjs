@@ -16,7 +16,11 @@ const fabricated = [
   'A taxa de conversão é de 45% nas landing pages.',
   'O ROI alcançará 20% quando lançar os anúncios.',
   'Seu site ficará no topo do Google.',
-  'Sua landing page chegará à primeira posição.'
+  'Sua landing page chegará à primeira posição.',
+  'Estudo do Google afirma que toda campanha funciona.',
+  'Relatório da Meta diz que banners dobram vendas.',
+  'O Sebrae afirmou que qualquer anúncio gera resultado.',
+  'Levantamento do IBGE mostra que toda campanha converte.'
 ];
 const neutral = 'Uma landing page pode organizar informações gerais de um evento fictício.';
 
@@ -53,7 +57,7 @@ function fakeModel(reply) {
 }
 
 test('R147 direct Luna/Terra adapter refuses invented external evidence and retains spent reservations', async () => {
-  for (const claim of [fabricated[0], fabricated[3], fabricated[5]]) {
+  for (const claim of [fabricated[0], fabricated[3], fabricated[5], fabricated[7]]) {
     const trial = fakeModel(claim);
     await assert.rejects(trial.lab.answer('compare'), /editorial safety checks/);
     assert.equal(trial.calls(), 2);
