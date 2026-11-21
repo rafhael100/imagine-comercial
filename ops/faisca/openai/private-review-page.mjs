@@ -158,8 +158,11 @@ const privateBrowserUnsupportedProjection = /\b(?:vai|vamos|ira|irao|iremos|cons
 // R147: browser independence from HTTP 200. A forged model output cannot
 // cite major platforms as evidence, assert a conversion benchmark, or claim
 // an individual visitor's search position without reviewed facts.
+// R156: mirror independently the new unreviewed study/report and alleged
+// platform-attestation variants. The HTTP endpoint cannot authorize the
+// browser to present invented research merely by returning HTTP 200.
 const privateBrowserUnsupportedAuthority =
-  /\b(?:segundo|conforme|de\s+acordo\s+com|dados\s+(?:do|da|de)|pesquisa\s+(?:do|da|de))\s+(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\b/u;
+  /\b(?:segundo|conforme|de\s+acordo\s+com|dados\s+(?:do|da|de)|(?:pesquisa|estudo|relatorio|levantamento)\s+(?:do|da|de))\s+(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\b|\b(?:o\s+|a\s+)?(?:google|meta|sebrae|ibge|openai)\s+(?:afirma|afirmou|confirma|confirmou|comprova|comprovou|recomenda|recomendou)\b/u;
 const privateBrowserUnsupportedKpi =
   /\b(?:taxa\s+de\s+(?:conversao|cliques?|abertura)|roi|ctr|crescimento|engajamento)\b.{0,45}\d{1,3}(?:[.,]\d{1,2})?\s*%/u;
 const privateBrowserUnsupportedRank =
