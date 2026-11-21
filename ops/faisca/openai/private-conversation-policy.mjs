@@ -76,6 +76,15 @@ const unsupportedUnverifiedKpi =
 const unsupportedSearchPlacement =
   /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|loja)\b.{0,65}\b(?:topo\s+do\s+google|primeir[oa]\s+(?:posicao|pagina|lugar)|top\s*[1-9]\d?)\b/u;
 
+// R201: free-form private model replies have no verifiable analytics or
+// research corpus. Even plausible unsourced percentages, absolute performance
+// counts and unnamed "studies show" statements must not be presented as facts.
+// The fixed editorial recipes do NOT depend on this generated-prose shortcut.
+const unsupportedUnattributedStatistics =
+  /\b\d{1,3}(?:[.,]\d{1,2})?\s*(?:%|por\s+cento\b)|\b\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?|inscricoes?|visitas?|acessos?)\b/u;
+const unsupportedUnnamedResearch =
+  /\b(?:pesquisas?|estudos?|relatorios?|levantamentos?|estatisticas?|especialistas?)\s+(?:(?:recentes?|independentes?)\s+)?(?:mostram?|indicam?|revelam?|apontam?|comprovam?|confirmam?)\b|\b(?:segundo|conforme|de\s+acordo\s+com)\s+(?:pesquisas?|estudos?|especialistas?|relatorios?|levantamentos?)\b/u;
+
 export function hasPrivateUnsupportedOutcomeGuarantee(text) {
   if (typeof text !== 'string') return true;
   const normalized = normalize(text);
@@ -83,7 +92,9 @@ export function hasPrivateUnsupportedOutcomeGuarantee(text) {
     unsupportedQuantifiedOutcome.test(normalized) ||
     unsupportedExternalAttribution.test(normalized) ||
     unsupportedUnverifiedKpi.test(normalized) ||
-    unsupportedSearchPlacement.test(normalized);
+    unsupportedSearchPlacement.test(normalized) ||
+    unsupportedUnattributedStatistics.test(normalized) ||
+    unsupportedUnnamedResearch.test(normalized);
 }
 
 export function hasPrivateOperationalClaim(text) {
