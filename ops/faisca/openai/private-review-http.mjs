@@ -5,7 +5,7 @@ import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_MODELS, FAISCA_OPENAI_TEST
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
 import { getGroundingSources } from '../grounding/catalog.mjs';
-import { privateConversationRoute, safePrivateGeneralReply, hasPrivateOperationalClaim, hasPrivateUnsupportedOutcomeGuarantee, PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from './private-conversation-policy.mjs';
+import { privateConversationRoute, safePrivateGeneralReply, hasPrivateNonLatinOutputRisk, hasPrivateOperationalClaim, hasPrivateUnsupportedOutcomeGuarantee, PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from './private-conversation-policy.mjs';
 import { readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
@@ -134,6 +134,7 @@ function safeReviewOutput(response, caseId) {
          // including U+034F (combining grapheme joiner) missed by Cc/Cf checks.
          /\p{Default_Ignorable_Code_Point}/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
+        hasPrivateNonLatinOutputRisk(answer) ||
         // Fixed-case replies also lack any authority to publish a site or
         // activate campaigns. R106 guarded free text; apply the same host
         // semantic tripwires to R72/R79 fixed drafts and injected adapters.
@@ -207,6 +208,7 @@ function safeConversationOutput(response, input) {
          // including U+034F (combining grapheme joiner) missed by Cc/Cf checks.
          /\p{Default_Ignorable_Code_Point}/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
+        hasPrivateNonLatinOutputRisk(answer) ||
         hasPrivateUnreviewedPriceClaim(answer) ||
          hasPrivateUnsupportedOutcomeGuarantee(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
