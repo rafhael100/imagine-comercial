@@ -23,7 +23,7 @@ const forbidden = [
   // lookalike Cyrillic/Greek/mixed-script letters (e.g. i/і, a/а, o/ο).
   // Deny only: never transliterate and forward attacker-authored text.
   // Symbols and digits remain subject to existing identifier/privacy checks.
-  /(?!(?:\\p{Script=Latin}))\\p{L}/u,
+  /(?!\p{Script=Latin})\p{L}/u,
   /\p{Default_Ignorable_Code_Point}/u,
   /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f]/u
 ];
