@@ -230,13 +230,23 @@ function privateBrowserReplyEgressSafe(value) {
 const privateBrowserGeneralMoney = /r\$|[$€£]|\b(?:precos?|valores?|cust[ao]s?|cobra[mn]?|cobram|cobranca|orcamentos?|cotacao|investimento|descontos?|pagamentos?|parcelas?|mensalidades?|reais|brl|usd|pagar|comercializa|gratuit[oa]s?|bonificacoes?)\b/u;
 const privateBrowserGeneralCompany = /\b(?:imagine|faisca|nosso|nossa|oferecemos|entregamos|garantimos|aprovamos|enviamos|cobramos)\b/u;
 const privateBrowserReportedExecution = /\b(?:publiquei|publicamos|configurei|configuramos|ativei|ativamos|enviei|enviamos|agendei|agendamos|cadastrei|cadastramos|integrei|integramos|instalei|instalamos|criei|criamos|aprovei|aprovamos|contratei|contratamos|finalizei|finalizamos|liberei|liberamos|lancei|lancamos|coloquei|colocamos|subi|subimos|hospedei|hospedamos|disponibilizei|disponibilizamos)\b/u;
+// R205: an independent browser-only denial for forged HTTP 200 general prose.
+const privateBrowserFreeStatistics =
+  /\b\d{1,3}(?:[.,]\d{1,2})?\s*(?:%|por\s+cento)|\b\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?|inscricoes?|visitas?|acessos?)\b|\b(?:pesquisas?|estudos?|relatorios?|levantamentos?|estatisticas?|especialistas?)\s+(?:(?:recentes?|independentes?)\s+)?(?:mostram?|indicam?|revelam?|apontam?|comprovam?|confirmam?)\b/u;
+const privateBrowserWordStatistics =
+  /\b(?:um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento)(?:\s+(?:e\s+)?\w+){0,4}\s+(?:por\s+cento|(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|inscricoes?|visitas?|acessos?))\b|\b(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\s+(?:em|de)\s+cada\s+(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\b/u;
+const privateBrowserFutureOperation =
+  /\b(?:vou|vamos|irei|iremos)\s+(?:publicar|ativar|configurar|cadastrar|integrar|criar|aprovar|contratar|instalar|enviar|agendar|abrir\s+(?:um\s+)?(?:chamado|ticket)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))\b|\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|campanha|pedido)\b.{0,70}\b(?:sera|vai\s+ser)\s+(?:publicad[oa]|ativad[oa]|configurad[oa]|cadastrad[oa]|criad[oa])\b/u;
 function privateBrowserGeneralReplySafe(value) {
   if (typeof value !== 'string') return false;
   const normalized = value.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu, '').toLowerCase();
   return !privateBrowserGeneralMoney.test(normalized) &&
     !privateBrowserGeneralCompany.test(normalized) &&
-    !privateBrowserReportedExecution.test(normalized);
+    !privateBrowserReportedExecution.test(normalized) &&
+    !privateBrowserFreeStatistics.test(normalized) &&
+    !privateBrowserWordStatistics.test(normalized) &&
+    !privateBrowserFutureOperation.test(normalized);
 }
 let pending = false;
 let pageEpoch = 0;
