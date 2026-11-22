@@ -15,7 +15,7 @@ const questions = Object.freeze([
   'Atendimento funciona durante a madrugada?',
   'O plantão atende durante a noite?'
 ]);
-const generalQuestion = 'Como organizar a comunicação de uma landing page fictícia?';
+const generalQuestion = 'Vale a pena usar uma landing page para divulgar um evento?';
 const synthetic = question => ({ scope: 'local_operator_lab',
   attestedSynthetic: true, question });
 
