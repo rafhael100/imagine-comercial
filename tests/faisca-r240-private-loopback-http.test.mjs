@@ -25,7 +25,8 @@ async function serverFor(t,change=()=>{}) {
     const headers=fixtureHeaders(frame);
     const status=change(headers,req)??401;
     res.writeHead(status,headers);
-    res.end('SYNTHETIC-UNAUTHENTICATED-ONLY');
+    // Use non-opaque fixture prose; the R249 body gate rejects long encoded-like runs.
+    res.end('SYNTHETIC 401');
   });
   await new Promise((resolve,reject)=>{
     server.once('error',reject);
