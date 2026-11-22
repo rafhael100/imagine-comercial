@@ -74,7 +74,10 @@ test('R38 detects extra files, missing private route, and a symlinked source', a
   await assert.rejects(verifyPrivateStagingKit({kitDir:dir}), /content differs/);
   await rm(join(dir,'site/random.txt'));
   await rm(join(dir,'site/__faisca_preview/support/index.html'));
-  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}), /content differs/);
+  // R233 now rejects the orphaned empty support directory before comparing
+  // the old manifest; either mechanism is a safe rejection of the missing page.
+  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}),
+    /content differs|R233: private kit contains an unlisted empty directory/);
   const link = dir + '-symlink';
   t.after(() => rm(link,{force:true}));
   await symlink(dir, link, 'dir');
@@ -331,4 +334,38 @@ test('R232 refuses excessive nesting even with no additional asset bytes', async
   }
   await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
     /R232: unsafe or excessive private kit directory/);
+});
+
+test('R233 rejects empty site subdirectories omitted from the manifest', async t => {
+  for (const path of [
+    'site/unreviewed-empty',
+    'site/__faisca_preview/support/empty-descendant'
+  ]) {
+    const { dir } = await fixture(t);
+    // Both paths are syntactically allowed and have zero new file bytes.
+    // R232 directory caps alone permitted them with a valid old manifest.
+    await mkdir(join(dir, path), { recursive: true });
+    await assert.rejects(
+      verifyPrivateStagingKit({ kitDir: dir }),
+      /R233: private kit contains an unlisted empty directory/
+    );
+    await assert.rejects(
+      snapshotPrivateStagingFiles({ kitDir: dir }),
+      /R233: private kit contains an unlisted empty directory/
+    );
+  }
+});
+
+test('R233 rejects a nested empty chain even when the original manifest is unchanged', async t => {
+  const { dir } = await fixture(t);
+  await mkdir(join(dir, 'site', 'nested', 'deep', 'empty'), { recursive: true });
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
+    /R233: private kit contains an unlisted empty directory/);
+});
+
+test('R233 preserves the valid R38 review kit without additional empty directories', async t => {
+  const { dir } = await fixture(t);
+  const result = await verifyPrivateStagingKit({ kitDir: dir });
+  assert.equal(result.deployPerformed, false);
+  assert.equal(result.operationalEffects, false);
 });
