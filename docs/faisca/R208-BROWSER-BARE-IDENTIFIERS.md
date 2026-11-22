@@ -6,6 +6,8 @@
 
 A verificação HTTP e o adaptador privado já recusam domínios, endereços IP, contatos numéricos e alguns formatos de segredo, mas o navegador R206 validava apenas palavras como CPF, token e email, o caractere `@` e letras não latinas. Um HTTP 200 local forjado com proveniência Luna/Terra sintaticamente correta poderia exibir um domínio puro ou número de telefone fictício. O navegador é um limite de defesa independente, não substitui os controles autoritativos.
 
+**Coordenação:** existe também a R207 #685, criada em paralelo sobre a mesma R206, com proteção distinta de metadados HTTP. A presente R208 é um PR paralelo, não herda automaticamente o código da R207. Antes de compor ambas, é necessária revisão seletiva, CI independente da composição e resolução das falhas atualmente observadas na R207; não realizar merge automático.
+
 ## Alteração
 
 - Verificador `privateBrowserPiiRisk` recusa hostnames ASCII/IDN, URLs, IP abreviado, sequências longas de dígitos e formas conhecidas de chave de API/GitHub, com normalização Unicode apenas para detecção; continua sem armazenar, registrar ou transmitir o conteúdo.
