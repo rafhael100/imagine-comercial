@@ -69,6 +69,55 @@ try {
       assert.equal(await page.locator('#review-attestation').isChecked(), false);
     }
   });
+  await step('R207 Chromium pins private JSON media type and response endpoint before display', async () => {
+    // Only synthetic HTTP interception: never invoke OpenAI or a real client.
+    const cases = [
+      { mime: 'text/html; charset=utf-8', allowed: false },
+      { mime: 'text/plain', allowed: false },
+      { mime: 'application/json; charset=iso-8859-1', allowed: false },
+      { mime: 'application/json', allowed: true },
+      { mime: 'application/json; charset=utf-8', allowed: true }
+    ];
+    const endpoint = '**/__faisca_openai_private/converse';
+    const safeReply = 'Uma landing page pode organizar detalhes de um evento de demonstração.';
+    let index = 0;
+    await page.route(endpoint, async route => {
+      const item = cases[index++];
+      assert.ok(item, 'A resposta não deve disparar uma repetição da requisição');
+      await route.fulfill({
+        status: 200, headers: { 'Content-Type': item.mime },
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-conversation-response.v1',
+          status: 'general_answer', answer: safeReply, sources: [],
+          models: ['gpt-6-luna', 'gpt-6.1-terra'],
+          sourceRecipeBound: false, requiresEditorialReview: true,
+          publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      for (const item of cases) {
+        await page.locator('#review-token').fill(token);
+        await page.locator('#review-question')
+          .fill('Vale a pena usar uma landing page para divulgar um evento?');
+        await page.locator('#review-attestation').check();
+        await page.locator('#review-send').click();
+        await page.waitForFunction(allowed => {
+          const value = document.querySelector('#review-status')?.textContent ?? '';
+          return allowed ? value.includes('Resposta gerada.') : value.includes('não concluiu.');
+        }, item.allowed);
+        assert.equal(await page.locator('#review-answer').innerText(),
+          item.allowed ? safeReply : 'Resposta indisponível neste teste.');
+        assert.equal(await page.locator('#review-sources').innerText(), '');
+        assert.equal(await page.locator('#review-token').inputValue(), '');
+        assert.equal(await page.locator('#review-question').inputValue(), '');
+        assert.equal(await page.locator('#review-attestation').isChecked(), false);
+        assert.equal(await page.locator('#review-send').isEnabled(), true);
+        assert.equal(calls, 0, 'HTTP fixture never sends a request to a provider');
+      }
+      assert.equal(index, cases.length, 'No retries or duplicate paid dispatch');
+    } finally { await page.unroute(endpoint); }
+  });
   await step('R205 Chromium rejects forged ungrounded metrics, research and operational promises', async () => {
     const maliciousProse = [
       'Oitenta e três por cento dos visitantes preferem páginas curtas.',
