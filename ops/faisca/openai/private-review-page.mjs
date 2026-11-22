@@ -155,18 +155,13 @@ const privateBrowserUnsupportedKpi =
   /\b(?:taxa\s+de\s+(?:conversao|cliques?|abertura)|roi|ctr|crescimento|engajamento)\b.{0,45}\d{1,3}(?:[.,]\d{1,2})?\s*%/u;
 const privateBrowserUnsupportedRank =
   /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|loja)\b.{0,65}\b(?:topo\s+do\s+google|primeir[oa]\s+(?:posicao|pagina|lugar)|top\s*[1-9]\d?)\b/u;
-// Match envelopes rather than decoding potentially sensitive source text.
 const privateBrowserEncodedIdentifierRisk =
   /%(?:[0-9a-f]{2}|u[0-9a-f]{4})|&(?:#(?:x[0-9a-f]{1,7}|[0-9]{1,8})|(?:commat|period|colon|sol|bsol|num|percnt));|\\(?:x[0-9a-f]{2}|u(?:[0-9a-f]{4}|\{[0-9a-f]{1,6}\}))/u;
-// R153: independent browser denial of opaque base64-like blocks and
-// quoted-printable escapes before POST and before rendering HTTP 200.
 const privateBrowserOpaqueEncodingRisk =
   /(?:^|[^\\p{L}\\p{N}_])[a-z0-9+/_-]{28,}={0,2}(?![\\p{L}\\p{N}_])|=[0-9a-f]{2}/u;
 const privateBrowserSecretRisk = /(?:^|[^\p{L}\p{N}_])(?:sk-(?:proj-|svcacct-)?[a-z0-9_-]{16,}|github_pat_[a-z0-9_]{16,}|gh[pousr]_[a-z0-9_]{20,}|xox[baprs]-[a-z0-9-]{16,}|akia[a-z0-9]{16}|bearer\s+[a-z0-9._~+/-]{16,}|-----begin\s+(?:(?:rsa|ec|openssh)\s+)?private\s+key-----)/u;
 const privateBrowserBareHost = /(?:^|[^\p{L}\p{N}_@])(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+(?:\p{L}{2,24}|xn--[a-z0-9-]{2,59})(?![\p{L}\p{N}_-])/u;
 const privateBrowserIpv4 = /(?:^|[^\p{L}\p{N}.])(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?![\p{L}\p{N}])/u;
-// R150: independent browser-only guard for shortened/private IPv4 and numeric
-// octal/hexadecimal aliases that a URL parser maps to routable IP literals.
 const privateBrowserShortIpv4 = /(?:^|[^\p{L}\p{N}.])(?:0|10|127|169|172|192)\.(?:[0-9]{1,3}\.){0,2}[0-9]{1,3}(?![\p{L}\p{N}])/u;
 const privateBrowserHexIpv4 = /(?:^|[^\p{L}\p{N}_])0x[0-9a-f]{2,8}(?:\.(?:0x)?[0-9a-f]{1,8}){0,3}(?![\p{L}\p{N}_])/u;
 const privateBrowserOctalIpv4 = /(?:^|[^\p{L}\p{N}.])0[0-7]{2,3}(?:\.[0-7]{1,3}){1,3}(?![\p{L}\p{N}])/u;
@@ -182,10 +177,7 @@ function privateBrowserReplyEgressSafe(value) {
   const normalized = value.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu, '').replace(/[\u3002\u2024\u2027]/gu, '.').toLowerCase();
   return !(
-    // Prevent invisible format characters from concealing an unreviewed claim.
     /\p{Default_Ignorable_Code_Point}/u.test(value) ||
-    // R146: a synthetic HTTP 200 from a misconfigured adapter cannot display
-    // a fabricated non-BRL fee in the browser's independent final boundary.
     /\p{Sc}/u.test(normalized) ||
     /(?:\b(?:usd|brl|eur)\s*\p{Nd}{1,8}\b|\p{Nd}{1,8}(?:[.,]\p{Nd}{1,2})?\s*(?:reais|real|dolares?|euros?)\b)/u.test(normalized) ||
     /\b(?:preco|valor|custa|custara|cobram|cobramos|mensalidade|implantacao|orcamento|desconto|investimento)\b.{0,28}\p{Nd}{1,8}/u.test(normalized) ||
@@ -203,24 +195,25 @@ function privateBrowserReplyEgressSafe(value) {
     privateBrowserUnsupportedProjection.test(normalized)
   );
 }
-// Independent browser egress for Luna/Terra general replies: the private
-// HTTP server already forbids company offers, prices and first-person claims.
-// A misconfigured localhost adapter must not make an unchecked company
-// statement look like an approved model answer merely by supplying model IDs.
 const privateBrowserGeneralMoney = /r\$|[$€£]|\b(?:precos?|valores?|cust[ao]s?|cobra[mn]?|cobram|cobranca|orcamentos?|cotacao|investimento|descontos?|pagamentos?|parcelas?|mensalidades?|reais|brl|usd|pagar|comercializa|gratuit[oa]s?|bonificacoes?)\b/u;
 const privateBrowserGeneralCompany = /\b(?:imagine|faisca|nosso|nossa|oferecemos|entregamos|garantimos|aprovamos|enviamos|cobramos)\b/u;
 const privateBrowserReportedExecution = /\b(?:publiquei|publicamos|configurei|configuramos|ativei|ativamos|enviei|enviamos|agendei|agendamos|cadastrei|cadastramos|integrei|integramos|instalei|instalamos|criei|criamos|aprovei|aprovamos|contratei|contratamos|finalizei|finalizamos|liberei|liberamos|lancei|lancamos|coloquei|colocamos|subi|subimos|hospedei|hospedamos|disponibilizei|disponibilizamos)\b/u;
-// R205: an independent browser-only denial for forged HTTP 200 general prose.
 const privateBrowserFreeStatistics =
   /\b\d{1,3}(?:[.,]\d{1,2})?\s*(?:%|por\s+cento)|\b\d{1,6}\s+(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|conversoes?|inscricoes?|visitas?|acessos?)\b|\b(?:pesquisas?|estudos?|relatorios?|levantamentos?|estatisticas?|especialistas?)\s+(?:(?:recentes?|independentes?)\s+)?(?:mostram?|indicam?|revelam?|apontam?|comprovam?|confirmam?)\b/u;
 const privateBrowserWordStatistics =
   /\b(?:um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento)(?:\s+(?:e\s+)?\w+){0,4}\s+(?:por\s+cento|(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|inscricoes?|visitas?|acessos?))\b|\b(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\s+(?:em|de)\s+cada\s+(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\b/u;
 const privateBrowserFutureOperation =
   /\b(?:vou|vamos|irei|iremos)\s+(?:publicar|ativar|configurar|cadastrar|integrar|criar|aprovar|contratar|instalar|enviar|agendar|abrir\s+(?:um\s+)?(?:chamado|ticket)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))\b|\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|campanha|pedido)\b.{0,70}\b(?:sera|vai\s+ser)\s+(?:publicad[oa]|ativad[oa]|configurad[oa]|cadastrad[oa]|criad[oa])\b/u;
-const privateBrowserPiiRisk = text =>
-  /(?!\p{Script=Latin})\p{L}/u.test(text) ||
-  /@|\b(?:cpf|cnpj|rg|cep|telefone|celular|whatsapp|e-?mail|pix|senha|token|credencia(?:l|is)|otp|totp|2fa|passaporte|chave|cartao|conta\s+bancaria|endereco)\b/u.test(
-    text.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase());
+const privateBrowserPiiRisk = text => {
+  const clean = text.normalize('NFKC').normalize('NFKD')
+    .replace(/\p{M}/gu,'').replace(/[\u3002\u2024\u2027]/gu,'.').toLowerCase();
+  return /(?!\p{Script=Latin})\p{L}/u.test(text) ||
+    /@|\b(?:cpf|cnpj|rg|cep|telefone|celular|whatsapp|e-?mail|pix|senha|token|credencia(?:l|is)|otp|totp|2fa|passaporte|chave|cartao|conta\s+bancaria|endereco)\b/u.test(clean) ||
+    /(?:^|[^\p{L}\p{N}_@])(?:[\p{L}\p{N}][\p{L}\p{N}-]{0,61}\.)+(?:\p{L}{2,24}|xn--[a-z0-9-]{2,59})\b/u.test(clean) ||
+    /https?:\/\/|\bwww\.|\blocalhost\b|(?:\p{Nd}[\s\p{Zs}\p{Pd}().+/,]*){8,}/u.test(clean) ||
+    /(?:^|[^\p{L}\p{N}.])(?:\d{1,3}\.){1,3}\d{1,3}(?![\p{L}\p{N}])/u.test(clean) ||
+    /(?:^|[^\p{L}\p{N}_])(?:sk-(?:proj-|svcacct-)?[a-z0-9_-]{16,}|github_pat_[a-z0-9_]{16,})/u.test(clean);
+};
 function privateBrowserGeneralReplySafe(value) {
   if (typeof value !== 'string') return false;
   const normalized = value.normalize('NFKC').normalize('NFKD')
@@ -236,10 +229,6 @@ let pending = false;
 let pageEpoch = 0;
 let currentController = null;
 const MAX_PRIVATE_RESPONSE_BYTES = 16384;
-// The AbortSignal is advisory to fetch implementations. An injected or
-// non-cooperative transport may never settle its Promise after abort; the
-// browser must still release the private operator UI at the 35s deadline.
-// The server has its own earlier deadline and fail-closed session breaker.
 async function fetchPrivateBeforeDeadline(url, options, signal) {
   if (signal.aborted) throw new Error('private_response_timeout');
   let onAbort;
@@ -253,9 +242,6 @@ async function fetchPrivateBeforeDeadline(url, options, signal) {
     signal.removeEventListener('abort', onAbort);
   }
 }
-// The browser's AbortSignal does not guarantee that a custom or broken
-// ReadableStream will ever resolve reader.read(). Bound each wait independently
-// so the operator can recover after the 35-second UI deadline.
 async function readAbortablePrivateChunk(reader, signal) {
   if (signal.aborted) throw new Error('private_response_timeout');
   let onAbort;
@@ -293,8 +279,6 @@ async function readBoundedPrivateJson(response, signal) {
     for (const chunk of chunks) { payload.set(chunk, offset); offset += chunk.byteLength; }
     return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(payload));
   } finally {
-    // cancel() may itself never settle. Do not trap the UI in cleanup after
-    // a deadline or malformed response. Ignore failures without leaking data.
     try { void Promise.resolve(reader.cancel()).catch(() => {}); }
     catch { /* cancellation is best effort */ }
   }
@@ -303,17 +287,12 @@ async function readBoundedPrivateJson(response, signal) {
 form?.addEventListener('submit', async event => {
   event.preventDefault();
   if (pending) return;
-  // An invalid second attempt must never leave a previous response and its
-  // editorial citations onscreen as if they belonged to the new question.
   answer.textContent = 'Nenhuma resposta validada para esta solicitação.';
   sources.textContent = '';
   const reviewToken = token.value.trim(), caseId = scenario.value;
   const typed = question?.value ?? '';
   const openQuestion = Boolean(conversation && (typed.trim() !== '' || attestation?.checked));
-  // Clear the DOM immediately; the operator must explicitly supply a new
-  // transient bearer for any further paid request. Never persist it.
   token.value = '';
-  // Only a validated fictional question or one of the three fixed case IDs
   // can leave this temporary browser session. Never persist the bearer.
   if (!/^[A-Za-z0-9_-]{32,128}$/.test(reviewToken) || !validCases.has(caseId)) {
     // Invalid bearer or scenario must not retain accidentally pasted input.
