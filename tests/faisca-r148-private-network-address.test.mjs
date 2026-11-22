@@ -135,7 +135,7 @@ async function browserReply({ question = safeQuestion, reply = neutral }) {
       assert.equal(path, '/__faisca_openai_private/converse');
       assert.equal(options.credentials, 'omit');
       assert.equal(options.cache, 'no-store');
-      return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
+      return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } }));
     }
   }, { filename: 'faisca-r148-browser.js', timeout: 1000 });
   await submit({ preventDefault() {} });
