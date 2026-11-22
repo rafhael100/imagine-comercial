@@ -240,16 +240,22 @@ try {
     await check('two browser sessions cannot claim each other or add authority and provider fields', async () => {
       const b = await open();
       await b.activate();
+      // Arm the response witness BEFORE submitting. The UI may render its
+      // answer before Playwright's passive JSON decoding resolves on loaded
+      // CI runners; a post-hoc poll of the passive array is not sufficient.
+      // The response must be a real successful session HTTP response.
+      const witness = b.page.waitForResponse(response =>
+        new URL(response.url()).pathname === endpoints.sessions &&
+        response.request().method() === 'POST' && response.ok(),
+      { timeout: 10000 }).then(response => response.json());
       await b.send('Quero organizar minhas vendas');
-      // The response handler decodes JSON asynchronously; the UI may render
-      // before its browser-level capture promise is registered on a busy CI
-      // runner. Wait for the one required session rather than weakening the
-      // assertion or assuming a missing session is valid.
-      await eventually(async () => {
-        await b.flush();
-        return b.sessions.length === 1;
-      }, 'second browser session response was not captured');
-      assert.equal(b.sessions.length, 1);
+      const session = await witness;
+      await b.flush();
+      if (!b.sessions.length) b.sessions.push(session);
+      assert.equal(b.sessions.length, 1,
+        'second browser session must have exactly one captured HTTP session');
+      assert.deepEqual(b.sessions[0], session,
+        'passive and pre-armed response witnesses must agree');
       assert.ok(a.sessions[0].conversationId !== b.sessions[0].conversationId, 'independent conversations');
       assert.ok(a.sessions[0].token !== b.sessions[0].token, 'independent session credentials');
       const before = server.inspect().dispatched;
