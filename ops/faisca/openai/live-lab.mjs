@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { isTrustedPrivateSyntheticQuestion, readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
+import { hasPrivateSyntheticInstructionOverrideRisk } from './private-synthetic-instruction-risk.mjs';
 import {
   privateConversationRoute, privateConversationEditorialReply, safePrivateGeneralReply,
   hasPrivateOperationalClaim, hasPrivateUnsupportedOutcomeGuarantee
@@ -353,7 +354,10 @@ export function createFaiscaOpenAILiveLab({
           // Never rely solely on the later HTTP/browser consumer to reject an
           // invented completed operation or a guaranteed marketing outcome.
           hasPrivateOperationalClaim(data.reply) ||
-          hasPrivateUnsupportedOutcomeGuarantee(data.reply)) {
+          hasPrivateUnsupportedOutcomeGuarantee(data.reply) ||
+          // R217: the DIRECT fixed-case adapter must also deny model-authored
+          // role overrides; HTTP/browser policies are defense in depth only.
+          hasPrivateSyntheticInstructionOverrideRisk(data.reply)) {
         throw new Error('OpenAI answer failed editorial safety checks.');
       }
       return Object.freeze({
