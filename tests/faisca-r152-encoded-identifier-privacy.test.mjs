@@ -133,7 +133,7 @@ async function browser(question, reply) {
         status: 'general_answer', answer: reply, sources: [],
         models: ['gpt-6-luna', 'gpt-6.1-terra'], sourceRecipeBound: false,
         requiresEditorialReview: true, publicReady: false, operationalEffects: false
-      }), { status: 200 }));
+      }), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } }));
     }
   }, { filename: 'faisca-r152-private-browser.js', timeout: 1000 });
   await submit({ preventDefault() {} });
