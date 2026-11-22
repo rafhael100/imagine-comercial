@@ -171,7 +171,7 @@ export function hasPrivateOperationalClaim(text) {
 // second person (rather than as "we provide"). Fail closed for this private
 // text-only lab; these are not official commercial policies.
 const unverifiedSupportSla =
-  /\b(?:voce|clientes?|usuarios?)\s+(?:tera|terao|recebera|receberao|podera|poderao)\s+(?:(?:acesso\s+ao|acesso\s+a|um|uma|o|a|nosso|nossa|ao|com)\s+){0,3}(?:suporte|atendimento|plantao|assistencia)\b|\b(?:voce|clientes?|usuarios?)\s+contara(?:o)?\s+com\s+(?:um\s+)?(?:suporte|atendimento|plantao|assistencia)\b|\b(?:equipe|empresa|suporte|atendimento|plantao|assistencia)\b.{0,50}\b(?:responde|respondera|retorna|retornara|em\s+ate|dentro\s+de)\s*(?:em\s+|ate\s+)?\d{1,3}\s*(?:minutos?|horas?|dias?)\b|\b(?:suporte|atendimento|plantao|assistencia)\b.{0,55}\b(?:24\s*(?:h|horas?)|7\s+dias|todos?\s+os?\s+dias|segunda\s+a\s+sexta|segunda\s+ao\s+domingo)\b/u;
+  /\b(?:voce|clientes?|usuarios?)\s+(?:tera|terao|recebera|receberao|podera|poderao)\s+(?:(?:acesso\s+ao|acesso\s+a|um|uma|o|a|nosso|nossa|ao|com)\s+){0,3}(?:suporte|atendimento|plantao|assistencia)\b|\b(?:voce|clientes?|usuarios?)\s+contara(?:o)?\s+com\s+(?:um\s+)?(?:suporte|atendimento|plantao|assistencia)\b|\b(?:equipe|empresa|suporte|atendimento|plantao|assistencia)\b.{0,50}\b(?:responde|respondera|retorna|retornara|em\s+ate|dentro\s+de)\s*(?:em\s+)?(?:ate\s+)?\d{1,3}\s*(?:minutos?|horas?|dias?)\b|\b(?:suporte|atendimento|plantao|assistencia)\b.{0,55}\b(?:24\s*(?:h|horas?)|7\s+dias|todos?\s+os?\s+dias|segunda\s+a\s+sexta|segunda\s+ao\s+domingo)\b/u;
 const implicitSupportSlaQuestion =
   /^(?:(?:em\s+)?quanto\s+tempo|qual(?:\s+e)?\s+(?:o\s+)?prazo|ate\s+quando|quando)\b.{0,75}\b(?:atendimento|suporte|plantao|assistencia|equipe)\b/u;
 
