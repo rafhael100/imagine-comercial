@@ -369,3 +369,50 @@ test('R233 preserves the valid R38 review kit without additional empty directori
   assert.equal(result.deployPerformed, false);
   assert.equal(result.operationalEffects, false);
 });
+
+async function rehashComposeFixture(dir, manifestFile, changed) {
+  const composeFile = join(dir, 'ops/staging/compose.yaml');
+  await writeFile(composeFile, changed);
+  const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
+  const entry = manifest.files.find(item => item.path === 'ops/staging/compose.yaml');
+  assert.ok(entry);
+  entry.bytes = Buffer.byteLength(changed, 'utf8');
+  entry.sha256 = createHash('sha256').update(changed).digest('hex');
+  manifest.totalBytes = manifest.files.reduce((sum, item) => sum + item.bytes, 0);
+  await writeFile(manifestFile, JSON.stringify(manifest));
+}
+
+test('R234 rejects an extra unaudited Nginx location even if hashes and required headers match', async t => {
+  const { dir, manifestFile } = await fixture(t);
+  const original = await readFile(join(dir, 'ops/staging/nginx.conf'), 'utf8');
+  const changed = original.replace('    location / {',
+    '    location = /unexpected { return 200; }\n    location / {');
+  assert.notEqual(changed, original);
+  await rehashNginxFixture(dir, manifestFile, changed);
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
+    /R234: private staging config differs from reviewed directives/);
+});
+
+test('R234 rejects rehashed Compose overrides exposing a public port and extra privileges', async t => {
+  for (const injected of [
+    '    privileged: true\n',
+    '    network_mode: host\n',
+    '    ports:\n      - "0.0.0.0:4337:8080"\n'
+  ]) {
+    const { dir, manifestFile } = await fixture(t);
+    const original = await readFile(join(dir, 'ops/staging/compose.yaml'), 'utf8');
+    const changed = original.replace('    read_only: true\n',
+      '    read_only: true\n' + injected);
+    assert.notEqual(changed, original);
+    await rehashComposeFixture(dir, manifestFile, changed);
+    await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
+      /R234: private staging config differs from reviewed directives/);
+  }
+});
+
+test('R234 keeps the reviewed Nginx and Compose effective lines accepted', async t => {
+  const { dir } = await fixture(t);
+  const report = await verifyPrivateStagingKit({ kitDir: dir });
+  assert.equal(report.deployPerformed, false);
+  assert.equal(report.operationalEffects, false);
+});

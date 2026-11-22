@@ -22,6 +22,76 @@ const CORE_FILES = Object.freeze([
   'LEIA-ME-FAISCA-R38.txt'
 ]);
 
+// R234: closed effective configurations for the private static-only perimeter.
+// Self-rehashed package manifests are not authorization to append Nginx
+// locations or Compose overrides. Review source changes before updating these.
+const REVIEWED_NGINX_ACTIVE = Object.freeze([
+  "map $request_uri $faisca_review_frame {",
+  "default DENY;",
+  "~^/__faisca_preview/(journey|support)/$ SAMEORIGIN;",
+  "}",
+  "map $request_uri $faisca_review_ancestors {",
+  "default \"'none'\";",
+  "~^/__faisca_preview/(journey|support)/$ \"'self'\";",
+  "}",
+  "server {",
+  "listen 8080 default_server;",
+  "server_name _;",
+  "root /usr/share/nginx/html;",
+  "index index.html;",
+  "server_tokens off;",
+  "include /etc/nginx/mime.types;",
+  "default_type application/octet-stream;",
+  "autoindex off;",
+  "access_log off;",
+  "auth_basic \"Imagine Faísca private review\";",
+  "auth_basic_user_file /etc/nginx/auth/.htpasswd;",
+  "add_header Cache-Control \"private, no-store, max-age=0\" always;",
+  "add_header X-Robots-Tag \"noindex, nofollow, noarchive\" always;",
+  "add_header X-Content-Type-Options \"nosniff\" always;",
+  "add_header Referrer-Policy \"no-referrer\" always;",
+  "add_header X-Frame-Options $faisca_review_frame always;",
+  "add_header Permissions-Policy \"camera=(), microphone=(), geolocation=()\" always;",
+  "add_header Content-Security-Policy \"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'self'; frame-ancestors $faisca_review_ancestors\" always;",
+  "error_page 404 /404.html;",
+  "location = /404.html { internal; }",
+  "location ~ (^|/)\\. { return 404; }",
+  "location ~ \\.(?:mjs|yaml|yml|map)$ { return 404; }",
+  "location / {",
+  "limit_except GET HEAD { deny all; }",
+  "try_files $uri $uri/ $uri/index.html =404;",
+  "}",
+  "}"
+]);
+const REVIEWED_COMPOSE_ACTIVE = Object.freeze([
+  "services:",
+  "faisca-review:",
+  "image: ${IMAGINE_FAISCA_NGINX_IMAGE:?Set an independently reviewed digest-pinned unprivileged Nginx image}",
+  "restart: \"no\"",
+  "ports:",
+  "- \"127.0.0.1:4337:8080\"",
+  "user: \"101:101\"",
+  "read_only: true",
+  "cap_drop:",
+  "- ALL",
+  "security_opt:",
+  "- no-new-privileges:true",
+  "pids_limit: 64",
+  "mem_limit: 256m",
+  "cpus: 0.5",
+  "volumes:",
+  "- ${IMAGINE_FAISCA_STAGING_SITE_DIR:?Set the reviewed absolute site directory}:/usr/share/nginx/html:ro",
+  "- ./nginx.conf:/etc/nginx/conf.d/default.conf:ro",
+  "- ${IMAGINE_FAISCA_STAGING_HTPASSWD_PATH:?Set a private bcrypt htpasswd file}:/etc/nginx/auth/.htpasswd:ro",
+  "tmpfs:",
+  "- /tmp:rw,noexec,nosuid,size=32m",
+  "- /var/run:rw,noexec,nosuid,size=4m",
+  "environment:",
+  "- TZ=UTC"
+]);
+const activeConfigLines = text => text.split(/\r?\n/)
+  .map(line => line.replace(/#.*$/, '').trim()).filter(Boolean);
+
 function isSafePath(path) {
   return typeof path === 'string' && path.length <= 300 &&
     /^(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+$/.test(path) &&
@@ -218,8 +288,7 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
   // known Nginx authentication bypasses even in an internally consistent kit.
   // This check complements, but NEVER replaces, independent source-SHA review
   // and an operator's nginx -T / HTTP 401 inspection before any staging use.
-  const activeLines = nginx.split(/\r?\n/).map(line =>
-    line.replace(/#.*$/, '').trim()).filter(Boolean);
+  const activeLines = activeConfigLines(nginx);
   const active = new Set(activeLines);
   const requiredActive = [
     'map $request_uri $faisca_review_frame {',
@@ -265,6 +334,13 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
       !home.includes('data-faisca-apply-choice') ||
       !home.includes('/__faisca_preview/quote-bridge.js')) {
     throw new Error('R38: review kit lost its private staging protections.');
+  }
+  // R234: exact ordered active configuration, not only key substrings.
+  // This rejects rehashed extra Nginx locations, duplicate Compose keys,
+  // public port overrides, privileges or writable mounts.
+  if (JSON.stringify(activeLines) !== JSON.stringify(REVIEWED_NGINX_ACTIVE) ||
+      JSON.stringify(activeConfigLines(compose)) !== JSON.stringify(REVIEWED_COMPOSE_ACTIVE)) {
+    throw new Error('R234: private staging config differs from reviewed directives.');
   }
   return Object.freeze({
     schema: STAGING_KIT_SCHEMA, filesChecked: actual.files.length,
