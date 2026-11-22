@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, stat, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
@@ -46,6 +46,29 @@ function lab(ledger, transport) {
     reservationLedger: ledger, fetchImpl: transport
   });
 }
+// R222: audit the durable store's *actual bytes*, not only the browser UI.
+// Synthetic identifiers must never be recorded in any ledger/witness/marker.
+async function assertNoPrivateTranscriptOnDisk(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  assert.ok(entries.length >= 2, 'Durable reservation and witness exist');
+  for (const entry of entries) {
+    assert.equal(entry.isFile(), true, 'No unexpected directory/link in private ledger');
+    const file = join(directory, entry.name);
+    const metadata = await stat(file);
+    assert.ok(metadata.size <= 1024, 'Ledger evidence remains strictly bounded');
+    assert.equal(metadata.nlink, 1, 'No hardlinked ledger evidence');
+    assert.equal(metadata.mode & 0o077, 0, 'Ledger evidence is owner-only');
+    const serialized = await readFile(file, 'utf8');
+    for (const privateValue of [token, key, question, answer,
+      'syntheticQuestion', 'approvedEditorialAnswer', 'output_text']) {
+      assert.equal(serialized.includes(privateValue), false,
+        'Ledger must never store bearer, provider key, prompt or reply');
+    }
+    assert.doesNotMatch(serialized, /(?:https?:\/\/|Bearer\s+|sk-[A-Za-z0-9_-]{12,}|[\w.+-]+@[\w.-]+\.[a-z]{2,})/iu,
+      'No URL, token or contact address may be persisted');
+  }
+}
+
 async function submit(browser, server, expected, expectedAnswer) {
   const context = await browser.newContext({ viewport: { width: 390, height: 850 } });
   const outbound = [];
@@ -130,6 +153,7 @@ try {
       'Refuse any model invocation after the first contradictory receipt');
       await server.close();
       server = null;
+      await assertNoPrivateTranscriptOnDisk(directory);
       assert.equal((await ledger().inspectReadOnly()).requests, models.length);
       if (invalid) {
         assert.equal(await readFile(join(directory, '.faisca-provider-outcome-uncertain'), 'utf8'),
@@ -145,6 +169,7 @@ try {
         await submit(browser, server, 'não concluiu.',
           'Resposta indisponível neste teste.');
         assert.equal(restartedCalls, 0, 'No provider call after restart');
+        await assertNoPrivateTranscriptOnDisk(directory);
         assert.equal((await ledger().inspectReadOnly()).requests, models.length,
           'Both durable reservations survive an invalid Terra receipt');
       } else {
@@ -158,7 +183,7 @@ try {
       await rm(root, { recursive: true, force: true });
     }
   }
-  console.log('R221 PRIVATE CHROMIUM + HTTP RECEIPTS (VALID, LUNA CACHE, TERRA REASONING) + RESTART NO-START VERIFIED; NO PUBLIC GO.');
+  console.log('R222 PRIVATE CHROMIUM + HTTP RECEIPTS + RESTART NO-START + ZERO PRIVATE TRANSCRIPT BYTES ON DISK VERIFIED; NO PUBLIC GO.');
 } finally {
   await browser.close();
 }
