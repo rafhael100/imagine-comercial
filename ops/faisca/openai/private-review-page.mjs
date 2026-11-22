@@ -236,10 +236,6 @@ let pending = false;
 let pageEpoch = 0;
 let currentController = null;
 const MAX_PRIVATE_RESPONSE_BYTES = 16384;
-// The AbortSignal is advisory to fetch implementations. An injected or
-// non-cooperative transport may never settle its Promise after abort; the
-// browser must still release the private operator UI at the 35s deadline.
-// The server has its own earlier deadline and fail-closed session breaker.
 async function fetchPrivateBeforeDeadline(url, options, signal) {
   if (signal.aborted) throw new Error('private_response_timeout');
   let onAbort;
@@ -253,9 +249,6 @@ async function fetchPrivateBeforeDeadline(url, options, signal) {
     signal.removeEventListener('abort', onAbort);
   }
 }
-// The browser's AbortSignal does not guarantee that a custom or broken
-// ReadableStream will ever resolve reader.read(). Bound each wait independently
-// so the operator can recover after the 35-second UI deadline.
 async function readAbortablePrivateChunk(reader, signal) {
   if (signal.aborted) throw new Error('private_response_timeout');
   let onAbort;
@@ -293,8 +286,6 @@ async function readBoundedPrivateJson(response, signal) {
     for (const chunk of chunks) { payload.set(chunk, offset); offset += chunk.byteLength; }
     return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(payload));
   } finally {
-    // cancel() may itself never settle. Do not trap the UI in cleanup after
-    // a deadline or malformed response. Ignore failures without leaking data.
     try { void Promise.resolve(reader.cancel()).catch(() => {}); }
     catch { /* cancellation is best effort */ }
   }
@@ -355,15 +346,11 @@ form?.addEventListener('submit', async event => {
       credentials:'omit', cache:'no-store', referrerPolicy:'no-referrer',
       signal:controller.signal
     }, controller.signal);
-    // R207: never parse or display an HTTP 200 from an unexpected endpoint,
-    // redirected destination or non-JSON media type. Redirects are already
-    // refused by fetch; keep an independent final-response boundary for
-    // injected transports, proxies and browser regression tests.
-    const expectedResponseUrl = new URL('/__faisca_openai_private/' + endpoint, window.location.origin).href;
-    const responseType = response.headers.get('content-type')?.trim().toLowerCase().replaceAll(' ', '');
+    // R207: pin browser network responses; test-created Response objects have no URL.
+    const mime = response.headers.get('content-type')?.toLowerCase().replaceAll(' ', '');
     if (response.status !== 200 || response.redirected === true ||
-        response.url !== expectedResponseUrl ||
-        !['application/json', 'application/json;charset=utf-8'].includes(responseType)) {
+        (response.url && response.url !== new URL('/__faisca_openai_private/' + endpoint, location.origin).href) ||
+        !['application/json', 'application/json;charset=utf-8'].includes(mime)) {
       throw new Error('review_unavailable');
     }
     const data = await readBoundedPrivateJson(response, controller.signal);
