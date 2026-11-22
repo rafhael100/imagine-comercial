@@ -26,7 +26,7 @@ const unverifiedFirstPartyAvailability = /\b(?:atendo|atendemos|atenderei|atende
 // turn generic "como melhorar atendimento" education into company facts.
 const serviceHoursQuestion = /^(?:qual(?:\s+e)?|quais|que|quando|ate\s+que\s+horas|em\s+que\s+horarios?|tem|ha|existe|consigo|posso|sera\s+que|o|a|os|as)\b/;
 const serviceHoursSubject = /\b(?:atendimento|suporte|plantao|assistencia)\b/;
-const serviceHoursMarker = /\b(?:horarios?|disponibilidade|disponiveis?|funciona|atende|abert[oa]s?|online|agora|hoje|amanha|sabados?|domingos?|feriados?|madrugada|noite|finais?\s+de\s+semana|24\s*horas?|encerramento|comeca|termina)\b/;
+const serviceHoursMarker = /\b(?:horarios?|disponibilidade|disponivel|disponiveis?|funciona|atende|abert[oa]s?|online|agora|hoje|amanha|sabados?|domingos?|feriados?|madrugada|noite|finais?\s+de\s+semana|24\s*horas?|encerramento|comeca|termina)\b/;
 // A third-person answer ("o suporte está disponível") is still an
 // unauthorized assertion about the operator, not neutral marketing guidance.
 const unverifiedServiceAvailability = /\b(?:atendimento|suporte|plantao|assistencia)\s+(?:(?:(?:da|do|de)\s+(?:equipe|empresa|agencia|imagine|faisca))\s+)?(?:esta|fica|segue|permanece|estara|ficara)\s+(?:disponivel|abert[oa]s?|online|operacional)\b|\b(?:atendimento|suporte|plantao|assistencia)\s+(?:(?:(?:da|do|de)\s+(?:equipe|empresa|agencia|imagine|faisca))\s+)?(?:funciona|atende|opera|funcionara|atendera)\s+(?:aos?|nos?|em|durante|todos?|24\s*horas?|hoje|amanha|sabados?|domingos?|feriados?)\b|\b(?:temos|oferecemos|prestamos|disponibilizamos)\s+(?:(?:um|uma)\s+)?(?:atendimento|suporte|plantao|assistencia)\b|\b(?:equipe|agencia|empresa)\s+(?:atende|funciona|esta\s+disponivel)\b/;
