@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { reviewRunningFaiscaPrivateContainer as review }
   from '../ops/faisca/staging/review-running-container.mjs';
 
-const root = fileURLToPath(new URL('../', import.meta.url));
+const root = resolve(fileURLToPath(new URL('../', import.meta.url)));
 const site = '/tmp/faisca-r236-fixture-private-site';
 const auth = '/tmp/faisca-r236-fixture-private-bcrypt';
 const conf = resolve(root, 'ops/faisca/staging/nginx.conf');
