@@ -15,19 +15,41 @@ const plainObject = value => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 const validCount = count => Number.isSafeInteger(count) && count >= 0 && count <= 2;
 
-function validAggregateEvidence(value) {
-  return plainObject(value) && Object.keys(value).sort().join(',') === EVIDENCE_KEYS &&
-    value.schema === EVIDENCE_SCHEMA &&
-    value.scope === 'isolated_private_review_only' &&
-    value.publicReady === false && value.operationalEffects === false &&
-    validCount(value.totalRequests) && validCount(value.lunaRequests) &&
-    validCount(value.terraRequests) &&
-    value.lunaRequests + value.terraRequests === value.totalRequests &&
-    value.lunaRequests <= 1 && value.terraRequests <= 1 &&
-    !(value.terraRequests && !value.lunaRequests) &&
-    Number.isSafeInteger(value.actualCostMicros) &&
-    value.actualCostMicros >= 0 && value.actualCostMicros <= 10_000_000 &&
-    (value.totalRequests !== 0 || value.actualCostMicros === 0);
+/**
+ * R226: provider aggregates are operator-supplied evidence, never trusted
+ * account records. Read ONLY reviewed own data descriptors once. A getter,
+ * symbol, extra key, proxy trap or a later mutation must not influence the
+ * decision or execute arbitrary code during validation.
+ */
+function captureAggregateEvidence(value) {
+  try {
+    if (!plainObject(value) ||
+        Reflect.ownKeys(value).length !== 8 ||
+        Object.keys(value).sort().join(',') !== EVIDENCE_KEYS) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const snapshot = {};
+    for (const key of EVIDENCE_KEYS.split(',')) {
+      const descriptor = descriptors[key];
+      if (!descriptor || !Object.hasOwn(descriptor, 'value') ||
+          descriptor.enumerable !== true) return null;
+      snapshot[key] = descriptor.value;
+    }
+    if (snapshot.schema !== EVIDENCE_SCHEMA ||
+        snapshot.scope !== 'isolated_private_review_only' ||
+        snapshot.publicReady !== false || snapshot.operationalEffects !== false ||
+        !validCount(snapshot.totalRequests) || !validCount(snapshot.lunaRequests) ||
+        !validCount(snapshot.terraRequests) ||
+        snapshot.lunaRequests + snapshot.terraRequests !== snapshot.totalRequests ||
+        snapshot.lunaRequests > 1 || snapshot.terraRequests > 1 ||
+        (snapshot.terraRequests && !snapshot.lunaRequests) ||
+        !Number.isSafeInteger(snapshot.actualCostMicros) ||
+        snapshot.actualCostMicros < 0 || snapshot.actualCostMicros > 10_000_000 ||
+        (snapshot.totalRequests === 0 && snapshot.actualCostMicros !== 0)) return null;
+    return Object.freeze(snapshot);
+  } catch {
+    // An untrusted proxy may throw in introspection: always fail closed.
+    return null;
+  }
 }
 
 /**
@@ -58,17 +80,18 @@ export function auditFaiscaPrivateProviderAggregate({ before, after, evidence, o
       status = 'BLOCKED_LEDGER_DELTA';
     } else {
       localReservedMicros = next.reservedMicros - prior.reservedMicros;
-      if (!validAggregateEvidence(evidence)) {
+      const aggregate = captureAggregateEvidence(evidence);
+      if (!aggregate) {
         status = 'BLOCKED_INVALID_EVIDENCE';
       } else {
         const expected = outcome === 'success' ? 2 :
           outcome === 'failed_terra' ? 2 :
             outcome === 'failed_luna' ? 1 : 0;
-        if (localRequests !== expected || evidence.totalRequests !== expected ||
-            evidence.lunaRequests !== (expected >= 1 ? 1 : 0) ||
-            evidence.terraRequests !== (expected === 2 ? 1 : 0)) {
+        if (localRequests !== expected || aggregate.totalRequests !== expected ||
+            aggregate.lunaRequests !== (expected >= 1 ? 1 : 0) ||
+            aggregate.terraRequests !== (expected === 2 ? 1 : 0)) {
           status = 'BLOCKED_REQUEST_MISMATCH';
-        } else if (evidence.actualCostMicros > localReservedMicros) {
+        } else if (aggregate.actualCostMicros > localReservedMicros) {
           status = 'BLOCKED_COST_EXCEEDS_RESERVATION';
         } else {
           status = 'COUNTS_MATCH_PENDING_INDEPENDENT_REVIEW';
