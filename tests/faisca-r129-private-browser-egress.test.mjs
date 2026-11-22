@@ -39,7 +39,7 @@ async function submitPrivateFixture(reply) {
       assert.equal(options.credentials, 'omit');
       assert.equal(options.redirect, 'error');
       assert.equal(options.headers.Authorization, 'Bearer ' + TOKEN);
-      return Promise.resolve(new Response(JSON.stringify(data), { status: 200 }));
+      return Promise.resolve(new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } }));
     }
   }, { filename: 'faisca-r129-browser.js', timeout: 1000 });
   await submit({ preventDefault() {} });
