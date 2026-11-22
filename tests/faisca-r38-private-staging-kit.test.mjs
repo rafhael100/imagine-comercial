@@ -74,7 +74,10 @@ test('R38 detects extra files, missing private route, and a symlinked source', a
   await assert.rejects(verifyPrivateStagingKit({kitDir:dir}), /content differs/);
   await rm(join(dir,'site/random.txt'));
   await rm(join(dir,'site/__faisca_preview/support/index.html'));
-  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}), /content differs/);
+  // R233 now rejects the orphaned empty support directory before comparing
+  // the old manifest; either mechanism is a safe rejection of the missing page.
+  await assert.rejects(verifyPrivateStagingKit({kitDir:dir}),
+    /content differs|R233: private kit contains an unlisted empty directory/);
   const link = dir + '-symlink';
   t.after(() => rm(link,{force:true}));
   await symlink(dir, link, 'dir');
