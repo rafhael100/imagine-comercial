@@ -303,3 +303,32 @@ test('R231 rejects an invalid UTF-8 Nginx comment even with a rehashed manifest'
     { name: 'TypeError' }
   );
 });
+
+
+test('R232 rejects unlisted empty top-level directories missing from manifest inventory', async t => {
+  const { dir } = await fixture(t);
+  // Old walker ignored empty directories, so neither file count nor hash changed.
+  await mkdir(join(dir, 'unreviewed-empty-directory'));
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
+    /R232: unsafe or excessive private kit directory/);
+});
+
+test('R232 bounds thousands of unlisted directory entries without buffering them', async t => {
+  const { dir } = await fixture(t);
+  // 391 new permitted-name empty directories exceed the MAX_DIRS=390 bound.
+  await Promise.all(Array.from({ length: 391 }, (_, i) =>
+    mkdir(join(dir, 'site', 'extra-' + String(i).padStart(3, '0')))));
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
+    /R232: unsafe or excessive private kit directory/);
+});
+
+test('R232 refuses excessive nesting even with no additional asset bytes', async t => {
+  const { dir } = await fixture(t);
+  let path = join(dir, 'site');
+  for (let i = 0; i < 26; i++) {
+    path = join(path, 'd' + i);
+    await mkdir(path);
+  }
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
+    /R232: unsafe or excessive private kit directory/);
+});
