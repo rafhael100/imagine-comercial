@@ -1,7 +1,7 @@
 import { inspectFaiscaPrivateNegativeConversation } from './private-staging-negative-probe.mjs';
 import { inspectFaiscaPrivatePositiveConversation } from './private-staging-positive-probe.mjs';
 import {
-  validFaiscaLocalLedgerSnapshot, matchFaiscaLocalLedgerDelta,
+  captureFaiscaLocalLedgerSnapshot, matchFaiscaLocalLedgerDelta,
   classifyFaiscaFailedPositiveReservations, hasFaiscaLocalTwoModelHeadroom
 } from './private-ledger-sequence-proof.mjs';
 
@@ -67,10 +67,16 @@ export async function inspectFaiscaPrivateConversationSequence({
     return report('BLOCKED_INVALID_PRIVATE_CONFIGURATION');
   }
 
+  // Capture each read before a later read can mutate an inspector's reused
+  // object. Never compare two references to the same live counters.
+  async function readLedgerSnapshot() {
+    return captureFaiscaLocalLedgerSnapshot(await inspectLedger());
+  }
+
   let ledgerBefore;
   if (inspectLedger) {
     try {
-      ledgerBefore = await inspectLedger();
+      ledgerBefore = await readLedgerSnapshot();
       if (!validFaiscaLocalLedgerSnapshot(ledgerBefore)) {
         return report('BLOCKED_LEDGER_GATE');
       }
@@ -86,7 +92,7 @@ export async function inspectFaiscaPrivateConversationSequence({
   async function blockedNegativeWithAudit(negative) {
     if (inspectLedger) {
       try {
-        const afterNegative = await inspectLedger();
+        const afterNegative = await readLedgerSnapshot();
         if (!matchFaiscaLocalLedgerDelta(ledgerBefore, afterNegative, 0)) {
           return report('BLOCKED_LEDGER_GATE', negative);
         }
@@ -115,7 +121,7 @@ export async function inspectFaiscaPrivateConversationSequence({
 
   if (inspectLedger) {
     try {
-      const afterNegative = await inspectLedger();
+      const afterNegative = await readLedgerSnapshot();
       if (!matchFaiscaLocalLedgerDelta(ledgerBefore, afterNegative, 0)) {
         // No positive HTTP request or paid dispatch may follow a mismatch.
         return report('BLOCKED_LEDGER_GATE', negative);
@@ -138,7 +144,7 @@ export async function inspectFaiscaPrivateConversationSequence({
   async function blockedPositiveWithAudit(positive) {
     if (!inspectLedger) return report('BLOCKED_POSITIVE_GATE', negative, positive);
     try {
-      const afterPositive = await inspectLedger();
+      const afterPositive = await readLedgerSnapshot();
       const reserved = classifyFaiscaFailedPositiveReservations(ledgerBefore, afterPositive);
       if (reserved === null) return report('BLOCKED_LEDGER_GATE', negative, positive);
       return report('BLOCKED_POSITIVE_GATE', negative, positive, false, reserved);
@@ -164,7 +170,7 @@ export async function inspectFaiscaPrivateConversationSequence({
   }
   if (inspectLedger) {
     try {
-      const afterPositive = await inspectLedger();
+      const afterPositive = await readLedgerSnapshot();
       if (!matchFaiscaLocalLedgerDelta(ledgerBefore, afterPositive, 2)) {
         return report('BLOCKED_LEDGER_GATE', negative, positive);
       }
