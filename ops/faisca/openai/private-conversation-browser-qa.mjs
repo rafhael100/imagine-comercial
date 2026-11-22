@@ -167,6 +167,53 @@ try {
       assert.equal(calls, 0, 'Forged responses must not dispatch a paid request');
     } finally { current = null; await page.unroute(path); }
   });
+  await step('R212 Chromium independently refuses invented agent operational capability', async () => {
+    const examples = [
+      { answer: 'Posso publicar sua página fictícia ainda hoje.', safe: false },
+      { answer: 'Conseguimos cadastrar sua campanha de demonstração agora.', safe: false },
+      { answer: 'Publicarei seu site fictício amanhã.', safe: false },
+      { answer: 'Você pode publicar uma página depois de revisar o conteúdo.', safe: true }
+    ];
+    const path = '**/__faisca_openai_private/converse';
+    let current = examples[0], count = 0;
+    await page.route(path, async route => {
+      count++;
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-conversation-response.v1',
+          status: 'general_answer', answer: current.answer, sources: [],
+          models: ['gpt-6-luna', 'gpt-6.1-terra'],
+          sourceRecipeBound: false, requiresEditorialReview: true,
+          publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      for (const example of examples) {
+        current = example;
+        await page.locator('#review-token').fill(token);
+        await page.locator('#review-question')
+          .fill('Vale a pena usar uma landing page para divulgar um evento?');
+        await page.locator('#review-attestation').check();
+        await page.locator('#review-send').click();
+        await page.waitForFunction(safe => {
+          const text = document.querySelector('#review-status')?.textContent ?? '';
+          return safe ? text.includes('Resposta gerada.') : text.includes('não concluiu.');
+        }, example.safe);
+        assert.equal(await page.locator('#review-answer').innerText(),
+          example.safe ? example.answer : 'Resposta indisponível neste teste.');
+        assert.equal(await page.locator('#review-sources').innerText(), '');
+        assert.equal(await page.locator('#review-token').inputValue(), '');
+        assert.equal(await page.locator('#review-question').inputValue(), '');
+        assert.equal(await page.locator('#review-attestation').isChecked(), false);
+      }
+      assert.equal(count, examples.length, 'No duplicate request after HTTP response');
+      assert.equal(calls, 0, 'Forged HTTP response never reaches a paid model');
+    } finally {
+      await page.unroute(path);
+    }
+  });
   await step('R205 Chromium rejects forged ungrounded metrics, research and operational promises', async () => {
     const maliciousProse = [
       'Oitenta e três por cento dos visitantes preferem páginas curtas.',

@@ -219,7 +219,7 @@ const privateBrowserFreeStatistics =
 const privateBrowserWordStatistics =
   /\b(?:um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento)(?:\s+(?:e\s+)?\w+){0,4}\s+(?:por\s+cento|(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|inscricoes?|visitas?|acessos?))\b|\b(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\s+(?:em|de)\s+cada\s+(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\b/u;
 const privateBrowserFutureOperation =
-  /\b(?:vou|vamos|irei|iremos)\s+(?:publicar|ativar|configurar|cadastrar|integrar|criar|aprovar|contratar|instalar|enviar|agendar|abrir\s+(?:um\s+)?(?:chamado|ticket)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))\b|\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|campanha|pedido)\b.{0,70}\b(?:sera|vai\s+ser)\s+(?:publicad[oa]|ativad[oa]|configurad[oa]|cadastrad[oa]|criad[oa])\b/u;
+  /\b(?:vou|vamos|irei|iremos|posso|podemos|consigo|conseguimos|sou\s+capaz\s+de|estou\s+pronto\s+para)\s+(?:publicar|ativar|configurar|cadastrar|integrar|criar|aprovar|contratar|instalar|enviar|agendar|abrir\s+(?:um\s+)?(?:chamado|ticket)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))\b|\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|campanha|pedido)\b.{0,70}\b(?:sera|vai\s+ser)\s+(?:publicad[oa]|ativad[oa]|configurad[oa]|cadastrad[oa]|criad[oa])\b|\b(?:publicar|ativar|configurar|cadastrar|integrar|hospedar|enviar|agendar|criar)(?:ei|emos)\b/u;
 const privateBrowserPiiRisk = text => {
   const clean = text.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu,'').replace(/[\u3002\u2024\u2027]/gu,'.').toLowerCase();
