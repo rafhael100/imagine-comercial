@@ -6,6 +6,10 @@
 import { request } from 'node:http';
 
 const HOLD = 'R240: private Faísca loopback HTTP boundary unverified (HOLD)';
+// R241: an idle socket timeout alone cannot stop a peer that drips bytes forever.
+// This is an absolute request lifetime; neither an operator nor a fixture can raise it.
+const ABSOLUTE_REQUEST_DEADLINE_MS = 2500;
+const MAX_RESPONSE_HEADER_BYTES = 8192;
 const fail = () => { throw Error(HOLD); };
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'self'; frame-ancestors ";
 const CASES = Object.freeze([
@@ -55,7 +59,9 @@ async function observe(port, check) {
   return new Promise((resolve,reject) => {
     const req = request({
       hostname:'127.0.0.1', port, method:check.method, path:check.path,
-      headers:{accept:'text/html','connection':'close'}, agent:false
+      headers:{accept:'text/html','connection':'close'}, agent:false,
+      signal:AbortSignal.timeout(ABSOLUTE_REQUEST_DEADLINE_MS),
+      maxHeaderSize:MAX_RESPONSE_HEADER_BYTES
     },res => {
       try { reviewResponse(res,check); }
       catch { res.destroy(); reject(Error(HOLD)); return; }
@@ -67,7 +73,8 @@ async function observe(port, check) {
       res.on('end',()=>resolve(true));
       res.on('error',()=>reject(Error(HOLD)));
     });
-    req.setTimeout(2500,()=>req.destroy(Error(HOLD)));
+    // Retain the idle timeout as a second defense; the abort signal is absolute.
+    req.setTimeout(ABSOLUTE_REQUEST_DEADLINE_MS,()=>req.destroy(Error(HOLD)));
     req.on('error',()=>reject(Error(HOLD)));
     req.end();
   });
