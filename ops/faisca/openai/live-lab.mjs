@@ -127,7 +127,14 @@ async function receiveBoundedResponse(response, signal, expectedModel) {
   const usage = data.usage;
   if (!usage || !Number.isSafeInteger(usage.input_tokens) ||
       !Number.isSafeInteger(usage.output_tokens) ||
-      usage.input_tokens < 0 || usage.output_tokens < 0) {
+      usage.input_tokens < 0 || usage.output_tokens < 0 ||
+      // R218: an optional provider-reported total must agree with the two
+      // billable counters. Missing total remains valid for older fixtures;
+      // malformed or contradictory receipts must fail closed before release.
+      !Number.isSafeInteger(usage.input_tokens + usage.output_tokens) ||
+      (Object.hasOwn(usage, 'total_tokens') &&
+        (!Number.isSafeInteger(usage.total_tokens) ||
+          usage.total_tokens !== usage.input_tokens + usage.output_tokens))) {
     throw new Error('OpenAI private test unavailable.');
   }
   let parsed;
