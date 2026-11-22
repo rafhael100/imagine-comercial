@@ -44,7 +44,7 @@ jobs:
         run: node ops/faisca/openai/private-review-browser-qa.mjs
       - name: Testar R95 conversa fictícia privada no Chromium, autenticação e WCAG
         run: node ops/faisca/openai/private-conversation-browser-qa.mjs
-      - name: R220 comprovar recibos de tokens Luna Terra no Chromium axe HTTP e ledger
+      - name: R221 comprovar recibos validos e contraditorios em Luna e Terra no Chromium axe HTTP ledger
         run: node ops/faisca/openai/private-token-details-browser-qa.mjs
       - name: Compilar laboratório Astro separado
         run: IMAGINE_FAISCA_LAB=1 npx --no-install astro build --config ops/faisca/lab/astro.config.mjs

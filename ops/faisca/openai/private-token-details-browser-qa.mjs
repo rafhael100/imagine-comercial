@@ -8,7 +8,8 @@ import { createFaiscaLocalReservationLedger } from './durable-reservation-ledger
 import { createFaiscaOpenAILiveLab, FAISCA_OPENAI_MODELS } from './live-lab.mjs';
 import { startFaiscaOpenAIPrivateReview } from './private-review-http.mjs';
 
-// R220: a browser-level cumulative private staging rehearsal of R95–R219.
+// R221: browser-level R95–R220 rehearsal of failures after Luna AND after Terra.
+// Verify each failure keeps reservations, persists NO-START and denies retry.
 // No API credential, customer data, VPS, external network or public route.
 const token = 'R220_PRIVATE_BROWSER_SYNTHETIC_TEST_TOKEN_123456';
 const key = 'sk-r220-private-fictional-fixture-never-real-123456';
@@ -17,7 +18,7 @@ const answer = 'Uma landing page pode apresentar a programação de um evento fi
 const endpoint = '/__faisca_openai_private/converse';
 const privatePage = '/__faisca_openai_private/review';
 
-function provider(model, invalid) {
+function provider(model, scenario) {
   return new Response(JSON.stringify({
     model, status: 'completed',
     output: [{ type: 'message', role: 'assistant', content: [{
@@ -27,8 +28,14 @@ function provider(model, invalid) {
     }] }],
     usage: {
       input_tokens: 180, output_tokens: 35, total_tokens: 215,
-      input_tokens_details: { cached_tokens: invalid ? 181 : 24 },
-      output_tokens_details: { reasoning_tokens: 5 }
+      input_tokens_details: {
+        cached_tokens: scenario === 'luna_cached' &&
+          model === FAISCA_OPENAI_MODELS.classification ? 181 : 24
+      },
+      output_tokens_details: {
+        reasoning_tokens: scenario === 'terra_reasoning' &&
+          model === FAISCA_OPENAI_MODELS.answer ? 36 : 5
+      }
     }
   }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
@@ -92,8 +99,9 @@ const browser = await chromium.launch({ headless: true,
   ...(process.env.FAISCA_CHROMIUM_EXECUTABLE
     ? { executablePath: process.env.FAISCA_CHROMIUM_EXECUTABLE } : {}) });
 try {
-  for (const invalid of [false, true]) {
-    const root = await mkdtemp(join(tmpdir(), 'faisca-r220-'));
+  for (const scenario of ['success', 'luna_cached', 'terra_reasoning']) {
+    const invalid = scenario !== 'success';
+    const root = await mkdtemp(join(tmpdir(), 'faisca-r221-'));
     const directory = join(root, 'ledger');
     let server;
     try {
@@ -109,17 +117,17 @@ try {
           assert.deepEqual(payload.tools, []);
           assert.equal(payload.tool_choice, 'none');
           models.push(payload.model);
-          return provider(payload.model, invalid &&
-            payload.model === FAISCA_OPENAI_MODELS.classification);
+          return provider(payload.model, scenario);
         }),
         reviewToken: token, enablePrivateConversation: true
       });
       await submit(browser, server,
         invalid ? 'não concluiu.' : 'Resposta gerada.',
         invalid ? 'Resposta indisponível neste teste.' : answer);
-      assert.deepEqual(models, invalid
+      assert.deepEqual(models, scenario === 'luna_cached'
         ? [FAISCA_OPENAI_MODELS.classification]
-        : [FAISCA_OPENAI_MODELS.classification, FAISCA_OPENAI_MODELS.answer]);
+        : [FAISCA_OPENAI_MODELS.classification, FAISCA_OPENAI_MODELS.answer],
+      'Refuse any model invocation after the first contradictory receipt');
       await server.close();
       server = null;
       assert.equal((await ledger().inspectReadOnly()).requests, models.length);
@@ -137,7 +145,8 @@ try {
         await submit(browser, server, 'não concluiu.',
           'Resposta indisponível neste teste.');
         assert.equal(restartedCalls, 0, 'No provider call after restart');
-        assert.equal((await ledger().inspectReadOnly()).requests, 1);
+        assert.equal((await ledger().inspectReadOnly()).requests, models.length,
+          'Both durable reservations survive an invalid Terra receipt');
       } else {
         await assert.rejects(
           readFile(join(directory, '.faisca-provider-outcome-uncertain'), 'utf8'),
@@ -149,7 +158,7 @@ try {
       await rm(root, { recursive: true, force: true });
     }
   }
-  console.log('R220 PRIVATE SYNTHETIC BROWSER + HTTP + LUNA/TERRA + DURABLE LEDGER VERIFIED; NO PUBLIC GO.');
+  console.log('R221 PRIVATE CHROMIUM + HTTP RECEIPTS (VALID, LUNA CACHE, TERRA REASONING) + RESTART NO-START VERIFIED; NO PUBLIC GO.');
 } finally {
   await browser.close();
 }
