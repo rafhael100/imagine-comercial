@@ -118,9 +118,13 @@ async function inspectUntrustedOfflineEvidence({ directory, outcome, expectedSha
           pins[name.slice(0, -'.json'.length)]) {
         throw new Error('R171 BLOCKED: evidence did not match independent pin.');
       }
-      const raw = payload.toString('utf8');
+      // Compare the original bytes, not just the lossy UTF-8 decoding.
+      // Buffer.toString() replaces malformed UTF-8 with U+FFFD; decoded
+      // string equality could otherwise accept noncanonical file bytes.
+      const raw = new TextDecoder('utf-8', { fatal: true }).decode(payload);
       const value = JSON.parse(raw);
-      if (raw !== JSON.stringify(value) + '\n' ||
+      const canonical = Buffer.from(JSON.stringify(value) + '\n', 'utf8');
+      if (!payload.equals(canonical) ||
           value === null || typeof value !== 'object' ||
           Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) {
         throw new Error('R169 BLOCKED: noncanonical evidence.');
