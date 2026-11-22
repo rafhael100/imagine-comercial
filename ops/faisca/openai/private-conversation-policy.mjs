@@ -7,6 +7,9 @@ const normalize = value => value.normalize('NFKD').replace(/\p{M}/gu, '').toLowe
 const money = /r\$|[$€£]|\b(?:precos?|valores?|cust[ao]s?|cobra[mn]?|cobram|cobranca|orcamentos?|cotacao|investimento|descontos?|pagamentos?|parcelas?|mensalidades?|reais|brl|usd|pagar|comercializa|gratuit[oa]s?|bonificacoes?)\b/;
 const businessFlow = /\b(?:processo|fluxo|etapas?|aprov\w*|revis\w*|entrega\w*|prazo\w*|implantacao|cria\w*|produ\w*|contrat\w*|suporte|escopo|procedimento|envi\w*)\b/;
 const company = /\b(?:imagine|voces?|equipe|intern[oa]s?|cliente)\b/;
+// R244: operator identity/capabilities are never inferred from Luna/Terra.
+// Pricing and broad process requests continue to use the pinned editorial recipe.
+const namedOperator = /\b(?:imagine|faisca|voces?)\b/;
 const broadProcess = /\b(?:como funciona|quais sao as etapas|quais as etapas|qual e o processo)\b/;
 const otherFlowDetails = /\b(?:layout|link|portal|prazo|aprov\w*|envi\w*|revis\w*|suporte|entrega\w*)\b/;
 const rejectInput = new Set(['sensitive_input', 'unsupported_instruction', 'invalid_input', 'too_long']);
@@ -27,6 +30,9 @@ export function privateConversationRoute(question) {
     if (broadProcess.test(text) && businessFlow.test(text) && !otherFlowDetails.test(text)) return 'process';
     return 'confirm';
   }
+  // An otherwise generic question about the Imagine/Faísca team must not
+  // become a model-generated assertion of services, hours or availability.
+  if (namedOperator.test(text)) return 'confirm';
   return 'classify';
 }
 
