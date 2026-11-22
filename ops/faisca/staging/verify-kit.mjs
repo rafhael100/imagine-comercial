@@ -5,6 +5,7 @@ import { resolve, dirname, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const STAGING_KIT_SCHEMA = 'faisca.static-private-staging-kit.v1';
+const MAX_MANIFEST_BYTES = 128 * 1024;
 const MAX_FILES = 390;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 180 * 1024 * 1024;
@@ -69,6 +70,38 @@ export async function snapshotPrivateStagingFiles({ kitDir } = {}) {
   return walkFiles(root);
 }
 
+// R230: the manifest is untrusted input. The former unbounded readFile()
+// could allocate arbitrary memory before the kit size limits even ran.
+// Refuse symlinks, FIFOs, multi-linked files, oversized or changing manifests
+// and malformed UTF-8 before parsing. This does NOT attest the publisher.
+async function readBoundedManifest(root) {
+  let handle;
+  try {
+    handle = await open(resolve(root, 'Faisca_R38_MANIFEST.json'),
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    const before = await handle.stat({ bigint: true });
+    if (!before.isFile() || before.nlink !== 1n ||
+        before.size < 64n || before.size > BigInt(MAX_MANIFEST_BYTES)) {
+      throw new Error('R230: invalid private kit manifest type or size.');
+    }
+    const buffer = Buffer.alloc(Number(before.size));
+    let offset = 0;
+    while (offset < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, offset, buffer.length - offset, offset);
+      if (!bytesRead) throw new Error('R230: truncated private kit manifest.');
+      offset += bytesRead;
+    }
+    const after = await handle.stat({ bigint: true });
+    if (['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
+      .some(key => before[key] !== after[key])) {
+      throw new Error('R230: private kit manifest changed during read.');
+    }
+    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(buffer));
+  } finally {
+    await handle?.close();
+  }
+}
+
 /** Caller must independently verify the GitHub Actions source SHA. This
  * manifest is an integrity checklist, NOT a signed deployment credential.
  */
@@ -78,7 +111,7 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
   if (!(await lstat(root)).isDirectory() || await realpath(root) !== root) {
     throw new Error('R38: kit directory must not be a symlink.');
   }
-  const manifest = JSON.parse(await readFile(resolve(root,'Faisca_R38_MANIFEST.json'),'utf8'));
+  const manifest = await readBoundedManifest(root);
   if (!manifest || manifest.schema !== STAGING_KIT_SCHEMA ||
       manifest.status !== 'REVIEW_ONLY_NO_DEPLOY' ||
       manifest.publicFaiscaEnabled !== false ||

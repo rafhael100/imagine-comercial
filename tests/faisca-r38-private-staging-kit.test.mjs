@@ -228,3 +228,39 @@ test('R229 blocks rehashed staging with extra alternate auth_basic_user_file', a
   await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
     /lost its private staging protections/);
 });
+
+
+test('R230 rejects oversized manifest before parse even if JSON is otherwise valid', async t => {
+  const { dir, manifestFile } = await fixture(t);
+  // The old unbounded readFile parsed arbitrary whitespace-padded JSON.
+  // The manifest is excluded from the kit file list, so rehashing the kit
+  // cannot provide a meaningful safety limit against this attack.
+  const valid = await readFile(manifestFile, 'utf8');
+  await writeFile(manifestFile, valid + ' '.repeat(256 * 1024));
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
+    /invalid private kit manifest type or size/);
+});
+
+test('R230 rejects a symlinked manifest before following the file', async t => {
+  const { dir, manifestFile } = await fixture(t);
+  const elsewhere = join(dir, 'manifest-target-outside');
+  await writeFile(elsewhere, await readFile(manifestFile));
+  await rm(manifestFile);
+  await symlink(elsewhere, manifestFile);
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }), {
+    code: 'ELOOP'
+  });
+});
+
+test('R230 rejects invalid UTF-8 bytes in a small manifest without losing fail-closed', async t => {
+  const { dir, manifestFile } = await fixture(t);
+  const bytes = Buffer.from(await readFile(manifestFile));
+  // Ensure invalid lead byte is inside JSON string content.
+  const find = bytes.indexOf(Buffer.from('REVIEW_ONLY_NO_DEPLOY'));
+  assert.ok(find >= 0);
+  bytes[find + 3] = 0xff;
+  await writeFile(manifestFile, bytes);
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }), {
+    name: 'TypeError'
+  });
+});
