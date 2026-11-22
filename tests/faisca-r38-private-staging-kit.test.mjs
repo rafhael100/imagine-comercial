@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, cp, rm, writeFile, readFile, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, cp, rm, writeFile, readFile, symlink, link } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
@@ -263,4 +263,43 @@ test('R230 rejects invalid UTF-8 bytes in a small manifest without losing fail-c
   await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }), {
     name: 'TypeError'
   });
+});
+
+
+test('R231 rejects hard-linked files whose bytes and hashes still match the kit manifest', async t => {
+  for (const relativePath of [
+    'site/__faisca_preview/quote-bridge.js',
+    'ops/staging/nginx.conf'
+  ]) {
+    const { dir } = await fixture(t);
+    const external = dir + '-external-hardlink';
+    const original = join(dir, relativePath);
+    // Neither the bytes nor the self-reported manifest change. Prior checks
+    // accepted this external alias as an ordinary regular file.
+    await link(original, external);
+    t.after(() => rm(external, { force: true }));
+    await assert.rejects(
+      verifyPrivateStagingKit({ kitDir: dir }),
+      /R231: unsafe or oversized private kit file/
+    );
+    await assert.rejects(
+      snapshotPrivateStagingFiles({ kitDir: dir }),
+      /R231: unsafe or oversized private kit file/
+    );
+  }
+});
+
+test('R231 rejects an invalid UTF-8 Nginx comment even with a rehashed manifest', async t => {
+  const { dir, manifestFile } = await fixture(t);
+  const nginx = join(dir, 'ops/staging/nginx.conf');
+  const current = await readFile(nginx);
+  // UTF-8 replacement in the old second read hid these invalid bytes.
+  const changed = Buffer.concat([
+    current, Buffer.from('\n# bad comment: '), Buffer.from([0xff]), Buffer.from('\n')
+  ]);
+  await rehashNginxFixture(dir, manifestFile, changed);
+  await assert.rejects(
+    verifyPrivateStagingKit({ kitDir: dir }),
+    { name: 'TypeError' }
+  );
 });
