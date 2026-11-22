@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { PRIVATE_REVIEW_JS } from '../ops/faisca/openai/private-review-page.mjs';
+import { reviewedFixedReceiptSources } from './faisca-r211-fixed-receipt-fixture.mjs';
 
 const TOKEN = 'R131_SYNTHETIC_PRIVATE_BROWSER_BEARER_1234567';
 const safeQuestion = 'Qual a finalidade de um site fictício para uma empresa fictícia?';
@@ -25,7 +26,7 @@ async function runPrivateFixture({ question = '', reply = safeAnswer } = {}) {
     schema: 'faisca.openai-private-review-response.v1',
     status: 'draft_answer', syntheticCaseId: 'compare',
     answer: reply,
-    sources: ['faisca.passage.onepage.description@r06-1'],
+    sources: reviewedFixedReceiptSources('compare'),
     models: ['gpt-6-luna', 'gpt-6.1-terra'],
     sourceRecipeBound: true, requiresEditorialReview: true,
     publicReady: false, operationalEffects: false

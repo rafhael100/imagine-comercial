@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { PRIVATE_REVIEW_JS } from '../ops/faisca/openai/private-review-page.mjs';
+import { reviewedFixedReceiptSources } from './faisca-r211-fixed-receipt-fixture.mjs';
 import { hasPrivateUnsupportedOutcomeGuarantee } from '../ops/faisca/openai/private-conversation-policy.mjs';
 
 const token = 'R137_SYNTHETIC_ONLY_REVIEW_BEARER_TOKEN_123456';
@@ -27,7 +28,7 @@ async function browserFixture(text, free) {
     status: free ? 'general_answer' : 'draft_answer',
     ...(free ? {} : { syntheticCaseId: 'compare' }),
     answer: text,
-    sources: free ? [] : ['faisca.passage.onepage.description@r06-1'],
+    sources: free ? [] : reviewedFixedReceiptSources('compare'),
     models: ['gpt-6-luna', 'gpt-6.1-terra'],
     sourceRecipeBound: !free, requiresEditorialReview: true,
     publicReady: false, operationalEffects: false

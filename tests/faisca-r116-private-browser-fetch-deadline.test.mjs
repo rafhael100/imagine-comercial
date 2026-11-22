@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { PRIVATE_REVIEW_JS } from '../ops/faisca/openai/private-review-page.mjs';
+import { reviewedFixedReceiptSources } from './faisca-r211-fixed-receipt-fixture.mjs';
 
 const TOKEN = 'R116_SYNTHETIC_OPERATOR_REVIEW_TOKEN_1234';
 
@@ -73,7 +74,7 @@ test('R116 success continues to use normal read/provenance rules and textContent
     schema: 'faisca.openai-private-review-response.v1',
     status: 'draft_answer', syntheticCaseId: 'compare',
     answer: 'O Onepage apresenta serviços e a Landing Page destaca uma oferta específica.',
-    sources: ['faisca.passage.onepage.description@r06-1'],
+    sources: reviewedFixedReceiptSources('compare'),
     models: ['gpt-6-luna', 'gpt-6.1-terra'],
     sourceRecipeBound: true, requiresEditorialReview: true,
     publicReady: false, operationalEffects: false

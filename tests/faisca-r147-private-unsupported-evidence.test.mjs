@@ -7,6 +7,7 @@ import { retrieveCandidateAnswerIds } from '../ops/faisca/model-router/contract.
 import { getGroundedAnswer } from '../ops/faisca/grounding/guide.mjs';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
 import { PRIVATE_REVIEW_JS } from '../ops/faisca/openai/private-review-page.mjs';
+import { reviewedFixedReceiptSources } from './faisca-r211-fixed-receipt-fixture.mjs';
 import { inspectFaiscaPrivateReviewUi } from '../ops/faisca/openai/private-staging-readonly-smoke.mjs';
 
 const fabricated = [
@@ -140,7 +141,7 @@ async function privateBrowserRun(text, free) {
     status: free ? 'general_answer' : 'draft_answer',
     ...(free ? {} : { syntheticCaseId: 'compare' }),
     answer: text,
-    sources: free ? [] : ['faisca.passage.onepage.description@r06-1'],
+    sources: free ? [] : reviewedFixedReceiptSources('compare'),
     models: ['gpt-6-luna', 'gpt-6.1-terra'],
     sourceRecipeBound: !free, requiresEditorialReview: true,
     publicReady: false, operationalEffects: false

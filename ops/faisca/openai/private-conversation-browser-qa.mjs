@@ -6,6 +6,8 @@ import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { startFaiscaOpenAIPrivateReview } from './private-review-http.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
+import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
+import { FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
 import { PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from './private-conversation-policy.mjs';
 
 const token = 'R95_PRIVATE_CHROMIUM_TOKEN_ONLY_FIXTURE_2026';
@@ -657,7 +659,8 @@ try {
             ...(input.endpoint === 'respond' ? { syntheticCaseId: 'compare' } : {}),
             answer: input.text,
             sources: input.endpoint === 'respond'
-              ? ['faisca.passage.onepage.description@r06-1'] : [],
+              ? getGroundedAnswer(retrieveCandidateAnswerIds(FAISCA_OPENAI_TEST_CASES.compare)[0])
+                .sources.map(source => source.id) : [],
             models: ['gpt-6-luna','gpt-6.1-terra'],
             sourceRecipeBound: input.endpoint === 'respond',
             requiresEditorialReview: true, publicReady: false, operationalEffects: false
