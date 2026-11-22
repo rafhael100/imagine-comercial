@@ -37,7 +37,9 @@ function fixture() {
       PublishAllPorts:false,Privileged:false,ReadonlyRootfs:true,
       RestartPolicy:{Name:'no'},PidsLimit:64,Memory:268435456,
       NanoCpus:500000000,CapDrop:['ALL'],CapAdd:null,
-      SecurityOpt:['no-new-privileges:true'],NetworkMode:project+'_default'
+      SecurityOpt:['no-new-privileges:true'],NetworkMode:project+'_default',
+      Tmpfs:{'/tmp':'rw,noexec,nosuid,size=32m',
+        '/var/run':'rw,noexec,nosuid,size=4m'}
     },
     NetworkSettings:{
       Ports:{'8080/tcp':[hostPort()],'8443/tcp':null},
@@ -60,6 +62,7 @@ test('R236 accepts only an operator-supplied matching inspect record with NO dep
   assert.equal(answer.status,'DOCKER_INSPECT_FIELDS_MATCH_REVIEW_ONLY');
   assert.equal(answer.reportedLoopbackBinding,true);
   assert.equal(answer.reportedUnprivilegedReadOnlyMounts,true);
+  assert.equal(answer.reportedBoundedNoexecTmpfs,true);
   assert.equal(answer.dockerAccessPerformedByThisModule,false);
   assert.equal(answer.actualNetworkExposureIndependentlyVerified,false);
   assert.equal(answer.imageProvenanceVerified,false);
@@ -126,6 +129,28 @@ test('R236 pins expected Compose identity and excludes other services',()=>{
   assert.throws(()=>review({inspect:fixture(),...params(),expectedSitePath:'relative'}),/R236/);
   assert.throws(()=>review({inspect:fixture(),...params(),expectedAuthPath:site}),/R236/);
 });
+test('R237 fails closed on missing, additional, unlimited or executable runtime tmpfs',()=>{
+  attack(v=>{delete v.HostConfig.Tmpfs;});
+  attack(v=>{v.HostConfig.Tmpfs=null;});
+  attack(v=>{v.HostConfig.Tmpfs={};});
+  attack(v=>{delete v.HostConfig.Tmpfs['/tmp'];});
+  attack(v=>{v.HostConfig.Tmpfs['/secrets']='rw,noexec,nosuid,size=4m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,exec,nosuid,size=32m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,suid,size=32m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,nosuid,size=1g';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,nosuid';});
+  attack(v=>{v.HostConfig.Tmpfs['/var/run']='rw,noexec,nosuid,size=32m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,nosuid,size=32m,exec';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,noexec,size=32m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,nosuid,size=0';});
+  const bytes=fixture();
+  bytes.HostConfig.Tmpfs={
+    '/tmp':'size=33554432,nosuid,rw,noexec',
+    '/var/run':'nosuid,size=4194304,noexec,rw'
+  };
+  assert.equal(review({inspect:bytes,...params()}).reportedBoundedNoexecTmpfs,true);
+});
+
 test('R236 CLI processes only one bounded operator-supplied inspect JSON, never Docker',()=>{
   const script = fileURLToPath(new URL(
     '../scripts/faisca-review-running-container.mjs',import.meta.url));

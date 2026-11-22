@@ -50,6 +50,30 @@ function mounts(inspect, expected) {
   }
   insist(seen.size === MOUNTS.length);
 }
+/**
+ * The resolved Compose model (R235) specifies exactly two small, noexec,
+ * nosuid tmpfs mounts. R236 originally checked only the three read-only bind
+ * mounts, so a running container with absent or unlimited tmpfs passed.
+ * Docker inspect HostConfig.Tmpfs is independent runtime evidence.
+ */
+function boundedTmpfs(host) {
+  const entries = host.Tmpfs;
+  insist(plain(entries) && Object.keys(entries).length === 2 &&
+    Object.hasOwn(entries, '/tmp') && Object.hasOwn(entries, '/var/run'));
+  for (const [target, sizes] of [
+    ['/tmp', ['32m', '33554432']],
+    ['/var/run', ['4m', '4194304']]
+  ]) {
+    const raw = entries[target];
+    insist(typeof raw === 'string' && raw.length <= 96);
+    const options = raw.split(',');
+    insist(options.length === 4 && new Set(options).size === 4 &&
+      options.includes('rw') && options.includes('noexec') &&
+      options.includes('nosuid'));
+    const size = options.find(x => x.startsWith('size='));
+    insist(typeof size === 'string' && sizes.includes(size.slice(5)));
+  }
+}
 function privileges(host) {
   insist(host.Privileged === false && host.ReadonlyRootfs === true &&
     host.RestartPolicy?.Name === 'no' &&
@@ -105,6 +129,7 @@ export function reviewRunningFaiscaPrivateContainer({
     config.Env.every(x => typeof x === 'string' &&
       !/^(?:IMAGINE_|AWS_|AZURE_|OPENAI_|DATABASE_URL=|SECRET=|TOKEN=)/.test(x)));
   privileges(host);
+  boundedTmpfs(host);
   ports(host, inspect.NetworkSettings);
   network(inspect, project);
   mounts(inspect, expected);
@@ -114,6 +139,7 @@ export function reviewRunningFaiscaPrivateContainer({
     inspectedOneRunningContainerRecord: true,
     reportedLoopbackBinding: true,
     reportedUnprivilegedReadOnlyMounts: true,
+    reportedBoundedNoexecTmpfs: true,
     reportedResourceLimits: true,
     dockerAccessPerformedByThisModule: false,
     actualNetworkExposureIndependentlyVerified: false,
