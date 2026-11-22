@@ -4,12 +4,15 @@
  * Tests use an ephemeral synthetic loopback server, NOT the operational VPS.
  */
 import { request } from 'node:http';
+import { hasPrivateIdentifierRisk } from '../openai/private-identifier-risk.mjs';
 
 const HOLD = 'R240: private Faísca loopback HTTP boundary unverified (HOLD)';
 // R241: an idle socket timeout alone cannot stop a peer that drips bytes forever.
 // This is an absolute request lifetime; neither an operator nor a fixture can raise it.
 const ABSOLUTE_REQUEST_DEADLINE_MS = 2500;
 const MAX_RESPONSE_HEADER_BYTES = 8192;
+// An authenticated site must never leak its content through a 401 error page.
+const MAX_UNAUTH_BODY_BYTES = 2048;
 const fail = () => { throw Error(HOLD); };
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'self'; frame-ancestors ";
 const CASES = Object.freeze([
@@ -76,6 +79,31 @@ function reviewResponse(response, check) {
   absentHeader(response,'location');
   absentHeader(response,'access-control-allow-origin');
   rejectActiveUnauthHeaders(response);
+  // Nginx's built-in 401 is text/html. Reject unexpected data-bearing
+  // response types and duplicate Content-Type fields, preserving fixtures
+  // with no explicit Content-Type (Node's default).
+  const types = [];
+  for (let i=0;i<response.rawHeaders.length;i+=2)
+    if (response.rawHeaders[i].toLowerCase() === 'content-type')
+      types.push(response.rawHeaders[i+1]);
+  if (types.length > 1 ||
+      (types.length === 1 &&
+        !/^text\/(?:html|plain)(?:;\s*charset=utf-8)?$/i.test(types[0]))) fail();
+}
+
+/**
+ * R249: 401 headers alone cannot prove confidentiality. The body can still
+ * contain a token, an internal URL, customer data, a script or an entire page.
+ * Inspect bounded bytes without ever returning/logging them. This is a
+ * conservative leakage tripwire, not general-purpose DLP.
+ */
+function reviewUnauthBody(chunks) {
+  let body;
+  try { body = new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)); }
+  catch { fail(); }
+  if (/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(body) ||
+      /<\s*\/?\s*(?:script|form|input|iframe|object|embed|video|audio|img|link|style|svg|meta)\b/i.test(body) ||
+      hasPrivateIdentifierRisk(body.replace(/[\r\n\t]/g,' '))) fail();
 }
 async function observe(port, check) {
   return new Promise((resolve,reject) => {
@@ -88,11 +116,18 @@ async function observe(port, check) {
       try { reviewResponse(res,check); }
       catch { res.destroy(); reject(Error(HOLD)); return; }
       let size=0;
+      const chunks=[];
       res.on('data',chunk => {
         size+=chunk.byteLength;
-        if(size>8192) { res.destroy(); reject(Error(HOLD)); }
+        if(size>MAX_UNAUTH_BODY_BYTES) {
+          res.destroy(); reject(Error(HOLD)); return;
+        }
+        chunks.push(chunk);
       });
-      res.on('end',()=>resolve(true));
+      res.on('end',()=>{
+        try { reviewUnauthBody(chunks); resolve(true); }
+        catch { reject(Error(HOLD)); }
+      });
       res.on('error',()=>reject(Error(HOLD)));
     });
     // Retain the idle timeout as a second defense; the abort signal is absolute.
