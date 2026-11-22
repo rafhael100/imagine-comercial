@@ -104,6 +104,13 @@ const promisedOperationalAction =
 const promisedVisitorAsset =
   /\b(?:seu|sua|seus|suas)\s+(?:site|pagina|landing\s+page|dominio|campanha|formulario|conta|acesso|pedido|projeto)\b.{0,70}\b(?:sera|serao|vai\s+ser|vao\s+ser)\s+(?:publicad[oa]s?|ativad[oa]s?|configurad[oa]s?|enviad[oa]s?|cadastrad[oa]s?|contratad[oa]s?|concluid[oa]s?|aprovad[oa]s?|liberad[oa]s?|integrad[oa]s?|hospedad[oa]s?|disponibilizad[oa]s?|colocad[oa]s?\s+no\s+ar)\b/u;
 
+// R212: claiming the *ability* to perform an action is as misleading as a
+// promise of execution. This model has no tools, grants or operational access.
+// Scope this to first-person agency, leaving neutral self-service guidance
+// ("você pode publicar...") available in fictional answers.
+const claimedOperationalCapability =
+  /\b(?:(?:eu\s+)?(?:posso|podemos|consigo|conseguimos|conseguirei|conseguiremos|sou\s+capaz\s+de|somos\s+capazes\s+de|estou\s+pronto\s+para|estamos\s+prontos\s+para)\s+(?:publicar|ativar|configurar|cadastrar|integrar|instalar|criar|aprovar|contratar|finalizar|liberar|hospedar|disponibilizar|enviar|agendar|colocar\s+no\s+ar|abrir\s+(?:um\s+)?(?:ticket|chamado)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))|(?:publicarei|publicaremos|ativarei|ativaremos|configurarei|configuraremos|cadastrarei|cadastraremos|integrarei|integraremos|instalarei|instalaremos|hospedarei|hospedaremos|liberarei|liberaremos|enviarei|enviaremos|agendarei|agendaremos|criarei|criaremos))\b/u;
+
 export function hasPrivateUnsupportedOutcomeGuarantee(text) {
   if (typeof text !== 'string') return true;
   const normalized = normalize(text);
@@ -124,7 +131,8 @@ export function hasPrivateOperationalClaim(text) {
     completedVisitorAsset.test(normalized) ||
     completedVisitorReceipt.test(normalized) ||
     promisedOperationalAction.test(normalized) ||
-    promisedVisitorAsset.test(normalized);
+    promisedVisitorAsset.test(normalized) ||
+    claimedOperationalCapability.test(normalized);
 }
 
 export function safePrivateGeneralReply(text) {
