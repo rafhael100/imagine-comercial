@@ -8,6 +8,7 @@ import { startFaiscaOpenAIPrivateReview } from './private-review-http.mjs';
 import { FAISCA_OPENAI_LIVE_LAB_SCHEMA, FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
+import { getGroundingSources } from '../grounding/catalog.mjs';
 
 const reportDir = resolve(dirname(fileURLToPath(import.meta.url)), '../reports');
 const token = 'R79_CHROMIUM_PRIVATE_REVIEW_TOKEN_2026';
@@ -108,6 +109,39 @@ try {
       assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
       assert.equal(await page.locator('#review-sources').innerText(), '');
       assert.equal(providerCalls, 1, 'Forged browser response cannot call the synthetic provider.');
+    } finally { await page.unroute(endpoint); }
+  });
+
+  await check('R211 Chromium rejects cross-scenario source receipt despite forged true flag', async () => {
+    const endpoint = '**/__faisca_openai_private/respond';
+    const approved = retrieveCandidateAnswerIds(FAISCA_OPENAI_TEST_CASES.compare)
+      .map(id => getGroundedAnswer(id).sources.map(source => source.id));
+    const used = new Set(approved.flat());
+    const unrelated = getGroundingSources().find(source => !used.has(source.id));
+    assert.ok(unrelated, 'An unrelated catalog source must exist for the negative fixture.');
+    let intercepts = 0;
+    await page.route(endpoint, async route => {
+      intercepts++;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        schema: 'faisca.openai-private-review-response.v1',
+        status: 'draft_answer', syntheticCaseId: 'compare',
+        answer: 'Uma página pode organizar as informações fictícias de uma empresa para seus visitantes.',
+        sources: [unrelated.id],
+        models: ['gpt-6-luna','gpt-6.1-terra'], sourceRecipeBound: true,
+        requiresEditorialReview: true, publicReady: false, operationalEffects: false
+      }) });
+    });
+    try {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-case').selectOption('compare');
+      await page.locator('#review-send').click();
+      await page.waitForFunction(() =>
+        document.querySelector('#review-status')?.textContent?.includes('não concluiu.'));
+      assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
+      assert.equal(await page.locator('#review-sources').innerText(), '');
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(intercepts, 1, 'No retry after a forged HTTP reply.');
+      assert.equal(providerCalls, 1, 'No new model requests from a forged browser reply.');
     } finally { await page.unroute(endpoint); }
   });
 
