@@ -289,13 +289,6 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
   // This check complements, but NEVER replaces, independent source-SHA review
   // and an operator's nginx -T / HTTP 401 inspection before any staging use.
   const activeLines = activeConfigLines(nginx);
-  // R234: exact ordered active configuration, not only key substrings.
-  // This rejects rehashed extra Nginx locations, duplicate Compose keys,
-  // public port overrides, privileges or writable mounts.
-  if (JSON.stringify(activeLines) !== JSON.stringify(REVIEWED_NGINX_ACTIVE) ||
-      JSON.stringify(activeConfigLines(compose)) !== JSON.stringify(REVIEWED_COMPOSE_ACTIVE)) {
-    throw new Error('R234: private staging config differs from reviewed directives.');
-  }
   const active = new Set(activeLines);
   const requiredActive = [
     'map $request_uri $faisca_review_frame {',
@@ -341,6 +334,13 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
       !home.includes('data-faisca-apply-choice') ||
       !home.includes('/__faisca_preview/quote-bridge.js')) {
     throw new Error('R38: review kit lost its private staging protections.');
+  }
+  // R234: exact ordered active configuration, not only key substrings.
+  // This rejects rehashed extra Nginx locations, duplicate Compose keys,
+  // public port overrides, privileges or writable mounts.
+  if (JSON.stringify(activeLines) !== JSON.stringify(REVIEWED_NGINX_ACTIVE) ||
+      JSON.stringify(activeConfigLines(compose)) !== JSON.stringify(REVIEWED_COMPOSE_ACTIVE)) {
+    throw new Error('R234: private staging config differs from reviewed directives.');
   }
   return Object.freeze({
     schema: STAGING_KIT_SCHEMA, filesChecked: actual.files.length,
