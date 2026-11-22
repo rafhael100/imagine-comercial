@@ -7,10 +7,30 @@ import { auditFaiscaPrivateProviderAggregate } from './private-provider-aggregat
 const MAX_FILE_BYTES = 1024;
 const OUTCOMES = new Set(['success', 'rejected', 'failed_luna', 'failed_terra']);
 const PIN_KEYS = ['after', 'aggregate', 'before'];
-const validPins = value => value !== null && typeof value === 'object' &&
-  !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype &&
-  Object.keys(value).sort().join(',') === PIN_KEYS.join(',') &&
-  PIN_KEYS.every(key => typeof value[key] === 'string' && /^[a-f0-9]{64}$/u.test(value[key]));
+// R227: copy independently supplied hashes ONCE, before any asynchronous
+// filesystem read. Otherwise a getter or mutable operator object can change
+// a valid pin between preflight and the actual digest comparison.
+function capturePins(value) {
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+        Object.getPrototypeOf(value) !== Object.prototype ||
+        Reflect.ownKeys(value).length !== PIN_KEYS.length ||
+        Object.keys(value).sort().join(',') !== PIN_KEYS.join(',')) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const pins = {};
+    for (const key of PIN_KEYS) {
+      const property = descriptors[key];
+      if (!property || !Object.hasOwn(property, 'value') ||
+          property.enumerable !== true ||
+          typeof property.value !== 'string' ||
+          !/^[a-f0-9]{64}$/u.test(property.value)) return null;
+      pins[key] = property.value;
+    }
+    return Object.freeze(pins);
+  } catch {
+    return null;
+  }
+}
 
 // Never fall back to following symlinks or opening a FIFO in blocking mode.
 const READ_ONLY_NO_FOLLOW = Number.isInteger(constants.O_NOFOLLOW) &&
@@ -44,10 +64,11 @@ export async function inspectFaiscaOfflineOperatorAggregate(options = {}) {
 }
 
 async function inspectUntrustedOfflineEvidence({ directory, outcome, expectedSha256 } = {}) {
+  const pins = expectedSha256 === undefined ? undefined : capturePins(expectedSha256);
   if (typeof directory !== 'string' || !isAbsolute(directory) ||
       normalize(directory) !== directory || directory.includes('\0') ||
       !OUTCOMES.has(outcome) || READ_ONLY_NO_FOLLOW === null ||
-      (expectedSha256 !== undefined && !validPins(expectedSha256))) {
+      (expectedSha256 !== undefined && !pins)) {
     throw new Error('R169 BLOCKED: invalid private audit configuration.');
   }
 
@@ -92,9 +113,9 @@ async function inspectUntrustedOfflineEvidence({ directory, outcome, expectedSha
       }
 
       const payload = buffer.subarray(0, bytes);
-      if (expectedSha256 !== undefined &&
+      if (pins !== undefined &&
           createHash('sha256').update(payload).digest('hex') !==
-          expectedSha256[name.slice(0, -'.json'.length)]) {
+          pins[name.slice(0, -'.json'.length)]) {
         throw new Error('R171 BLOCKED: evidence did not match independent pin.');
       }
       const raw = payload.toString('utf8');
