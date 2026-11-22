@@ -195,3 +195,36 @@ test('R65: rehashed extra response header and disabled method restriction are re
     await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }), /lost its private staging protections/);
   }
 });
+
+
+test('R229 blocks rehashed Nginx kit when duplicate Cache-Control disguises missing active CSP', async t => {
+  const { dir, manifestFile } = await fixture(t);
+  const original = await readFile(join(dir, 'ops/staging/nginx.conf'), 'utf8');
+  const cspLine = original.split(/\r?\n/).find(line =>
+    line.trim().startsWith('add_header Content-Security-Policy '));
+  assert.ok(cspLine, 'reviewed CSP line must exist');
+  // Keep the old literal marker in a COMMENT, which satisfies naive
+  // substring searches. Duplicate a permitted header instead of active CSP:
+  // the old same-length allowlist test incorrectly accepted this config.
+  const replacement = '    add_header Cache-Control "private, no-store, max-age=0" always;\n' +
+    '    # ' + cspLine.trim();
+  const changed = original.replace(cspLine, replacement);
+  assert.notEqual(changed, original);
+  assert.equal(changed.split(/\r?\n/).filter(line =>
+    line.trim().startsWith('add_header Content-Security-Policy ')).length, 0);
+  await rehashNginxFixture(dir, manifestFile, changed);
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
+    /lost its private staging protections/);
+});
+
+test('R229 blocks rehashed staging with extra alternate auth_basic_user_file', async t => {
+  const { dir, manifestFile } = await fixture(t);
+  const original = await readFile(join(dir, 'ops/staging/nginx.conf'), 'utf8');
+  const checked = 'auth_basic_user_file /etc/nginx/auth/.htpasswd;';
+  const changed = original.replace(checked,
+    checked + '\n    auth_basic_user_file /tmp/alternate-unaudited.htpasswd;');
+  assert.notEqual(changed, original);
+  await rehashNginxFixture(dir, manifestFile, changed);
+  await assert.rejects(verifyPrivateStagingKit({ kitDir: dir }),
+    /lost its private staging protections/);
+});

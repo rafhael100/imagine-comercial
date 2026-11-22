@@ -146,11 +146,17 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
   ];
   const actualHeaders = activeLines.filter(line => /^add_header\s/.test(line));
   const authLines = activeLines.filter(line => /^auth_basic\s/.test(line));
+  const authFileLines = activeLines.filter(line => /^auth_basic_user_file\s/.test(line));
   const activeConfig = activeLines.join('\n');
+  // R229: the previous same-length + allowlist check accepted a duplicate
+  // permitted header in place of a mandatory one (e.g. missing CSP with a
+  // second Cache-Control). Every reviewed header must occur EXACTLY once.
+  // Do not count directives preserved as comments or accept extra auth files.
   if (requiredActive.some(line => !active.has(line)) ||
       actualHeaders.length !== requiredHeaders.length ||
-      actualHeaders.some(line => !requiredHeaders.includes(line)) ||
+      requiredHeaders.some(line => actualHeaders.filter(actual => actual === line).length !== 1) ||
       authLines.length !== 1 || authLines[0] !== requiredActive[4] ||
+      authFileLines.length !== 1 || authFileLines[0] !== requiredActive[5] ||
       /\bauth_basic\s+off\s*;|\bsatisfy\s+any\s*;|\ballow\s+all\s*;/i.test(activeConfig)) {
     throw new Error('R38: review kit lost its private staging protections.');
   }
