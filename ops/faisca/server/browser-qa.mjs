@@ -241,6 +241,14 @@ try {
       const b = await open();
       await b.activate();
       await b.send('Quero organizar minhas vendas');
+      // The response handler decodes JSON asynchronously; the UI may render
+      // before its browser-level capture promise is registered on a busy CI
+      // runner. Wait for the one required session rather than weakening the
+      // assertion or assuming a missing session is valid.
+      await eventually(async () => {
+        await b.flush();
+        return b.sessions.length === 1;
+      }, 'second browser session response was not captured');
       assert.equal(b.sessions.length, 1);
       assert.ok(a.sessions[0].conversationId !== b.sessions[0].conversationId, 'independent conversations');
       assert.ok(a.sessions[0].token !== b.sessions[0].token, 'independent session credentials');
