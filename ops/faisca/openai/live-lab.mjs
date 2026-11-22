@@ -137,6 +137,26 @@ async function receiveBoundedResponse(response, signal, expectedModel) {
           usage.total_tokens !== usage.input_tokens + usage.output_tokens))) {
     throw new Error('OpenAI private test unavailable.');
   }
+  // R219: cached/reasoning counters are subsets, not extra tokens.
+  // Reject contradictory optional detail receipts before returning either
+  // model's result. Never credit/refund a reserved paid dispatch on ambiguity.
+  // Unknown future detail keys remain untouched; only defined counters are
+  // checked, without widening the provider's trusted output surface.
+  for (const [detailKey, tokenKey, limit] of [
+    ['input_tokens_details', 'cached_tokens', usage.input_tokens],
+    ['output_tokens_details', 'reasoning_tokens', usage.output_tokens]
+  ]) {
+    if (!Object.hasOwn(usage, detailKey)) continue;
+    const details = usage[detailKey];
+    if (!details || typeof details !== 'object' || Array.isArray(details)) {
+      throw new Error('OpenAI private test unavailable.');
+    }
+    if (Object.hasOwn(details, tokenKey) &&
+        (!Number.isSafeInteger(details[tokenKey]) ||
+         details[tokenKey] < 0 || details[tokenKey] > limit)) {
+      throw new Error('OpenAI private test unavailable.');
+    }
+  }
   let parsed;
   try { parsed = JSON.parse(output[0].content[0].text); }
   catch { throw new Error('OpenAI private test unavailable.'); }
