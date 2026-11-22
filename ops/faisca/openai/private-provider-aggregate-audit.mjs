@@ -1,5 +1,5 @@
 import {
-  validFaiscaLocalLedgerSnapshot,
+  captureFaiscaLocalLedgerSnapshot,
   classifyFaiscaFailedPositiveReservations
 } from './private-ledger-sequence-proof.mjs';
 
@@ -38,19 +38,26 @@ function validAggregateEvidence(value) {
  * actual billing proof, reconciliation, refund or a release gate approval.
  */
 export function auditFaiscaPrivateProviderAggregate({ before, after, evidence, outcome } = {}) {
-  let status = 'BLOCKED_INVALID_INPUT';
+  // R225: a single reused mutable object cannot be both independent
+  // "before" and "after" evidence. Reject identity aliasing explicitly,
+  // even for a zero-reservation rejected attempt; never report a match.
+  const aliasedEvidence = before !== null && before !== undefined && before === after;
+  const prior = aliasedEvidence ? null : captureFaiscaLocalLedgerSnapshot(before);
+  const next = aliasedEvidence ? null : captureFaiscaLocalLedgerSnapshot(after);
+  let status = aliasedEvidence
+    ? 'BLOCKED_ALIASED_LEDGER_SNAPSHOTS' : 'BLOCKED_INVALID_INPUT';
   let localRequests = null;
   let localReservedMicros = null;
-  if (['success', 'failed_luna', 'failed_terra', 'rejected'].includes(outcome) &&
-      validFaiscaLocalLedgerSnapshot(before) &&
-      validFaiscaLocalLedgerSnapshot(after) &&
-      before.limitRequests === after.limitRequests &&
-      before.limitMicros === after.limitMicros) {
-    localRequests = classifyFaiscaFailedPositiveReservations(before, after);
+  if (!aliasedEvidence &&
+      ['success', 'failed_luna', 'failed_terra', 'rejected'].includes(outcome) &&
+      prior && next &&
+      prior.limitRequests === next.limitRequests &&
+      prior.limitMicros === next.limitMicros) {
+    localRequests = classifyFaiscaFailedPositiveReservations(prior, next);
     if (localRequests === null) {
       status = 'BLOCKED_LEDGER_DELTA';
     } else {
-      localReservedMicros = after.reservedMicros - before.reservedMicros;
+      localReservedMicros = next.reservedMicros - prior.reservedMicros;
       if (!validAggregateEvidence(evidence)) {
         status = 'BLOCKED_INVALID_EVIDENCE';
       } else {
