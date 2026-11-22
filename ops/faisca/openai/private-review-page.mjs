@@ -202,6 +202,7 @@ function privateBrowserReplyEgressSafe(value) {
     privateBrowserOpaqueEncodingRisk.test(normalized) ||
     privateBrowserNetworkAddressRisk(normalized) ||
     privateBrowserSecretRisk.test(normalized) ||
+    privateBrowserInstructionOverrideRisk(normalized) ||
     /(?:\p{Nd}[\s\p{Zs}\p{Pd}().+\/,\u066B\u066C\u060C]*){7,}/u.test(normalized) ||
     /\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|dominio|campanha|loja|anuncio)\s+(?:(?:ja|foi|esta|ficou)\s+){1,3}(?:publicad[ao]|ativad[ao]|entregue|configurad[ao]|rodando|no\s+ar|online)\b/u.test(normalized) ||
     privateBrowserUnsupportedAuthority.test(normalized) ||
