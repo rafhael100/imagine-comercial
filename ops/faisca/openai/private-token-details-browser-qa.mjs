@@ -47,7 +47,7 @@ function lab(ledger, transport) {
   });
 }
 // R222: audit the durable store's *actual bytes*, not only the browser UI.
- // Synthetic identifiers must never be recorded in any ledger/witness/marker.
+// Synthetic identifiers must never be recorded in any ledger/witness/marker.
 async function assertNoPrivateTranscriptOnDisk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   assert.ok(entries.length >= 2, 'Durable reservation and witness exist');
