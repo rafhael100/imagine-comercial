@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { PRIVATE_REVIEW_JS } from '../ops/faisca/openai/private-review-page.mjs';
+import { reviewedFixedReceiptSources } from './faisca-r211-fixed-receipt-fixture.mjs';
 
 const privateToken = 'R90_SYNTHETIC_BROWSER_TOKEN_1234567890';
 const approved = Object.freeze({
   schema: 'faisca.openai-private-review-response.v1',
   status: 'draft_answer', syntheticCaseId: 'compare',
   answer: 'A Imagine orienta a diferença entre Onepage e Landing Page a partir de conteúdo editorial revisado.',
-  sources: ['faisca.passage.onepage.description@r06-1'],
+  sources: reviewedFixedReceiptSources('compare'),
   models: ['gpt-6-luna','gpt-6.1-terra'], sourceRecipeBound: true,
   requiresEditorialReview: true, publicReady: false, operationalEffects: false
 });
