@@ -86,7 +86,14 @@ async function walkFiles(root, captureCore = null) {
             depth >= MAX_DEPTH) {
           throw new Error('R232: unsafe or excessive private kit directory.');
         }
+        // R233: directories are not included in the manifest. A new empty
+        // subtree otherwise changes no file hash or count and silently passes.
+        // Require every accepted directory to contain an inventoried file.
+        const filesBefore = files.length;
         await walk(full, depth + 1);
+        if (files.length === filesBefore) {
+          throw new Error('R233: private kit contains an unlisted empty directory.');
+        }
         continue;
       }
       if (path === 'Faisca_R38_MANIFEST.json') continue;
