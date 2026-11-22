@@ -28,6 +28,34 @@ export function validFaiscaLocalLedgerSnapshot(value) {
   return true;
 }
 
+/**
+ * R224: an inspector may accidentally reuse a mutable object for successive
+ * reads. A live object is not historical evidence: a later in-place update
+ * could silently rewrite the "before" counters and hide a reservation.
+ * Copy ONLY the nine reviewed own data properties, reject accessors and
+ * extra/symbol keys, and freeze the returned point-in-time observation.
+ * This does not establish process atomicity or provider billing.
+ */
+export function captureFaiscaLocalLedgerSnapshot(value) {
+  try {
+    if (!value || typeof value !== 'object' || Array.isArray(value) ||
+        Object.getPrototypeOf(value) !== Object.prototype ||
+        Reflect.ownKeys(value).length !== 9 ||
+        Object.keys(value).sort().join(',') !== FIELDS) return null;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const snapshot = {};
+    for (const key of FIELDS.split(',')) {
+      const descriptor = descriptors[key];
+      if (!descriptor || !Object.hasOwn(descriptor, 'value') ||
+          descriptor.enumerable !== true) return null;
+      snapshot[key] = descriptor.value;
+    }
+    return validFaiscaLocalLedgerSnapshot(snapshot) ? Object.freeze(snapshot) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function matchFaiscaLocalLedgerDelta(before, after, expectedRequests) {
   if (!validFaiscaLocalLedgerSnapshot(before) ||
       !validFaiscaLocalLedgerSnapshot(after) ||
