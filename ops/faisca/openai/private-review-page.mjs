@@ -1,4 +1,6 @@
 import { getGroundingSources } from '../grounding/catalog.mjs';
+import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
+import { FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from './private-conversation-policy.mjs';
 
@@ -13,6 +15,17 @@ const REVIEWED_PRIVATE_EDITORIAL_RECEIPTS = Object.freeze(
     .map(reply => Object.freeze({
       text: reply.text, sources: reply.sources.map(source => source.id)
     }))
+);
+
+// R211: pin each fixed scenario to the *ordered* approved source receipts
+// selected by the host router, rather than trusting an HTTP 200 boolean and
+// any unrelated ID from the global catalog. This is not semantic fact-checking.
+const REVIEWED_PRIVATE_FIXED_SOURCE_SETS = Object.freeze(
+  Object.fromEntries(Object.entries(FAISCA_OPENAI_TEST_CASES).map(([caseId, question]) => [
+    caseId, Object.freeze(retrieveCandidateAnswerIds(question)
+      .map(answerId => getGroundedAnswer(answerId)?.sources.map(source => source.id) ?? [])
+      .filter(ids => ids.length > 0))
+  ]))
 );
 
 // Browser presentation of fixed cases and optional operator-attested fictional questions.
@@ -115,6 +128,7 @@ const answer = document.getElementById('review-answer');
 const sources = document.getElementById('review-sources');
 const validCases = new Set(['compare','process','pricing']);
 const reviewedPrivateSourceIds = new Set(${JSON.stringify(REVIEWED_PRIVATE_SOURCE_IDS)});
+const reviewedPrivateFixedSourceSets = ${JSON.stringify(REVIEWED_PRIVATE_FIXED_SOURCE_SETS)};
 const reviewedPrivateEditorialReceipts = ${JSON.stringify(REVIEWED_PRIVATE_EDITORIAL_RECEIPTS)};
 const reviewedPrivateConfirmationText = ${JSON.stringify(PRIVATE_CONVERSATION_CONFIRMATION_TEXT)};
 function privateBrowserInstructionOverrideRisk(text) {
@@ -361,6 +375,12 @@ form?.addEventListener('submit', async event => {
     // An HTTP 200 may contain an allowed citation but a fabricated editorial
     // answer. The private browser validates exact reviewed pricing/process
     // text and source order independently of the server's receipt boolean.
+    const fixedSourceReceiptOk = !fixed || (
+      Array.isArray(data?.sources) &&
+      reviewedPrivateFixedSourceSets[caseId]?.some(approved =>
+        data.sources.length === approved.length &&
+        approved.every((id, index) => data.sources[index] === id))
+    );
     const editorialReceiptOk = fixed || !editorial ||
       (Array.isArray(data?.sources) && reviewedPrivateEditorialReceipts.some(receipt =>
         data.answer === receipt.text &&
@@ -378,7 +398,7 @@ form?.addEventListener('submit', async event => {
     // when the free editorial response matches the exact pinned text and
     // ordered sources. Never relax this for model output or fixed scenarios.
     const pinnedEditorialLinefeeds = !fixed && editorial && editorialReceiptOk;
-    if (!validStatus || !sourcesOk || !modelsOk || !editorialReceiptOk ||
+    if (!validStatus || !sourcesOk || !modelsOk || !fixedSourceReceiptOk || !editorialReceiptOk ||
         !confirmationReceiptOk ||
         data?.schema !== (fixed
           ? 'faisca.openai-private-review-response.v1'
