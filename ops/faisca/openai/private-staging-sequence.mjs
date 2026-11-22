@@ -79,6 +79,24 @@ export async function inspectFaiscaPrivateConversationSequence({
     }
   }
 
+  // R223: a failed privacy probe is NOT proof that no paid reservation
+  // happened. Always inspect the durable ledger again before reporting the
+  // negative failure. A changed/invalid/unreadable ledger is a stronger
+  // BLOCKED_LEDGER_GATE, never a reason to retry or send the positive question.
+  async function blockedNegativeWithAudit(negative) {
+    if (inspectLedger) {
+      try {
+        const afterNegative = await inspectLedger();
+        if (!matchFaiscaLocalLedgerDelta(ledgerBefore, afterNegative, 0)) {
+          return report('BLOCKED_LEDGER_GATE', negative);
+        }
+      } catch {
+        return report('BLOCKED_LEDGER_GATE', negative);
+      }
+    }
+    return report('BLOCKED_NEGATIVE_GATE', negative);
+  }
+
   let negative;
   try {
     negative = await inspectFaiscaPrivateNegativeConversation({
@@ -86,13 +104,13 @@ export async function inspectFaiscaPrivateConversationSequence({
       timeoutMs: negativeTimeoutMs
     });
   } catch {
-    return report('BLOCKED_NEGATIVE_GATE');
+    return blockedNegativeWithAudit();
   }
   if (negative?.status !== 'PRIVATE_NEGATIVE_CONVERSATION_VERIFIED' ||
       negative.assetRequests !== 4 || negative.apiRequests !== 1 ||
       negative.negativeInputRejected !== true ||
       negative.publicReady !== false || negative.operationalEffects !== false) {
-    return report('BLOCKED_NEGATIVE_GATE', negative);
+    return blockedNegativeWithAudit(negative);
   }
 
   if (inspectLedger) {
