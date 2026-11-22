@@ -151,6 +151,39 @@ test('R237 fails closed on missing, additional, unlimited or executable runtime 
   assert.equal(review({inspect:bytes,...params()}).reportedBoundedNoexecTmpfs,true);
 });
 
+test('R238 denies host namespaces, devices and undocumented host overrides',()=>{
+  attack(v=>{v.HostConfig.PidMode='host';});
+  attack(v=>{v.HostConfig.PidMode='container:other';});
+  attack(v=>{v.HostConfig.IpcMode='host';});
+  attack(v=>{v.HostConfig.IpcMode='container:other';});
+  attack(v=>{v.HostConfig.UTSMode='host';});
+  attack(v=>{v.HostConfig.UsernsMode='host';});
+  attack(v=>{v.HostConfig.CgroupnsMode='host';});
+  attack(v=>{v.HostConfig.Devices=[{PathOnHost:'/dev/kvm'}];});
+  attack(v=>{v.HostConfig.DeviceRequests=[{Driver:'nvidia'}];});
+  attack(v=>{v.HostConfig.DeviceCgroupRules=['a *:* rwm'];});
+  attack(v=>{v.HostConfig.GroupAdd=['docker'];});
+  attack(v=>{v.HostConfig.ExtraHosts=['host.docker.internal:host-gateway'];});
+  attack(v=>{v.HostConfig.Links=['another:other'];});
+  attack(v=>{v.HostConfig.Dns=['8.8.8.8'];});
+  attack(v=>{v.HostConfig.DnsOptions=['use-vc'];});
+  attack(v=>{v.HostConfig.DnsSearch=['internal.local'];});
+  attack(v=>{v.HostConfig.Sysctls={'net.ipv4.ip_forward':'1'};});
+  attack(v=>{v.HostConfig.OomKillDisable=true;});
+  const safe=fixture();
+  Object.assign(safe.HostConfig,{
+    PidMode:'private',IpcMode:'private',UTSMode:'private',
+    UsernsMode:'',CgroupnsMode:'private',
+    Devices:[],DeviceRequests:null,DeviceCgroupRules:[],
+    GroupAdd:null,ExtraHosts:[],Links:[],Dns:[],
+    DnsOptions:null,DnsSearch:null,Sysctls:{},OomKillDisable:false
+  });
+  const passed=review({inspect:safe,...params()});
+  assert.equal(passed.reportedNoExplicitHostNamespaceOrDevices,true);
+  assert.equal(passed.effectiveUserAndCgroupNamespacesIndependentlyVerified,false);
+  assert.equal(passed.approvalToDeploy,false);
+});
+
 test('R236 CLI processes only one bounded operator-supplied inspect JSON, never Docker',()=>{
   const script = fileURLToPath(new URL(
     '../scripts/faisca-review-running-container.mjs',import.meta.url));
