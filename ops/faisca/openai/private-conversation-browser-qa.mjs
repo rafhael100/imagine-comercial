@@ -160,6 +160,53 @@ try {
       assert.equal(calls, 0, 'HTTP substitution cannot trigger OpenAI usage');
     } finally { await page.unroute(path); }
   });
+  await step('R207 Chromium rejects bare host, contact digits, local IP and secret-shaped forged replies', async () => {
+    const samples = [
+      { text: 'Consulte exemplo.teste para conhecer dicas de páginas.', safe: false },
+      { text: 'O atendimento fictício usa o número 11987654321 para mensagens.', safe: false },
+      { text: 'Uma página fictícia está disponível em 127.1 para testes.', safe: false },
+      { text: 'Um identificador fictício sk-' + 'a'.repeat(28) + ' pode ser utilizado.', safe: false },
+      { text: 'Consulte https://exemplo.invalid para encontrar sugestões.', safe: false },
+      { text: 'Uma landing page organiza o conteúdo de um evento fictício.', safe: true }
+    ];
+    const path = '**/__faisca_openai_private/converse';
+    let current = null, received = 0;
+    await page.route(path, async route => {
+      received++;
+      assert.ok(current, 'Unexpected request after private failure');
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          schema: 'faisca.openai-private-conversation-response.v1',
+          status: 'general_answer', answer: current.text, sources: [],
+          models: ['gpt-6-luna', 'gpt-6.1-terra'],
+          sourceRecipeBound: false, requiresEditorialReview: true,
+          publicReady: false, operationalEffects: false
+        })
+      });
+    });
+    try {
+      for (const sample of samples) {
+        current = sample;
+        await page.locator('#review-token').fill(token);
+        await page.locator('#review-question').fill('Vale a pena usar uma landing page para divulgar um evento?');
+        await page.locator('#review-attestation').check();
+        await page.locator('#review-send').click();
+        await page.waitForFunction(safe => {
+          const state = document.querySelector('#review-status')?.textContent || '';
+          return safe ? state.includes('Resposta gerada.') : state.includes('não concluiu.');
+        }, sample.safe);
+        assert.equal(await page.locator('#review-answer').innerText(),
+          sample.safe ? sample.text : 'Resposta indisponível neste teste.');
+        assert.equal(await page.locator('#review-sources').innerText(), '');
+        assert.equal(await page.locator('#review-token').inputValue(), '');
+        assert.equal(await page.locator('#review-question').inputValue(), '');
+        assert.equal(await page.locator('#review-attestation').isChecked(), false);
+      }
+      assert.equal(received, samples.length);
+      assert.equal(calls, 0, 'Forged responses must not dispatch a paid request');
+    } finally { current = null; await page.unroute(path); }
+  });
   await step('R151 Chromium refuses credential-shaped input and forged HTTP 200 output', async () => {
     // No real secret appears in the repository: an obviously fake value
     // is assembled only in the running synthetic browser test.
