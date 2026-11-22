@@ -160,7 +160,7 @@ try {
       assert.equal(calls, 0, 'HTTP substitution cannot trigger OpenAI usage');
     } finally { await page.unroute(path); }
   });
-  await step('R207 Chromium rejects bare host, contact digits, local IP and secret-shaped forged replies', async () => {
+  await step('R208 Chromium rejects bare host, contact digits, local IP and secret-shaped forged replies', async () => {
     const samples = [
       { text: 'Consulte exemplo.teste para conhecer dicas de páginas.', safe: false },
       { text: 'O atendimento fictício usa o número 11987654321 para mensagens.', safe: false },
