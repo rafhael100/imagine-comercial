@@ -2,16 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { PRIVATE_REVIEW_JS } from '../ops/faisca/openai/private-review-page.mjs';
+import { reviewedFixedReceiptSources } from './faisca-r211-fixed-receipt-fixture.mjs';
 import { getGroundingSources } from '../ops/faisca/grounding/catalog.mjs';
 import { getGroundedAnswer } from '../ops/faisca/grounding/guide.mjs';
 import { PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from '../ops/faisca/openai/private-conversation-policy.mjs';
 
 const goodId = 'faisca.passage.onepage.description@r06-1';
 const inventedId = 'faisca.passage.imaginary-sale@r06-1';
+const fixedReceipt = reviewedFixedReceiptSources('compare');
 const neutral = 'Uma página fictícia pode apresentar informações gerais de um serviço.';
 const editorial = getGroundedAnswer('pricing');
 
-async function submitSyntheticResponse({ free, sourceId, answerText = free ? editorial.text : neutral, responseStatus }) {
+async function submitSyntheticResponse({ free, sourceId, sourcesOverride, answerText = free ? editorial.text : neutral, responseStatus }) {
   let submit;
   let calls = 0;
   const fields = new Map([
@@ -32,7 +34,7 @@ async function submitSyntheticResponse({ free, sourceId, answerText = free ? edi
     status: responseStatus ?? (free ? 'editorial_answer' : 'draft_answer'),
     ...(free ? {} : { syntheticCaseId: 'compare' }),
     answer: answerText,
-    sources: confirmation ? [] : [sourceId],
+    sources: confirmation ? [] : (sourcesOverride ?? [sourceId]),
     models: free ? [] : ['gpt-6-luna', 'gpt-6.1-terra'],
     sourceRecipeBound: !confirmation,
     requiresEditorialReview: true,
@@ -79,8 +81,10 @@ for (const free of [false, true]) {
   });
   test('R138: approved editorial ID remains displayable in ' +
     (free ? 'free editorial' : 'fixed') + ' synthetic fixture', async () => {
-    const approvedId = free ? editorial.sources[0].id : goodId;
-    const { calls, fields } = await submitSyntheticResponse({ free, sourceId: approvedId });
+    const approvedId = free ? editorial.sources[0].id : fixedReceipt[0];
+    const { calls, fields } = await submitSyntheticResponse({
+      free, sourceId: approvedId, sourcesOverride: free ? undefined : fixedReceipt
+    });
     assert.equal(calls, 1);
     assert.equal(fields.get('review-answer').textContent, free ? editorial.text : neutral);
     assert.ok(fields.get('review-sources').textContent.includes(approvedId));
