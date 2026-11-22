@@ -37,7 +37,9 @@ function fixture() {
       PublishAllPorts:false,Privileged:false,ReadonlyRootfs:true,
       RestartPolicy:{Name:'no'},PidsLimit:64,Memory:268435456,
       NanoCpus:500000000,CapDrop:['ALL'],CapAdd:null,
-      SecurityOpt:['no-new-privileges:true'],NetworkMode:project+'_default'
+      SecurityOpt:['no-new-privileges:true'],NetworkMode:project+'_default',
+      Tmpfs:{'/tmp':'rw,noexec,nosuid,size=32m',
+        '/var/run':'rw,noexec,nosuid,size=4m'}
     },
     NetworkSettings:{
       Ports:{'8080/tcp':[hostPort()],'8443/tcp':null},
@@ -60,6 +62,7 @@ test('R236 accepts only an operator-supplied matching inspect record with NO dep
   assert.equal(answer.status,'DOCKER_INSPECT_FIELDS_MATCH_REVIEW_ONLY');
   assert.equal(answer.reportedLoopbackBinding,true);
   assert.equal(answer.reportedUnprivilegedReadOnlyMounts,true);
+  assert.equal(answer.reportedBoundedNoexecTmpfs,true);
   assert.equal(answer.dockerAccessPerformedByThisModule,false);
   assert.equal(answer.actualNetworkExposureIndependentlyVerified,false);
   assert.equal(answer.imageProvenanceVerified,false);
