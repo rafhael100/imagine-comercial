@@ -22,6 +22,17 @@ const CASES = Object.freeze([
   Object.freeze({method:'GET',path:'/__faisca_preview/quote-bridge.js',frame:false}),
   Object.freeze({method:'HEAD',path:'/__faisca_preview/journey/',frame:true})
 ]);
+// R250: request-URI variants use the default DENY frame policy in the
+// reviewed Nginx config. An alias may never bypass Basic auth or silently
+// inherit SAMEORIGIN. These are fixed synthetic paths, never operator inputs.
+const ALIAS_CASES = Object.freeze([
+  Object.freeze({method:'GET',path:'/index.html',frame:false}),
+  Object.freeze({method:'GET',path:'/__faisca_preview/journey/index.html',frame:false}),
+  Object.freeze({method:'GET',path:'/__faisca_preview/support/index.html',frame:false}),
+  Object.freeze({method:'GET',path:'/__faisca_preview/quote-bridge.js?synthetic=1',frame:false}),
+  Object.freeze({method:'GET',path:'/__faisca_preview/journey/?synthetic=1',frame:false}),
+  Object.freeze({method:'HEAD',path:'/__faisca_preview/support/index.html',frame:false})
+]);
 function exactHeader(response, name, value) {
   const raw = response.rawHeaders;
   if (!Array.isArray(raw) || raw.length % 2 !== 0) fail();
@@ -153,6 +164,33 @@ export async function reviewFaiscaPrivateNoAuthLoopback({port=4337}={}) {
     observedOnLoopbackOnly:true,
     noCredentialsSent:true,
     protectedProbeCount:CASES.length,
+    authenticatedExperienceVerified:false,
+    operationalVpsIdentityVerified:false,
+    independentExposureVerified:false,
+    deploymentAuthorized:false,
+    deploymentPerformed:false,
+    publicFaiscaEnabled:false
+  });
+}
+
+/**
+ * R250: narrow, separately invocable review of index aliases and harmless
+ * query variants. Never accepts URLs, credentials, paths or headers from a
+ * caller. These variants must be 401/no-store/noindex and XFO DENY, unlike
+ * the two canonical frame paths. Does not authenticate or change the server.
+ */
+export async function reviewFaiscaPrivateNoAuthAliases({port=4337}={}) {
+  if(!Number.isInteger(port)||port<1||port>65535) fail();
+  try {
+    for(const check of ALIAS_CASES) await observe(port,check);
+  } catch { fail(); }
+  return Object.freeze({
+    schema:'faisca.private-staging-noauth-alias-http-review.v1',
+    status:'LOCAL_UNAUTHENTICATED_ALIAS_BOUNDARY_REVIEW_ONLY',
+    observedOnLoopbackOnly:true,
+    noCredentialsSent:true,
+    protectedProbeCount:ALIAS_CASES.length,
+    inspectedCanonicalAliasAndQueryVariants:true,
     authenticatedExperienceVerified:false,
     operationalVpsIdentityVerified:false,
     independentExposureVerified:false,
