@@ -15,6 +15,12 @@ const company = /\b(?:imagine|voces?|equipe|intern[oa]s?|cliente)\b/;
 // Prefer deterministic confirmation to a model-authored company assertion.
 const namedOperator = /\b(?:imagine|faisca|voces?)\b/;
 const indirectOperator = /\b(?:(?:a|essa|esta|sua|nossa)\s+(?:equipe|agencia|empresa)|(?:o|este|esse|seu|nosso)\s+(?:assistente|chatbot|bot))\b/;
+// R247: a question about the current service/support timetable is implicitly
+// about this operator even when the brand and "equipe" are omitted. Do not
+// let the general-topic models invent operating hours or human availability.
+// Anchor the phrase to the start to retain neutral "como melhorar..." advice.
+const operatorServiceAvailability = /^(?:(?:o|a|esse|essa|este|esta|seu|sua|nosso|nossa)\s+)?(?:atendimento|suporte|plantao|assistencia)\b.{0,60}\b(?:funciona|atende|esta|disponivel|aberto|online|horario|agora|hoje|amanha|sabados?|domingos?|feriados?|madrugada|24\s*horas?)\b/;
+const unverifiedFirstPartyAvailability = /\b(?:atendo|atendemos|atenderei|atenderemos|respondo|respondemos|responderei|responderemos|funcionamos|estamos\s+(?:disponiveis|abertos?|online)|ficamos\s+(?:disponiveis|abertos?|online)|o\s+atendimento\s+(?:esta|fica|funciona)\s+(?:disponivel|aberto|online))\b/;
 const broadProcess = /\b(?:como funciona|quais sao as etapas|quais as etapas|qual e o processo)\b/;
 const otherFlowDetails = /\b(?:layout|link|portal|prazo|aprov\w*|envi\w*|revis\w*|suporte|entrega\w*)\b/;
 const rejectInput = new Set(['sensitive_input', 'unsupported_instruction', 'invalid_input', 'too_long']);
@@ -37,7 +43,8 @@ export function privateConversationRoute(question) {
   }
   // An otherwise generic question about the Imagine/Faísca team must not
   // become a model-generated assertion of services, hours or availability.
-  if (namedOperator.test(text) || indirectOperator.test(text)) return 'confirm';
+  if (namedOperator.test(text) || indirectOperator.test(text) ||
+      operatorServiceAvailability.test(text)) return 'confirm';
   return 'classify';
 }
 
@@ -154,5 +161,6 @@ export function safePrivateGeneralReply(text) {
     !hasPrivateSyntheticInstructionOverrideRisk(text) &&
     !hasPrivateUnsupportedOutcomeGuarantee(text) && !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
     !indirectOperator.test(normalized) &&
+    !unverifiedFirstPartyAvailability.test(normalized) &&
     !/\b(?:nosso|nossa|oferecemos|entregamos|garantimos|aprovamos|enviamos|cobramos)\b/.test(normalized);
 }
