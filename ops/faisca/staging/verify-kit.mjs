@@ -89,7 +89,7 @@ const REVIEWED_COMPOSE_ACTIVE = Object.freeze([
   "environment:",
   "- TZ=UTC"
 ]);
-const activeConfigLines = text => text.split(/\\r?\\n/)
+const activeConfigLines = text => text.split(/\r?\n/)
   .map(line => line.replace(/#.*$/, '').trim()).filter(Boolean);
 
 function isSafePath(path) {
