@@ -92,7 +92,7 @@ test('R146 HTTP egress refuses forged fee from injected private adapter without 
 
 test('R146 browser final guard mirrors the numeric-currency check for forged HTTP 200', () => {
   // Extract only the pure egress helpers; do not need DOM, fetch or network.
-  const start = PRIVATE_REVIEW_JS.indexOf('const privateBrowserUnsupportedGuarantee');
+  const start = PRIVATE_REVIEW_JS.indexOf('function privateBrowserInstructionOverrideRisk');
   const end = PRIVATE_REVIEW_JS.indexOf('let pending = false;', start);
   assert.ok(start >= 0 && end > start, 'Extract reviewed pure browser guard');
   const guards = PRIVATE_REVIEW_JS.slice(start, end);
