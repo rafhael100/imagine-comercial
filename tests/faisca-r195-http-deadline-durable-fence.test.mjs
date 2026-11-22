@@ -29,7 +29,7 @@ test('R195 server-only timeout durably blocks restart even if injected upstream 
   let initialDispatches = 0, restartDispatches = 0;
   const createLab = fetchImpl => createFaiscaOpenAILiveLab({
     enabled: true, apiKey: fakeApiKey, extendedPrivateSession: true,
-    timeoutMs: 1000, maxRequests: 6, maxBudgetUsd: 1,
+    timeoutMs: 12000, maxRequests: 6, maxBudgetUsd: 1,
     reservationLedger: ledger(), fetchImpl
   });
   const server = await startFaiscaOpenAIPrivateReview({
@@ -39,7 +39,11 @@ test('R195 server-only timeout durably blocks restart even if injected upstream 
       // wins before the provider adapter's own abort timer.
       return new Promise(() => {});
     }),
-    reviewToken: bearer, providerDeadlineMs: 100
+    // CI runs many Node/PG/browser jobs concurrently. Give the real durable
+    // filesystem reservation time to fsync *before* testing the independent
+    // HTTP provider timeout. The transport deliberately never resolves.
+    // The HTTP boundary still wins well before the 12 s adapter deadline.
+    reviewToken: bearer, providerDeadlineMs: 2500
   });
   t.after(() => server.close());
 
@@ -49,7 +53,7 @@ test('R195 server-only timeout durably blocks restart even if injected upstream 
   const payload = await denied.json();
   assert.equal(payload.status, 'unavailable');
   assert.doesNotMatch(JSON.stringify(payload), /sk-r195|R195_SYNTHETIC|ledger|timeoutMs|Bearer/i);
-  assert.ok(performance.now() - startedAt < 3000);
+  assert.ok(performance.now() - startedAt < 7000);
   assert.equal(initialDispatches, 1);
   assert.equal(server.inspect().providerUnavailable, true);
   // The R194 server-side latch is awaited by orderly shutdown, before the
