@@ -13,7 +13,8 @@ const company = /\b(?:imagine|voces?|equipe|intern[oa]s?|cliente)\b/;
 // Without these terms a general-topic classifier could invent availability or
 // institutional capabilities without ever writing "Imagine" or "Faisca".
 // Prefer deterministic confirmation to a model-authored company assertion.
-const namedOperator = /\b(?:imagine|faisca|voces?|(?:a|essa|esta|sua|nossa)\s+(?:equipe|agencia|empresa)|(?:o|este|esse|seu|nosso)\s+(?:assistente|chatbot|bot))\b/;
+const namedOperator = /\b(?:imagine|faisca|voces?)\b/;
+const indirectOperator = /\b(?:(?:a|essa|esta|sua|nossa)\s+(?:equipe|agencia|empresa)|(?:o|este|esse|seu|nosso)\s+(?:assistente|chatbot|bot))\b/;
 const broadProcess = /\b(?:como funciona|quais sao as etapas|quais as etapas|qual e o processo)\b/;
 const otherFlowDetails = /\b(?:layout|link|portal|prazo|aprov\w*|envi\w*|revis\w*|suporte|entrega\w*)\b/;
 const rejectInput = new Set(['sensitive_input', 'unsupported_instruction', 'invalid_input', 'too_long']);
@@ -36,7 +37,7 @@ export function privateConversationRoute(question) {
   }
   // An otherwise generic question about the Imagine/Faísca team must not
   // become a model-generated assertion of services, hours or availability.
-  if (namedOperator.test(text)) return 'confirm';
+  if (namedOperator.test(text) || indirectOperator.test(text)) return 'confirm';
   return 'classify';
 }
 
@@ -151,6 +152,7 @@ export function safePrivateGeneralReply(text) {
   const normalized = normalize(text);
   return !hasPrivateIdentifierRisk(text) && !hasPrivateOperationalClaim(text) &&
     !hasPrivateSyntheticInstructionOverrideRisk(text) &&
-    !hasPrivateUnsupportedOutcomeGuarantee(text) && !money.test(normalized) && !namedOperator.test(normalized) &&
+    !hasPrivateUnsupportedOutcomeGuarantee(text) && !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
+    !indirectOperator.test(normalized) &&
     !/\b(?:nosso|nossa|oferecemos|entregamos|garantimos|aprovamos|enviamos|cobramos)\b/.test(normalized);
 }
