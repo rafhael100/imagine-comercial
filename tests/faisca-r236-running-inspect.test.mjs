@@ -129,6 +129,28 @@ test('R236 pins expected Compose identity and excludes other services',()=>{
   assert.throws(()=>review({inspect:fixture(),...params(),expectedSitePath:'relative'}),/R236/);
   assert.throws(()=>review({inspect:fixture(),...params(),expectedAuthPath:site}),/R236/);
 });
+test('R237 fails closed on missing, additional, unlimited or executable runtime tmpfs',()=>{
+  attack(v=>{delete v.HostConfig.Tmpfs;});
+  attack(v=>{v.HostConfig.Tmpfs=null;});
+  attack(v=>{v.HostConfig.Tmpfs={};});
+  attack(v=>{delete v.HostConfig.Tmpfs['/tmp'];});
+  attack(v=>{v.HostConfig.Tmpfs['/secrets']='rw,noexec,nosuid,size=4m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,exec,nosuid,size=32m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,suid,size=32m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,nosuid,size=1g';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,nosuid';});
+  attack(v=>{v.HostConfig.Tmpfs['/var/run']='rw,noexec,nosuid,size=32m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,nosuid,size=32m,exec';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,noexec,size=32m';});
+  attack(v=>{v.HostConfig.Tmpfs['/tmp']='rw,noexec,nosuid,size=0';});
+  const bytes=fixture();
+  bytes.HostConfig.Tmpfs={
+    '/tmp':'size=33554432,nosuid,rw,noexec',
+    '/var/run':'nosuid,size=4194304,noexec,rw'
+  };
+  assert.equal(review({inspect:bytes,...params()}).reportedBoundedNoexecTmpfs,true);
+});
+
 test('R236 CLI processes only one bounded operator-supplied inspect JSON, never Docker',()=>{
   const script = fileURLToPath(new URL(
     '../scripts/faisca-review-running-container.mjs',import.meta.url));
