@@ -355,7 +355,17 @@ form?.addEventListener('submit', async event => {
       credentials:'omit', cache:'no-store', referrerPolicy:'no-referrer',
       signal:controller.signal
     }, controller.signal);
-    if (response.status !== 200) throw new Error('review_unavailable');
+    // R207: never parse or display an HTTP 200 from an unexpected endpoint,
+    // redirected destination or non-JSON media type. Redirects are already
+    // refused by fetch; keep an independent final-response boundary for
+    // injected transports, proxies and browser regression tests.
+    const expectedResponseUrl = new URL('/__faisca_openai_private/' + endpoint, window.location.origin).href;
+    const responseType = response.headers.get('content-type')?.trim().toLowerCase().replaceAll(' ', '');
+    if (response.status !== 200 || response.redirected === true ||
+        response.url !== expectedResponseUrl ||
+        !['application/json', 'application/json;charset=utf-8'].includes(responseType)) {
+      throw new Error('review_unavailable');
+    }
     const data = await readBoundedPrivateJson(response, controller.signal);
     // A bfcache restoration must not render a late response belonging to a
     // session the operator already left, even if abort was ignored by fetch.
