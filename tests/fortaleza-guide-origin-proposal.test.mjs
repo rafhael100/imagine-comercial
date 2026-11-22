@@ -60,6 +60,9 @@ test('F361 candidate renders contextual CTA only for the existing guide',()=>{
   assert.match(source,/article.slug===reviewedFortalezaGuideContact.articleSlug/);
   assert.match(source,/data-guide-origin-proposal/);
   assert.match(source,/data-guide-origin-email/);
+  assert.match(source,/data-guide-proposal-preview/);
+  assert.match(source,/data-guide-proposal-message/);
+  assert.match(source,/data-guide-proposal-subject/);
   assert.match(source,/guide-channel-notice/);
   assert.match(source,/href=\{contactIntent.href\}/);
   assert.match(source,/href="\/contato\/"/);

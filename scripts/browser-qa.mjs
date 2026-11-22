@@ -874,6 +874,19 @@ try {
         reviewedFortalezaGuideContact.message));
     assert.equal(await emailProposal.getAttribute('aria-describedby'),'guide-channel-notice');
     assert.equal(await page.locator('#guide-channel-notice').isVisible(),true);
+    // F363: the exact editorial provenance is visible *before* any external
+    // application opens. Both channels must prepare the same reviewed body.
+    const messagePreview=page.locator('[data-guide-proposal-preview]');
+    assert.equal(await messagePreview.count(),1);
+    assert.equal(await messagePreview.getAttribute('open'),null);
+    await messagePreview.locator('summary').click();
+    const shownMessage=(await messagePreview.locator('[data-guide-proposal-message]').textContent()).trim();
+    const shownSubject=(await messagePreview.locator('[data-guide-proposal-subject]').textContent()).trim();
+    assert.equal(shownMessage,reviewedFortalezaGuideContact.message);
+    assert.equal(shownMessage,new URL(await originCta.getAttribute('href')).searchParams.get('text'));
+    assert.equal(shownMessage,new URL(await emailProposal.getAttribute('href')).searchParams.get('body'));
+    assert.equal(shownSubject,new URL(await emailProposal.getAttribute('href')).searchParams.get('subject'));
+    assert.equal(await messagePreview.locator('input,textarea,form').count(),0);
     assert.equal(await page.locator('a[href="/servicos/criacao-de-sites/"]').count()>0,true,
       'F361 existing service/guide internal link retained');
     assert.equal(await page.locator('form,input,textarea').count(),0,
@@ -883,6 +896,8 @@ try {
       'F361 no source message on unrelated guides');
     assert.equal(await page.locator('[data-guide-origin-email]').count(),0,
       'F362 no source-specific email on unrelated guides');
+    assert.equal(await page.locator('[data-guide-proposal-preview]').count(),0,
+      'F363 no Fortaleza message preview on unrelated guides');
 
 
     // F65: public FAQs require no client-side scripts or personal data.
