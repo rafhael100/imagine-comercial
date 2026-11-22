@@ -35,7 +35,7 @@ function isSafePath(path) {
 function isSafeDirectory(path) {
   return path === 'site' || path === 'ops' || path === 'ops/staging' ||
     (path.startsWith('site/') && path.length <= 300 &&
-      new RegExp('^(?:[A-Za-z0-9._-]+/)*[A-Za-z0-9._-]+
+      new RegExp('^(?:[A-Za-z0-9._-]+/)*[A-Za-z0-9._-]+$').test(path) &&
       !path.split('/').some(part => part === '.' || part === '..'));
 }
 
