@@ -28,6 +28,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: R213 bloquear assets privados acima de 24 KiB antes dos testes longos
+        run: node ops/faisca/openai/private-asset-size-gate.mjs --verify
       - name: Testar núcleo e integridade da demonstração
         run: node --test tests/faisca-*.test.mjs
       - name: Avaliar perguntas R14 em corpus sintético e registrar somente contagens
