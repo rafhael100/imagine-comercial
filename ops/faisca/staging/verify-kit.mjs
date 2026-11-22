@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { lstat, realpath, readdir, open } from 'node:fs/promises';
+import { lstat, realpath, opendir, open } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { resolve, dirname, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -7,6 +7,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 export const STAGING_KIT_SCHEMA = 'faisca.static-private-staging-kit.v1';
 const MAX_MANIFEST_BYTES = 128 * 1024;
 const MAX_FILES = 390;
+const MAX_DIRS = MAX_FILES;
+const MAX_ENTRIES = MAX_FILES * 2 + 8;
+const MAX_DEPTH = 24;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 180 * 1024 * 1024;
 const sha = data => createHash('sha256').update(data).digest('hex');
@@ -31,6 +34,13 @@ function isSafePath(path) {
 // R231: read from a stable bounded FD to hash and inspect the exact same
 // bytes. readFile() can grow without bound after stat; hardlinks invite
 // external changes to the supposedly self-contained review kit.
+function isSafeDirectory(path) {
+  return path === 'site' || path === 'ops' || path === 'ops/staging' ||
+    (path.startsWith('site/') && path.length <= 300 &&
+      /^(?:[A-Za-z0-9._-]+\\/)*[A-Za-z0-9._-]+$/.test(path) &&
+      !path.split('/').some(part => part === '.' || part === '..'));
+}
+
 async function readBoundedKitFile(full, limit) {
   let handle;
   try {
@@ -61,12 +71,26 @@ async function readBoundedKitFile(full, limit) {
 async function walkFiles(root, captureCore = null) {
   const files = [];
   let totalBytes = 0;
-  async function walk(folder) {
-    for (const dirent of await readdir(folder, { withFileTypes: true })) {
+  let directoriesSeen = 0;
+  let entriesSeen = 0;
+  // R232: stream directory entries, rather than allocating an unbounded
+  // readdir array before the MAX_FILES check. Empty directories count too.
+  async function walk(folder, depth = 0) {
+    for await (const dirent of await opendir(folder)) {
+      if (++entriesSeen > MAX_ENTRIES) {
+        throw new Error('R232: private kit directory entry limit exceeded.');
+      }
       if (dirent.isSymbolicLink()) throw new Error('R38: symlink forbidden in review kit.');
       const full = resolve(folder, dirent.name);
       const path = relative(root, full).split(sep).join('/');
-      if (dirent.isDirectory()) { await walk(full); continue; }
+      if (dirent.isDirectory()) {
+        if (!isSafeDirectory(path) || ++directoriesSeen > MAX_DIRS ||
+            depth >= MAX_DEPTH) {
+          throw new Error('R232: unsafe or excessive private kit directory.');
+        }
+        await walk(full, depth + 1);
+        continue;
+      }
       if (path === 'Faisca_R38_MANIFEST.json') continue;
       if (!dirent.isFile() || !isSafePath(path) || files.length >= MAX_FILES) {
         throw new Error('R38: unexpected file in review kit.');
