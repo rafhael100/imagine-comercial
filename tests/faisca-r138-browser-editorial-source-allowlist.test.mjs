@@ -52,7 +52,7 @@ async function submitSyntheticResponse({ free, sourceId, answerText = free ? edi
       calls++;
       assert.equal(path, '/__faisca_openai_private/' + (free ? 'converse' : 'respond'));
       assert.equal(options.credentials, 'omit');
-      return Promise.resolve(new Response(JSON.stringify(response), { status: 200 }));
+      return Promise.resolve(new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } }));
     }
   }, { filename: 'faisca-r138-private-browser.js', timeout: 1000 });
   assert.equal(typeof submit, 'function');

@@ -158,7 +158,7 @@ async function privateBrowserRun(text, free) {
       requests++;
       assert.equal(path, '/__faisca_openai_private/' + (free ? 'converse' : 'respond'));
       assert.equal(options.credentials, 'omit');
-      return Promise.resolve(new Response(JSON.stringify(response), { status: 200 }));
+      return Promise.resolve(new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } }));
     }
   }, { filename: 'faisca-r147-browser.js', timeout: 1000 });
   await submit({ preventDefault() {} });

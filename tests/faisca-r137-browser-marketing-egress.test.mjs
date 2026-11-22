@@ -46,7 +46,7 @@ async function browserFixture(text, free) {
       assert.equal(path, '/__faisca_openai_private/' + (free ? 'converse' : 'respond'));
       assert.equal(options.credentials, 'omit');
       assert.equal(options.headers.Authorization, 'Bearer ' + token);
-      return Promise.resolve(new Response(JSON.stringify(data), { status: 200 }));
+      return Promise.resolve(new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } }));
     }
   }, { filename: 'faisca-r137-browser.js', timeout: 1000 });
   await submit({ preventDefault() {} });
