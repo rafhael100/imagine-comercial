@@ -199,3 +199,43 @@ export async function reviewFaiscaPrivateNoAuthAliases({port=4337}={}) {
     publicFaiscaEnabled:false
   });
 }
+
+/**
+ * R251: a reverse proxy may normalize repeated slashes or percent-encoded
+ * unreserved characters before filesystem lookup. The reviewed Nginx frame
+ * policy intentionally keys off the ORIGINAL request URI, so none of these
+ * noncanonical requests is allowed to inherit SAMEORIGIN or bypass Basic auth.
+ * These are fixed, harmless GET/HEAD requests without credentials or bodies.
+ */
+const NONCANONICAL_CASES = Object.freeze([
+  Object.freeze({method:'GET',path:'/%69ndex.html',frame:false}),
+  Object.freeze({method:'GET',path:'//index.html',frame:false}),
+  Object.freeze({method:'GET',path:'/__faisca_preview/%6aourney/',frame:false}),
+  Object.freeze({method:'GET',path:'/__faisca_preview/support/%69ndex.html',frame:false}),
+  Object.freeze({method:'GET',path:'/__faisca_preview/journey//',frame:false}),
+  Object.freeze({method:'GET',path:'/__faisca_preview/journey/?synthetic=1&x=2',frame:false}),
+  Object.freeze({method:'HEAD',path:'/__faisca_preview/journey/index.html',frame:false}),
+  Object.freeze({method:'HEAD',path:'/__faisca_preview/quote-bridge.js?synthetic=1',frame:false})
+]);
+
+export async function reviewFaiscaPrivateNoAuthCanonicalization({port=4337}={}) {
+  if(!Number.isInteger(port)||port<1||port>65535) fail();
+  try {
+    for (const check of NONCANONICAL_CASES) await observe(port, check);
+  } catch { fail(); }
+  return Object.freeze({
+    schema:'faisca.private-staging-noauth-canonicalization-http-review.v1',
+    status:'LOCAL_UNAUTHENTICATED_NONCANONICAL_PATH_REVIEW_ONLY',
+    observedOnLoopbackOnly:true,
+    noCredentialsSent:true,
+    protectedProbeCount:NONCANONICAL_CASES.length,
+    noncanonicalGetHeadPathsInspected:true,
+    authenticatedExperienceVerified:false,
+    actualRequestNormalizationIndependentlyVerified:false,
+    operationalVpsIdentityVerified:false,
+    independentExposureVerified:false,
+    deploymentAuthorized:false,
+    deploymentPerformed:false,
+    publicFaiscaEnabled:false
+  });
+}
