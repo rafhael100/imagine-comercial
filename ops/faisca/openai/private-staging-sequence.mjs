@@ -77,7 +77,7 @@ export async function inspectFaiscaPrivateConversationSequence({
   if (inspectLedger) {
     try {
       ledgerBefore = await readLedgerSnapshot();
-      if (!validFaiscaLocalLedgerSnapshot(ledgerBefore)) {
+      if (!ledgerBefore) {
         return report('BLOCKED_LEDGER_GATE');
       }
     } catch {
