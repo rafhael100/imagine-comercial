@@ -94,3 +94,16 @@ test('R228 refuses noncanonical CRLF bytes with matching SHA and keeps error san
   await writeFile(join(directory, 'after.json'), bytes, { mode: 0o600 });
   await assertBlocked(directory, pins);
 });
+
+test('R228 regression: lossy string equality alone accepts malformed UTF-8', () => {
+  const payload = Buffer.from([0x7b, 0x22, 0x78, 0x22, 0x3a, 0x22, 0x61,
+    0xff, 0x62, 0x22, 0x7d, 0x0a]);
+  const lossy = payload.toString('utf8');
+  assert.equal(lossy, JSON.stringify(JSON.parse(lossy)) + '\n',
+    'the old string comparison cannot establish canonical bytes');
+  assert.throws(
+    () => new TextDecoder('utf-8', { fatal: true }).decode(payload),
+    { name: 'TypeError' }
+  );
+  assert.notDeepEqual(payload, Buffer.from(lossy, 'utf8'));
+});
