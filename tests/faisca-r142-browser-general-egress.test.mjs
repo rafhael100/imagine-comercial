@@ -39,7 +39,7 @@ async function renderGeneralFixture(reply) {
         models: ['gpt-6-luna', 'gpt-6.1-terra'],
         sourceRecipeBound: false, requiresEditorialReview: true,
         publicReady: false, operationalEffects: false
-      }), { status: 200 }));
+      }), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } }));
     }
   }, { filename: 'faisca-r142-browser.js', timeout: 1000 });
   assert.equal(typeof submit, 'function');
