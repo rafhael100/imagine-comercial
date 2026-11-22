@@ -74,6 +74,32 @@ function boundedTmpfs(host) {
     insist(typeof size === 'string' && sizes.includes(size.slice(5)));
   }
 }
+/**
+ * Docker inspect can report host namespace sharing or direct device passthrough
+ * independently of the inspected bind mounts. The Compose policy does not
+ * request any of these capabilities; explicit overrides must fail closed.
+ * Empty daemon-default strings are NOT proof of effective user/cgroup isolation.
+ */
+function namespaceAndDevices(host) {
+  const mode = (value, safe) => value === undefined || value === null ||
+    safe.includes(value);
+  const emptyList = value => value === undefined || value === null ||
+    (Array.isArray(value) && value.length === 0);
+  insist(mode(host.PidMode, ['', 'private']) &&
+    mode(host.IpcMode, ['', 'none', 'private', 'shareable']) &&
+    mode(host.UTSMode, ['', 'private']) &&
+    mode(host.UsernsMode, ['', 'private']) &&
+    mode(host.CgroupnsMode, ['', 'private']) &&
+    emptyList(host.Devices) && emptyList(host.DeviceRequests) &&
+    emptyList(host.DeviceCgroupRules) && emptyList(host.GroupAdd) &&
+    emptyList(host.ExtraHosts) && emptyList(host.Links) &&
+    emptyList(host.Dns) && emptyList(host.DnsOptions) &&
+    emptyList(host.DnsSearch) &&
+    (host.Sysctls === undefined || host.Sysctls === null ||
+      (plain(host.Sysctls) && Object.keys(host.Sysctls).length === 0)) &&
+    (host.OomKillDisable === undefined ||
+      host.OomKillDisable === null || host.OomKillDisable === false));
+}
 function privileges(host) {
   insist(host.Privileged === false && host.ReadonlyRootfs === true &&
     host.RestartPolicy?.Name === 'no' &&
@@ -130,6 +156,7 @@ export function reviewRunningFaiscaPrivateContainer({
       !/^(?:IMAGINE_|AWS_|AZURE_|OPENAI_|DATABASE_URL=|SECRET=|TOKEN=)/.test(x)));
   privileges(host);
   boundedTmpfs(host);
+  namespaceAndDevices(host);
   ports(host, inspect.NetworkSettings);
   network(inspect, project);
   mounts(inspect, expected);
@@ -140,6 +167,8 @@ export function reviewRunningFaiscaPrivateContainer({
     reportedLoopbackBinding: true,
     reportedUnprivilegedReadOnlyMounts: true,
     reportedBoundedNoexecTmpfs: true,
+    reportedNoExplicitHostNamespaceOrDevices: true,
+    effectiveUserAndCgroupNamespacesIndependentlyVerified: false,
     reportedResourceLimits: true,
     dockerAccessPerformedByThisModule: false,
     actualNetworkExposureIndependentlyVerified: false,
