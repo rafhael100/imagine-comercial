@@ -217,10 +217,16 @@ const privateBrowserWordStatistics =
   /\b(?:um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento)(?:\s+(?:e\s+)?\w+){0,4}\s+(?:por\s+cento|(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|inscricoes?|visitas?|acessos?))\b|\b(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\s+(?:em|de)\s+cada\s+(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\b/u;
 const privateBrowserFutureOperation =
   /\b(?:vou|vamos|irei|iremos)\s+(?:publicar|ativar|configurar|cadastrar|integrar|criar|aprovar|contratar|instalar|enviar|agendar|abrir\s+(?:um\s+)?(?:chamado|ticket)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))\b|\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|campanha|pedido)\b.{0,70}\b(?:sera|vai\s+ser)\s+(?:publicad[oa]|ativad[oa]|configurad[oa]|cadastrad[oa]|criad[oa])\b/u;
-const privateBrowserPiiRisk = text =>
-  /(?!\p{Script=Latin})\p{L}/u.test(text) ||
-  /@|\b(?:cpf|cnpj|rg|cep|telefone|celular|whatsapp|e-?mail|pix|senha|token|credencia(?:l|is)|otp|totp|2fa|passaporte|chave|cartao|conta\s+bancaria|endereco)\b/u.test(
-    text.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase());
+const privateBrowserPiiRisk = text => {
+  const clean = text.normalize('NFKC').normalize('NFKD')
+    .replace(/\p{M}/gu,'').replace(/[\u3002\u2024\u2027]/gu,'.').toLowerCase();
+  return /(?!\p{Script=Latin})\p{L}/u.test(text) ||
+    /@|\b(?:cpf|cnpj|rg|cep|telefone|celular|whatsapp|e-?mail|pix|senha|token|credencia(?:l|is)|otp|totp|2fa|passaporte|chave|cartao|conta\s+bancaria|endereco)\b/u.test(clean) ||
+    /(?:^|[^\p{L}\p{N}_@])(?:[\p{L}\p{N}][\p{L}\p{N}-]{0,61}\.)+(?:\p{L}{2,24}|xn--[a-z0-9-]{2,59})\b/u.test(clean) ||
+    /https?:\/\/|\bwww\.|\blocalhost\b|(?:\p{Nd}[\s\p{Zs}\p{Pd}().+/,]*){8,}/u.test(clean) ||
+    /(?:^|[^\p{L}\p{N}.])(?:\d{1,3}\.){1,3}\d{1,3}(?![\p{L}\p{N}])/u.test(clean) ||
+    /(?:^|[^\p{L}\p{N}_])(?:sk-(?:proj-|svcacct-)?[a-z0-9_-]{16,}|github_pat_[a-z0-9_]{16,})/u.test(clean);
+};
 function privateBrowserGeneralReplySafe(value) {
   if (typeof value !== 'string') return false;
   const normalized = value.normalize('NFKC').normalize('NFKD')
