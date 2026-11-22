@@ -37,6 +37,30 @@ function absentHeader(response, name) {
   if (response.rawHeaders.some((part,i) => i%2===0 &&
     typeof part==='string' && part.toLowerCase() === name)) fail();
 }
+// R243: a correct 401 alone is insufficient if its response headers can
+// trigger a browser preload, redirect, network report, or cross-origin policy.
+// Audit raw header fields (not Node's normalized map) to reject duplicates.
+const ACTIVE_UNAUTH_HEADERS = Object.freeze(new Set([
+  'link', 'refresh', 'alt-svc', 'report-to', 'reporting-endpoints', 'nel',
+  'content-security-policy-report-only', 'set-cookie2', 'clear-site-data',
+  'content-location', 'content-disposition', 'content-encoding', 'trailer'
+]));
+function rejectActiveUnauthHeaders(response) {
+  const raw = response.rawHeaders;
+  if (!Array.isArray(raw) || raw.length % 2 !== 0) fail();
+  let serverCount = 0;
+  for (let i = 0; i < raw.length; i += 2) {
+    const name = raw[i], value = raw[i + 1];
+    if (typeof name !== 'string' || typeof value !== 'string') fail();
+    const lower = name.toLowerCase();
+    if (ACTIVE_UNAUTH_HEADERS.has(lower) || lower.startsWith('access-control-')) fail();
+    if (lower === 'server') {
+      serverCount++;
+      if (value !== 'nginx') fail();
+    }
+  }
+  if (serverCount > 1) fail();
+}
 function reviewResponse(response, check) {
   if (response.statusCode !== 401) fail();
   exactHeader(response,'www-authenticate','Basic realm="Imagine Faísca private review"');
@@ -51,9 +75,7 @@ function reviewResponse(response, check) {
   absentHeader(response,'set-cookie');
   absentHeader(response,'location');
   absentHeader(response,'access-control-allow-origin');
-  // A versioned Server header would violate server_tokens off in reviewed nginx.
-  const server = response.headers?.server;
-  if (server !== undefined && server !== 'nginx') fail();
+  rejectActiveUnauthHeaders(response);
 }
 async function observe(port, check) {
   return new Promise((resolve,reject) => {
