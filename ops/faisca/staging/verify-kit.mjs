@@ -72,6 +72,7 @@ async function walkFiles(root, captureCore = null) {
   let totalBytes = 0;
   let directoriesSeen = 0;
   let entriesSeen = 0;
+  const emptyDirectories = [];
   // R232: stream entries instead of buffering unlimited readdir results.
   async function walk(folder, depth = 0) {
     for await (const dirent of await opendir(folder)) {
@@ -91,9 +92,7 @@ async function walkFiles(root, captureCore = null) {
         // Require every accepted directory to contain an inventoried file.
         const filesBefore = files.length;
         await walk(full, depth + 1);
-        if (files.length === filesBefore) {
-          throw new Error('R233: private kit contains an unlisted empty directory.');
-        }
+        if (files.length === filesBefore) emptyDirectories.push(path);
         continue;
       }
       if (path === 'Faisca_R38_MANIFEST.json') continue;
@@ -108,6 +107,11 @@ async function walkFiles(root, captureCore = null) {
     }
   }
   await walk(root);
+  // Check after traversal so the existing R232 entry/depth ceilings remain
+  // independently testable and take precedence over empty-tree failures.
+  if (emptyDirectories.length) {
+    throw new Error('R233: private kit contains an unlisted empty directory.');
+  }
   files.sort((a,b) => a.path.localeCompare(b.path,'en'));
   return Object.freeze({ files: Object.freeze(files), totalBytes });
 }
