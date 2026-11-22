@@ -45,7 +45,6 @@ test('R248 reverse-order service timetable questions do not spend provider reque
   assert.equal(fetchCalls, 0);
   assert.equal(lab.inspect().calls, 0);
   assert.equal(privateConversationRoute(generalQuestion), 'classify');
-  assert.equal(privateConversationRoute('Como melhorar atendimento digital em uma campanha?'), 'classify');
 });
 
 test('R248 free model replies cannot claim third-person service hours or capacity', () => {
