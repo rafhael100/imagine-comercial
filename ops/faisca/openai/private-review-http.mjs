@@ -9,6 +9,7 @@ import { privateConversationRoute, safePrivateGeneralReply, hasPrivateOperationa
 import { readPrivateSyntheticQuestion } from './private-question-gate.mjs';
 import { hasPrivateIdentifierRisk } from './private-identifier-risk.mjs';
 import { hasPrivateUnreviewedPriceClaim } from './private-price-claim-risk.mjs';
+import { hasPrivateSyntheticInstructionOverrideRisk } from './private-synthetic-instruction-risk.mjs';
 import {
   PRIVATE_REVIEW_PAGE_PATH, PRIVATE_REVIEW_SCRIPT_PATH, PRIVATE_REVIEW_STYLE_PATH, PRIVATE_REVIEW_MASCOT_PATH,
   PRIVATE_REVIEW_HTML, PRIVATE_REVIEW_CONVERSATION_HTML, PRIVATE_REVIEW_JS, PRIVATE_REVIEW_CSS
@@ -134,6 +135,7 @@ function safeReviewOutput(response, caseId) {
          // including U+034F (combining grapheme joiner) missed by Cc/Cf checks.
          /\p{Default_Ignorable_Code_Point}/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
+        hasPrivateSyntheticInstructionOverrideRisk(answer) ||
         // Fixed-case replies also lack any authority to publish a site or
         // activate campaigns. R106 guarded free text; apply the same host
         // semantic tripwires to R72/R79 fixed drafts and injected adapters.
@@ -207,6 +209,7 @@ function safeConversationOutput(response, input) {
          // including U+034F (combining grapheme joiner) missed by Cc/Cf checks.
          /\p{Default_Ignorable_Code_Point}/u.test(answer) ||
         forbiddenReviewClaims.test(answer.normalize('NFKC')) ||
+        hasPrivateSyntheticInstructionOverrideRisk(answer) ||
         hasPrivateUnreviewedPriceClaim(answer) ||
          hasPrivateUnsupportedOutcomeGuarantee(answer) ||
         get('publicReady') === true || get('operationalEffects') === true) return null;
