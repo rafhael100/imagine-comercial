@@ -220,6 +220,8 @@ const privateBrowserWordStatistics =
   /\b(?:um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento)(?:\s+(?:e\s+)?\w+){0,4}\s+(?:por\s+cento|(?:nov[oa]s?\s+)?(?:vendas?|clientes?|leads?|inscricoes?|visitas?|acessos?))\b|\b(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\s+(?:em|de)\s+cada\s+(?:um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|\d{1,3})\b/u;
 const privateBrowserFutureOperation =
   /\b(?:vou|vamos|irei|iremos)\s+(?:publicar|ativar|configurar|cadastrar|integrar|criar|aprovar|contratar|instalar|enviar|agendar|abrir\s+(?:um\s+)?(?:chamado|ticket)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))\b|\b(?:seu|sua)\s+(?:site|pagina|landing\s+page|campanha|pedido)\b.{0,70}\b(?:sera|vai\s+ser)\s+(?:publicad[oa]|ativad[oa]|configurad[oa]|cadastrad[oa]|criad[oa])\b/u;
+const privateBrowserClaimedCapability =
+  /\b(?:(?:eu\s+)?(?:posso|podemos|consigo|conseguimos|conseguirei|conseguiremos|sou\s+capaz\s+de|somos\s+capazes\s+de|estou\s+pronto\s+para|estamos\s+prontos\s+para)\s+(?:publicar|ativar|configurar|cadastrar|integrar|instalar|criar|aprovar|contratar|finalizar|liberar|hospedar|disponibilizar|enviar|agendar|colocar\s+no\s+ar|abrir\s+(?:um\s+)?(?:ticket|chamado)|gerar\s+(?:um\s+)?(?:pedido|lead|cobranca))|(?:publicarei|publicaremos|ativarei|ativaremos|configurarei|configuraremos|cadastrarei|cadastraremos|integrarei|integraremos|instalarei|instalaremos|hospedarei|hospedaremos|liberarei|liberaremos|enviarei|enviaremos|agendarei|agendaremos|criarei|criaremos))\b/u;
 const privateBrowserPiiRisk = text => {
   const clean = text.normalize('NFKC').normalize('NFKD')
     .replace(/\p{M}/gu,'').replace(/[\u3002\u2024\u2027]/gu,'.').toLowerCase();
@@ -239,7 +241,8 @@ function privateBrowserGeneralReplySafe(value) {
     !privateBrowserReportedExecution.test(normalized) &&
     !privateBrowserFreeStatistics.test(normalized) &&
     !privateBrowserWordStatistics.test(normalized) &&
-    !privateBrowserFutureOperation.test(normalized);
+    !privateBrowserFutureOperation.test(normalized) &&
+    !privateBrowserClaimedCapability.test(normalized);
 }
 let pending = false;
 let pageEpoch = 0;
