@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { lstat, realpath, readdir, readFile, open } from 'node:fs/promises';
+import { lstat, realpath, readdir, open } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { resolve, dirname, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -28,7 +28,37 @@ function isSafePath(path) {
        'verify-kit.mjs','LEIA-ME-FAISCA-R38.txt'].includes(path));
 }
 
-async function walkFiles(root) {
+// R231: read from a stable bounded FD to hash and inspect the exact same
+// bytes. readFile() can grow without bound after stat; hardlinks invite
+// external changes to the supposedly self-contained review kit.
+async function readBoundedKitFile(full, limit) {
+  let handle;
+  try {
+    handle = await open(full, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    const before = await handle.stat({ bigint: true });
+    if (!before.isFile() || before.nlink !== 1n ||
+        before.size < 1n || before.size > BigInt(limit)) {
+      throw new Error('R231: unsafe or oversized private kit file.');
+    }
+    const buffer = Buffer.alloc(Number(before.size));
+    let offset = 0;
+    while (offset < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, offset, buffer.length - offset, offset);
+      if (!bytesRead) throw new Error('R231: private kit file truncated during read.');
+      offset += bytesRead;
+    }
+    const after = await handle.stat({ bigint: true });
+    if (['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
+      .some(key => before[key] !== after[key])) {
+      throw new Error('R231: private kit file changed during read.');
+    }
+    return buffer;
+  } finally {
+    await handle?.close();
+  }
+}
+
+async function walkFiles(root, captureCore = null) {
   const files = [];
   let totalBytes = 0;
   async function walk(folder) {
@@ -41,16 +71,9 @@ async function walkFiles(root) {
       if (!dirent.isFile() || !isSafePath(path) || files.length >= MAX_FILES) {
         throw new Error('R38: unexpected file in review kit.');
       }
-      const handle = await open(full, constants.O_RDONLY | constants.O_NOFOLLOW);
-      let bytes;
-      try {
-        const stat = await handle.stat();
-        if (!stat.isFile() || stat.size < 1 || stat.size > MAX_FILE_BYTES ||
-            totalBytes + stat.size > MAX_TOTAL_BYTES) {
-          throw new Error('R38: review kit byte limit exceeded.');
-        }
-        bytes = await handle.readFile();
-      } finally { await handle.close(); }
+      const bytes = await readBoundedKitFile(full,
+        Math.min(MAX_FILE_BYTES, MAX_TOTAL_BYTES - totalBytes));
+      if (captureCore?.has(path)) captureCore.set(path, bytes);
       totalBytes += bytes.length;
       files.push(Object.freeze({ path, bytes: bytes.length, sha256: sha(bytes) }));
     }
@@ -124,17 +147,23 @@ export async function verifyPrivateStagingKit({ kitDir } = {}) {
       !/^[0-9a-f]{64}$/.test(manifest.approvedMascotSha256)) {
     throw new Error('R38: private review kit manifest invalid.');
   }
-  const actual = await walkFiles(root);
+  // Capture the exact bytes we hashed; never reopen policy files after
+  // snapshot validation (the old second read introduced a TOCTOU window).
+  const coreBytes = new Map([
+    ['ops/staging/nginx.conf', null],
+    ['ops/staging/compose.yaml', null],
+    ['site/index.html', null]
+  ]);
+  const actual = await walkFiles(root, coreBytes);
   if (actual.files.length !== manifest.fileCount || actual.totalBytes !== manifest.totalBytes ||
       JSON.stringify(actual.files) !== JSON.stringify(manifest.files) ||
       CORE_FILES.some(path => !actual.files.some(f => f.path === path))) {
     throw new Error('R38: private staging kit content differs from its manifest.');
   }
-  const [nginx, compose, home] = await Promise.all([
-    readFile(resolve(root,'ops/staging/nginx.conf'),'utf8'),
-    readFile(resolve(root,'ops/staging/compose.yaml'),'utf8'),
-    readFile(resolve(root,'site/index.html'),'utf8')
-  ]);
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  const [nginx, compose, home] = [
+    'ops/staging/nginx.conf', 'ops/staging/compose.yaml', 'site/index.html'
+  ].map(path => decoder.decode(coreBytes.get(path)));
   const configMarkers = [
     'map $request_uri $faisca_review_frame {',
     'map $request_uri $faisca_review_ancestors {',
