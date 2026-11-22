@@ -59,6 +59,7 @@ test('R248 free model replies cannot claim third-person service hours or capacit
   }
   for (const text of [
     'Uma landing page pode explicar canais de atendimento de forma clara.',
+    'O atendimento funciona em canais digitais quando bem planejado.',
     'É possível planejar suporte digital sem assumir horários de serviço.',
     'Você pode revisar o conteúdo da página antes de publicá-lo.'
   ]) {
