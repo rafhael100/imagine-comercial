@@ -23,8 +23,9 @@ const REVIEWED_PRIVATE_EDITORIAL_RECEIPTS = Object.freeze(
 const REVIEWED_PRIVATE_FIXED_SOURCE_SETS = Object.freeze(
   Object.fromEntries(Object.entries(FAISCA_OPENAI_TEST_CASES).map(([caseId, question]) => [
     caseId, Object.freeze(retrieveCandidateAnswerIds(question)
-      .map(answerId => getGroundedAnswer(answerId)?.sources.map(source => source.id) ?? [])
-      .filter(ids => ids.length > 0))
+      .map(answerId => getGroundedAnswer(answerId)?.sources
+        .map(source => REVIEWED_PRIVATE_SOURCE_IDS.indexOf(source.id)) ?? [])
+      .filter(indices => indices.length > 0 && indices.every(index => index >= 0)))
   ]))
 );
 
@@ -129,6 +130,7 @@ const sources = document.getElementById('review-sources');
 const validCases = new Set(['compare','process','pricing']);
 const reviewedPrivateSourceIds = new Set(${JSON.stringify(REVIEWED_PRIVATE_SOURCE_IDS)});
 const reviewedPrivateFixedSourceSets = ${JSON.stringify(REVIEWED_PRIVATE_FIXED_SOURCE_SETS)};
+const reviewedPrivateSourceSlots = new Map([...reviewedPrivateSourceIds].map((id,index) => [id,index]));
 const reviewedPrivateEditorialReceipts = ${JSON.stringify(REVIEWED_PRIVATE_EDITORIAL_RECEIPTS)};
 const reviewedPrivateConfirmationText = ${JSON.stringify(PRIVATE_CONVERSATION_CONFIRMATION_TEXT)};
 function privateBrowserInstructionOverrideRisk(text) {
@@ -379,7 +381,7 @@ form?.addEventListener('submit', async event => {
       Array.isArray(data?.sources) &&
       reviewedPrivateFixedSourceSets[caseId]?.some(approved =>
         data.sources.length === approved.length &&
-        approved.every((id, index) => data.sources[index] === id))
+        approved.every((slot, index) => reviewedPrivateSourceSlots.get(data.sources[index]) === slot))
     );
     const editorialReceiptOk = fixed || !editorial ||
       (Array.isArray(data?.sources) && reviewedPrivateEditorialReceipts.some(receipt =>
