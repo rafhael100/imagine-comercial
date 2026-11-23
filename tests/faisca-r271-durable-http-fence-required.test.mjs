@@ -31,7 +31,7 @@ test('R271 keeps synthetic non-durable no-provider adapters compatible for anony
     lab: fakeLab(false), reviewToken: token, port: 0
   });
   try {
-    const result = await fetch(server.address + '/__faisca_openai_private/review', {
+    const result = await fetch(server.address + '/__faisca_openai_private/respond', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ invalid: true })
     });
