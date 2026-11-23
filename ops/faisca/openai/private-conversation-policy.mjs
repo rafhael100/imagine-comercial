@@ -8,6 +8,12 @@ const money = /r\$|[$€£]|\b(?:precos?|valores?|cust[ao]s?|cobra[mn]?|cobram|c
 // R294: the synthetic model has no authenticated billing, invoice, receipt or
 // Pix ledger. Even a bare document name must not be treated as verified.
 const privateBillingArtifacts = /\b(?:boletos?|faturas?|notas?\s+fisc(?:al|ais)|recibos?|pix)\b/u;
+// R301: the private model has no independent audit or certification evidence.
+// Do not present legal/security compliance or certifications as verified facts.
+// This conservative gate is not a legal compliance assessment.
+const complianceStandard = /\b(?:lgpd|gdpr|iso(?:\/iec)?\s*27[0-9]{3}|soc\s*2|pci[\s-]*dss)\b/u;
+const complianceClaim = /\b(?:certific\w*|conformidade|compliance|compliant|adequad[oa]s?|adequacao|cumpr\w*|atend\w*|audit\w*|homolog\w*|segue|seguimos|respeit\w*)\b/u;
+const unverifiedCompliance = text => complianceStandard.test(text) && complianceClaim.test(text);
 const businessFlow = /\b(?:processo|fluxo|etapas?|aprov\w*|revis\w*|entrega\w*|prazo\w*|implantacao|cria\w*|produ\w*|contrat\w*|suporte|escopo|procedimento|envi\w*)\b/;
 const company = /\b(?:imagine|voces?|equipe|intern[oa]s?|cliente)\b/;
 // R244: operator identity/capabilities are never inferred from Luna/Terra.
@@ -51,7 +57,7 @@ export function privateConversationRoute(question) {
   const text = normalize(question);
   // Financial-document status belongs to an authenticated Portal operator,
   // not pricing editorial or the paid Luna/Terra general-answer route.
-  if (privateBillingArtifacts.test(text)) return 'confirm';
+  if (privateBillingArtifacts.test(text) || unverifiedCompliance(text)) return 'confirm';
   if (money.test(text)) return 'pricing';
   if (businessFlow.test(text) && (company.test(text) || /\b(?:meu|minha|nosso|nossa)\b/.test(text))) {
     if (broadProcess.test(text) && businessFlow.test(text) && !otherFlowDetails.test(text)) return 'process';
@@ -187,7 +193,7 @@ export function safePrivateGeneralReply(text) {
   return !hasPrivateIdentifierRisk(text) && !hasPrivateOperationalClaim(text) &&
     !hasPrivateSyntheticInstructionOverrideRisk(text) &&
     !hasPrivateUnsupportedOutcomeGuarantee(text) && !money.test(normalized) &&
-    !privateBillingArtifacts.test(normalized) &&
+    !privateBillingArtifacts.test(normalized) && !unverifiedCompliance(normalized) &&
     !/\b(?:imagine|faisca)\b/.test(normalized) &&
     !indirectOperator.test(normalized) &&
     !unverifiedFirstPartyAvailability.test(normalized) &&
