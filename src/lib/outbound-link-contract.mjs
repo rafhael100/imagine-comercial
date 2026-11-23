@@ -36,6 +36,8 @@ for(const service of ['',...services.map(x=>x.slug)]){
     const intent=composeCuratedContactLinks(service,objective);
     whatsappLinks.add(contactWhatsAppUrl(intent.message));
     mailLinks.add(contactEmailUrl(intent.subject));
+    // F365: the exact matching reviewed service message may prefill email body.
+    mailLinks.add(contactEmailUrl(intent.subject,intent.message));
     // F142: optional stage and priority add only reviewed catalog labels.
     // Dynamic mailto uses a body only if stage or priority was selected.
     for(const stage of ['',...briefingStages.map(x=>x.code)]){

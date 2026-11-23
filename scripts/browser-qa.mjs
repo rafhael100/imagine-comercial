@@ -1590,7 +1590,7 @@ try {
           assert.equal(await fallback.locator('a[data-service-whatsapp]').getAttribute('href'),
             contactWhatsAppUrl(intent.message),'F75 no-JS WhatsApp '+service.slug);
           assert.equal(await fallback.locator('a[data-service-email]').getAttribute('href'),
-            contactEmailUrl(intent.subject),'F75 no-JS email '+service.slug);
+            contactEmailUrl(intent.subject,intent.message),'F365 no-JS email body '+service.slug);
           assert.equal(await fallback.locator('#service-whatsapp-notice').isVisible(),true);
         }
       }finally{await noJs.close();}
@@ -1606,12 +1606,18 @@ try {
       assert.equal(await emailLink.count(),1,viewport.label+': '+service.slug+' email CTA');
       assert.equal(await waLink.getAttribute('href'),contactWhatsAppUrl(intent.message),
         viewport.label+': '+service.slug+' exact curated WhatsApp URL');
-      assert.equal(await emailLink.getAttribute('href'),contactEmailUrl(intent.subject),
-        viewport.label+': '+service.slug+' exact curated mailto URL');
+      assert.equal(await emailLink.getAttribute('href'),contactEmailUrl(intent.subject,intent.message),
+        viewport.label+': '+service.slug+' exact curated mailto subject/body URL');
       assert.equal(await waLink.getAttribute('target'),'_blank');
       assert.equal(await waLink.getAttribute('rel'),'noopener noreferrer');
       assert.equal(await waLink.getAttribute('aria-describedby'),'service-whatsapp-notice');
       assert.equal(await emailLink.getAttribute('aria-describedby'),'service-whatsapp-notice');
+      // F365: both public channels prepare exactly the same curated message.
+      const preparedServiceEmail=new URL(await emailLink.getAttribute('href'));
+      assert.equal(preparedServiceEmail.searchParams.get('body'),intent.message,
+        viewport.label+': '+service.slug+' mailto message parity');
+      assert.equal(preparedServiceEmail.searchParams.get('subject'),intent.subject,
+        viewport.label+': '+service.slug+' mailto subject parity');
       const notice=page.locator('#service-whatsapp-notice');
       assert.equal(await notice.isVisible(),true,viewport.label+': channel notice visible');
       assert.ok((await notice.textContent())?.includes('revise e confirme o envio'));
