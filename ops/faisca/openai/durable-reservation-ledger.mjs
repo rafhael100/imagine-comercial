@@ -329,6 +329,17 @@ export function createFaiscaLocalReservationLedger({
     return true;
   }
 
+  // R269: provider completion is not enough to authorize HTTP egress.
+  // An independent worker can fence the shared ledger while Terra is in flight.
+  // Read-only revalidation catches that fence before publishing a response.
+  // This remains a single-host, non-atomic pre-send check, not a distributed lease.
+  async function assertPaidDispatchStillValid() {
+    await checkDirectory();
+    await assertNoProviderUncertainty();
+    await assertOwnedDispatchMarker();
+    return true;
+  }
+
   async function completePaidDispatch() {
     if (!ownedDispatch) throw new Error('Private provider dispatch not owned.');
     await checkDirectory();
@@ -525,6 +536,6 @@ export function createFaiscaLocalReservationLedger({
 
   return Object.freeze({
     ready, reserve, inspectReadOnly, markOutcomeUncertain,
-    beginPaidDispatch, completePaidDispatch
+    beginPaidDispatch, completePaidDispatch, assertPaidDispatchStillValid
   });
 }

@@ -77,8 +77,8 @@ for (const tamper of ['replace-with-identical-bytes', 'replace-with-symlink']) {
     assert.equal(first.inspect().providerUnavailable, true);
     assert.equal(await readFile(join(directory, '.faisca-provider-outcome-uncertain'), 'utf8'),
       'faisca.private-provider-outcome-uncertain.v1\n');
-    assert.equal((await make().inspectReadOnly()).requests, 2,
-      'Luna and reserved Terra are accounted conservatively, although Terra was not sent');
+    assert.equal((await make().inspectReadOnly()).requests, 1,
+      'R269 stops after Luna: an invalid dispatch marker may not reserve unsent Terra');
     await first.close();
 
     const restarted = await startFaiscaOpenAIPrivateReview({
@@ -92,7 +92,7 @@ for (const tamper of ['replace-with-identical-bytes', 'replace-with-symlink']) {
     assert.equal(again.status, 503);
     assert.equal((await again.json()).status, 'unavailable');
     assert.equal(afterRestartSent, 0);
-    assert.equal((await make().inspectReadOnly()).requests, 2);
+    assert.equal((await make().inspectReadOnly()).requests, 1);
     await assert.rejects(make().ready(), /operator reconciliation|operator review/);
   });
 }
