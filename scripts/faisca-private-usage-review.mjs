@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// R288 — operator-only, OFFLINE, read-only comparison; NEVER a billing receipt.
-// Accepts aggregate integers over stdin (never prompts, keys, accounts or logs).
+// R288/R289 — operator-only, OFFLINE, read-only comparison; NEVER a billing receipt.
+// Accepts canonical aggregate JSON integers over stdin, with optional single LF.
 // No network, OpenAI client, Docker/VPS access, writes, unlocks or public flag.
 import { createFaiscaLocalReservationLedger } from '../ops/faisca/openai/durable-reservation-ledger.mjs';
 import { reviewFaiscaPrivateUsage } from '../ops/faisca/openai/private-usage-review.mjs';
@@ -17,7 +17,18 @@ async function readAggregate() {
   if (bytes < 2) throw new Error('empty aggregate');
   const raw = new TextDecoder('utf-8', { fatal: true })
     .decode(Buffer.concat(pieces));
-  return JSON.parse(raw);
+  const aggregate = JSON.parse(raw);
+  // JSON.parse silently keeps the LAST value of a duplicate key. A human could
+  // review a different first value and incorrectly accept a manipulated usage
+  // total. Match the canonical bytes we require the operator to supply,
+  // permitting only the single terminal LF produced by printf. This rejects
+  // duplicate keys, numeric exponent aliases, embedded whitespace, BOM and
+  // noncanonical escape encodings BEFORE inspecting the durable ledger.
+  const canonical = JSON.stringify(aggregate);
+  if (raw !== canonical && raw !== canonical + '\n') {
+    throw new Error('noncanonical usage aggregate');
+  }
+  return aggregate;
 }
 
 function readConfig(args) {
