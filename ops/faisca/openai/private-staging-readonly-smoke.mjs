@@ -19,6 +19,16 @@ const reviewedAssetHeaders = Object.freeze({
   'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
 });
 
+// R299: an exact body and CSP do not prove an inert browser response.
+// Refresh can navigate, Link can trigger speculative requests, and reporting
+// or other unreviewed headers can change browser behavior. Only the
+// independently reviewed security policy and the native HTTP framing
+// metadata of the private loopback server are allowed.
+const allowedAssetHeaderNames = new Set([
+  ...Object.keys(reviewedAssetHeaders), 'content-type', 'content-length',
+  'transfer-encoding', 'date', 'connection', 'keep-alive'
+]);
+
 // R147: the reviewed JS grew beyond the old 20 KB content limit as the
 // independent evidence guard expanded. Keep a strict 24 KiB cap AND exact
 // byte-for-byte asset matching; never disable this private read-only gate.
@@ -131,7 +141,8 @@ export async function inspectFaiscaPrivateReviewUi({
       } else if (length && (!/^[0-9]+$/.test(length) || Number(length) > MAX_PRIVATE_TEXT_ASSET_BYTES)) {
         throw new Error('oversized');
       }
-      if (response.status !== 200 ||
+      if ([...response.headers.keys()].some(name => !allowedAssetHeaderNames.has(name)) ||
+          response.status !== 200 ||
           response.headers.get('content-type') !== item.mime ||
           Object.entries(reviewedAssetHeaders).some(([name, value]) =>
             response.headers.get(name) !== value) ||
