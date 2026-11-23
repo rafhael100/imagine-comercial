@@ -1620,7 +1620,7 @@ try {
         viewport.label+': '+service.slug+' mailto subject parity');
       const notice=page.locator('#service-whatsapp-notice');
       assert.equal(await notice.isVisible(),true,viewport.label+': channel notice visible');
-      assert.ok((await notice.textContent())?.includes('revise e confirme o envio'));
+      assert.match((await notice.textContent())??'',/[Rr]evise e confirme o envio/);
       assert.equal(await page.locator('form,input,textarea').count(),0);
     }
     // F207: sanitize contact address-bar state while preserving only fixed
