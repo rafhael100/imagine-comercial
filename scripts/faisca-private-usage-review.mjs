@@ -63,7 +63,7 @@ function readConfig(args) {
 async function run() {
   // A deliberate local administrative invocation only, not an HTTP route or
   // production scheduling hook. Does not confer permission to alter staging.
-  if (process.env.FAISCA_PRIVATE_OPERATOR_USAGE_REVIEW !== 'REVIEW_ONLY') {
+  // R292: this operator tool may receive independently gathered usage data.\n  // Never let GitHub-hosted builds/CI process a real local ledger, even when\n  // the REVIEW_ONLY switch was accidentally inherited or set by a caller.\n  if (process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true') {\n    throw new Error('CI cannot run private operator usage review');\n  }\n  if (process.env.FAISCA_PRIVATE_OPERATOR_USAGE_REVIEW !== 'REVIEW_ONLY') {
     throw new Error('operator review not enabled');
   }
   const config = readConfig(process.argv.slice(2));
