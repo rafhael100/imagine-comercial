@@ -53,7 +53,11 @@ async function run() {
       assert.equal(calls, 2);
       process.send?.({ type: 'ack-pending' });
       await ackGate;
-      return lab.acknowledgeHttpDelivery(...args);
+      const confirmed = await lab.acknowledgeHttpDelivery(...args);
+      // R286: synthetic IPC observation only after the durable dispatch fence
+      // has completed; never transmit counters, prompts, tokens or file paths.
+      if (confirmed === true) process.send?.({ type: 'ack-complete' });
+      return confirmed;
     },
     markDeliveryUncertain: (...args) => lab.markDeliveryUncertain(...args)
   };
