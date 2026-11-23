@@ -337,6 +337,15 @@ export async function startFaiscaOpenAIPrivateReview({
       typeof lab.assertPrivateHttpDeliverySafe !== 'function') {
     throw new TypeError('Private durable review requires an HTTP delivery fence.');
   }
+  // R273: a completed HTTP write must release a durable dispatch marker,
+  // while any uncertain delivery must retain a persistent NO-START marker.
+  // A future adapter that advertises a ledger but omits either hook must
+  // fail before opening the private port, not silently lose the lifecycle.
+  if (requiresDurableDeliveryFence &&
+      (typeof lab.acknowledgeHttpDelivery !== 'function' ||
+       typeof lab.markDeliveryUncertain !== 'function')) {
+    throw new TypeError('Private durable review requires HTTP delivery lifecycle hooks.');
+  }
   const mascot = await readFile(new URL('../assets/faisca-master.png', import.meta.url));
   if (mascot.byteLength !== 1887660 ||
       createHash('sha256').update(mascot).digest('hex') !== APPROVED_MASCOT_SHA256 ||
@@ -468,6 +477,13 @@ export async function startFaiscaOpenAIPrivateReview({
       if (requiresDurableDeliveryFence &&
           typeof lab.assertPrivateHttpDeliverySafe !== 'function') {
         throw new Error('Private HTTP delivery fence unavailable.');
+      }
+      // Recheck in case a mutable injected adapter withdrew a required hook
+      // after the listener was initialized. Never emit HTTP 200 in that case.
+      if (requiresDurableDeliveryFence &&
+          (typeof lab.acknowledgeHttpDelivery !== 'function' ||
+           typeof lab.markDeliveryUncertain !== 'function')) {
+        throw new Error('Private durable HTTP delivery lifecycle unavailable.');
       }
       if (typeof lab.assertPrivateHttpDeliverySafe === 'function') {
         // R272: the fence must positively affirm a safe, current dispatch.
