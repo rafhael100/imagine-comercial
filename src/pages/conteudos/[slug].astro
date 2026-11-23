@@ -69,10 +69,32 @@ const guideProposalEmailHref=guideProposalSubject
     <h2>Continue explorando</h2>
     <ul class="bullets">{article.links.map(link=><li><a href={link.href}>{link.label}</a></li>)}</ul>
   </article>
-  <section class="section section-dark"><div class="shell"><h2>Precisa de orientação para seu projeto?</h2><p>Entre em contato com a equipe Imagine e conheça as soluções disponíveis.</p><div class="cta-row"><a class="cta" href={contactIntent.href}>{contactIntent.label}</a><a class="cta cta-secondary" href="/contato/">Orientação geral</a>{guideProposalHref && <a class="cta cta-secondary" data-guide-origin-proposal href={guideProposalHref} target="_blank" rel="noopener noreferrer" aria-describedby="guide-channel-notice">Solicitar proposta pelo WhatsApp a partir deste guia</a>}{guideProposalEmailHref && <a class="cta cta-secondary" data-guide-origin-email href={guideProposalEmailHref} aria-describedby="guide-channel-notice">Solicitar proposta por e-mail a partir deste guia</a>}</div>{guideProposalHref && <details class="guide-proposal-preview" data-guide-proposal-preview><summary>Conferir a mensagem antes de abrir o contato</summary><p>Texto que será preparado no WhatsApp ou no corpo do e-mail:</p><blockquote data-guide-proposal-message>{reviewedFortalezaGuideContact.message}</blockquote>{guideProposalSubject && <p>Assunto do e-mail: <span data-guide-proposal-subject>{guideProposalSubject}</span></p>}<p>O contato só será enviado se você confirmar no aplicativo externo.</p></details>}{guideProposalHref && <p id="guide-channel-notice" class="guide-contact-notice">A mensagem preparada informa apenas que você veio deste guia de Fortaleza. Revise e confirme o envio no WhatsApp ou no aplicativo de e-mail. A abertura do aplicativo não comprova recebimento nem qualificação.</p>}</div></section>
+  <section class="section section-dark"><div class="shell"><h2>Precisa de orientação para seu projeto?</h2><p>Entre em contato com a equipe Imagine e conheça as soluções disponíveis.</p><div class="cta-row"><a class="cta" href={contactIntent.href}>{contactIntent.label}</a><a class="cta cta-secondary" href="/contato/">Orientação geral</a>{guideProposalHref && <a class="cta cta-secondary" data-guide-origin-proposal href={guideProposalHref} target="_blank" rel="noopener noreferrer" aria-describedby="guide-channel-notice">Solicitar proposta pelo WhatsApp a partir deste guia</a>}{guideProposalEmailHref && <a class="cta cta-secondary" data-guide-origin-email href={guideProposalEmailHref} aria-describedby="guide-channel-notice">Solicitar proposta por e-mail a partir deste guia</a>}</div>{guideProposalHref && <details class="guide-proposal-preview" data-guide-proposal-preview><summary>Conferir a mensagem antes de abrir o contato</summary><p>Texto que será preparado no WhatsApp ou no corpo do e-mail:</p><blockquote data-guide-proposal-message>{reviewedFortalezaGuideContact.message}</blockquote>{guideProposalSubject && <p>Assunto do e-mail: <span data-guide-proposal-subject>{guideProposalSubject}</span></p>}<p>O contato só será enviado se você confirmar no aplicativo externo.</p><button class="guide-proposal-copy" type="button" data-guide-proposal-copy hidden>Copiar a mensagem revisada</button><span class="guide-proposal-copy-status" data-guide-proposal-copy-status role="status" aria-live="polite" aria-atomic="true"></span></details>}{guideProposalHref && <p id="guide-channel-notice" class="guide-contact-notice">A mensagem preparada informa apenas que você veio deste guia de Fortaleza. Revise e confirme o envio no WhatsApp ou no aplicativo de e-mail. A abertura do aplicativo não comprova recebimento nem qualificação.</p>}</div></section>
   <script>
     // F304: share only pre-rendered editorial heading IDs in this article.
     // No query strings, visitor input, network request or local persistence.
+    // F364: offline alternative for a reviewed guide when no external app is available.
+    // The exact visible message is copied on explicit click; no lead is sent or stored.
+    const proposalPreview=document.querySelector<HTMLElement>('[data-guide-proposal-preview]');
+    const copyProposalButton=proposalPreview?.querySelector<HTMLButtonElement>('[data-guide-proposal-copy]');
+    const copyProposalStatus=proposalPreview?.querySelector<HTMLElement>('[data-guide-proposal-copy-status]');
+    const copyProposalText=proposalPreview?.querySelector<HTMLElement>('[data-guide-proposal-message]')?.textContent?.trim();
+    if(copyProposalButton && copyProposalStatus && copyProposalText && navigator.clipboard?.writeText){
+      copyProposalButton.hidden=false;
+      copyProposalButton.addEventListener('click',async()=>{
+        if(copyProposalButton.disabled)return;
+        copyProposalButton.disabled=true;
+        copyProposalStatus.textContent='';
+        try{
+          await navigator.clipboard.writeText(copyProposalText);
+          copyProposalStatus.textContent='Mensagem copiada. Envie manualmente pelo canal escolhido; a cópia não comprova recebimento.';
+        }catch{
+          copyProposalStatus.textContent='Não foi possível copiar. Você ainda pode selecionar o texto acima.';
+        }finally{
+          copyProposalButton.disabled=false;
+        }
+      });
+    }
     if(navigator.clipboard?.writeText){
       for(const button of document.querySelectorAll<HTMLButtonElement>(
         '[data-guide-section-copy]')){
@@ -105,6 +127,13 @@ const guideProposalEmailHref=guideProposalSubject
     .guide-proposal-preview summary{cursor:pointer;font-weight:750;text-underline-offset:4px}
     .guide-proposal-preview summary:focus-visible{outline:3px solid #f9941d;outline-offset:5px}
     .guide-proposal-preview blockquote{margin:12px 0;padding-left:16px;border-left:3px solid #f9941d;overflow-wrap:anywhere}
+    .guide-proposal-copy{min-height:44px;display:inline-flex;align-items:center;padding:9px 15px;
+      margin-top:10px;font:inherit;font-weight:750;background:#fff8ed;color:#884100;
+      border:1px solid #d3b99d;border-radius:10px;cursor:pointer}
+    .guide-proposal-copy[hidden]{display:none!important}
+    .guide-proposal-copy:focus-visible{outline:3px solid #f9941d;outline-offset:4px}
+    .guide-proposal-copy:disabled{opacity:.65;cursor:wait}
+    .guide-proposal-copy-status{display:block;min-height:1.5em;margin-top:7px;font-size:.9rem}
     .article-toc{padding:24px 28px;background:#f7f7f8;border:1px solid #e8e2da;border-radius:16px;margin-bottom:40px}
     .article-toc h2{font-size:1.5rem}
     #guia-sumario{scroll-margin-top:20px}

@@ -859,6 +859,14 @@ try {
 
     // F361: candidate-only browser proof of the fixed Fortaleza guide source.
     // Inspect href and accessibility only; NEVER open WhatsApp or claim a lead.
+    // F364: deterministic synthetic clipboard on this candidate route only.
+    // Never open a messaging application or contact a real recipient.
+    await page.addInitScript(()=>{
+      if(location.pathname!=='/conteudos/criacao-de-sites-fortaleza-guia/')return;
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+        writeText:async text=>{window.__guideCopiedProposal=text;}
+      }});
+    });
     await page.goto(host+'/conteudos/criacao-de-sites-fortaleza-guia/',{waitUntil:'load',timeout});
     const originCta=page.locator('a[data-guide-origin-proposal]');
     assert.equal(await originCta.count(),1,'F361 single guide source CTA');
@@ -886,6 +894,21 @@ try {
     assert.equal(shownMessage,new URL(await originCta.getAttribute('href')).searchParams.get('text'));
     assert.equal(shownMessage,new URL(await emailProposal.getAttribute('href')).searchParams.get('body'));
     assert.equal(shownSubject,new URL(await emailProposal.getAttribute('href')).searchParams.get('subject'));
+    // F364: a manual copy is a local fallback, not a lead receipt.
+    const copyProposal=messagePreview.locator('[data-guide-proposal-copy]');
+    assert.equal(await copyProposal.isVisible(),true);
+    await copyProposal.click();
+    assert.equal(await page.evaluate(()=>window.__guideCopiedProposal),shownMessage);
+    assert.match(await messagePreview.locator('[data-guide-proposal-copy-status]').textContent(),
+      /a cópia não comprova recebimento/);
+    assert.equal(page.url(),host+'/conteudos/criacao-de-sites-fortaleza-guia/',
+      'F364 clipboard fallback keeps visitor on private candidate without external navigation');
+    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{
+      configurable:true,value:{writeText:async()=>{throw Error('synthetic clipboard denied');}}
+    }));
+    await copyProposal.click();
+    assert.match(await messagePreview.locator('[data-guide-proposal-copy-status]').textContent(),
+      /Não foi possível copiar/);
     assert.equal(await messagePreview.locator('input,textarea,form').count(),0);
     assert.equal(await page.locator('a[href="/servicos/criacao-de-sites/"]').count()>0,true,
       'F361 existing service/guide internal link retained');
