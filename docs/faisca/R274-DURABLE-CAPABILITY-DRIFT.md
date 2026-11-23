@@ -11,8 +11,11 @@ ao contrato de segurança validado na abertura da porta.
 
 ## Incremento
 
-- Captura o estado booleano da capacidade durável na inicialização, sem
-  tornar o servidor público ou aceitar claims textuais.
+- Exige no bind que a capacidade durável seja booleana ou ausente
+  (compatibilidade com mocks não duráveis); strings, números, `null` e
+  objetos de configuração são recusados antes de abrir a porta.
+- Captura a capacidade exata da inicialização e não aceita sua alteração
+  silenciosa, mesmo quando o novo valor seria coercível para booleano.
 - Reconsulta `lab.inspect()` antes de aceitar uma chamada ao provedor.
   Divergência, exceção ou indisponibilidade da inspeção bloqueia o turno
   com HTTP 503 genérico, sem iniciar a chamada.
@@ -33,7 +36,7 @@ node --test tests/faisca-r273-durable-http-lifecycle-hooks.test.mjs
 npm test
 ```
 
-O novo teste HTTP faz duas mutações antes do despacho, uma mutação após
+O novo teste HTTP faz três mutações antes do despacho, quatro recusas de configuração malformada, uma mutação após
 resposta sintética e um caso controle. Comprova 503, sem retry, sem eco
 de tokens/perguntas, autenticação e CORS fechados. Não usa API OpenAI,
 chaves, dados de cliente ou conexão ao Portal/Sites.
