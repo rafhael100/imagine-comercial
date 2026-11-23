@@ -5,6 +5,9 @@ import { hasPrivateSyntheticInstructionOverrideRisk } from './private-synthetic-
 
 const normalize = value => value.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
 const money = /r\$|[$€£]|\b(?:precos?|valores?|cust[ao]s?|cobra[mn]?|cobram|cobranca|orcamentos?|cotacao|investimento|descontos?|pagamentos?|parcelas?|mensalidades?|reais|brl|usd|pagar|comercializa|gratuit[oa]s?|bonificacoes?)\b/;
+// R294: the synthetic model has no authenticated billing, invoice, receipt or
+// Pix ledger. Even a bare document name must not be treated as verified.
+const privateBillingArtifacts = /\b(?:boletos?|faturas?|notas?\s+fiscais?|recibos?|pix)\b/u;
 const businessFlow = /\b(?:processo|fluxo|etapas?|aprov\w*|revis\w*|entrega\w*|prazo\w*|implantacao|cria\w*|produ\w*|contrat\w*|suporte|escopo|procedimento|envi\w*)\b/;
 const company = /\b(?:imagine|voces?|equipe|intern[oa]s?|cliente)\b/;
 // R244: operator identity/capabilities are never inferred from Luna/Terra.
@@ -46,6 +49,9 @@ export function privateConversationRoute(question) {
   if (blockedTopics.has(reply.intent)) return 'confirm';
 
   const text = normalize(question);
+  // Financial-document status belongs to an authenticated Portal operator,
+  // not pricing editorial or the paid Luna/Terra general-answer route.
+  if (privateBillingArtifacts.test(text)) return 'confirm';
   if (money.test(text)) return 'pricing';
   if (businessFlow.test(text) && (company.test(text) || /\b(?:meu|minha|nosso|nossa)\b/.test(text))) {
     if (broadProcess.test(text) && businessFlow.test(text) && !otherFlowDetails.test(text)) return 'process';
@@ -180,7 +186,9 @@ export function safePrivateGeneralReply(text) {
   const normalized = normalize(text);
   return !hasPrivateIdentifierRisk(text) && !hasPrivateOperationalClaim(text) &&
     !hasPrivateSyntheticInstructionOverrideRisk(text) &&
-    !hasPrivateUnsupportedOutcomeGuarantee(text) && !money.test(normalized) && !/\b(?:imagine|faisca)\b/.test(normalized) &&
+    !hasPrivateUnsupportedOutcomeGuarantee(text) && !money.test(normalized) &&
+    !privateBillingArtifacts.test(normalized) &&
+    !/\b(?:imagine|faisca)\b/.test(normalized) &&
     !indirectOperator.test(normalized) &&
     !unverifiedFirstPartyAvailability.test(normalized) &&
     !unverifiedServiceAvailability.test(normalized) &&
