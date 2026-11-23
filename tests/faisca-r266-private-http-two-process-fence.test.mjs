@@ -116,30 +116,30 @@ test('R266 two independent OS processes cannot overlap a private paid HTTP dispa
       'Only the held first request may reserve allowance');
     assert.ok((await readdir(directory)).includes('.faisca-provider-dispatch-inflight'));
 
+    // An admitted second worker fences the shared ledger conservatively.
+    // Synchronize its fsynced outcome marker before resuming the first call.
+    await competingServer.close();
+    competingServer = null;
+    assert.ok((await readdir(directory)).includes('.faisca-provider-outcome-uncertain'));
+
     worker.send({ type: 'release' });
     const first = await firstResponse;
-    assert.equal(first.status, 200);
-    const response = await first.json();
-    assert.equal(response.status, 'general_answer');
-    assert.equal(response.answer, answer);
-    assert.deepEqual(response.models, [
-      FAISCA_OPENAI_MODELS.classification, FAISCA_OPENAI_MODELS.answer
-    ]);
-    assert.equal(response.publicReady, false);
-    assert.equal(response.operationalEffects, false);
+    assert.equal(first.status, 503);
+    const firstBody = await first.json();
+    assert.equal(firstBody.status, 'unavailable');
+    assert.doesNotMatch(JSON.stringify(firstBody), /credential|sk-r266|token|directory|provider invocation/i);
     await stopWorker(worker);
     assert.equal(worker.exitCode, 0);
-    await competingServer.close();
     const fresh = createFaiscaLocalReservationLedger(options);
     const snapshot = await fresh.inspectReadOnly();
-    assert.equal(snapshot.requests, 2,
-      'The completed child HTTP reply must reserve exactly Luna + Terra');
-    assert.equal(snapshot.providerUsageReconciled, false,
-      'This fixture is not independent reconciliation with OpenAI billing');
+    assert.equal(snapshot.requests, 1,
+      'The single reserved Luna request is not refunded or duplicated');
+    assert.equal(snapshot.providerUsageReconciled, false);
     assert.equal(snapshot.publicReady, false);
+    await assert.rejects(fresh.ready(), /uncertain|review/i);
     const files = await readdir(directory);
-    assert.ok(!files.includes('.faisca-provider-dispatch-inflight'),
-      'A successful acknowledged dispatch releases only its owned marker');
+    assert.ok(files.includes('.faisca-provider-dispatch-inflight'));
+    assert.ok(files.includes('.faisca-provider-outcome-uncertain'));
     for (const file of files) {
       const disk = await readFile(join(directory, file), 'utf8');
       for (const forbidden of [question, answer, workerToken, competingToken, fixtureKey]) {
