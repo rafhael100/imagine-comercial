@@ -329,6 +329,14 @@ export async function startFaiscaOpenAIPrivateReview({
       !Number.isInteger(providerDeadlineMs) || providerDeadlineMs < 50 || providerDeadlineMs > 30000) {
     throw new TypeError('Private OpenAI review requires a dedicated token and safe loopback port.');
   }
+  // R271: a future/private adapter cannot claim a durable reservation ledger
+  // yet omit the final paid-dispatch check introduced by R270. Fail before
+  // binding the listener rather than silently downgrading to a weak adapter.
+  const requiresDurableDeliveryFence = lab.inspect()?.localDurableReservations === true;
+  if (requiresDurableDeliveryFence &&
+      typeof lab.assertPrivateHttpDeliverySafe !== 'function') {
+    throw new TypeError('Private durable review requires an HTTP delivery fence.');
+  }
   const mascot = await readFile(new URL('../assets/faisca-master.png', import.meta.url));
   if (mascot.byteLength !== 1887660 ||
       createHash('sha256').update(mascot).digest('hex') !== APPROVED_MASCOT_SHA256 ||
@@ -457,6 +465,10 @@ export async function startFaiscaOpenAIPrivateReview({
       // R270: editorial validation can take place after the last provider
       // completion check. Revalidate the fsynced single-host NO-START marker
       // immediately before replying, but never claim an atomic socket fence.
+      if (requiresDurableDeliveryFence &&
+          typeof lab.assertPrivateHttpDeliverySafe !== 'function') {
+        throw new Error('Private HTTP delivery fence unavailable.');
+      }
       if (typeof lab.assertPrivateHttpDeliverySafe === 'function') {
         await lab.assertPrivateHttpDeliverySafe();
       }
