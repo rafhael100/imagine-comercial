@@ -534,13 +534,23 @@ export async function startFaiscaOpenAIPrivateReview({
            typeof lab.markDeliveryUncertain !== 'function')) {
         throw new Error('Private durable HTTP delivery lifecycle unavailable.');
       }
-      if (typeof lab.assertPrivateHttpDeliverySafe === 'function') {
+      const deliveryCheck = requiresDurableDeliveryFence
+        ? pinnedDurableHooks.assert : lab.assertPrivateHttpDeliverySafe;
+      if (typeof deliveryCheck === 'function') {
         // R272: the fence must positively affirm a safe, current dispatch.
         // False/undefined/null are not a success signal. A future adapter
         // silently returning a negative decision must never emit HTTP 200.
-        if (await lab.assertPrivateHttpDeliverySafe() !== true) {
+        if (await deliveryCheck.call(lab) !== true) {
           throw new Error('Private HTTP delivery fence did not affirm safety.');
         }
+      }
+      // R276: the awaited durable fence is a scheduling boundary. Another
+      // task (including an injected adapter) can replace a vetted method or
+      // withdraw the durability claim while the assertion is pending. Check
+      // again synchronously after its last await and before writing HTTP 200.
+      // This does NOT make a cross-process marker and socket write atomic.
+      if (!stableDurabilityClaim() || !stableDurableHooks()) {
+        throw new Error('Private HTTP delivery safety changed during final fence.');
       }
       if (res.destroyed) {
         latchUncertainDelivery();
