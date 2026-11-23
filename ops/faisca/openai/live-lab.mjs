@@ -286,6 +286,14 @@ export function createFaiscaOpenAILiveLab({
           completed.usage.outputTokens > maxOutputTokens) {
         throw new Error('Private provider usage exceeds the reserved envelope.');
       }
+      // R269: another worker can fsync a global NO-START during Terra.
+      // Revalidate the same-host inode and uncertainty marker *after* the
+      // provider has returned, while still holding the HTTP delivery fence.
+      // A rejected result is treated as uncertain and never re-dispatched.
+      if (holdForHttpDelivery &&
+          typeof reservationLedger?.assertPaidDispatchStillValid === 'function') {
+        await reservationLedger.assertPaidDispatchStillValid();
+      }
       // Direct operator CLI tests release after a validated upstream reply.
       // HTTP turns keep the durable marker through the response 'finish' event
       // to close the R196 response-to-browser handoff window between workers.
