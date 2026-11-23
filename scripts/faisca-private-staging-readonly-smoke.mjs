@@ -5,6 +5,11 @@ import { inspectFaiscaPrivateReviewUi } from '../ops/faisca/openai/private-stagi
 if (process.argv.length !== 2) {
   console.error('Uso: node scripts/faisca-private-staging-readonly-smoke.mjs');
   process.exitCode = 2;
+} else if (process.env.FAISCA_PRIVATE_SYNTHETIC_CONVERSATION !== undefined &&
+    process.env.FAISCA_PRIVATE_SYNTHETIC_CONVERSATION !== 'YES_SYNTHETIC_ONLY') {
+  // Never claim that a fixed-case page verifies a mistyped conversation mode.
+  console.error('BLOCKED_INVALID_PRIVATE_CONVERSATION_MODE');
+  process.exitCode = 2;
 } else {
   const result = await inspectFaiscaPrivateReviewUi({
     privateConversationEnabled:
