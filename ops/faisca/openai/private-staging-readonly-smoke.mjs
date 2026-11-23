@@ -142,10 +142,12 @@ export async function inspectFaiscaPrivateReviewUi({
           createHash('sha256').update(bytes).digest('hex') === item.expectedDigest;
       } else {
         // An unreviewed/stale HTML/JS/CSS asset can retain old marker words.
-        const body = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-        passed = body === (privateConversationEnabled &&
+        // R296: TextDecoder strips an initial UTF-8 BOM by default. Compare
+        // the actual bytes instead, so a byte-altered asset cannot pass.
+        const expected = privateConversationEnabled &&
           item.path === '/__faisca_openai_private/review'
-          ? PRIVATE_REVIEW_CONVERSATION_HTML : item.expected);
+          ? PRIVATE_REVIEW_CONVERSATION_HTML : item.expected;
+        passed = bytes.equals(Buffer.from(expected, 'utf8'));
       }
     } catch { passed = false; }
     finally { clearTimeout(timeout); controller.abort(); }
