@@ -7,7 +7,7 @@ const normalize = value => value.normalize('NFKD').replace(/\p{M}/gu, '').toLowe
 const money = /r\$|[$€£]|\b(?:precos?|valores?|cust[ao]s?|cobra[mn]?|cobram|cobranca|orcamentos?|cotacao|investimento|descontos?|pagamentos?|parcelas?|mensalidades?|reais|brl|usd|pagar|comercializa|gratuit[oa]s?|bonificacoes?)\b/;
 // R294: the synthetic model has no authenticated billing, invoice, receipt or
 // Pix ledger. Even a bare document name must not be treated as verified.
-const privateBillingArtifacts = /\b(?:boletos?|faturas?|notas?\s+fiscais?|recibos?|pix)\b/u;
+const privateBillingArtifacts = /\b(?:boletos?|faturas?|notas?\s+fisc(?:al|ais)|recibos?|pix)\b/u;
 const businessFlow = /\b(?:processo|fluxo|etapas?|aprov\w*|revis\w*|entrega\w*|prazo\w*|implantacao|cria\w*|produ\w*|contrat\w*|suporte|escopo|procedimento|envi\w*)\b/;
 const company = /\b(?:imagine|voces?|equipe|intern[oa]s?|cliente)\b/;
 // R244: operator identity/capabilities are never inferred from Luna/Terra.
