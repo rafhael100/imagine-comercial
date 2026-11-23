@@ -54,7 +54,7 @@ const encodedIdentifierEnvelope =
 // A 28+ character encoded block can conceal a full contact identifier;
 // conservative false positives are acceptable in a synthetic-only lab.
 const opaqueEncodingEnvelope =
-  /(?:^|[^\\p{L}\\p{N}_])[a-z0-9+/_-]{28,}={0,2}(?![\\p{L}\\p{N}_])|=[0-9a-f]{2}/u;
+  /(?:^|[^\p{L}\p{N}_])[a-z0-9+/_-]{28,}={0,2}(?![\p{L}\p{N}_])|=[0-9a-f]{2}/u;
 
 /** Fail closed for obvious identifier/contact leakage; never return the input. */
 export function hasPrivateIdentifierRisk(value) {
