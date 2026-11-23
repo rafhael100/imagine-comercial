@@ -470,7 +470,12 @@ export async function startFaiscaOpenAIPrivateReview({
         throw new Error('Private HTTP delivery fence unavailable.');
       }
       if (typeof lab.assertPrivateHttpDeliverySafe === 'function') {
-        await lab.assertPrivateHttpDeliverySafe();
+        // R272: the fence must positively affirm a safe, current dispatch.
+        // False/undefined/null are not a success signal. A future adapter
+        // silently returning a negative decision must never emit HTTP 200.
+        if (await lab.assertPrivateHttpDeliverySafe() !== true) {
+          throw new Error('Private HTTP delivery fence did not affirm safety.');
+        }
       }
       if (res.destroyed) {
         latchUncertainDelivery();
