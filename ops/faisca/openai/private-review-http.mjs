@@ -317,7 +317,8 @@ async function readRequest(req, conversation) {
  */
 export async function startFaiscaOpenAIPrivateReview({
   lab, reviewToken, port = 0, bodyTimeoutMs = 3000,
-  providerDeadlineMs = 30000, enablePrivateConversation = false
+  providerDeadlineMs = 30000, deliveryAckDeadlineMs = 3000,
+  enablePrivateConversation = false
 } = {}) {
   if (!lab || typeof lab.answer !== 'function' || typeof lab.inspect !== 'function' ||
       typeof reviewToken !== 'string' || !tokenPattern.test(reviewToken) ||
@@ -326,7 +327,9 @@ export async function startFaiscaOpenAIPrivateReview({
       !PORT_RANGE(port) || port < 0 || port > 65535 ||
       (port !== 0 && port < 1024) ||
       !Number.isInteger(bodyTimeoutMs) || bodyTimeoutMs < 50 || bodyTimeoutMs > 30000 ||
-      !Number.isInteger(providerDeadlineMs) || providerDeadlineMs < 50 || providerDeadlineMs > 30000) {
+      !Number.isInteger(providerDeadlineMs) || providerDeadlineMs < 50 || providerDeadlineMs > 30000 ||
+      !Number.isInteger(deliveryAckDeadlineMs) || deliveryAckDeadlineMs < 50 ||
+      deliveryAckDeadlineMs > 30000) {
     throw new TypeError('Private OpenAI review requires a dedicated token and safe loopback port.');
   }
   // R271: a future/private adapter cannot claim a durable reservation ledger
@@ -563,16 +566,26 @@ export async function startFaiscaOpenAIPrivateReview({
         ? pinnedDurableHooks.acknowledge : lab.acknowledgeHttpDelivery;
       if (typeof acknowledge === 'function') {
         res.once('finish', () => {
-          deliveryAck = Promise.resolve().then(() => acknowledge.call(lab))
-            .then(confirmed => {
-              // R278: a resolved promise is not proof that the durable
-              // dispatch marker was released. A false/undefined/null ACK
-              // must latch NO-START before any subsequent paid request.
-              if (requiresDurableDeliveryFence && confirmed !== true) {
-                throw new Error('Private durable HTTP acknowledgement was not affirmed.');
-              }
+          let ackTimer;
+          deliveryAck = Promise.race([
+            Promise.resolve().then(() => acknowledge.call(lab)),
+            new Promise((_, reject) => {
+              // R280: a broken/injected ACK may never settle. Bound the
+              // waiting socket and latch NO-START, without retrying or
+              // refunding an already completed provider request.
+              ackTimer = setTimeout(
+                () => reject(new Error('Private durable HTTP ACK deadline exceeded.')),
+                deliveryAckDeadlineMs
+              );
             })
-            .catch(() => { latchUncertainDelivery(); });
+          ]).then(confirmed => {
+            // R278: a resolved promise is not proof that the durable
+            // dispatch marker was released. Require an affirmative result.
+            if (requiresDurableDeliveryFence && confirmed !== true) {
+              throw new Error('Private durable HTTP acknowledgement was not affirmed.');
+            }
+          }).catch(() => { latchUncertainDelivery(); })
+            .finally(() => clearTimeout(ackTimer));
         });
       }
       send(res, 200, {
