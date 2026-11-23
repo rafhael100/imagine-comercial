@@ -9,10 +9,20 @@ async function readAggregate() {
   if (process.stdin.isTTY) throw new Error('piped numeric aggregate required');
   const pieces = [];
   let bytes = 0;
-  for await (const chunk of process.stdin) {
-    bytes += chunk.length;
-    if (bytes > 256) throw new Error('aggregate too large');
-    pieces.push(chunk);
+  // R293: a pipe can remain open forever without an EOF. Use an absolute,
+  // non-extendable wall-clock deadline, including when bytes trickle in.
+  // An interrupted aggregate cannot reach the ledger or produce a report.
+  const deadline = setTimeout(() => {
+    process.stdin.destroy(new Error('Private aggregate input deadline exceeded.'));
+  }, 3_000);
+  try {
+    for await (const chunk of process.stdin) {
+      bytes += chunk.length;
+      if (bytes > 256) throw new Error('aggregate too large');
+      pieces.push(chunk);
+    }
+  } finally {
+    clearTimeout(deadline);
   }
   if (bytes < 2) throw new Error('empty aggregate');
   const inputBytes = Buffer.concat(pieces);
