@@ -59,7 +59,7 @@ test('R293 finite operator stdin deadline denies EOF-less and incomplete aggrega
         assert.equal(outcome.stderr,
           'Private usage comparison unavailable; manual review required.\n');
         assert.equal(outcome.stderr.includes(directory), false);
-        assert.equal(outcome.stderr.includes(partial), false);
+        if (partial) assert.equal(outcome.stderr.includes(partial), false);
       }
       assert.deepEqual((await readdir(directory)).sort(), names);
       const after = await Promise.all(names.map(name => readFile(join(directory, name))));
