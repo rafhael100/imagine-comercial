@@ -21,6 +21,8 @@ async function incompleteInput(mode) {
     env, stdio: ['pipe', 'pipe', 'pipe']
   });
   let stdout = '', stderr = '';
+  // A closed child pipe may emit EPIPE while a synthetic drip is in flight.
+  child.stdin.on('error', () => {});
   child.stdout.setEncoding('utf8');
   child.stderr.setEncoding('utf8');
   child.stdout.on('data', s => { stdout += s; });
