@@ -5,6 +5,8 @@
  * No SSH, Docker commands, secrets, POST or OpenAI network calls.
  */
 import { TextDecoder } from 'node:util';
+import { parseUniquePrivateEvidenceJson } from
+  '../ops/faisca/staging/parse-unique-private-evidence-json.mjs';
 import { reviewFaiscaPrivateTwoListenerBoundary } from
   '../ops/faisca/staging/review-private-two-listener-boundary.mjs';
 
@@ -37,7 +39,7 @@ try {
     clearTimeout(deadline);
   }
   if (expired || size < 25) throw Error(HOLD);
-  const input = JSON.parse(new TextDecoder('utf-8', { fatal: true })
+  const input = parseUniquePrivateEvidenceJson(new TextDecoder('utf-8', { fatal: true })
     .decode(Buffer.concat(chunks, size)));
   if (!input || Object.getPrototypeOf(input) !== Object.prototype ||
       Object.keys(input).sort().join(',') !== 'container,image' ||
