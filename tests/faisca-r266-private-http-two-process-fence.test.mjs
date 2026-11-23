@@ -107,7 +107,10 @@ test('R266 two independent OS processes cannot overlap a private paid HTTP dispa
     assert.equal((await post(competingServer.address, null)).status, 403);
     const competing = await post(competingServer.address, competingToken);
     assert.equal(competing.status, 503);
-    assert.deepEqual(await competing.json(), { status: 'unavailable' });
+    const rejectedBody = await competing.json();
+    assert.equal(rejectedBody.status, 'unavailable');
+    assert.equal(typeof rejectedBody.message, 'string');
+    assert.doesNotMatch(JSON.stringify(rejectedBody), /credential|sk-r266|token|directory|provider invocation/i);
     assert.equal(competingCalls, 0, 'No paid provider can run from the competing process');
     assert.equal((await ledger.inspectReadOnly()).requests, 1,
       'Only the held first request may reserve allowance');
