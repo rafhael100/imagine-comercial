@@ -564,6 +564,14 @@ export async function startFaiscaOpenAIPrivateReview({
       if (typeof acknowledge === 'function') {
         res.once('finish', () => {
           deliveryAck = Promise.resolve().then(() => acknowledge.call(lab))
+            .then(confirmed => {
+              // R278: a resolved promise is not proof that the durable
+              // dispatch marker was released. A false/undefined/null ACK
+              // must latch NO-START before any subsequent paid request.
+              if (requiresDurableDeliveryFence && confirmed !== true) {
+                throw new Error('Private durable HTTP acknowledgement was not affirmed.');
+              }
+            })
             .catch(() => { latchUncertainDelivery(); });
         });
       }
