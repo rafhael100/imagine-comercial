@@ -504,7 +504,11 @@ export function createFaiscaOpenAILiveLab({
   // proof that a human read it. A crash/disconnect before this event leaves
   // the fsynced marker in place for operator-only reconciliation.
   async function acknowledgeHttpDelivery() {
-    if (!awaitingHttpDeliveryAck || providerCompletionUncertain) return false;
+    if (providerCompletionUncertain) return false;
+    // R278: fixed host-editorial replies bypass both paid models. The HTTP
+    // finish hook is still called, but there is no dispatch to acknowledge.
+    // Report an affirmative no-op only when no paid marker is held.
+    if (!awaitingHttpDeliveryAck) return heldDispatch === false;
     try {
       if (heldDispatch &&
           typeof reservationLedger?.completePaidDispatch === 'function') {
