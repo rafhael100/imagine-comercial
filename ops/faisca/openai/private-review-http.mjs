@@ -332,7 +332,14 @@ export async function startFaiscaOpenAIPrivateReview({
   // R271: a future/private adapter cannot claim a durable reservation ledger
   // yet omit the final paid-dispatch check introduced by R270. Fail before
   // binding the listener rather than silently downgrading to a weak adapter.
-  const requiresDurableDeliveryFence = lab.inspect()?.localDurableReservations === true;
+  const initialDurabilityClaim = lab.inspect()?.localDurableReservations;
+  // Do not silently treat a truthy string/number as an adapter without a
+  // ledger. Missing is allowed for legacy synthetic non-durable fixtures.
+  if (initialDurabilityClaim !== undefined &&
+      typeof initialDurabilityClaim !== 'boolean') {
+    throw new TypeError('Private review requires a boolean durable capability.');
+  }
+  const requiresDurableDeliveryFence = initialDurabilityClaim === true;
   if (requiresDurableDeliveryFence &&
       typeof lab.assertPrivateHttpDeliverySafe !== 'function') {
     throw new TypeError('Private durable review requires an HTTP delivery fence.');
@@ -352,7 +359,7 @@ export async function startFaiscaOpenAIPrivateReview({
   // Inspect failures are unsafe; they never authorize provider dispatch.
   function stableDurabilityClaim() {
     try {
-      return (lab.inspect()?.localDurableReservations === true) === requiresDurableDeliveryFence;
+      return lab.inspect()?.localDurableReservations === initialDurabilityClaim;
     } catch { return false; }
   }
   const mascot = await readFile(new URL('../assets/faisca-master.png', import.meta.url));
