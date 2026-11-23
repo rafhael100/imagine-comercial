@@ -95,7 +95,10 @@ export async function inspectFaiscaPrivateStaging({
     shaPattern.test(expectedHead ?? '') && await gitRevision() === expectedHead);
   await check('tracked_checkout_is_clean', isClean);
   await check('private_paid_test_opt_in', () =>
-    env.IMAGINE_FAISCA_OPENAI_LIVE_TEST === 'YES_PAY_SYNTHETIC_ONLY');
+    env.IMAGINE_FAISCA_OPENAI_LIVE_TEST === 'YES_PAY_SYNTHETIC_ONLY' &&
+    // R302: an invalid explicit mode must not silently start fixed-case review.
+    (env.FAISCA_PRIVATE_SYNTHETIC_CONVERSATION === undefined ||
+      env.FAISCA_PRIVATE_SYNTHETIC_CONVERSATION === 'YES_SYNTHETIC_ONLY'));
   await check('openai_key_present_only_in_private_environment', () =>
     typeof env.OPENAI_API_KEY === 'string' &&
     /^sk-[A-Za-z0-9_-]{12,}$/.test(env.OPENAI_API_KEY));
