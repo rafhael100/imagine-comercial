@@ -108,7 +108,10 @@ export async function inspectFaiscaPrivateReviewUi({
   privateConversationEnabled = false, timeoutMs = 3000
 } = {}) {
   const checks = [];
-  const allowedOrigin = /^http:\/\/127\.0\.0\.1:([1-9][0-9]{0,4})$/.exec(origin);
+  // R300: do not coerce an object twice (regex then URL concatenation).
+  // An object can supply a different origin on the second conversion.
+  const allowedOrigin = typeof origin === 'string'
+    ? /^http:\/\/127\.0\.0\.1:([1-9][0-9]{0,4})$/.exec(origin) : null;
   if (!allowedOrigin || Number(allowedOrigin[1]) > 65535 ||
       typeof privateConversationEnabled !== 'boolean' ||
       typeof fetchImpl !== 'function' || !Number.isInteger(timeoutMs) ||
