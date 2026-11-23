@@ -353,6 +353,21 @@ export async function startFaiscaOpenAIPrivateReview({
        typeof lab.markDeliveryUncertain !== 'function')) {
     throw new TypeError('Private durable review requires HTTP delivery lifecycle hooks.');
   }
+  // R275: property presence is insufficient: an injected adapter could
+  // replace a vetted method with another function after the listener binds.
+  // Pin the original hooks so even a late replacement cannot intercept the
+  // persistent NO-START signal or the post-write acknowledgement.
+  const pinnedDurableHooks = Object.freeze({
+    assert: lab.assertPrivateHttpDeliverySafe,
+    acknowledge: lab.acknowledgeHttpDelivery,
+    uncertain: lab.markDeliveryUncertain
+  });
+  function stableDurableHooks() {
+    return !requiresDurableDeliveryFence ||
+      (lab.assertPrivateHttpDeliverySafe === pinnedDurableHooks.assert &&
+       lab.acknowledgeHttpDelivery === pinnedDurableHooks.acknowledge &&
+       lab.markDeliveryUncertain === pinnedDurableHooks.uncertain);
+  }
   // R274: inspect() is injected and can change after bind. A runtime that
   // starts as durable must not silently downgrade its claim (or vice versa)
   // while HTTP accepts a new paid turn or prepares to emit HTTP 200.
@@ -383,8 +398,10 @@ export async function startFaiscaOpenAIPrivateReview({
     providerUnavailable = true;
     if (deliveryFenceStarted) return;
     deliveryFenceStarted = true;
-    if (typeof lab.markDeliveryUncertain === 'function') {
-      deliveryFence = Promise.resolve().then(() => lab.markDeliveryUncertain())
+    const markUncertain = requiresDurableDeliveryFence
+      ? pinnedDurableHooks.uncertain : lab.markDeliveryUncertain;
+    if (typeof markUncertain === 'function') {
+      deliveryFence = Promise.resolve().then(() => markUncertain.call(lab))
         .catch(() => {}); // Never expose file-system or provider details.
     }
   }
@@ -498,6 +515,11 @@ export async function startFaiscaOpenAIPrivateReview({
       if (!stableDurabilityClaim()) {
         throw new Error('Private durable capability changed during dispatch.');
       }
+      // Reject late replacement, not only deletion, of the vetted hooks.
+      // The pinned uncertainty hook remains available to the error path.
+      if (!stableDurableHooks()) {
+        throw new Error('Private durable lifecycle hook identity changed.');
+      }
       // R270: editorial validation can take place after the last provider
       // completion check. Revalidate the fsynced single-host NO-START marker
       // immediately before replying, but never claim an atomic socket fence.
@@ -527,9 +549,11 @@ export async function startFaiscaOpenAIPrivateReview({
       // An upstream completion is not the same as a locally completed HTTP
       // response. Release the durable cross-process marker only on 'finish'.
       // Any abrupt death before this handler leaves a permanent NO-START.
-      if (typeof lab.acknowledgeHttpDelivery === 'function') {
+      const acknowledge = requiresDurableDeliveryFence
+        ? pinnedDurableHooks.acknowledge : lab.acknowledgeHttpDelivery;
+      if (typeof acknowledge === 'function') {
         res.once('finish', () => {
-          deliveryAck = Promise.resolve().then(() => lab.acknowledgeHttpDelivery())
+          deliveryAck = Promise.resolve().then(() => acknowledge.call(lab))
             .catch(() => { latchUncertainDelivery(); });
         });
       }
