@@ -346,6 +346,15 @@ export async function startFaiscaOpenAIPrivateReview({
        typeof lab.markDeliveryUncertain !== 'function')) {
     throw new TypeError('Private durable review requires HTTP delivery lifecycle hooks.');
   }
+  // R274: inspect() is injected and can change after bind. A runtime that
+  // starts as durable must not silently downgrade its claim (or vice versa)
+  // while HTTP accepts a new paid turn or prepares to emit HTTP 200.
+  // Inspect failures are unsafe; they never authorize provider dispatch.
+  function stableDurabilityClaim() {
+    try {
+      return (lab.inspect()?.localDurableReservations === true) === requiresDurableDeliveryFence;
+    } catch { return false; }
+  }
   const mascot = await readFile(new URL('../assets/faisca-master.png', import.meta.url));
   if (mascot.byteLength !== 1887660 ||
       createHash('sha256').update(mascot).digest('hex') !== APPROVED_MASCOT_SHA256 ||
@@ -431,6 +440,12 @@ export async function startFaiscaOpenAIPrivateReview({
     // has durably released its same-host dispatch fence.
     await deliveryAck;
     if (providerUnavailable) { send(res, 503, { status: 'unavailable' }); return; }
+    // Never invoke an adapter whose durable-reservation capability changed
+    // after listener startup: the safety hooks were vetted for the old claim.
+    if (!stableDurabilityClaim()) {
+      latchUncertainDelivery();
+      send(res, 503, { status: 'unavailable' }); return;
+    }
     if (inFlight) { send(res, 429, { status: 'busy' }); return; }
     inFlight = true;
     requests++;
@@ -471,6 +486,11 @@ export async function startFaiscaOpenAIPrivateReview({
       const outcome = conversation ? safeConversationOutput(reply, input)
         : safeReviewOutput(reply, input);
       if (!outcome) throw REJECTED_PRIVATE_OUTPUT;
+      // A provider may mutate an injected adapter after dispatch. Its
+      // durability claim must still match the capability vetted at bind.
+      if (!stableDurabilityClaim()) {
+        throw new Error('Private durable capability changed during dispatch.');
+      }
       // R270: editorial validation can take place after the last provider
       // completion check. Revalidate the fsynced single-host NO-START marker
       // immediately before replying, but never claim an atomic socket fence.
