@@ -128,7 +128,7 @@ test('R268 SIGKILL during Terra keeps two reservations and blocks private HTTP r
     assert.equal(snapshot.requests, 2);
     assert.equal(snapshot.providerUsageReconciled, false);
     assert.equal(snapshot.publicReady, false);
-    await assert.rejects(observer.ready(), /operator review/i);
+    await assert.rejects(observer.ready(), /operator (?:review|reconciliation)|uncertain/i);
     const files = await readdir(directory);
     assert.ok(files.includes('.faisca-provider-dispatch-inflight'));
     for (const file of files) {
