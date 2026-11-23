@@ -332,7 +332,14 @@ export async function startFaiscaOpenAIPrivateReview({
   // R271: a future/private adapter cannot claim a durable reservation ledger
   // yet omit the final paid-dispatch check introduced by R270. Fail before
   // binding the listener rather than silently downgrading to a weak adapter.
-  const requiresDurableDeliveryFence = lab.inspect()?.localDurableReservations === true;
+  const initialDurabilityClaim = lab.inspect()?.localDurableReservations;
+  // Do not silently treat a truthy string/number as an adapter without a
+  // ledger. Missing is allowed for legacy synthetic non-durable fixtures.
+  if (initialDurabilityClaim !== undefined &&
+      typeof initialDurabilityClaim !== 'boolean') {
+    throw new TypeError('Private review requires a boolean durable capability.');
+  }
+  const requiresDurableDeliveryFence = initialDurabilityClaim === true;
   if (requiresDurableDeliveryFence &&
       typeof lab.assertPrivateHttpDeliverySafe !== 'function') {
     throw new TypeError('Private durable review requires an HTTP delivery fence.');
@@ -345,6 +352,15 @@ export async function startFaiscaOpenAIPrivateReview({
       (typeof lab.acknowledgeHttpDelivery !== 'function' ||
        typeof lab.markDeliveryUncertain !== 'function')) {
     throw new TypeError('Private durable review requires HTTP delivery lifecycle hooks.');
+  }
+  // R274: inspect() is injected and can change after bind. A runtime that
+  // starts as durable must not silently downgrade its claim (or vice versa)
+  // while HTTP accepts a new paid turn or prepares to emit HTTP 200.
+  // Inspect failures are unsafe; they never authorize provider dispatch.
+  function stableDurabilityClaim() {
+    try {
+      return lab.inspect()?.localDurableReservations === initialDurabilityClaim;
+    } catch { return false; }
   }
   const mascot = await readFile(new URL('../assets/faisca-master.png', import.meta.url));
   if (mascot.byteLength !== 1887660 ||
@@ -431,6 +447,12 @@ export async function startFaiscaOpenAIPrivateReview({
     // has durably released its same-host dispatch fence.
     await deliveryAck;
     if (providerUnavailable) { send(res, 503, { status: 'unavailable' }); return; }
+    // Never invoke an adapter whose durable-reservation capability changed
+    // after listener startup: the safety hooks were vetted for the old claim.
+    if (!stableDurabilityClaim()) {
+      latchUncertainDelivery();
+      send(res, 503, { status: 'unavailable' }); return;
+    }
     if (inFlight) { send(res, 429, { status: 'busy' }); return; }
     inFlight = true;
     requests++;
@@ -471,6 +493,11 @@ export async function startFaiscaOpenAIPrivateReview({
       const outcome = conversation ? safeConversationOutput(reply, input)
         : safeReviewOutput(reply, input);
       if (!outcome) throw REJECTED_PRIVATE_OUTPUT;
+      // A provider may mutate an injected adapter after dispatch. Its
+      // durability claim must still match the capability vetted at bind.
+      if (!stableDurabilityClaim()) {
+        throw new Error('Private durable capability changed during dispatch.');
+      }
       // R270: editorial validation can take place after the last provider
       // completion check. Revalidate the fsynced single-host NO-START marker
       // immediately before replying, but never claim an atomic socket fence.
