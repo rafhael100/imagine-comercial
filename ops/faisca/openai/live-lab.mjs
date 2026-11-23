@@ -474,6 +474,32 @@ export function createFaiscaOpenAILiveLab({
     } finally { finishTurn(); }
   }
 
+  // R270: a second worker may fsync NO-START *after* the Terra result was
+  // validated by invoke() but *before* private HTTP egress. Narrow that gap
+  // with a second read-only fence check at the HTTP boundary. This is NOT
+  // atomic with socket.write and cannot establish distributed safety.
+  async function assertPrivateHttpDeliverySafe() {
+    if (providerCompletionUncertain) {
+      throw new Error('OpenAI private test unavailable.');
+    }
+    // Editorial fixed replies require no paid dispatch marker.
+    if (!heldDispatch) return true;
+    try {
+      if (!awaitingHttpDeliveryAck ||
+          typeof reservationLedger?.assertPaidDispatchStillValid !== 'function') {
+        throw new Error('Private HTTP delivery fence requires operator review.');
+      }
+      await reservationLedger.assertPaidDispatchStillValid();
+      return true;
+    } catch {
+      // Keep all already reserved usage; never retry Luna/Terra or clear a
+      // marker after a peer has fenced this single-host ledger.
+      providerCompletionUncertain = true;
+      try { await reservationLedger?.markOutcomeUncertain?.(); } catch {}
+      throw new Error('OpenAI private test unavailable.');
+    }
+  }
+
   // HTTP 'finish' means the server has completed writing its response, not
   // proof that a human read it. A crash/disconnect before this event leaves
   // the fsynced marker in place for operator-only reconciliation.
@@ -526,6 +552,7 @@ export function createFaiscaOpenAILiveLab({
   }
   return Object.freeze({
     answer, answerPreparedSyntheticQuestion, answerPrivateConversation,
-    acknowledgeHttpDelivery, markDeliveryUncertain, inspect
+    acknowledgeHttpDelivery, assertPrivateHttpDeliverySafe,
+    markDeliveryUncertain, inspect
   });
 }

@@ -454,6 +454,12 @@ export async function startFaiscaOpenAIPrivateReview({
       const outcome = conversation ? safeConversationOutput(reply, input)
         : safeReviewOutput(reply, input);
       if (!outcome) throw REJECTED_PRIVATE_OUTPUT;
+      // R270: editorial validation can take place after the last provider
+      // completion check. Revalidate the fsynced single-host NO-START marker
+      // immediately before replying, but never claim an atomic socket fence.
+      if (typeof lab.assertPrivateHttpDeliverySafe === 'function') {
+        await lab.assertPrivateHttpDeliverySafe();
+      }
       if (res.destroyed) {
         latchUncertainDelivery();
         return; // The browser did not receive this reply; require operator review.
