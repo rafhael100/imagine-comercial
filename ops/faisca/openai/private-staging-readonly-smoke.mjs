@@ -118,6 +118,12 @@ export async function inspectFaiscaPrivateReviewUi({
         method: 'GET', signal: controller.signal, redirect: 'error', cache: 'no-store',
         credentials: 'omit', referrerPolicy: 'no-referrer'
       }), controller.signal);
+      // R298: Fetch may transparently decompress a response. The reviewed
+      // loopback server never emits content-encoding; reject transformed
+      // representations rather than treating decoded bytes as wire evidence.
+      if (response.headers.get('content-encoding') !== null) {
+        throw new Error('unexpected content encoding');
+      }
       const length = response.headers.get('content-length');
       if (item.exactBytes) {
         if (length === null || !/^[0-9]+$/.test(length) ||
@@ -135,6 +141,9 @@ export async function inspectFaiscaPrivateReviewUi({
         throw new Error('unreviewed headers');
       }
       const bytes = await limitedBytes(response, controller.signal, item.exactBytes ?? MAX_PRIVATE_TEXT_ASSET_BYTES);
+      if (length !== null && (!/^[0-9]+$/.test(length) || Number(length) !== bytes.length)) {
+        throw new Error('unexpected representation length');
+      }
       if (item.expectedDigest) {
         // Independently pin the original human-approved PNG. Status, MIME,
         // dimensions and visible branding alone are not integrity evidence.
