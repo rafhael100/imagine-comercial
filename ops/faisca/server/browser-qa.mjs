@@ -72,7 +72,7 @@ async function withServer(scenario, operation) {
         // POST before the browser receives it; route.fulfill() forwards the
         // identical response without creating another session or retry.
         const upstream = await route.fetch({ maxRedirects: 0 });
-        assert.equal(upstream.status(), 200, 'route-backed session must succeed');
+        assert.equal(upstream.status(), 201, 'route-backed session must be newly created');
         const captured = await upstream.json();
         sessions.push(captured);
         await route.fulfill({ response: upstream });
