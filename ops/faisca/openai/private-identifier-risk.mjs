@@ -3,7 +3,10 @@
 // generated response. It is not general-purpose PII detection or LGPD approval.
 // Unicode compatibility forms (full-width/mathematical digits, etc.) must not
 // evade the ASCII checks used by the older R80/R95 laboratory gate.
-const hiddenControls = /[\p{Cc}\p{Cf}]/u;
+// R295: mirror the input gate's default-ignorable denial on egress, too.
+// Reject ill-formed UTF-16 and Unicode noncharacters/line separators before
+// normalization or JSON serialization. Do not repair or forward the text.
+const hiddenControls = /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}\p{Default_Ignorable_Code_Point}\p{Noncharacter_Code_Point}]/u;
 // R197: the private Portuguese output egress must reject non-Latin letters,
 // including visually confusable Cyrillic, Greek, Cherokee and mixed-script
 // spellings that escape word-boundary checks for Imagine, guarantees or prices.
