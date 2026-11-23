@@ -48,7 +48,7 @@ function post(address) {
   });
 }
 
-for (const [before, after] of [[true, false], [false, true]]) {
+for (const [before, after] of [[true, false], [false, true], [false, 'true']]) {
   test(`R274 capability drift before HTTP dispatch ${before} -> ${after} fails closed`,
     async () => {
       const fixture = createSyntheticAdapter(before);
@@ -73,6 +73,22 @@ for (const [before, after] of [[true, false], [false, true]]) {
       }
       assert.equal(fixture.uncertainty(), 1);
     });
+}
+
+for (const malformed of ['true', 1, null, { enabled: true }]) {
+  test('R274 malformed durable startup capability is rejected before bind: ' +
+    String(malformed), async () => {
+    const fixture = createSyntheticAdapter();
+    fixture.setDurable(malformed);
+    await assert.rejects(
+      startFaiscaOpenAIPrivateReview({
+        lab: fixture.lab, reviewToken: token, port: 0
+      }),
+      error => error instanceof TypeError &&
+        /boolean durable capability/i.test(error.message)
+    );
+    assert.equal(fixture.calls(), 0);
+  });
 }
 
 test('R274 capability drift after synthetic provider completion cannot emit HTTP 200', async () => {
