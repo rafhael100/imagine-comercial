@@ -60,6 +60,16 @@ test('R273 a complete durable adapter can open a private listener with anonymous
     assert.equal(response.status, 403);
     assert.equal(response.headers.get('access-control-allow-origin'), null);
     assert.equal(calls(), 0);
+    // A correctly configured synthetic adapter must still serve only a
+    // host-owned fallback; mandatory lifecycle hooks must not break safe mode.
+    const allowed = await request(server.address);
+    assert.equal(allowed.status, 200);
+    assert.equal(allowed.headers.get('cache-control'), 'no-store, max-age=0');
+    const result = await allowed.json();
+    assert.equal(result.status, 'unsupported');
+    assert.equal(result.publicReady, false);
+    assert.equal(result.operationalEffects, false);
+    assert.equal(calls(), 1);
   } finally {
     await server.close();
   }
