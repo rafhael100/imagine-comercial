@@ -6,13 +6,15 @@ import { startFaiscaOpenAIPrivateReview } from '../../ops/faisca/openai/private-
 // Spawned by the R266 test as a genuinely separate OS process. It cannot
 // access real OpenAI credentials, services or user messages.
 const directory = process.argv[2];
+// R268: opt-in second-call barrier; prior R266/R267 tests keep first-call mode.
+const holdAt = process.argv[3] === 'second' ? 2 : 1;
 const reviewToken = 'R266_SYNTHETIC_WORKER_TOKEN_123456789';
 const fixtureKey = 'sk-r266-fixture-only-not-real-credential-1234567';
 const ledger = createFaiscaLocalReservationLedger({
   directory, maxRequests: 4, maxBudgetUsd: 1
 });
-let releaseFirst;
-const holdFirst = new Promise(resolve => { releaseFirst = resolve; });
+let releaseHeld;
+const holdProvider = new Promise(resolve => { releaseHeld = resolve; });
 let calls = 0;
 let closing = false;
 
@@ -40,9 +42,9 @@ async function run() {
       assert.equal(request.store, false);
       assert.deepEqual(request.tools, []);
       calls++;
-      if (calls === 1) {
-        process.send?.({ type: 'first-provider-entered' });
-        await holdFirst;
+      if (calls === holdAt) {
+        process.send?.({ type: holdAt === 1 ? 'first-provider-entered' : 'second-provider-entered' });
+        await holdProvider;
       }
       return mockResponse(request.model);
     }
@@ -51,10 +53,10 @@ async function run() {
     lab, reviewToken, enablePrivateConversation: true, port: 0
   });
   process.on('message', async message => {
-    if (message?.type === 'release') releaseFirst();
+    if (message?.type === 'release') releaseHeld();
     if (message?.type === 'shutdown' && !closing) {
       closing = true;
-      releaseFirst();
+      releaseHeld();
       try { await server.close(); process.exit(0); }
       catch { process.exit(1); }
     }
