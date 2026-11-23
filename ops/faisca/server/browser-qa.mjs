@@ -47,7 +47,8 @@ async function withServer(scenario, operation) {
     timeoutMs: 250, delayMs: scenario === 'timeout' ? 800 : 40 });
   const contexts = [];
   const fixtures = [];
-  async function open({ javaScriptEnabled = true, dropMessageResponse = false } = {}) {
+  async function open({ javaScriptEnabled = true, dropMessageResponse = false,
+    captureSessionViaRoute = false } = {}) {
     const context = await browser.newContext({ javaScriptEnabled, viewport: { width: 1440, height: 1000 } });
     contexts.push(context);
     const requests = [], envelopes = [], sessions = [], captureWork = [];
@@ -65,6 +66,18 @@ async function withServer(scenario, operation) {
         await route.abort(); return;
       }
       requests.push({ method, path: url.pathname });
+      if (captureSessionViaRoute && method === 'POST' && url.pathname === endpoints.sessions) {
+        // Chromium may evict a response body before page.waitForResponse().json()
+        // on loaded runners. route.fetch() captures the one real upstream
+        // POST before the browser receives it; route.fulfill() forwards the
+        // identical response without creating another session or retry.
+        const upstream = await route.fetch({ maxRedirects: 0 });
+        assert.equal(upstream.status(), 200, 'route-backed session must succeed');
+        const captured = await upstream.json();
+        sessions.push(captured);
+        await route.fulfill({ response: upstream });
+        return;
+      }
       if (method === 'POST' && url.pathname === endpoints.messages) {
         envelopes.push(request.postDataJSON());
         if (dropNextMessage) {
@@ -82,7 +95,7 @@ async function withServer(scenario, operation) {
     page.on('pageerror', error => runtimeErrors.push({ scenario, message: error.message }));
     page.on('response', response => {
       const url = new URL(response.url());
-      if (url.pathname === endpoints.sessions && response.ok()) {
+      if (!captureSessionViaRoute && url.pathname === endpoints.sessions && response.ok()) {
         captureWork.push(response.json().then(value => { sessions.push(value); }).catch(() => {}));
       }
     });
@@ -238,24 +251,23 @@ try {
       assert.equal(server.inspect().dispatched, before);
     });
     await check('two browser sessions cannot claim each other or add authority and provider fields', async () => {
-      const b = await open();
+      // Capture the real session POST at the already-installed route
+      // boundary. Chromium sometimes drops the response body before a
+      // passive Playwright response.json() reads it, even if waitForResponse
+      // was registered before the request. This makes the transport
+      // witness deterministic without creating or retrying a session.
+      const b = await open({ captureSessionViaRoute: true });
       await b.activate();
-      // Arm the response witness BEFORE submitting. The UI may render its
-      // answer before Playwright's passive JSON decoding resolves on loaded
-      // CI runners; a post-hoc poll of the passive array is not sufficient.
-      // The response must be a real successful session HTTP response.
-      const witness = b.page.waitForResponse(response =>
-        new URL(response.url()).pathname === endpoints.sessions &&
-        response.request().method() === 'POST' && response.ok(),
-      { timeout: 10000 }).then(response => response.json());
       await b.send('Quero organizar minhas vendas');
-      const session = await witness;
       await b.flush();
-      if (!b.sessions.length) b.sessions.push(session);
+      assert.equal(b.apiCount(endpoints.sessions), 1,
+        'second browser must emit one actual session POST');
       assert.equal(b.sessions.length, 1,
-        'second browser session must have exactly one captured HTTP session');
-      assert.deepEqual(b.sessions[0], session,
-        'passive and pre-armed response witnesses must agree');
+        'one upstream session response must be captured and forwarded');
+      const session = b.sessions[0];
+      assert.equal(session.schema, 'faisca.http.session.v1');
+      assert.equal(/^[a-f0-9]{32}$/.test(session.conversationId), true);
+      assert.equal(/^[a-f0-9]{64}$/.test(session.token), true);
       assert.ok(a.sessions[0].conversationId !== b.sessions[0].conversationId, 'independent conversations');
       assert.ok(a.sessions[0].token !== b.sessions[0].token, 'independent session credentials');
       const before = server.inspect().dispatched;
