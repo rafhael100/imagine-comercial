@@ -1,5 +1,4 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { privateStagingGitRevision, privateStagingCleanWorktree } from './private-staging-git-evidence.mjs';
 import { createServer } from 'node:net';
 import { lstat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -7,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 import { createFaiscaLocalReservationLedger } from './durable-reservation-ledger.mjs';
 
 export const FAISCA_PRIVATE_STAGING_PREFLIGHT_SCHEMA = 'faisca.private-staging-preflight.v1';
-const exec = promisify(execFile);
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const shaPattern = /^[0-9a-f]{40}$/;
 const bearerPattern = /^[A-Za-z0-9_-]{32,128}$/;
@@ -19,19 +17,8 @@ function nodeSupported(version) {
   return major > 22 || (major === 22 && Number(match[2]) >= 12);
 }
 
-async function revision() {
-  const { stdout } = await exec('git', ['rev-parse', 'HEAD'], {
-    cwd: root, timeout: 3000, maxBuffer: 1024
-  });
-  return stdout.trim();
-}
-
-async function cleanWorktree() {
-  const { stdout } = await exec('git', ['status', '--porcelain', '--untracked-files=no'], {
-    cwd: root, timeout: 3000, maxBuffer: 4096
-  });
-  return stdout.trim() === '';
-}
+const revision = () => privateStagingGitRevision(root);
+const cleanWorktree = () => privateStagingCleanWorktree(root);
 
 async function probePrivatePort(port) {
   // Readiness check only. It binds ONLY loopback briefly and never runs
