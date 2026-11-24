@@ -366,10 +366,14 @@ export async function startFaiscaOpenAIPrivateReview({
     uncertain: lab.markDeliveryUncertain
   });
   function stableDurableHooks() {
-    return !requiresDurableDeliveryFence ||
-      (lab.assertPrivateHttpDeliverySafe === pinnedDurableHooks.assert &&
-       lab.acknowledgeHttpDelivery === pinnedDurableHooks.acknowledge &&
-       lab.markDeliveryUncertain === pinnedDurableHooks.uncertain);
+    if (!requiresDurableDeliveryFence) return true;
+    // R322: a broken or replaced accessor must fail closed, not reject the
+    // async HTTP request handler outside its protected dispatch try/catch.
+    try {
+      return lab.assertPrivateHttpDeliverySafe === pinnedDurableHooks.assert &&
+        lab.acknowledgeHttpDelivery === pinnedDurableHooks.acknowledge &&
+        lab.markDeliveryUncertain === pinnedDurableHooks.uncertain;
+    } catch { return false; }
   }
   // R274: inspect() is injected and can change after bind. A runtime that
   // starts as durable must not silently downgrade its claim (or vice versa)
