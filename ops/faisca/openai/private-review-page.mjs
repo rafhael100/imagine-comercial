@@ -117,6 +117,28 @@ footer{padding:.8rem 0;line-height:1.5}
 @media(max-width:420px){main{padding:.75rem;margin:.5rem auto}section{padding:1rem}}
 `;
 
+// Review notes for the browser module (outside the served asset to preserve the R213 byte limit):
+// R328: independent browser refusal of invented access to private records.
+// Only a validated fictional question or one of the three fixed case IDs
+// can leave this temporary browser session. Never persist the bearer.
+// Invalid bearer or scenario must not retain accidentally pasted input.
+// A rejected private question may contain accidentally pasted personal
+// information. Never leave it in the textarea for another attempt.
+// Drop operator text from the DOM before the first fetch; only the local
+// request closure holds the fictional string until the request finishes.
+// R207: pin browser network responses; test-created Response objects have no URL.
+// A bfcache restoration must not render a late response belonging to a
+// session the operator already left, even if abort was ignored by fetch.
+// An HTTP 200 may contain an allowed citation but a fabricated editorial
+// answer. The private browser validates exact reviewed pricing/process
+// text and source order independently of the server's receipt boolean.
+// A 200 response cannot invent a company-specific confirmation message.
+// It must match the host-owned exact text, independently of the server.
+// R06 approved recipes contain literal LF line breaks. Allow those only
+// when the free editorial response matches the exact pinned text and
+// ordered sources. Never relax this for model output or fixed scenarios.
+// Preserve the strict R88 fixed-scenario proof and check free text separately.
+// No HTML interpretation of the model or editorial reply.
 export const PRIVATE_REVIEW_JS = String.raw`const form = document.getElementById('faisca-review-form');
 const token = document.getElementById('review-token');
 const scenario = document.getElementById('review-case');
@@ -188,7 +210,6 @@ function privateBrowserNetworkAddressRisk(text) {
     privateBrowserOctalIpv4.test(text) || privateBrowserIpv6.test(text) ||
     /\blocalhost\b/u.test(text);
 }
-// R328: independent browser refusal of invented access to private records.
 const privateBrowserReadAccess =
   /\b(?:consultei|consultamos|acessei|acessamos|verifiquei|verificamos|analisei|analisamos|conferi|conferimos|li|lemos|recuperei|recuperamos|localizei|localizamos|busquei|buscamos)\s+(?:(?:o|a|os|as|um|uma|seu|sua|seus|suas|no|na|nos|nas)\s+){0,3}(?:crm|portal|painel|cadastros?|registros?|relatorios?|metricas|logs?|historico|dados|base\s+de\s+dados)\b|\b(?:tenho|temos|tive|tivemos|posso|podemos|consigo|conseguimos)\s+(?:acesso\s+(?:ao|a|aos|as)|consultar|acessar|verificar|ler|recuperar|visualizar)\s+(?:(?:o|a|os|as|seu|sua|seus|suas)\s+){0,3}(?:crm|portal|painel|cadastros?|registros?|relatorios?|metricas|logs?|historico|dados|base\s+de\s+dados)\b/u;
 function privateBrowserReplyEgressSafe(value) {
@@ -314,10 +335,7 @@ form?.addEventListener('submit', async event => {
   const typed = question?.value ?? '';
   const openQuestion = Boolean(conversation && (typed.trim() !== '' || attestation?.checked));
   token.value = '';
-  // Only a validated fictional question or one of the three fixed case IDs
-  // can leave this temporary browser session. Never persist the bearer.
   if (!/^[A-Za-z0-9_-]{32,128}$/.test(reviewToken) || !validCases.has(caseId)) {
-    // Invalid bearer or scenario must not retain accidentally pasted input.
     if (question) question.value = '';
     if (attestation) attestation.checked = false;
     status.textContent = 'Confira o token de revisão e escolha uma pergunta fictícia.';
@@ -325,16 +343,12 @@ form?.addEventListener('submit', async event => {
   }
   if (openQuestion && (!attestation?.checked || typed.trim().length < 12 ||
       typed.length > 240 || !privateFictionalQuestionPreflight(typed))) {
-    // A rejected private question may contain accidentally pasted personal
-    // information. Never leave it in the textarea for another attempt.
     if (question) question.value = '';
     if (attestation) attestation.checked = false;
     status.textContent = 'Escreva a pergunta e confirme que ela é fictícia.';
     return;
   }
   pending = true;
-  // Drop operator text from the DOM before the first fetch; only the local
-  // request closure holds the fictional string until the request finishes.
   if (question) question.value = '';
   if (attestation) attestation.checked = false;
   send.disabled = true;
@@ -356,7 +370,6 @@ form?.addEventListener('submit', async event => {
       credentials:'omit', cache:'no-store', referrerPolicy:'no-referrer',
       signal:controller.signal
     }, controller.signal);
-    // R207: pin browser network responses; test-created Response objects have no URL.
     const mime = response.headers.get('content-type')?.toLowerCase().replaceAll(' ', '');
     if (response.status !== 200 || response.redirected === true ||
         (response.url && response.url !== new URL('/__faisca_openai_private/' + endpoint, location.origin).href) ||
@@ -364,8 +377,6 @@ form?.addEventListener('submit', async event => {
       throw new Error('review_unavailable');
     }
     const data = await readBoundedPrivateJson(response, controller.signal);
-    // A bfcache restoration must not render a late response belonging to a
-    // session the operator already left, even if abort was ignored by fetch.
     if (requestEpoch !== pageEpoch) return;
     const fixed = !openQuestion;
     const validStatus = fixed ? data?.status === 'draft_answer' :
@@ -379,9 +390,6 @@ form?.addEventListener('submit', async event => {
         reviewedPrivateSourceIds.has(id)) &&
       new Set(data.sources).size === data.sources.length &&
       (editorial ? data.sources.length > 0 : data.sources.length === 0);
-    // An HTTP 200 may contain an allowed citation but a fabricated editorial
-    // answer. The private browser validates exact reviewed pricing/process
-    // text and source order independently of the server's receipt boolean.
     const fixedSourceReceiptOk = !fixed || (
       Array.isArray(data?.sources) &&
       reviewedPrivateFixedSourceSets[caseId]?.some(approved =>
@@ -393,17 +401,12 @@ form?.addEventListener('submit', async event => {
         data.answer === receipt.text &&
         data.sources.length === receipt.sources.length &&
         data.sources.every((id, index) => id === receipt.sources[index])));
-    // A 200 response cannot invent a company-specific confirmation message.
-    // It must match the host-owned exact text, independently of the server.
     const confirmationReceiptOk = data?.status !== 'needs_confirmation' ||
       (!fixed && data.answer === reviewedPrivateConfirmationText);
     const modelsOk = Array.isArray(data?.models) &&
       (generated ? (data.models.length === 2 &&
         data.models[0] === 'gpt-6-luna' && data.models[1] === 'gpt-6.1-terra')
         : data.models.length === 0);
-    // R06 approved recipes contain literal LF line breaks. Allow those only
-    // when the free editorial response matches the exact pinned text and
-    // ordered sources. Never relax this for model output or fixed scenarios.
     const pinnedEditorialLinefeeds = !fixed && editorial && editorialReceiptOk;
     if (!validStatus || !sourcesOk || !modelsOk || !fixedSourceReceiptOk || !editorialReceiptOk ||
         !confirmationReceiptOk ||
@@ -420,13 +423,11 @@ form?.addEventListener('submit', async event => {
           privateBrowserPiiRisk(data.answer)) ||
         (data?.status === 'general_answer' &&
           !privateBrowserGeneralReplySafe(data.answer)) ||
-        // Preserve the strict R88 fixed-scenario proof and check free text separately.
         (fixed && data.sourceRecipeBound !== true) ||
         (!fixed && data.sourceRecipeBound !== (editorial ? true : false)) ||
         data.publicReady !== false || data.operationalEffects !== false) {
       throw new Error('review_unavailable');
     }
-    // No HTML interpretation of the model or editorial reply.
     answer.textContent = data.answer;
     sources.textContent = editorial ? 'Fontes editoriais: ' + data.sources.join(', ') : '';
     if (generated) {
