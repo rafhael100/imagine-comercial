@@ -467,7 +467,8 @@ export async function startFaiscaOpenAIPrivateReview({
     // Independent HTTP preflight: an injected/misconfigured lab must never see
     // raw operator input that failed the same synthetic privacy boundary.
     // Count authorized invalid attempts as before, but never dispatch them.
-    if (conversation && readPrivateSyntheticQuestion(input) === null) {
+    const question = conversation ? readPrivateSyntheticQuestion(input) : null;
+    if (conversation && (question === null || privateConversationRoute(question) === 'rejected')) {
       requests++;
       send(res, 400, { status: 'invalid_question' });
       return;
@@ -524,6 +525,9 @@ export async function startFaiscaOpenAIPrivateReview({
         throw new Error('Uncertain private provider completion.');
       }
       if (conversation && reply === null) {
+        // R325: the host already accepted this route. A durable adapter's
+        // unexpected null cannot prove that no paid dispatch was reserved.
+        if (requiresDurableDeliveryFence) throw REJECTED_PRIVATE_OUTPUT;
         send(res, 400, { status: 'invalid_question' }); return;
       }
       const outcome = conversation ? safeConversationOutput(reply, input)
@@ -634,11 +638,15 @@ export async function startFaiscaOpenAIPrivateReview({
       });
     } catch (error) {
       // Transport/provider exceptions may have incurred a charge despite not
-      // yielding a response. Lock this process until operator review. Unsafe
-      // but *completed* model outputs remain 503 without opening the breaker,
-      // so separate synthetic negative editorial fixtures can be evaluated.
-      // In neither case do we retry or release the durable reservation.
-      if (error !== REJECTED_PRIVATE_OUTPUT && error !== CLIENT_DISCONNECTED) latchUncertainDelivery();
+      // yielding a response. Lock this process until operator review.
+      // R325: even a completed but rejected output cannot release a durable
+      // dispatch marker: no HTTP 200/ACK follows. Latch the original hook
+      // before another request can dispatch. Only legacy non-durable
+      // synthetic fixtures may continue after a rejected output.
+      if (error !== CLIENT_DISCONNECTED &&
+          (error !== REJECTED_PRIVATE_OUTPUT || requiresDurableDeliveryFence)) {
+        latchUncertainDelivery();
+      }
       if (!res.destroyed) send(res, 503, {
         status: 'unavailable',
         message: 'The private AI review could not confirm a safe response.'
