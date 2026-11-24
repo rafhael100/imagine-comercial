@@ -73,6 +73,30 @@ async function privateSourceMatchesIndex(cwd) {
   return true;
 }
 
+// Git status may run repository-configured clean/process filters when it
+// refreshes a changed tracked file (even outside the private source scope).
+// A review must not execute these commands. Read only config key names, then
+// override each configured driver for the status subprocess. Unexpected names
+// fail closed; the private source is already compared as raw bytes.
+async function gitStatusWithoutFilters(cwd) {
+  const keys = (await git(cwd, ['config', '--null', '--name-only', '--list'],
+    2 * 1024 * 1024)).split('\0').filter(Boolean);
+  const drivers = new Set();
+  for (const key of keys) {
+    const match = /^filter\.(.+)\.(clean|process|required)$/s.exec(key);
+    if (!match) continue;
+    if (!/^[A-Za-z0-9_.-]+$/.test(match[1])) throw new Error('PRIVATE_GIT_FILTER_NAME');
+    drivers.add(match[1]);
+  }
+  const overrides = [...drivers].flatMap(name => [
+    '-c', 'filter.' + name + '.clean=',
+    '-c', 'filter.' + name + '.process=',
+    '-c', 'filter.' + name + '.required=false'
+  ]);
+  return git(cwd, [...overrides, 'status', '--porcelain', '--untracked-files=no',
+    '--ignore-submodules=none']);
+}
+
 export async function privateStagingCleanWorktree(cwd) {
   if (!await isCheckoutRoot(cwd)) return false;
   // git status can report a clean worktree for tracked files marked
@@ -82,6 +106,5 @@ export async function privateStagingCleanWorktree(cwd) {
     .split('\0').filter(Boolean);
   if (!entries.length || entries.some(entry => !entry.startsWith('H '))) return false;
   if (!await privateSourceMatchesIndex(cwd)) return false;
-  return (await git(cwd, ['status', '--porcelain', '--untracked-files=no',
-    '--ignore-submodules=none'])).trim() === '';
+  return (await gitStatusWithoutFilters(cwd)).trim() === '';
 }
