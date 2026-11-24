@@ -299,9 +299,7 @@ export function createFaiscaLocalReservationLedger({
   async function beginPaidDispatch() {
     // Luna and Terra may share the gate only if its original inode remains.
     if (ownedDispatch) {
-      await checkDirectory();
-      await assertNoProviderUncertainty();
-      return assertOwnedDispatchMarker();
+      return assertPaidDispatchStillValid();
     }
     await checkDirectory();
     await assertNoProviderUncertainty();
@@ -330,7 +328,7 @@ export function createFaiscaLocalReservationLedger({
     }
     ownedDispatchIdentity = dispatchIdentity;
     ownedDispatch = true;
-    return true;
+    return assertPaidDispatchStillValid();
   }
 
   // R269: provider completion is not enough to authorize HTTP egress.
@@ -341,15 +339,31 @@ export function createFaiscaLocalReservationLedger({
     await checkDirectory();
     await assertNoProviderUncertainty();
     await assertOwnedDispatchMarker();
+    // A surviving dispatch marker alone does not establish that the reserved
+    // quota and its witness still agree. Detect a corrupt or incomplete
+    // reservation before provider dispatch, HTTP egress and marker release.
+    // A live reservation lock is ambiguous: never wait for or remove it.
+    await assertNoReservationLock();
+    const state = await readState();
+    if (state.requests < 1 || state.reservedMicros < 1) {
+      throw new Error('Private dispatch reservation missing; operator review required.');
+    }
+    await assertNoReservationLock();
+    await assertNoProviderUncertainty();
+    await assertOwnedDispatchMarker();
     return true;
+  }
+
+  async function assertNoReservationLock() {
+    try { await lstat(lockPath); }
+    catch (error) { if (error?.code === 'ENOENT') return; }
+    throw new Error('Private reservation lock present or uninspectable; operator review required.');
   }
 
   async function completePaidDispatch() {
     if (!ownedDispatch) throw new Error('Private provider dispatch not owned.');
-    await checkDirectory();
-    await assertNoProviderUncertainty();
-    // Refuse to remove a different inode even when its contents are identical.
-    await assertOwnedDispatchMarker();
+    // Refuse to remove a different inode or acknowledge a corrupt reservation.
+    await assertPaidDispatchStillValid();
     // Only THIS ledger instance, after a fully validated provider reply,
     // can release its own marker; failure leaves a conservative NO-START.
     await unlink(providerDispatchPath);
