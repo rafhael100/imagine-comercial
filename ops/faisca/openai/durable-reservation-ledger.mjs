@@ -348,6 +348,14 @@ export function createFaiscaLocalReservationLedger({
     if (state.requests < 1 || state.reservedMicros < 1) {
       throw new Error('Private dispatch reservation missing; operator review required.');
     }
+    // Legacy state without initialization markers is readable for migration,
+    // but reserve() always installs both markers before dispatch. Never treat
+    // disappearance of both witness files during a live dispatch as legacy.
+    if (!await hasInitializationMarker() || !await hasHighwaterMarker()) {
+      throw new Error('Private dispatch initialization missing; operator review required.');
+    }
+    // Check the witness again under the stricter live-dispatch contract.
+    await verifyHighwater(state);
     await assertNoReservationLock();
     await assertNoProviderUncertainty();
     await assertOwnedDispatchMarker();

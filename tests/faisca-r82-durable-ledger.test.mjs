@@ -222,3 +222,42 @@ test('R333 successful two-call reservation retains the normal dispatch and ackno
     assert.equal(await ledger.ready(), true);
   });
 });
+
+test('R336 deletion of initialization evidence never downgrades an active reservation to legacy', async () => {
+  for (const removed of [
+    ['.faisca-reservations-initialized'],
+    ['.faisca-reservations-highwater-initialized', '.faisca-reservations-highwater.json']
+  ]) {
+    for (const afterBegin of [false, true]) {
+      await directoryFixture(async directory => {
+        const ledger = createFaiscaLocalReservationLedger({ directory });
+        await ledger.reserve(0.1);
+        if (afterBegin) assert.equal(await ledger.beginPaidDispatch(), true);
+        for (const name of removed) await rm(join(directory, name));
+        await assert.rejects(ledger.beginPaidDispatch(), /operator review/);
+        await assert.rejects(ledger.assertPaidDispatchStillValid(), /operator review/);
+        await assert.rejects(ledger.completePaidDispatch(), /operator review/);
+        assert.equal(await readFile(join(directory, '.faisca-provider-dispatch-inflight'), 'utf8'),
+          'faisca.private-provider-dispatch-inflight.v1\n');
+        await assert.rejects(createFaiscaLocalReservationLedger({ directory }).ready(), /in flight/);
+      });
+    }
+  }
+});
+
+test('R336 legacy state can still migrate through a new durable reservation before dispatch', async () => {
+  await directoryFixture(async directory => {
+    const ledger = createFaiscaLocalReservationLedger({ directory });
+    await ledger.reserve(0.1);
+    for (const name of ['.faisca-reservations-initialized',
+      '.faisca-reservations-highwater-initialized', '.faisca-reservations-highwater.json']) {
+      await rm(join(directory, name));
+    }
+    const fresh = createFaiscaLocalReservationLedger({ directory });
+    assert.equal(await fresh.ready(), true);
+    assert.equal((await fresh.reserve(0.2)).requests, 2);
+    assert.equal(await fresh.beginPaidDispatch(), true);
+    assert.equal(await fresh.completePaidDispatch(), true);
+    assert.equal((await fresh.inspectReadOnly()).reservedMicros, 300000);
+  });
+});
