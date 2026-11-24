@@ -63,8 +63,15 @@ O resultado esperado é `PRIVATE_SYNTHETIC_SEQUENCE_ENVELOPES_VERIFIED` e `local
 node scripts/faisca-private-post-run-ledger.mjs "$FAISCA_STAGING_REVIEW_SHA"
 ```
 
-  Exige `FAISCA_PRIVATE_LEDGER_DIRECTORY` e `FAISCA_PRIVATE_LEDGER_AUDIT_ACK=YES_LOCAL_READONLY_NO_PROVIDER_PROOF` na sessão sem credenciais; utiliza os limites 100/USD 10 do entrypoint. R347/R348 ainda sujeitos à CI própria.
+  Exige `FAISCA_PRIVATE_LEDGER_DIRECTORY` e `FAISCA_PRIVATE_LEDGER_AUDIT_ACK=YES_LOCAL_READONLY_NO_PROVIDER_PROOF` na sessão sem credenciais; utiliza os limites 100/USD 10 do entrypoint. R347/R348 aprovadas em 24/11/2026, 6/6 workflows em cada HEAD exata (#828 e #829).
 - Custodiante: correlacionar janela de uso com projeto OpenAI autorizado e cobrança observada; não registrar conteúdo das perguntas, token, chave ou dados pessoais. Reserva estimada não equivale a fatura. Se janela não permitir atribuição independente, manter pendente, sem inferir custo.
 - Registrar por separado SHA revisada, CI, smoke, navegador, deltas locais, conciliação de uso e encerramento; se faltar evidência, marcar PENDENTE. GO privado é decisão própria. GO público permanece bloqueado; integração operacional Portal/Sites/CRM continua fora deste ensaio.
 
 Nenhum comando deste documento foi executado na VPS por esta entrega.
+
+## R349 — comparação local da janela completa (review only)
+Antes de iniciar o serviço, e depois de confirmar seu encerramento, obter separadamente os dois relatórios R348 (mesma SHA revisada e mesmo diretório de ledger, confirmados pelo custodiante). Preservar a evidência fora do checkout. Preparar um JSON array de dois objetos, na ordem antes/depois, contendo exclusivamente os relatórios numéricos R348. Não incluir credenciais, mensagens, paths ou dados do provedor. Na sessão sem credenciais:
+```sh
+node scripts/faisca-private-ledger-window.mjs 2 < /caminho/privado/observacoes.json
+```
+Usar 2 somente para a sequência negativa/positiva concluída; usar 4 somente quando também houver uma interação positiva adicional de navegador autorizada e concluída. Não executar uma nova conversa para ajustar a contagem. Exigir PRIVATE_LOCAL_WINDOW_DELTA_MATCHED; divergência exige conciliação manual, sem retry. A ferramenta verifica apenas diferenças numéricas e limites locais, não identidade do ledger, SHA, saída do processo, fatura, concorrência ou atribuição de chamadas. Manter os demais gates independentes. R349 sujeita à CI e revisão própria.
