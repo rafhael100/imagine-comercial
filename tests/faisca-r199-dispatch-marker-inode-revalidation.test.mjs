@@ -27,6 +27,7 @@ async function setup(t) {
 test('R199 same-content replacement inode cannot be reused or released by original owner', async t => {
   const { marker, make } = await setup(t);
   const owner = make(), competitor = make();
+  await owner.reserve(0.01);
   assert.equal(await owner.beginPaidDispatch(), true);
   await rename(marker, marker + '.retained');
   await writeFile(marker, markerData, { flag: 'wx', mode: 0o600 });
@@ -34,12 +35,13 @@ test('R199 same-content replacement inode cannot be reused or released by origin
   await assert.rejects(owner.completePaidDispatch(), /operator review/);
   await assert.rejects(competitor.ready(), /operator review/);
   await assert.rejects(competitor.reserve(0.01), /operator review/);
-  assert.equal((await competitor.inspectReadOnly()).requests, 0);
+  assert.equal((await competitor.inspectReadOnly()).requests, 1);
 });
 
 test('R199 symlink replacement cannot be reused or unlocked, even when target bytes match', async t => {
   const { marker, make } = await setup(t);
   const owner = make();
+  await owner.reserve(0.01);
   await owner.beginPaidDispatch();
   await rename(marker, marker + '.retained');
   await symlink(marker + '.retained', marker);
@@ -50,12 +52,14 @@ test('R199 symlink replacement cannot be reused or unlocked, even when target by
 test('R199 untouched original inode supports Luna/Terra reuse and explicit release', async t => {
   const { marker, make } = await setup(t);
   const owner = make(), competitor = make();
+  await owner.reserve(0.01);
   await owner.beginPaidDispatch();
+  await owner.reserve(0.02);
   assert.equal(await owner.beginPaidDispatch(), true);
   await assert.rejects(competitor.beginPaidDispatch(), /unavailable/);
   assert.equal(await owner.completePaidDispatch(), true);
   assert.equal(await competitor.ready(), true);
-  assert.equal((await competitor.inspectReadOnly()).requests, 0);
+  assert.equal((await competitor.inspectReadOnly()).requests, 2);
 });
 
 test('R199 live provider adapter never sends Terra after dispatch inode substitution', async t => {
