@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createFaiscaPrivateShutdown } from '../ops/faisca/openai/private-shutdown.mjs';
+import { EventEmitter } from 'node:events';
+import { createFaiscaPrivateShutdown, bindFaiscaPrivateShutdownSignals } from '../ops/faisca/openai/private-shutdown.mjs';
 
 const clean = { active: false, inFlight: false, providerUnavailable: false };
 test('private shutdown waits for drain, checks ledger once and coalesces signals', async () => {
@@ -53,5 +54,47 @@ test('close failure cannot produce a successful shutdown or ledger read', async 
   });
   assert.equal(await stop(), 1);
   assert.equal(reads, 0);
+  assert.deepEqual(reports, ['PRIVATE_SHUTDOWN_RECONCILIATION_REQUIRED']);
+});
+
+test('R345 repeated and mixed signals preserve the same pending shutdown and fail-closed exit', async () => {
+  const target = new EventEmitter();
+  let release, calls = 0;
+  const drained = new Promise(resolve => { release = resolve; });
+  const stop = bindFaiscaPrivateShutdownSignals({
+    target, shutdown: () => { calls++; return drained; }
+  });
+  target.emit('SIGINT');
+  assert.equal(target.exitCode, 1);
+  target.emit('SIGINT');
+  target.emit('SIGTERM');
+  target.emit('SIGTERM');
+  const pending = stop();
+  assert.equal(stop(), pending);
+  await Promise.resolve();
+  assert.equal(calls, 1);
+  assert.equal(target.listenerCount('SIGINT'), 1);
+  assert.equal(target.listenerCount('SIGTERM'), 1);
+  release(0);
+  assert.equal(await pending, 0);
+  target.emit('SIGINT');
+  assert.equal(target.exitCode, 0);
+  assert.equal(calls, 1);
+});
+
+test('R345 rejection is reported once without exposing private details', async () => {
+  const target = new EventEmitter();
+  const reports = [];
+  let calls = 0;
+  const stop = bindFaiscaPrivateShutdownSignals({
+    target, shutdown: async () => { calls++; throw new Error('synthetic private detail'); },
+    reportFailure: status => reports.push(status)
+  });
+  target.emit('SIGTERM');
+  target.emit('SIGTERM');
+  target.emit('SIGINT');
+  assert.equal(await stop(), 1);
+  assert.equal(target.exitCode, 1);
+  assert.equal(calls, 1);
   assert.deepEqual(reports, ['PRIVATE_SHUTDOWN_RECONCILIATION_REQUIRED']);
 });

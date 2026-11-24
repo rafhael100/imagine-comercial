@@ -24,3 +24,24 @@ export function createFaiscaPrivateShutdown({ server, ledger, report = () => {} 
     return shutdown;
   };
 }
+
+// Keep both signal listeners installed while draining. A once() listener
+// restores the default termination action on the second identical signal.
+export function bindFaiscaPrivateShutdownSignals({ target, shutdown, reportFailure = () => {} }) {
+  let pending;
+  const stop = () => {
+    if (pending) return pending;
+    target.exitCode = 1;
+    pending = Promise.resolve().then(shutdown).then(code => {
+      target.exitCode = code === 0 ? 0 : 1;
+      return target.exitCode;
+    }, () => {
+      try { reportFailure('PRIVATE_SHUTDOWN_RECONCILIATION_REQUIRED'); } catch {}
+      return 1;
+    });
+    return pending;
+  };
+  target.on('SIGINT', stop);
+  target.on('SIGTERM', stop);
+  return stop;
+}
