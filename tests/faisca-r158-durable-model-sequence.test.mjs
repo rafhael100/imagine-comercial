@@ -206,3 +206,45 @@ test('R338 staging operator reconciles independent read-only ledger across the r
     });
   }
 });
+
+test('R340 staging with only one durable request left never sends positive HTTP or dispatches Luna', async () => {
+  await withPrivateReview({}, async (directory, fixture, server) => {
+    // Model a previously reserved call, without making any provider request.
+    await fixture.ledger.reserve(0.01);
+    const observer = createFaiscaLocalReservationLedger({
+      directory, maxRequests: 2, maxBudgetUsd: 1
+    });
+    const before = await observer.inspectReadOnly();
+    assert.equal(before.requests, 1);
+    const observations = [];
+    let posts = 0;
+    const result = await inspectFaiscaPrivateConversationSequence({
+      origin: server.address, reviewToken: token, enabled: true,
+      fetchImpl: async (url, init) => {
+        if (init.method === 'POST') posts++;
+        return fetch(url, init);
+      },
+      inspectLedger: async () => {
+        const snapshot = await observer.inspectReadOnly();
+        observations.push(snapshot);
+        return snapshot;
+      }
+    });
+    await server.close();
+    assert.equal(result.status, 'BLOCKED_LEDGER_CAPACITY');
+    assert.equal(result.negativeInputRejected, true);
+    assert.equal(result.positiveEnvelopeAccepted, false);
+    assert.equal(result.apiRequests, 1);
+    assert.equal(result.assetRequests, 4);
+    assert.equal(posts, 1, 'only privacy-negative POST allowed');
+    assert.deepEqual(fixture.apiCalls, []);
+    assert.deepEqual(observations, [before, before]);
+    assert.deepEqual(await observer.inspectReadOnly(), before);
+    await inspectLedger(directory, 1);
+    assert.equal(result.localLedgerDeltasVerified, false);
+    assert.equal(result.ledgerReconciled, false);
+    assert.equal(result.providerTransportVerified, false);
+    assert.equal(result.publicReady, false);
+    assert.equal(result.operationalEffects, false);
+  });
+});
