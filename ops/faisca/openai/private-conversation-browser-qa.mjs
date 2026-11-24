@@ -992,6 +992,100 @@ try {
       await rm(directory, { recursive: true, force: true });
     }
   });
+
+  await step('R334 valid Terra response is withheld when durable witness diverges, including after restart', async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), 'faisca-r334-'));
+    await chmod(directory, 0o700);
+    const statePath = resolve(directory, 'faisca-reservations.json');
+    const uncertaintyPath = resolve(directory, '.faisca-provider-outcome-uncertain');
+    const question = 'Vale a pena usar uma landing page para divulgar um evento?';
+    const providerCalls = [];
+    const openLab = async () => {
+      const ledger = createFaiscaLocalReservationLedger({
+        directory, maxRequests: 8, maxBudgetUsd: 1
+      });
+      const live = createFaiscaOpenAILiveLab({
+        enabled: true, apiKey: 'sk-r334-synthetic-fixture-not-a-real-key',
+        enablePrivateConversation: true, extendedPrivateSession: true,
+        maxRequests: 20, maxBudgetUsd: 10, reservationLedger: ledger,
+        fetchImpl: async (url, init) => {
+          assert.equal(url, 'https://api.openai.com/v1/responses');
+          const body = JSON.parse(init.body);
+          providerCalls.push(body.model);
+          const state = JSON.parse(await readFile(statePath, 'utf8'));
+          assert.equal(state.requests, providerCalls.length);
+          assert.equal(body.store, false);
+          assert.deepEqual(body.tools, []);
+          const isTerra = body.model === FAISCA_OPENAI_MODELS.answer;
+          if (isTerra) {
+            const witnessPath = resolve(directory, '.faisca-reservations-highwater.json');
+            const witness = JSON.parse(await readFile(witnessPath, 'utf8'));
+            assert.equal(witness.requests, 2);
+            await writeFile(witnessPath, JSON.stringify({ ...witness, requests: 1 }) + '\n');
+          }
+          return new Response(JSON.stringify({
+            model: body.model, status: 'completed',
+            output: [{ type: 'message', role: 'assistant',
+              content: [{ type: 'output_text', text: JSON.stringify(isTerra ? { reply } : { topic: 'general' }) }] }],
+            usage: { input_tokens: 200, output_tokens: 35 }
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+      });
+      return startFaiscaOpenAIPrivateReview({
+        lab: live, reviewToken: token, enablePrivateConversation: true
+      });
+    };
+    const submitDenied = async () => {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-question').fill(question);
+      await page.locator('#review-attestation').check();
+      await page.locator('#review-send').click();
+      await page.waitForFunction(() =>
+        document.querySelector('#review-status')?.textContent?.includes('não concluiu.'));
+      assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(await page.locator('#review-question').inputValue(), '');
+      assert.equal(await page.locator('#review-attestation').isChecked(), false);
+      assert.equal(await page.locator('#review-sources').innerText(), '');
+      assert.ok(!(await page.locator('body').innerText()).includes(reply));
+    };
+    try {
+      await server.close();
+      server = await openLab();
+      await page.goto(server.address + '/__faisca_openai_private/review');
+      await submitDenied();
+      assert.deepEqual(providerCalls, [FAISCA_OPENAI_MODELS.classification, FAISCA_OPENAI_MODELS.answer]);
+      await server.close();
+      const spent = JSON.parse(await readFile(statePath, 'utf8'));
+      assert.equal(spent.requests, 2);
+      assert.equal(spent.limitRequests, 8, 'Spare capacity must remain; witness divergence fences dispatch despite spare capacity');
+      assert.ok(spent.reservedMicros > 0 && spent.reservedMicros < spent.limitMicros);
+      const witnessPath = resolve(directory, '.faisca-reservations-highwater.json');
+      const corruptWitness = await readFile(witnessPath, 'utf8');
+      assert.equal(JSON.parse(corruptWitness).requests, 1);
+      const marker = await readFile(uncertaintyPath, 'utf8');
+      assert.equal(marker, 'faisca.private-provider-outcome-uncertain.v1\n');
+      server = await openLab();
+      await page.goto(server.address + '/__faisca_openai_private/review');
+      await submitDenied();
+      await server.close();
+      assert.equal(providerCalls.length, 2, 'Restart must never retry after witness divergence');
+      assert.deepEqual(JSON.parse(await readFile(statePath, 'utf8')), spent);
+      assert.equal(await readFile(witnessPath, 'utf8'), corruptWitness);
+      assert.equal(await readFile(resolve(directory, '.faisca-provider-dispatch-inflight'), 'utf8'),
+        'faisca.private-provider-dispatch-inflight.v1\n');
+      assert.equal(await readFile(uncertaintyPath, 'utf8'), marker);
+      assert.deepEqual(await context.cookies(), []);
+      assert.deepEqual(await page.evaluate(() => ({
+        local: localStorage.length, session: sessionStorage.length, cookie: document.cookie
+      })), { local: 0, session: 0, cookie: '' });
+      assert.deepEqual(external, []);
+      assert.deepEqual(errors, []);
+    } finally {
+      await server?.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 } catch(error) {
   failure=error.message;
   process.exitCode=1;
