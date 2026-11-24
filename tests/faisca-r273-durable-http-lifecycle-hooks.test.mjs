@@ -88,9 +88,10 @@ for (const missing of ['acknowledgeHttpDelivery', 'markDeliveryUncertain']) {
       assert.equal(response.headers.get('access-control-allow-origin'), null);
       assert.equal(response.headers.get('cache-control'), 'no-store, max-age=0');
       assert.equal((await response.json()).status, 'unavailable');
-      assert.equal(calls(), 1);
+      // R317 detects hook withdrawal before the first provider dispatch.
+      assert.equal(calls(), 0, 'No provider dispatch with a withdrawn hook');
       assert.equal((await request(server.address)).status, 503);
-      assert.equal(calls(), 1, 'No additional provider dispatch after late lifecycle failure');
+      assert.equal(calls(), 0, 'No provider dispatch after late lifecycle failure');
       assert.equal(server.inspect().providerUnavailable, true);
     } finally {
       await server.close();
