@@ -9,6 +9,8 @@
 
 - R344 #825: `87d799f3d727bf2340b0bd4f562575418ef4b285` — [CI 6/6](https://github.com/rafhael100/imagine-comercial/actions/runs/45481925931) aprovada em 24/11/2026, incluindo encerramento HTTP com ledger persistente e upstream simulado. É candidata acumulada para revisão independente, não aprovação operacional.
 
+- R346 #827: `aac917dc6df27dde6ef016f9ed31acded6117dde` — [CI 6/6](https://github.com/rafhael100/imagine-comercial/actions/runs/45492022700) aprovada, incluindo encerramento com sinais em subprocessos descartáveis. Candidata acumulada à revisão independente; não homologada na VPS.
+
 Escolher uma única HEAD completa de revisão, após CI na SHA exata e revisão AppSec, LGPD, FinOps e editorial. Receber o pin por canal confiável independente; não usar o próprio HEAD como origem do pin. A SHA de R342 também precisa de CI se selecionada. O documento não concede autorização de infraestrutura, nem é evidência de operação.
 
 ## Operador autorizado — sem alteração de produção
@@ -30,7 +32,7 @@ Servidor apenas em 127.0.0.1:4336. Se houver NO-START, parar; não limpar, recri
 
 ## Observador independente: sem chave OpenAI
 
-Outra sessão local privada, mesmo checkout limpo/pin, sem chave do provedor. O custodiante fornece apenas o bearer privado e o caminho EXATO do ledger existente. A variável do observador é `FAISCA_PRIVATE_LEDGER_DIRECTORY` (não `FAISCA_PRIVATE_LEDGER_DIR`). Na R340/R341 o entrypoint fixa 100 requisições e USD 10 de reserva estimada local; o observador deve usar os mesmos valores, não limites inventados ou um novo diretório.
+Outra sessão local privada, mesmo checkout limpo/pin, sem chave do provedor. Em revisão que incorpore R347 #828, `OPENAI_API_KEY` deve estar ausente (não apenas vazia); o observador reutiliza a evidência Git isolada da preflight e rejeita arquivos privados extras. O custodiante fornece apenas o bearer privado e o caminho EXATO do ledger existente. A variável do observador é `FAISCA_PRIVATE_LEDGER_DIRECTORY` (não `FAISCA_PRIVATE_LEDGER_DIR`). Na R340/R341 o entrypoint fixa 100 requisições e USD 10 de reserva estimada local; o observador deve usar os mesmos valores, não limites inventados ou um novo diretório.
 
 Primeiro, smoke de leitura sem chamada paga:
 
@@ -55,6 +57,13 @@ O resultado esperado é `PRIVATE_SYNTHETIC_SEQUENCE_ENVELOPES_VERIFIED` e `local
 ## Evidência de aceitação complementar
 - Interface: túnel SSH local autorizado (sem publicar porta), navegador em `http://127.0.0.1:4336/__faisca_openai_private/review`. Testar separadamente, quando autorizado, uma pergunta fictícia geral; exigir resposta segura, sem dados de clientes, sem ação externa e sem alegação de acesso ao Portal/CRM/Sites. Essa interação pode consumir créditos adicionais, não faz parte das duas chamadas da sequência.
 - Encerrar o serviço normalmente e aguardar o drain/ACK antes de inspeção final. Em revisão que incorpore R343 #824, exigir `PRIVATE_SHUTDOWN_LOCAL_DRAIN_VERIFIED` e exit 0. `PRIVATE_SHUTDOWN_RECONCILIATION_REQUIRED`, exit diferente de zero ou ausência de confirmação não constituem encerramento verificado; não iniciar novamente nem remover marcadores. A confirmação é local, não prova cobrança ou recebimento pelo navegador. Não forçar interrupção com sinais repetidos, SIGKILL ou timeout externo durante o drain; ausência de recibo é NO-GO mesmo se o processo tiver terminado. R345–R346 reforçam o tratamento de SIGINT/SIGTERM e seu teste em subprocesso, sujeitos à CI própria. Encerrar túnel; retirar segredos das sessões conforme procedimento do custodiante.
+- Em revisão que incorpore R348, depois de o operador confirmar a saída do serviço e o recibo de encerramento, uma terceira sessão local sem `OPENAI_API_KEY` nem `FAISCA_REVIEW_BEARER_TOKEN` pode executar o auditor read-only abaixo, com o mesmo diretório de ledger e o pin independente. Não redirecionar saída para dentro do checkout. `PRIVATE_LOCAL_LEDGER_READONLY_READY` significa somente duas observações locais estáveis e readiness; inclusive um ledger vazio pode estar pronto. Não comprova saída do processo, chamadas reais, fatura ou aprovação pública. Se houver estado incerto ou contadores divergentes, preservar tudo para conciliação; sem retry.
+
+```sh
+node scripts/faisca-private-post-run-ledger.mjs "$FAISCA_STAGING_REVIEW_SHA"
+```
+
+  Exige `FAISCA_PRIVATE_LEDGER_DIRECTORY` e `FAISCA_PRIVATE_LEDGER_AUDIT_ACK=YES_LOCAL_READONLY_NO_PROVIDER_PROOF` na sessão sem credenciais; utiliza os limites 100/USD 10 do entrypoint. R347/R348 ainda sujeitos à CI própria.
 - Custodiante: correlacionar janela de uso com projeto OpenAI autorizado e cobrança observada; não registrar conteúdo das perguntas, token, chave ou dados pessoais. Reserva estimada não equivale a fatura. Se janela não permitir atribuição independente, manter pendente, sem inferir custo.
 - Registrar por separado SHA revisada, CI, smoke, navegador, deltas locais, conciliação de uso e encerramento; se faltar evidência, marcar PENDENTE. GO privado é decisão própria. GO público permanece bloqueado; integração operacional Portal/Sites/CRM continua fora deste ensaio.
 
