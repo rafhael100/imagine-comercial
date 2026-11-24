@@ -343,28 +343,25 @@ export async function startFaiscaOpenAIPrivateReview({
     throw new TypeError('Private review requires a boolean durable capability.');
   }
   const requiresDurableDeliveryFence = initialDurabilityClaim === true;
-  if (requiresDurableDeliveryFence &&
-      typeof lab.assertPrivateHttpDeliverySafe !== 'function') {
-    throw new TypeError('Private durable review requires an HTTP delivery fence.');
-  }
-  // R273: a completed HTTP write must release a durable dispatch marker,
-  // while any uncertain delivery must retain a persistent NO-START marker.
-  // A future adapter that advertises a ledger but omits either hook must
-  // fail before opening the private port, not silently lose the lifecycle.
-  if (requiresDurableDeliveryFence &&
-      (typeof lab.acknowledgeHttpDelivery !== 'function' ||
-       typeof lab.markDeliveryUncertain !== 'function')) {
-    throw new TypeError('Private durable review requires HTTP delivery lifecycle hooks.');
-  }
-  // R275: property presence is insufficient: an injected adapter could
-  // replace a vetted method with another function after the listener binds.
-  // Pin the original hooks so even a late replacement cannot intercept the
-  // persistent NO-START signal or the post-write acknowledgement.
+  // R323: capture once and validate the exact captured values. Checking
+  // accessors first and reading again to pin could silently pin a different
+  // (or missing) function, then treat its stable identity as safe.
   const pinnedDurableHooks = Object.freeze({
     assert: lab.assertPrivateHttpDeliverySafe,
     acknowledge: lab.acknowledgeHttpDelivery,
     uncertain: lab.markDeliveryUncertain
   });
+  if (requiresDurableDeliveryFence &&
+      typeof pinnedDurableHooks.assert !== 'function') {
+    throw new TypeError('Private durable review requires an HTTP delivery fence.');
+  }
+  // R273/R275: never bind a durable adapter without its exact validated
+  // delivery lifecycle; retain the original uncertainty and ACK hooks.
+  if (requiresDurableDeliveryFence &&
+      (typeof pinnedDurableHooks.acknowledge !== 'function' ||
+       typeof pinnedDurableHooks.uncertain !== 'function')) {
+    throw new TypeError('Private durable review requires HTTP delivery lifecycle hooks.');
+  }
   function stableDurableHooks() {
     if (!requiresDurableDeliveryFence) return true;
     // R322: a broken or replaced accessor must fail closed, not reject the
