@@ -94,7 +94,7 @@ async function gitStatusWithoutFilters(cwd) {
     '-c', 'filter.' + name + '.required=false'
   ]);
   return git(cwd, [...overrides, 'status', '--porcelain', '--untracked-files=no',
-    '--ignore-submodules=none']);
+    '--ignore-submodules=all']);
 }
 
 export async function privateStagingCleanWorktree(cwd) {
@@ -105,6 +105,12 @@ export async function privateStagingCleanWorktree(cwd) {
   const entries = (await git(cwd, ['ls-files', '-v', '-z'], 2 * 1024 * 1024))
     .split('\0').filter(Boolean);
   if (!entries.length || entries.some(entry => !entry.startsWith('H '))) return false;
+  // A submodule can run its own Git with repository-local configuration.
+  // This checkout is self-contained: fail closed on gitlinks anywhere,
+  // rather than recurse into a different trust boundary during status.
+  const stages = (await git(cwd, ['ls-files', '--stage', '-z'], 2 * 1024 * 1024))
+    .split('\0').filter(Boolean);
+  if (stages.some(entry => entry.startsWith('160000 '))) return false;
   if (!await privateSourceMatchesIndex(cwd)) return false;
   return (await gitStatusWithoutFilters(cwd)).trim() === '';
 }
