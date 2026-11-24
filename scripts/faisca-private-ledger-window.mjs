@@ -14,7 +14,15 @@ async function main() {
     if (length > 4096) throw new Error('blocked');
     chunks.push(chunk);
   }
-  const payload = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)));
+  const raw = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(Buffer.concat(chunks));
+  const payload = JSON.parse(raw);
+  // JSON.parse silently accepts duplicate keys. The input consists only of
+  // R348's ASCII schema/status, booleans and bounded integers, so require
+  // JSON.stringify's unambiguous representation, allowing formatting space
+  // outside strings. Do not echo rejected input or try to repair evidence.
+  const compact = raw.replace(/"(?:[^"\\]|\\.)*"|[ \t\r\n]+/gs,
+    token => token[0] === '"' ? token : '');
+  if (JSON.stringify(payload) !== compact) throw new Error('blocked');
   if (!Array.isArray(payload) || payload.length !== 2) throw new Error('blocked');
   const report = compareFaiscaPrivateLedgerWindow(payload[0], payload[1], Number(expected));
   console.log(JSON.stringify(report, null, 2));
