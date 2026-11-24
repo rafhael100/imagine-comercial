@@ -403,8 +403,15 @@ export async function startFaiscaOpenAIPrivateReview({
     providerUnavailable = true;
     if (deliveryFenceStarted) return;
     deliveryFenceStarted = true;
-    const markUncertain = requiresDurableDeliveryFence
-      ? pinnedDurableHooks.uncertain : lab.markDeliveryUncertain;
+    // R324: legacy non-durable fixtures may expose an optional accessor
+    // that throws. The process is already latched; never let lookup escape
+    // the HTTP error handler or response-close event. Durable adapters
+    // always use the original validated hook (R323).
+    let markUncertain;
+    try {
+      markUncertain = requiresDurableDeliveryFence
+        ? pinnedDurableHooks.uncertain : lab.markDeliveryUncertain;
+    } catch { return; }
     if (typeof markUncertain === 'function') {
       deliveryFence = Promise.resolve().then(() => markUncertain.call(lab))
         .catch(() => {}); // Never expose file-system or provider details.
