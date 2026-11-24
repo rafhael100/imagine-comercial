@@ -81,3 +81,27 @@ test('R349 CLI accepts bounded observations, blocks credential-bearing and malfo
   }
   assert.equal(run(JSON.stringify([report(),report()])).status,1);
 });
+
+test('R350 accepts pretty observations but rejects duplicate keys and ambiguous numeric spellings', () => {
+  const script=fileURLToPath(new URL('../scripts/faisca-private-ledger-window.mjs',import.meta.url));
+  const input=JSON.stringify([report(),report(2,2)]);
+  const env={PATH:process.env.PATH,FAISCA_PRIVATE_LEDGER_AUDIT_ACK:'YES_LOCAL_READONLY_NO_PROVIDER_PROOF'};
+  const run=value=>spawnSync(process.execPath,[script,'2'],{
+    input:value,encoding:'utf8',timeout:5000,env
+  });
+  const good=run(JSON.stringify(JSON.parse(input),null,2)+'\n');
+  assert.equal(good.status,0,good.stderr);
+  assert.equal(JSON.parse(good.stdout).localDeltaVerified,true);
+  for (const value of [
+    input.replace('"requests":2','"requests":0,"requests":2'),
+    input.replace('"requests":2','"requests":2e0'),
+    input.replace('"requests":0','"requests":-0'),
+    input.replace('"requests":2','"reque\\u0073ts":2'),
+    '\uFEFF'+input
+  ]) {
+    const result=run(value);
+    assert.equal(result.status,2);
+    assert.equal(result.stdout,'');
+    assert.doesNotMatch(result.stderr,/requests|reservedMicros/);
+  }
+});
