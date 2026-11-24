@@ -908,6 +908,90 @@ try {
       await rm(directory, { recursive: true, force: true });
     }
   });
+
+  await step('R331 ambiguous Terra completion remains fenced after private browser and server restart', async () => {
+    const directory = await mkdtemp(resolve(tmpdir(), 'faisca-r331-'));
+    await chmod(directory, 0o700);
+    const statePath = resolve(directory, 'faisca-reservations.json');
+    const uncertaintyPath = resolve(directory, '.faisca-provider-outcome-uncertain');
+    const question = 'Vale a pena usar uma landing page para divulgar um evento?';
+    const providerCalls = [];
+    const openLab = async () => {
+      const ledger = createFaiscaLocalReservationLedger({
+        directory, maxRequests: 8, maxBudgetUsd: 1
+      });
+      const live = createFaiscaOpenAILiveLab({
+        enabled: true, apiKey: 'sk-r331-synthetic-fixture-not-a-real-key',
+        enablePrivateConversation: true, extendedPrivateSession: true,
+        maxRequests: 20, maxBudgetUsd: 10, reservationLedger: ledger,
+        fetchImpl: async (url, init) => {
+          assert.equal(url, 'https://api.openai.com/v1/responses');
+          const body = JSON.parse(init.body);
+          providerCalls.push(body.model);
+          const state = JSON.parse(await readFile(statePath, 'utf8'));
+          assert.equal(state.requests, providerCalls.length);
+          assert.equal(body.store, false);
+          assert.deepEqual(body.tools, []);
+          if (body.model === FAISCA_OPENAI_MODELS.answer) {
+            throw new Error('R331_SYNTHETIC_PROVIDER_FAILURE_NOT_FOR_EGRESS');
+          }
+          return new Response(JSON.stringify({
+            model: body.model, status: 'completed',
+            output: [{ type: 'message', role: 'assistant',
+              content: [{ type: 'output_text', text: JSON.stringify({ topic: 'general' }) }] }],
+            usage: { input_tokens: 200, output_tokens: 35 }
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+      });
+      return startFaiscaOpenAIPrivateReview({
+        lab: live, reviewToken: token, enablePrivateConversation: true
+      });
+    };
+    const submitDenied = async () => {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-question').fill(question);
+      await page.locator('#review-attestation').check();
+      await page.locator('#review-send').click();
+      await page.waitForFunction(() =>
+        document.querySelector('#review-status')?.textContent?.includes('não concluiu.'));
+      assert.equal(await page.locator('#review-answer').innerText(), 'Resposta indisponível neste teste.');
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(await page.locator('#review-question').inputValue(), '');
+      assert.equal(await page.locator('#review-attestation').isChecked(), false);
+      assert.equal(await page.locator('#review-sources').innerText(), '');
+      assert.ok(!(await page.locator('body').innerText()).includes('R331_SYNTHETIC_PROVIDER_FAILURE_NOT_FOR_EGRESS'));
+    };
+    try {
+      await server.close();
+      server = await openLab();
+      await page.goto(server.address + '/__faisca_openai_private/review');
+      await submitDenied();
+      assert.deepEqual(providerCalls, [FAISCA_OPENAI_MODELS.classification, FAISCA_OPENAI_MODELS.answer]);
+      await server.close();
+      const spent = JSON.parse(await readFile(statePath, 'utf8'));
+      assert.equal(spent.requests, 2);
+      assert.equal(spent.limitRequests, 8, 'Spare capacity must remain; uncertainty alone fences dispatch');
+      assert.ok(spent.reservedMicros > 0 && spent.reservedMicros < spent.limitMicros);
+      const marker = await readFile(uncertaintyPath, 'utf8');
+      assert.equal(marker, 'faisca.private-provider-outcome-uncertain.v1\n');
+      server = await openLab();
+      await page.goto(server.address + '/__faisca_openai_private/review');
+      await submitDenied();
+      await server.close();
+      assert.equal(providerCalls.length, 2, 'Restart must never retry an ambiguous provider completion');
+      assert.deepEqual(JSON.parse(await readFile(statePath, 'utf8')), spent);
+      assert.equal(await readFile(uncertaintyPath, 'utf8'), marker);
+      assert.deepEqual(await context.cookies(), []);
+      assert.deepEqual(await page.evaluate(() => ({
+        local: localStorage.length, session: sessionStorage.length, cookie: document.cookie
+      })), { local: 0, session: 0, cookie: '' });
+      assert.deepEqual(external, []);
+      assert.deepEqual(errors, []);
+    } finally {
+      await server?.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 } catch(error) {
   failure=error.message;
   process.exitCode=1;
