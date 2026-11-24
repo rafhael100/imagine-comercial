@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile, rm, access } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, access, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { privateStagingCleanWorktree } from '../ops/faisca/openai/private-staging-git-evidence.mjs';
@@ -23,7 +23,8 @@ test('R309 status never executes configured clean or process filters outside the
     '-c', 'commit.gpgsign=false', 'commit', '-qm', 'synthetic');
   git('config', 'filter.synthetic.clean', 'touch filter-ran; cat');
   git('config', 'filter.synthetic.required', 'true');
-  await writeFile(tracked, 'changed bytes\n');
+  await writeFile(tracked, 'changed\n');
+  await utimes(tracked, 946684800, 946684800);
   // Prove the ordinary Git command really invokes the configured driver.
   assert.match(git('status', '--porcelain', '--untracked-files=no'), /fixture\.txt/);
   await access(marker);
