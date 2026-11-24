@@ -179,6 +179,13 @@ export function hasPrivateUnsupportedOutcomeGuarantee(text) {
     unsupportedWrittenOutStatistics.test(normalized);
 }
 
+// R327: reading authenticated records is an operational capability too.
+// This laboratory has no Portal/Sites/CRM or analytics grants, even read-only.
+// Reject claims of actual or available access to private systems, not neutral
+// guidance on how the operator can consult their own reports.
+const claimedPrivateReadAccess =
+  /\b(?:consultei|consultamos|acessei|acessamos|verifiquei|verificamos|analisei|analisamos|conferi|conferimos|li|lemos|recuperei|recuperamos|localizei|localizamos|busquei|buscamos)\s+(?:(?:o|a|os|as|um|uma|seu|sua|seus|suas|no|na|nos|nas)\s+){0,3}(?:crm|portal|painel|cadastros?|registros?|relatorios?|metricas|logs?|historico|dados|base\s+de\s+dados)\b|\b(?:tenho|temos|tive|tivemos|posso|podemos|consigo|conseguimos)\s+(?:acesso\s+(?:ao|a|aos|as)|consultar|acessar|verificar|ler|recuperar|visualizar)\s+(?:(?:o|a|os|as|seu|sua|seus|suas)\s+){0,3}(?:crm|portal|painel|cadastros?|registros?|relatorios?|metricas|logs?|historico|dados|base\s+de\s+dados)\b/u;
+
 export function hasPrivateOperationalClaim(text) {
   if (typeof text !== 'string') return true;
   const normalized = normalize(text);
@@ -187,7 +194,8 @@ export function hasPrivateOperationalClaim(text) {
     completedVisitorReceipt.test(normalized) ||
     promisedOperationalAction.test(normalized) ||
     promisedVisitorAsset.test(normalized) ||
-    claimedOperationalCapability.test(normalized);
+    claimedOperationalCapability.test(normalized) ||
+    claimedPrivateReadAccess.test(normalized);
 }
 
 // R254: model-generated service SLAs, return windows or 24/7 availability
