@@ -33,6 +33,7 @@ test('R265 an independently held dispatch marker prevents HTTP-paid calls in ano
     // Simulate another private worker that has already passed the dispatch
     // barrier. Its token and credentials are never available to this server.
     const otherWorker = createFaiscaLocalReservationLedger(options);
+    await otherWorker.reserve(0.01);
     assert.equal(await otherWorker.beginPaidDispatch(), true);
     let calls = 0;
     const thisWorker = createFaiscaLocalReservationLedger(options);
@@ -54,7 +55,7 @@ test('R265 an independently held dispatch marker prevents HTTP-paid calls in ano
     assert.match(body, /unavailable/);
     assert.doesNotMatch(body, /Forbidden cross-worker|credential|sk-r265/i);
     assert.equal(calls, 0, 'The second worker must never reach Luna or Terra');
-    assert.equal((await thisWorker.inspectReadOnly()).requests, 0,
+    assert.equal((await thisWorker.inspectReadOnly()).requests, 1,
       'A competing dispatch must not reserve additional fake spend');
 
     const repeat = await post(server.address);
@@ -63,7 +64,7 @@ test('R265 an independently held dispatch marker prevents HTTP-paid calls in ano
     const anonymous = await post(server.address, null);
     assert.equal(anonymous.status, 403);
     await server.close();
-    assert.equal((await createFaiscaLocalReservationLedger(options).inspectReadOnly()).requests, 0);
+    assert.equal((await createFaiscaLocalReservationLedger(options).inspectReadOnly()).requests, 1);
     await assert.rejects(
       createFaiscaLocalReservationLedger(options).ready(),
       /operator review|uncertain/i
