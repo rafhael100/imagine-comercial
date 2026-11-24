@@ -74,13 +74,14 @@ export async function inspectFaiscaPrivateStaging({
     steps.push(Object.freeze({ check: name, passed: passes }));
     if (!passes) failed.push(name);
   }
-  await check('not_ci_or_github_actions', () => !env.CI && !env.GITHUB_ACTIONS);
+  const localContext = !env.CI && !env.GITHUB_ACTIONS;
+  await check('not_ci_or_github_actions', () => localContext);
   await check('node_22_12_or_newer', () => nodeSupported(nodeVersion));
   await check('independent_operator_sha_pin', () =>
     typeof expectedHead === 'string' && shaPattern.test(expectedHead));
   await check('reviewed_git_head_matches_pin', async () =>
-    shaPattern.test(expectedHead ?? '') && await gitRevision() === expectedHead);
-  await check('tracked_checkout_is_clean', isClean);
+    localContext && shaPattern.test(expectedHead ?? '') && await gitRevision() === expectedHead);
+  await check('tracked_checkout_is_clean', async () => localContext && await isClean() === true);
   await check('private_paid_test_opt_in', () =>
     env.IMAGINE_FAISCA_OPENAI_LIVE_TEST === 'YES_PAY_SYNTHETIC_ONLY' &&
     // R302: an invalid explicit mode must not silently start fixed-case review.
@@ -93,11 +94,14 @@ export async function inspectFaiscaPrivateStaging({
     typeof env.FAISCA_REVIEW_BEARER_TOKEN === 'string' &&
     bearerPattern.test(env.FAISCA_REVIEW_BEARER_TOKEN) &&
     env.FAISCA_REVIEW_BEARER_TOKEN !== env.OPENAI_API_KEY);
+  // R312: do not inspect an operator ledger or bind even loopback after
+  // any earlier gate failed. Skipped probes remain false in this report;
+  // they are not evidence that the underlying resource was inspected.
   await check('private_persistent_ledger_ready_without_lock', async () =>
-    typeof env.FAISCA_PRIVATE_LEDGER_DIR === 'string' &&
+    failed.length === 0 && typeof env.FAISCA_PRIVATE_LEDGER_DIR === 'string' &&
     await checkLedger(env.FAISCA_PRIVATE_LEDGER_DIR) === true);
   await check('private_loopback_port_available', async () =>
-    port === 4336 && await checkPort(port) === undefined);
+    failed.length === 0 && port === 4336 && await checkPort(port) === undefined);
 
   return Object.freeze({
     schema: FAISCA_PRIVATE_STAGING_PREFLIGHT_SCHEMA,
