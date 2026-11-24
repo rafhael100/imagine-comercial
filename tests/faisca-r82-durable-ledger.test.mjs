@@ -169,3 +169,56 @@ test('R332 a FIFO replacing an owned dispatch marker never stalls egress validat
     `], { timeout: 5000, killSignal: 'SIGKILL' });
   });
 });
+
+test('R333 the paid marker cannot authorize dispatch without a durable reservation', async () => {
+  await directoryFixture(async directory => {
+    const ledger = createFaiscaLocalReservationLedger({ directory });
+    await assert.rejects(ledger.beginPaidDispatch(), /reservation missing/);
+    await assert.rejects(ledger.completePaidDispatch(), /reservation missing/);
+    assert.equal(await readFile(join(directory, '.faisca-provider-dispatch-inflight'), 'utf8'),
+      'faisca.private-provider-dispatch-inflight.v1\n');
+    await assert.rejects(createFaiscaLocalReservationLedger({ directory }).ready(), /in flight/);
+  });
+});
+
+test('R333 corruption or an unfinished reservation fences provider reuse, HTTP egress and acknowledgment', async () => {
+  for (const corruption of ['state', 'witness', 'lock']) {
+    await directoryFixture(async directory => {
+      const ledger = createFaiscaLocalReservationLedger({ directory });
+      await ledger.reserve(0.1);
+      await ledger.beginPaidDispatch();
+      assert.equal(await ledger.assertPaidDispatchStillValid(), true);
+      if (corruption === 'state') {
+        await rm(join(directory, 'faisca-reservations.json'));
+      } else if (corruption === 'witness') {
+        const path = join(directory, '.faisca-reservations-highwater.json');
+        const witness = JSON.parse(await readFile(path, 'utf8'));
+        await writeFile(path, JSON.stringify({ ...witness, requests: 0 }) + '\n');
+      } else {
+        await writeFile(join(directory, '.faisca-reservations.lock'), '', { mode: 0o600 });
+      }
+      await assert.rejects(ledger.beginPaidDispatch(), /operator review/);
+      await assert.rejects(ledger.assertPaidDispatchStillValid(), /operator review/);
+      await assert.rejects(ledger.completePaidDispatch(), /operator review/);
+      assert.equal(await readFile(join(directory, '.faisca-provider-dispatch-inflight'), 'utf8'),
+        'faisca.private-provider-dispatch-inflight.v1\n');
+      await assert.rejects(createFaiscaLocalReservationLedger({ directory }).ready(), /in flight/);
+    });
+  }
+});
+
+test('R333 successful two-call reservation retains the normal dispatch and acknowledgment path', async () => {
+  await directoryFixture(async directory => {
+    const ledger = createFaiscaLocalReservationLedger({ directory });
+    await ledger.reserve(0.1);
+    assert.equal(await ledger.beginPaidDispatch(), true);
+    await ledger.reserve(0.2);
+    assert.equal(await ledger.beginPaidDispatch(), true);
+    assert.equal(await ledger.assertPaidDispatchStillValid(), true);
+    assert.equal(await ledger.completePaidDispatch(), true);
+    const snapshot = await ledger.inspectReadOnly();
+    assert.equal(snapshot.requests, 2);
+    assert.equal(snapshot.reservedMicros, 300000);
+    assert.equal(await ledger.ready(), true);
+  });
+});
