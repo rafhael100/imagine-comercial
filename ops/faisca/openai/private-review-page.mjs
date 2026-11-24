@@ -188,6 +188,9 @@ function privateBrowserNetworkAddressRisk(text) {
     privateBrowserOctalIpv4.test(text) || privateBrowserIpv6.test(text) ||
     /\blocalhost\b/u.test(text);
 }
+// R328: independent browser refusal of invented access to private records.
+const privateBrowserReadAccess =
+  /\b(?:consultei|consultamos|acessei|acessamos|verifiquei|verificamos|analisei|analisamos|conferi|conferimos|li|lemos|recuperei|recuperamos|localizei|localizamos|busquei|buscamos)\s+(?:(?:o|a|os|as|um|uma|seu|sua|seus|suas|no|na|nos|nas)\s+){0,3}(?:crm|portal|painel|cadastros?|registros?|relatorios?|metricas|logs?|historico|dados|base\s+de\s+dados)\b|\b(?:tenho|temos|tive|tivemos|posso|podemos|consigo|conseguimos)\s+(?:acesso\s+(?:ao|a|aos|as)|consultar|acessar|verificar|ler|recuperar|visualizar)\s+(?:(?:o|a|os|as|seu|sua|seus|suas)\s+){0,3}(?:crm|portal|painel|cadastros?|registros?|relatorios?|metricas|logs?|historico|dados|base\s+de\s+dados)\b/u;
 function privateBrowserReplyEgressSafe(value) {
   if (typeof value !== 'string') return false;
   const normalized = value.normalize('NFKC').normalize('NFKD')
@@ -209,7 +212,8 @@ function privateBrowserReplyEgressSafe(value) {
     privateBrowserUnsupportedKpi.test(normalized) ||
     privateBrowserUnsupportedRank.test(normalized) ||
     privateBrowserUnsupportedGuarantee.test(normalized) ||
-    privateBrowserUnsupportedProjection.test(normalized)
+    privateBrowserUnsupportedProjection.test(normalized) ||
+    privateBrowserReadAccess.test(normalized)
   );
 }
 const privateBrowserGeneralMoney = /r\$|[$€£]|\b(?:precos?|valores?|cust[ao]s?|cobra[mn]?|cobram|cobranca|orcamentos?|cotacao|investimento|descontos?|pagamentos?|parcelas?|mensalidades?|reais|brl|usd|pagar|comercializa|gratuit[oa]s?|bonificacoes?)\b/u;
