@@ -18,6 +18,10 @@ const unverifiedCompliance = text => complianceStandard.test(text) && compliance
 // R303: commercial partner badges and official accreditation are not
 // established by the private editorial corpus or by the model itself.
 const unverifiedPartnerBadge = /\b(?:google\s+(?:premier\s+)?partners?|meta\s+(?:business\s+)?partners?|(?:parceir[oa]s?|revendedor(?:a|es|as)?)\s+(?:oficia(?:l|is)|certificad[oa]s?|autorizad[oa]s?)\s+(?:do|da|de|pelo|pela)\s+(?:google|meta|openai)|(?:google|meta|openai)\s+(?:certificou|credenciou|autorizou))\b/u;
+// R306: binding commercial conditions require reviewed Portal contracts.
+// The synthetic corpus cannot establish cancellation, renewal, warranty or
+// minimum-term obligations. This lexical gate is not legal advice.
+const unverifiedContractTerm = /\b(?:fidelidade|carencia\s+contratual|prazo\s+minimo\s+(?:de\s+)?contratacao|multa\s+(?:rescisoria|contratual|por\s+cancelamento)|direito\s+de\s+arrependimento|garantia\s+contratual|renovacao\s+automatica|rescisao\s+contratual|aviso\s+previo\s+(?:de\s+)?cancelamento)\b/u;
 const businessFlow = /\b(?:processo|fluxo|etapas?|aprov\w*|revis\w*|entrega\w*|prazo\w*|implantacao|cria\w*|produ\w*|contrat\w*|suporte|escopo|procedimento|envi\w*)\b/;
 const company = /\b(?:imagine|voces?|equipe|intern[oa]s?|cliente)\b/;
 // R244: operator identity/capabilities are never inferred from Luna/Terra.
@@ -61,7 +65,7 @@ export function privateConversationRoute(question) {
   const text = normalize(question);
   // Financial-document status belongs to an authenticated Portal operator,
   // not pricing editorial or the paid Luna/Terra general-answer route.
-  if (privateBillingArtifacts.test(text) || unverifiedCompliance(text) || unverifiedPartnerBadge.test(text)) return 'confirm';
+  if (privateBillingArtifacts.test(text) || unverifiedCompliance(text) || unverifiedPartnerBadge.test(text) || unverifiedContractTerm.test(text)) return 'confirm';
   if (money.test(text)) return 'pricing';
   if (businessFlow.test(text) && (company.test(text) || /\b(?:meu|minha|nosso|nossa)\b/.test(text))) {
     if (broadProcess.test(text) && businessFlow.test(text) && !otherFlowDetails.test(text)) return 'process';
@@ -198,7 +202,7 @@ export function safePrivateGeneralReply(text) {
     !hasPrivateSyntheticInstructionOverrideRisk(text) &&
     !hasPrivateUnsupportedOutcomeGuarantee(text) && !money.test(normalized) &&
     !privateBillingArtifacts.test(normalized) && !unverifiedCompliance(normalized) &&
-    !unverifiedPartnerBadge.test(normalized) &&
+    !unverifiedPartnerBadge.test(normalized) && !unverifiedContractTerm.test(normalized) &&
     !/\b(?:imagine|faisca)\b/.test(normalized) &&
     !indirectOperator.test(normalized) &&
     !unverifiedFirstPartyAvailability.test(normalized) &&
