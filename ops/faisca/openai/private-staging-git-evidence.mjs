@@ -27,7 +27,14 @@ async function git(cwd, args, maxBuffer = 4096) {
   return stdout;
 }
 
+async function isCheckoutRoot(cwd) {
+  // Git discovers a parent repository from a nested directory. The private
+  // pathspecs below are relative to cwd, so that is not valid evidence.
+  return (await git(cwd, ['rev-parse', '--show-prefix'], 4096)) === '\n';
+}
+
 export async function privateStagingGitRevision(cwd) {
+  if (!await isCheckoutRoot(cwd)) throw new Error('PRIVATE_CHECKOUT_ROOT_REQUIRED');
   return (await git(cwd, ['rev-parse', 'HEAD'], 1024)).trim();
 }
 
@@ -67,6 +74,7 @@ async function privateSourceMatchesIndex(cwd) {
 }
 
 export async function privateStagingCleanWorktree(cwd) {
+  if (!await isCheckoutRoot(cwd)) return false;
   // git status can report a clean worktree for tracked files marked
   // assume-unchanged (lowercase) or skip-worktree (S). Reject such indexes
   // instead of treating them as a reviewed checkout.
