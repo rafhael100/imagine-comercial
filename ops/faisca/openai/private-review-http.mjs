@@ -469,7 +469,7 @@ export async function startFaiscaOpenAIPrivateReview({
     if (providerUnavailable) { send(res, 503, { status: 'unavailable' }); return; }
     // Never invoke an adapter whose durable-reservation capability changed
     // after listener startup: the safety hooks were vetted for the old claim.
-    if (!stableDurabilityClaim()) {
+    if (!stableDurabilityClaim() || !stableDurableHooks()) {
       latchUncertainDelivery();
       send(res, 503, { status: 'unavailable' }); return;
     }
@@ -494,6 +494,10 @@ export async function startFaiscaOpenAIPrivateReview({
         Promise.resolve().then(() => {
           // A closed client before dispatch must not consume any API credit.
           if (res.destroyed) throw CLIENT_DISCONNECTED;
+          // Recheck at the actual dispatch boundary, after the promise scheduling gap.
+          if (providerUnavailable || !stableDurabilityClaim() || !stableDurableHooks()) {
+            throw new Error('Private durable admission changed before dispatch.');
+          }
           providerDispatched = true;
           return conversation
             ? lab.answerPrivateConversation(input, { requireHttpDeliveryAck: true })
