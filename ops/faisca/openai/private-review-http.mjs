@@ -543,9 +543,25 @@ export async function startFaiscaOpenAIPrivateReview({
         // R272: the fence must positively affirm a safe, current dispatch.
         // False/undefined/null are not a success signal. A future adapter
         // silently returning a negative decision must never emit HTTP 200.
-        if (await deliveryCheck.call(lab) !== true) {
-          throw new Error('Private HTTP delivery fence did not affirm safety.');
-        }
+        // R315: a stuck final assertion is outside the provider race. Bound
+        // it independently, like the durable ACK, so a stalled ledger cannot
+        // keep the socket and in-flight admission occupied indefinitely.
+        // Timeout latches NO-START; a late affirmation cannot publish a reply.
+        let fenceTimer;
+        try {
+          const confirmed = await Promise.race([
+            Promise.resolve().then(() => deliveryCheck.call(lab)),
+            new Promise((_, reject) => {
+              fenceTimer = setTimeout(
+                () => reject(new Error('Private HTTP delivery fence deadline exceeded.')),
+                deliveryAckDeadlineMs
+              );
+            })
+          ]);
+          if (confirmed !== true) {
+            throw new Error('Private HTTP delivery fence did not affirm safety.');
+          }
+        } finally { clearTimeout(fenceTimer); }
       }
       // R276: the awaited durable fence is a scheduling boundary. Another
       // task (including an injected adapter) can replace a vetted method or
