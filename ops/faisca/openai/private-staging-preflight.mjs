@@ -79,9 +79,6 @@ export async function inspectFaiscaPrivateStaging({
   await check('node_22_12_or_newer', () => nodeSupported(nodeVersion));
   await check('independent_operator_sha_pin', () =>
     typeof expectedHead === 'string' && shaPattern.test(expectedHead));
-  await check('reviewed_git_head_matches_pin', async () =>
-    localContext && shaPattern.test(expectedHead ?? '') && await gitRevision() === expectedHead);
-  await check('tracked_checkout_is_clean', async () => localContext && await isClean() === true);
   await check('private_paid_test_opt_in', () =>
     env.IMAGINE_FAISCA_OPENAI_LIVE_TEST === 'YES_PAY_SYNTHETIC_ONLY' &&
     // R302: an invalid explicit mode must not silently start fixed-case review.
@@ -94,6 +91,12 @@ export async function inspectFaiscaPrivateStaging({
     typeof env.FAISCA_REVIEW_BEARER_TOKEN === 'string' &&
     bearerPattern.test(env.FAISCA_REVIEW_BEARER_TOKEN) &&
     env.FAISCA_REVIEW_BEARER_TOKEN !== env.OPENAI_API_KEY);
+  // R313: validate the pure admission gates before starting any Git
+  // subprocess. A mismatched revision must also stop the worktree scan.
+  await check('reviewed_git_head_matches_pin', async () =>
+    failed.length === 0 && await gitRevision() === expectedHead);
+  await check('tracked_checkout_is_clean', async () =>
+    failed.length === 0 && await isClean() === true);
   // R312: do not inspect an operator ledger or bind even loopback after
   // any earlier gate failed. Skipped probes remain false in this report;
   // they are not evidence that the underlying resource was inspected.
