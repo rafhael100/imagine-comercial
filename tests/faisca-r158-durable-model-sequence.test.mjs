@@ -156,3 +156,47 @@ for (const [name, failure, expectedCalls] of [
     });
   });
 }
+
+test('R338 staging operator reconciles independent read-only ledger across the real HTTP sequence', async () => {
+  for (const [failure, expectedCalls] of [
+    [{}, ['gpt-6-luna', 'gpt-6.1-terra']],
+    [{ failLuna: true }, ['gpt-6-luna']],
+    [{ failTerra: true }, ['gpt-6-luna', 'gpt-6.1-terra']]
+  ]) {
+    await withPrivateReview(failure, async (directory, fixture, server) => {
+      // Same independent read-only adapter as the operator CLI, not a
+      // fabricated sequence snapshot and never the provider's credentials.
+      const observer = createFaiscaLocalReservationLedger({
+        directory, maxRequests: 2, maxBudgetUsd: 1
+      });
+      const observations = [];
+      const result = await inspectFaiscaPrivateConversationSequence({
+        origin: server.address, reviewToken: token, enabled: true,
+        inspectLedger: async () => {
+          const snapshot = await observer.inspectReadOnly();
+          observations.push(snapshot.requests);
+          return snapshot;
+        }
+      });
+      await server.close();
+      assert.deepEqual(observations, [0, 0, expectedCalls.length]);
+      assert.deepEqual(fixture.apiCalls, expectedCalls);
+      await inspectLedger(directory, expectedCalls.length);
+      if (failure.failLuna || failure.failTerra) {
+        assert.equal(result.status, 'BLOCKED_POSITIVE_GATE');
+        assert.equal(result.failedPositiveReservedRequests, expectedCalls.length);
+        assert.equal(result.localLedgerDeltasVerified, false);
+        await assert.rejects(observer.ready(), /operator review/);
+      } else {
+        assert.equal(result.status, 'PRIVATE_SYNTHETIC_SEQUENCE_ENVELOPES_VERIFIED');
+        assert.equal(result.localLedgerDeltasVerified, true);
+        assert.equal(result.failedPositiveReservedRequests, null);
+        assert.equal(await observer.ready(), true);
+      }
+      assert.equal(result.ledgerReconciled, false);
+      assert.equal(result.providerTransportVerified, false);
+      assert.equal(result.publicReady, false);
+      assert.equal(result.operationalEffects, false);
+    });
+  }
+});
