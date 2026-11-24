@@ -393,6 +393,7 @@ export async function startFaiscaOpenAIPrivateReview({
   let deliveryFenceStarted = false;
   let deliveryFence = Promise.resolve();
   let deliveryAck = Promise.resolve();
+  let closing;
   // An HTTP disconnect/deadline can lose a perfectly valid provider reply.
   // Persist an operator-only no-start marker before a *graceful* shutdown.
   // Failed persistence never reopens the process. Abrupt host/process death
@@ -451,6 +452,9 @@ export async function startFaiscaOpenAIPrivateReview({
       res.end(payload);
       return;
     }
+    // R321: close() may run while an authenticated body is still arriving.
+    // Never admit new work after the operator has begun shutdown.
+    if (!active) { send(res, 503, { status: 'unavailable' }); return; }
     if (!input) { send(res, 400, { status: 'invalid_request' }); return; }
     // Independent HTTP preflight: an injected/misconfigured lab must never see
     // raw operator input that failed the same synthetic privacy boundary.
@@ -466,7 +470,7 @@ export async function startFaiscaOpenAIPrivateReview({
     // Do not start a new paid turn until the previous successful HTTP write
     // has durably released its same-host dispatch fence.
     await deliveryAck;
-    if (providerUnavailable) { send(res, 503, { status: 'unavailable' }); return; }
+    if (!active || providerUnavailable) { send(res, 503, { status: 'unavailable' }); return; }
     // Never invoke an adapter whose durable-reservation capability changed
     // after listener startup: the safety hooks were vetted for the old claim.
     if (!stableDurabilityClaim() || !stableDurableHooks()) {
@@ -493,7 +497,7 @@ export async function startFaiscaOpenAIPrivateReview({
       const reply = await Promise.race([
         Promise.resolve().then(() => {
           // A closed client before dispatch must not consume any API credit.
-          if (res.destroyed) throw CLIENT_DISCONNECTED;
+          if (!active || res.destroyed) throw CLIENT_DISCONNECTED;
           // Recheck at the actual dispatch boundary, after the promise scheduling gap.
           if (providerUnavailable || !stableDurabilityClaim() || !stableDurableHooks()) {
             throw new Error('Private durable admission changed before dispatch.');
@@ -661,12 +665,16 @@ export async function startFaiscaOpenAIPrivateReview({
       publicReady: false, operationalEffects: false,
       liveBudget: lab.inspect()
     }),
-    async close() {
-      if (!active) return;
+    close() {
+      if (closing) return closing;
       active = false;
-      await new Promise(resolve => server.close(resolve));
-      await deliveryAck;
-      await deliveryFence;
+      // All callers must await the same drain, including durable completion.
+      closing = (async () => {
+        await new Promise(resolve => server.close(resolve));
+        await deliveryAck;
+        await deliveryFence;
+      })();
+      return closing;
     }
   });
 }
