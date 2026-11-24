@@ -17,7 +17,7 @@ const unverifiedCompliance = text => complianceStandard.test(text) && compliance
 
 // R303: commercial partner badges and official accreditation are not
 // established by the private editorial corpus or by the model itself.
-const unverifiedPartnerBadge = /\b(?:google\s+(?:premier\s+)?partners?|meta\s+(?:business\s+)?partners?|(?:parceir[oa]s?|revendedor(?:a|es|as)?)\s+(?:oficia(?:l|is)|certificad[oa]s?|autorizad[oa]s?)\s+(?:do|da|de|pelo|pela)\s+(?:google|meta|openai)|(?:google|meta|openai)\s+(?:certificou|credenciou|autorizou)\b)/u;
+const unverifiedPartnerBadge = /\b(?:google\s+(?:premier\s+)?partners?|meta\s+(?:business\s+)?partners?|(?:parceir[oa]s?|revendedor(?:a|es|as)?)\s+(?:oficia(?:l|is)|certificad[oa]s?|autorizad[oa]s?)\s+(?:do|da|de|pelo|pela)\s+(?:google|meta|openai)|(?:google|meta|openai)\s+(?:certificou|credenciou|autorizou))\b/u;
 const businessFlow = /\b(?:processo|fluxo|etapas?|aprov\w*|revis\w*|entrega\w*|prazo\w*|implantacao|cria\w*|produ\w*|contrat\w*|suporte|escopo|procedimento|envi\w*)\b/;
 const company = /\b(?:imagine|voces?|equipe|intern[oa]s?|cliente)\b/;
 // R244: operator identity/capabilities are never inferred from Luna/Terra.
