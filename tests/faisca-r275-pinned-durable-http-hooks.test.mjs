@@ -64,15 +64,17 @@ for (const hook of hooks) {
     try {
       state.replace(hook);
       await assertUnavailable(await post(server.address));
-      assert.equal(state.calls(), 1);
+      // R317 closes admission before dispatch when a pinned hook changed.
+      assert.equal(state.calls(), 0, 'No provider call with a changed hook');
       await assertUnavailable(await post(server.address));
-      assert.equal(state.calls(), 1, 'No additional provider calls after a changed hook');
+      assert.equal(state.calls(), 0, 'No provider calls after a changed hook');
       assert.equal(server.inspect().providerUnavailable, true);
     } finally {
       await server.close();
     }
     assert.equal(state.originalUncertainty(), 1,
       'Persist uncertainty through the original vetted hook');
+    assert.equal(state.originalAck(), 0, 'No acknowledgement for a rejected dispatch');
     assert.equal(state.hijacked(), 0, 'Changed hook cannot intercept uncertainty or acknowledgements');
   });
 }
