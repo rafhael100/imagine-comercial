@@ -52,6 +52,9 @@ export async function inspectFaiscaPrivateConversationSequence({
   // Optional operator-owned R160 read-only ledger inspector. No path or key
   // enters this function; the sequence remains valid without this evidence.
   inspectLedger = null,
+  // Separate read-only NO-START gate: numeric snapshots intentionally remain
+  // available for forensic inspection even when provider dispatch is fenced.
+  inspectReadiness = null,
   negativeTimeoutMs = 3000,
   positiveTimeoutMs = 30000
 } = {}) {
@@ -60,6 +63,8 @@ export async function inspectFaiscaPrivateConversationSequence({
       typeof reviewToken !== 'string' || !TOKEN.test(reviewToken) ||
       typeof fetchImpl !== 'function' ||
       (inspectLedger !== null && typeof inspectLedger !== 'function') ||
+      (inspectReadiness !== null &&
+        (typeof inspectReadiness !== 'function' || !inspectLedger)) ||
       !Number.isInteger(negativeTimeoutMs) ||
       negativeTimeoutMs < 50 || negativeTimeoutMs > 3000 ||
       !Number.isInteger(positiveTimeoutMs) ||
@@ -77,7 +82,7 @@ export async function inspectFaiscaPrivateConversationSequence({
   if (inspectLedger) {
     try {
       ledgerBefore = await readLedgerSnapshot();
-      if (!ledgerBefore) {
+      if (!ledgerBefore || (inspectReadiness && await inspectReadiness() !== true)) {
         return report('BLOCKED_LEDGER_GATE');
       }
     } catch {
@@ -127,6 +132,12 @@ export async function inspectFaiscaPrivateConversationSequence({
         return report('BLOCKED_LEDGER_GATE', negative);
       }
       ledgerBefore = afterNegative;
+      // Recheck after the negative probe. An independent process may have
+      // fenced dispatch without changing numeric counters. This is not an
+      // atomic lease; the server still owns every dispatch-time guard.
+      if (inspectReadiness && await inspectReadiness() !== true) {
+        return report('BLOCKED_LEDGER_GATE', negative);
+      }
       // R164: avoid a partial two-model attempt when the durable ledger
       // cannot reserve two further requests. This is only a floor; each
       // provider dispatch still performs its own atomic cost reservation.
