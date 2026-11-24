@@ -186,7 +186,13 @@ test('R338 staging operator reconciles independent read-only ledger across the r
         assert.equal(result.status, 'BLOCKED_POSITIVE_GATE');
         assert.equal(result.failedPositiveReservedRequests, expectedCalls.length);
         assert.equal(result.localLedgerDeltasVerified, false);
-        await assert.rejects(observer.ready(), /operator review/);
+        await assert.rejects(observer.ready(), {
+          message: 'Private provider outcome uncertain; operator reconciliation required.'
+        });
+        await assert.rejects(observer.reserve(0.01), {
+          message: 'Private provider outcome uncertain; operator reconciliation required.'
+        });
+        assert.deepEqual(fixture.apiCalls, expectedCalls, 'no new dispatch after refusal');
       } else {
         assert.equal(result.status, 'PRIVATE_SYNTHETIC_SEQUENCE_ENVELOPES_VERIFIED');
         assert.equal(result.localLedgerDeltasVerified, true);
