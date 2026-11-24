@@ -172,6 +172,7 @@ test('R338 staging operator reconciles independent read-only ledger across the r
       const observations = [];
       const result = await inspectFaiscaPrivateConversationSequence({
         origin: server.address, reviewToken: token, enabled: true,
+        inspectReadiness: () => observer.ready(),
         inspectLedger: async () => {
           const snapshot = await observer.inspectReadOnly();
           observations.push(snapshot.requests);
@@ -248,3 +249,48 @@ test('R340 staging with only one durable request left never sends positive HTTP 
     assert.equal(result.operationalEffects, false);
   });
 });
+
+for (const timing of ['before', 'after-negative']) {
+  test('R341 operator refuses fenced dispatch ' + timing + ' even with unchanged ledger counters', async () => {
+    await withPrivateReview({}, async (directory, fixture, server) => {
+      const observer = createFaiscaLocalReservationLedger({
+        directory, maxRequests: 2, maxBudgetUsd: 1
+      });
+      const before = await observer.inspectReadOnly();
+      assert.equal(before.requests, 0);
+      if (timing === 'before') await fixture.ledger.markOutcomeUncertain();
+      let reads = 0, gets = 0, posts = 0;
+      const result = await inspectFaiscaPrivateConversationSequence({
+        origin: server.address, reviewToken: token, enabled: true,
+        inspectLedger: async () => {
+          const snapshot = await observer.inspectReadOnly();
+          if (++reads === 2 && timing === 'after-negative') {
+            await fixture.ledger.markOutcomeUncertain();
+          }
+          return snapshot;
+        },
+        inspectReadiness: () => observer.ready(),
+        fetchImpl: async (url, init) => {
+          if (init.method === 'POST') posts++;
+          if (init.method === 'GET') gets++;
+          return fetch(url, init);
+        }
+      });
+      assert.equal(result.status, 'BLOCKED_LEDGER_GATE');
+      assert.equal(result.negativeInputRejected, timing === 'after-negative');
+      assert.equal(result.positiveEnvelopeAccepted, false);
+      assert.equal(posts, timing === 'before' ? 0 : 1);
+      assert.equal(gets, timing === 'before' ? 0 : 4);
+      assert.equal(result.apiRequests, posts);
+      assert.equal(result.assetRequests, gets);
+      assert.deepEqual(fixture.apiCalls, []);
+      assert.deepEqual(await observer.inspectReadOnly(), before);
+      assert.equal(result.localLedgerDeltasVerified, false);
+      assert.equal(result.ledgerReconciled, false);
+      assert.equal(result.providerTransportVerified, false);
+      assert.equal(result.publicReady, false);
+      assert.equal(result.operationalEffects, false);
+      await assert.rejects(observer.ready(), /outcome uncertain/);
+    });
+  });
+}

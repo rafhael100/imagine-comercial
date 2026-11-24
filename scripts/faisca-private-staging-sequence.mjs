@@ -45,7 +45,8 @@ if (!authorized) {
       const result = await inspectFaiscaPrivateConversationSequence({
         enabled: true,
         reviewToken: process.env.FAISCA_REVIEW_BEARER_TOKEN,
-        inspectLedger: () => ledger.inspectReadOnly()
+        inspectLedger: () => ledger.inspectReadOnly(),
+        inspectReadiness: () => ledger.ready()
       });
       console.log(JSON.stringify(result, null, 2));
       if (result.status !== 'PRIVATE_SYNTHETIC_SEQUENCE_ENVELOPES_VERIFIED' ||
