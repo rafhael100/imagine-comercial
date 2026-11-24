@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, mkdtemp, chmod, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -7,13 +8,15 @@ import AxeBuilder from '@axe-core/playwright';
 import { startFaiscaOpenAIPrivateReview } from './private-review-http.mjs';
 import { getGroundedAnswer } from '../grounding/guide.mjs';
 import { retrieveCandidateAnswerIds } from '../model-router/contract.mjs';
-import { FAISCA_OPENAI_TEST_CASES } from './live-lab.mjs';
+import { FAISCA_OPENAI_TEST_CASES, FAISCA_OPENAI_MODELS, createFaiscaOpenAILiveLab } from './live-lab.mjs';
+import { createFaiscaLocalReservationLedger } from './durable-reservation-ledger.mjs';
 import { PRIVATE_CONVERSATION_CONFIRMATION_TEXT } from './private-conversation-policy.mjs';
 
 const token = 'R95_PRIVATE_CHROMIUM_TOKEN_ONLY_FIXTURE_2026';
 const report = [], errors = [], external = [];
 const reply = 'Uma landing page pode organizar informações de um evento e destacar como as pessoas podem participar.';
 let browser, context, server, page, calls = 0, failure = null;
+const integratedProviderCalls = [];
 function assertNoExternal(url) {
   if (!/^http:\/\/127\.0\.0\.1:\d+\//.test(url)) external.push(url);
 }
@@ -813,6 +816,98 @@ try {
     assert.deepEqual(errors,[]);
     assert.deepEqual(external,[]);
   });
+
+  await step('R330 actual Chromium, HTTP, Luna/Terra fixtures and durable ledger survive restart without extra dispatch', async () => {
+    // Full private composition; only the external provider transport is simulated.
+    const directory = await mkdtemp(resolve(tmpdir(), 'faisca-r330-'));
+    await chmod(directory, 0o700);
+    const questionText = 'Vale a pena usar uma landing page para divulgar um evento?';
+    const statePath = resolve(directory, 'faisca-reservations.json');
+    const openLab = async () => {
+      const ledger = createFaiscaLocalReservationLedger({
+        directory, maxRequests: 2, maxBudgetUsd: 1
+      });
+      const live = createFaiscaOpenAILiveLab({
+        enabled: true, apiKey: 'sk-r330-synthetic-fixture-not-a-real-key',
+        enablePrivateConversation: true, extendedPrivateSession: true,
+        maxRequests: 20, maxBudgetUsd: 10, reservationLedger: ledger,
+        fetchImpl: async (url, init) => {
+          assert.equal(url, 'https://api.openai.com/v1/responses');
+          const body = JSON.parse(init.body);
+          assert.equal(body.store, false);
+          assert.deepEqual(body.tools, []);
+          const state = JSON.parse(await readFile(statePath, 'utf8'));
+          assert.equal(state.requests, integratedProviderCalls.length + 1,
+            'Reservation must be durable before each simulated provider dispatch');
+          integratedProviderCalls.push(body.model);
+          const output = body.model === FAISCA_OPENAI_MODELS.classification
+            ? { topic: 'general' } : { reply };
+          return new Response(JSON.stringify({
+            model: body.model, status: 'completed',
+            output: [{ type: 'message', role: 'assistant',
+              content: [{ type: 'output_text', text: JSON.stringify(output) }] }],
+            usage: { input_tokens: 200, output_tokens: 35 }
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+      });
+      return startFaiscaOpenAIPrivateReview({
+        lab: live, reviewToken: token, enablePrivateConversation: true
+      });
+    };
+    const submit = async (question, expectedStatus, expectedAnswer) => {
+      await page.locator('#review-token').fill(token);
+      await page.locator('#review-question').fill(question);
+      await page.locator('#review-attestation').check();
+      await page.locator('#review-send').click();
+      await page.waitForFunction(expected =>
+        document.querySelector('#review-status')?.textContent?.includes(expected), expectedStatus);
+      assert.equal(await page.locator('#review-answer').innerText(), expectedAnswer);
+      assert.equal(await page.locator('#review-token').inputValue(), '');
+      assert.equal(await page.locator('#review-question').inputValue(), '');
+      assert.equal(await page.locator('#review-attestation').isChecked(), false);
+      assert.equal(await page.locator('#review-send').isEnabled(), true);
+    };
+    try {
+      await server.close();
+      server = await openLab();
+      await page.goto(server.address + '/__faisca_openai_private/review');
+      assert.equal(integratedProviderCalls.length, 0, 'GET never dispatches');
+      await submit(questionText, 'Resposta gerada.', reply);
+      assert.deepEqual(integratedProviderCalls, [
+        FAISCA_OPENAI_MODELS.classification, FAISCA_OPENAI_MODELS.answer
+      ]);
+      assert.equal(await page.locator('#review-sources').innerText(), '');
+      await server.close(); // waits for durable HTTP finish/ACK
+      const spent = JSON.parse(await readFile(statePath, 'utf8'));
+      assert.equal(spent.requests, 2);
+      assert.ok(spent.reservedMicros > 0);
+      assert.equal(spent.limitRequests, 2);
+
+      // New ledger instance, new lab and new HTTP server, same persisted quota.
+      server = await openLab();
+      await page.goto(server.address + '/__faisca_openai_private/review');
+      const pricing = getGroundedAnswer('pricing');
+      await submit('Quanto a Imagine cobra por uma landing page?',
+        'Resposta baseada no material editorial aprovado', pricing.text);
+      assert.equal(await page.locator('#review-sources').innerText(),
+        'Fontes editoriais: ' + pricing.sources.map(x => x.id).join(', '));
+      assert.equal(integratedProviderCalls.length, 2, 'Editorial reply never calls models');
+      await submit(questionText, 'não concluiu.', 'Resposta indisponível neste teste.');
+      assert.equal(await page.locator('#review-sources').innerText(), '');
+      assert.equal(integratedProviderCalls.length, 2, 'No paid dispatch after restart and quota exhaustion');
+      await server.close();
+      assert.deepEqual(JSON.parse(await readFile(statePath, 'utf8')), spent);
+      assert.deepEqual(await context.cookies(), []);
+      assert.deepEqual(await page.evaluate(() => ({
+        local: localStorage.length, session: sessionStorage.length, cookie: document.cookie
+      })), { local: 0, session: 0, cookie: '' });
+      assert.deepEqual(external, []);
+      assert.deepEqual(errors, []);
+    } finally {
+      await server?.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 } catch(error) {
   failure=error.message;
   process.exitCode=1;
@@ -825,7 +920,8 @@ try {
   await writeFile(resolve(dir,'Faisca_R95_PRIVATE_CONVERSATION_BROWSER.json'),JSON.stringify({
     schema:'faisca.r95-private-conversation-browser-qa.v1',
     passed:failure===null, tests:report,
-    syntheticProviderCalls:calls, externalModelCalls:0, errors, external, failure
+    syntheticProviderCalls:calls, integratedSyntheticProviderCalls:integratedProviderCalls.length,
+    externalModelCalls:0, errors, external, failure
   },null,2)+'\n');
   console.log('R95 browser QA: '+report.filter(x=>x.status==='pass').length+'/'+report.length+
     ' synthetic checks, zero paid OpenAI calls.');
