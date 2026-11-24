@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtemp, chmod, readFile, writeFile, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -115,5 +116,56 @@ test('R82 private OpenAI lab reserves BEFORE dispatch and preserves reservation 
     // A failed reservation (including quota denial) is now fail-closed and generic.
     await assert.rejects(restarted.answer('compare'), /OpenAI private test unavailable/);
     assert.equal(dispatched, 1, 'No second API call after process restart.');
+  });
+});
+
+test('R332 nonblocking ledger reads reject FIFO corruption without hanging preflight or reservation', { skip: process.platform === 'win32' }, async () => {
+  const moduleUrl = new URL('../ops/faisca/openai/durable-reservation-ledger.mjs', import.meta.url).href;
+  for (const name of [
+    'faisca-reservations.json', '.faisca-reservations-initialized',
+    '.faisca-reservations-highwater.json', '.faisca-reservations-highwater-initialized'
+  ]) {
+    await directoryFixture(async directory => {
+      const ledger = createFaiscaLocalReservationLedger({ directory, maxRequests: 4, maxBudgetUsd: 1 });
+      await ledger.reserve(0.1);
+      const path = join(directory, name);
+      await rm(path);
+      execFileSync('mkfifo', ['-m', '600', path]);
+      // Bound the subprocess itself, not merely a JS timer: a blocking native
+      // open would otherwise keep libuv alive after a rejected test.
+      execFileSync(process.execPath, ['--input-type=module', '-e', `
+        import assert from 'node:assert/strict';
+        import { createFaiscaLocalReservationLedger } from ${JSON.stringify(moduleUrl)};
+        const ledger = createFaiscaLocalReservationLedger({
+          directory: ${JSON.stringify(directory)}, maxRequests: 4, maxBudgetUsd: 1
+        });
+        await assert.rejects(ledger.ready());
+        await assert.rejects(ledger.inspectReadOnly());
+        await assert.rejects(ledger.reserve(0.1));
+      `], { timeout: 5000, killSignal: 'SIGKILL' });
+    });
+  }
+});
+
+test('R332 a FIFO replacing an owned dispatch marker never stalls egress validation or releases the marker', { skip: process.platform === 'win32' }, async () => {
+  const moduleUrl = new URL('../ops/faisca/openai/durable-reservation-ledger.mjs', import.meta.url).href;
+  await directoryFixture(async directory => {
+    execFileSync(process.execPath, ['--input-type=module', '-e', `
+      import assert from 'node:assert/strict';
+      import { execFileSync } from 'node:child_process';
+      import { rm, lstat } from 'node:fs/promises';
+      import { join } from 'node:path';
+      import { createFaiscaLocalReservationLedger } from ${JSON.stringify(moduleUrl)};
+      const directory = ${JSON.stringify(directory)};
+      const ledger = createFaiscaLocalReservationLedger({ directory });
+      await ledger.reserve(0.1);
+      await ledger.beginPaidDispatch();
+      const path = join(directory, '.faisca-provider-dispatch-inflight');
+      await rm(path);
+      execFileSync('mkfifo', ['-m', '600', path]);
+      await assert.rejects(ledger.assertPaidDispatchStillValid(), /operator review/);
+      await assert.rejects(ledger.completePaidDispatch(), /operator review/);
+      assert.equal((await lstat(path)).isFIFO(), true);
+    `], { timeout: 5000, killSignal: 'SIGKILL' });
   });
 });
