@@ -138,6 +138,14 @@ export async function inspectFaiscaPrivateReviewUi({
         throw new Error('unexpected content encoding');
       }
       const length = response.headers.get('content-length');
+      // R314: the native loopback server uses either Content-Length or
+      // chunked framing. Reject ambiguous or transformed transfer codings,
+      // even if an injected Fetch adapter exposes otherwise exact bytes.
+      const transferEncoding = response.headers.get('transfer-encoding');
+      if (transferEncoding !== null &&
+          (transferEncoding !== 'chunked' || length !== null)) {
+        throw new Error('unexpected transfer framing');
+      }
       if (item.exactBytes) {
         if (length === null || !/^[0-9]+$/.test(length) ||
             Number(length) !== item.exactBytes) throw new Error('unexpected mascot length');
