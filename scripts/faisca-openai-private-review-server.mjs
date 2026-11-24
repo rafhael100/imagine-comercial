@@ -1,6 +1,7 @@
 import { createFaiscaOpenAILiveLab } from '../ops/faisca/openai/live-lab.mjs';
 import { createFaiscaLocalReservationLedger } from '../ops/faisca/openai/durable-reservation-ledger.mjs';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
+import { createFaiscaPrivateShutdown } from '../ops/faisca/openai/private-shutdown.mjs';
 import { inspectFaiscaPrivateStaging } from '../ops/faisca/openai/private-staging-preflight.mjs';
 
 if (process.env.GITHUB_ACTIONS || process.env.CI ||
@@ -48,9 +49,14 @@ if (process.env.GITHUB_ACTIONS || process.env.CI ||
     console.log(enablePrivateConversation
       ? 'Only authenticated fictional operator questions and fixed synthetic scenarios are enabled.'
       : 'Only authenticated fixed synthetic scenarios are enabled.');
-    const stop = async () => {
-      try { await server.close(); }
-      finally { process.exitCode = 0; }
+    const shutdown = createFaiscaPrivateShutdown({
+      server, ledger: reservationLedger, report: status => console.log(status)
+    });
+    const stop = () => {
+      void shutdown().then(code => { process.exitCode = code; }, () => {
+        console.error('PRIVATE_SHUTDOWN_RECONCILIATION_REQUIRED');
+        process.exitCode = 1;
+      });
     };
     process.once('SIGINT', stop);
     process.once('SIGTERM', stop);
