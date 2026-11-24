@@ -71,3 +71,16 @@ test('F315 outbound policy accepts all 21 exact curated calculator links, never 
  }
  assert.equal(passed,21);
 });
+
+
+test('F366 rejects network paths and ambiguous local hrefs before allowing internal links',()=>{
+  for(const href of [
+    '//evil.invalid/', '/\\evil.invalid/', '/\t/evil.invalid/',
+    '/&#47;evil.invalid/', '/&sol;evil.invalid/',
+    '/&#x5c;evil.invalid/', '/&#9;/evil.invalid/'
+  ])assert.throws(()=>audit(page([a(href)])),/not an approved public channel/);
+  assert.deepEqual(audit(page([
+    a('/contato/'),a('/contato/#criacao-de-sites'),
+    a('/contato/?a=1&amp;b=2'),a('#conteudo')
+  ])),{externalLinksChecked:0,networkPerformed:false});
+});

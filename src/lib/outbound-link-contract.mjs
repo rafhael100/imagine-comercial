@@ -88,7 +88,17 @@ export function auditApprovedOutboundLinks(html){
   let checked=0;
   for(const tag of anchorOpeningTags(html)){
     const href=requiredAnchorHref(tag);
-    if(href===null||href.startsWith('/')||href.startsWith('#'))continue;
+    if(href===null||href.startsWith('#'))continue;
+    if(href.startsWith('/')){
+      // A leading slash alone is not a same-origin guarantee: browsers
+      // resolve network-path references, backslashes and HTML entities.
+      // Generated local paths never require raw controls or entity syntax
+      // in their path component. Query strings remain independently audited.
+      assert.ok(!href.startsWith('//')&&!/[\\\x00-\x20\x7f]/.test(href)&&
+        !href.split(/[?#]/,1)[0].includes('&'),
+        'F366: ambiguous local destination is not an approved public channel');
+      continue;
+    }
     // Astro serializes attribute ampersands as &amp; in static HTML.
     // Decode only that exact serialization for this generated-HTML audit;
     // the independent DOM/runtime allowlist remains strict and unchanged.
