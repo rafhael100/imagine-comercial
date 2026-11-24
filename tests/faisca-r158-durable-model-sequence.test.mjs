@@ -14,11 +14,22 @@ const token = 'R158_PRIVATE_REVIEW_BEARER_SYNTHETIC_ONLY_2026';
 const fakeKey = 'sk-r158-local-fixture-not-a-real-provider-secret-2026';
 const safeAnswer = 'Uma landing page pode apresentar a programação de um evento e orientar as pessoas sobre como participar.';
 
-async function withPrivateDirectory(fn) {
+async function withPrivateReview(options, fn) {
   const directory = await mkdtemp(join(tmpdir(), 'faisca-r158-'));
-  await chmod(directory, 0o700);
-  try { await fn(directory); }
-  finally { await rm(directory, { recursive: true, force: true }); }
+  let server;
+  try {
+    await chmod(directory, 0o700);
+    const fixture = createFixture(directory, options);
+    server = await startFaiscaOpenAIPrivateReview({
+      lab: fixture.lab, reviewToken: token, enablePrivateConversation: true
+    });
+    await fn(directory, fixture, server);
+  } finally {
+    // HTTP finish precedes the asynchronous durable ACK/fence. Drain before
+    // removing the directory; t.after runs too late for this fixture scope.
+    try { await server?.close(); }
+    finally { await rm(directory, { recursive: true, force: true }); }
+  }
 }
 
 function modelResponse(model, data) {
@@ -76,13 +87,8 @@ async function inspectLedger(directory, expectedRequests) {
   return state;
 }
 
-test('R158 actual private HTTP sequence: negative spends zero, Luna/Terra reserve exactly twice, witness matches', async t => {
-  await withPrivateDirectory(async directory => {
-    const fixture = createFixture(directory);
-    const server = await startFaiscaOpenAIPrivateReview({
-      lab: fixture.lab, reviewToken: token, enablePrivateConversation: true
-    });
-    t.after(() => server.close());
+test('R158 actual private HTTP sequence: negative spends zero, Luna/Terra reserve exactly twice, witness matches', async () => {
+  await withPrivateReview({}, async (directory, fixture, server) => {
     let gets = 0, posts = 0;
     const fetchImpl = async (url, init) => {
       if (init.method === 'GET') {
@@ -118,7 +124,9 @@ test('R158 actual private HTTP sequence: negative spends zero, Luna/Terra reserv
     assert.equal(posts, 2);
     assert.deepEqual(fixture.apiCalls, ['gpt-6-luna', 'gpt-6.1-terra']);
     assert.equal(fixture.lab.inspect().calls, 2);
+    await server.close();
     await inspectLedger(directory, 2);
+    assert.equal(await fixture.ledger.ready(), true, 'durable ACK drained before independent readiness check');
     await assert.rejects(fixture.ledger.reserve(0.01), /limit reached/);
     assert.equal(fixture.apiCalls.length, 2, 'no duplicate or delayed provider dispatch');
     assert.equal(JSON.stringify(result).includes(fakeKey), false);
@@ -131,13 +139,8 @@ for (const [name, failure, expectedCalls] of [
   ['Luna', { failLuna: true }, ['gpt-6-luna']],
   ['Terra', { failTerra: true }, ['gpt-6-luna', 'gpt-6.1-terra']]
 ]) {
-  test('R158 ' + name + ' synthetic provider failure keeps every durable reservation without retry', async t => {
-    await withPrivateDirectory(async directory => {
-      const fixture = createFixture(directory, failure);
-      const server = await startFaiscaOpenAIPrivateReview({
-        lab: fixture.lab, reviewToken: token, enablePrivateConversation: true
-      });
-      t.after(() => server.close());
+  test('R158 ' + name + ' synthetic provider failure keeps every durable reservation without retry', async () => {
+    await withPrivateReview(failure, async (directory, fixture, server) => {
       const result = await inspectFaiscaPrivateConversationSequence({
         origin: server.address, reviewToken: token, enabled: true
       });
@@ -146,6 +149,7 @@ for (const [name, failure, expectedCalls] of [
       assert.equal(result.positiveEnvelopeAccepted, false);
       assert.equal(result.apiRequests, 2, 'only one negative and one positive POST');
       assert.deepEqual(fixture.apiCalls, expectedCalls);
+      await server.close();
       await inspectLedger(directory, expectedCalls.length);
       assert.equal(result.publicReady, false);
       assert.equal(result.providerTransportVerified, false);
