@@ -8,6 +8,7 @@ import {
   createFaiscaOpenAILiveLab, FAISCA_OPENAI_MODELS
 } from '../ops/faisca/openai/live-lab.mjs';
 import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-review-http.mjs';
+import { createFaiscaPrivateShutdown } from '../ops/faisca/openai/private-shutdown.mjs';
 import { inspectFaiscaPrivateConversationSequence } from '../ops/faisca/openai/private-staging-sequence.mjs';
 
 const token = 'R158_PRIVATE_REVIEW_BEARER_SYNTHETIC_ONLY_2026';
@@ -291,6 +292,42 @@ for (const timing of ['before', 'after-negative']) {
       assert.equal(result.publicReady, false);
       assert.equal(result.operationalEffects, false);
       await assert.rejects(observer.ready(), /outcome uncertain/);
+    });
+  });
+}
+
+// R344: exercise the actual operator shutdown helper through the HTTP server
+// and persistent ledger; only the upstream model transport is simulated.
+for (const [name, failure, expectedCalls, expectedExit] of [
+  ['normal', {}, 2, 0],
+  ['Luna failure', { failLuna: true }, 1, 1],
+  ['Terra failure', { failTerra: true }, 2, 1]
+]) {
+  test('R344 operator shutdown after real HTTP: ' + name, async () => {
+    await withPrivateReview(failure, async (directory, fixture, server) => {
+      const result = await inspectFaiscaPrivateConversationSequence({
+        origin: server.address, reviewToken: token, enabled: true
+      });
+      const observer = createFaiscaLocalReservationLedger({
+        directory, maxRequests: 2, maxBudgetUsd: 1
+      });
+      const reports = [];
+      const stop = createFaiscaPrivateShutdown({
+        server, ledger: observer, report: status => reports.push(status)
+      });
+      const pending = stop();
+      assert.equal(stop(), pending);
+      assert.equal(await pending, expectedExit);
+      assert.deepEqual(reports, [expectedExit === 0
+        ? 'PRIVATE_SHUTDOWN_LOCAL_DRAIN_VERIFIED'
+        : 'PRIVATE_SHUTDOWN_RECONCILIATION_REQUIRED']);
+      assert.equal(result.positiveEnvelopeAccepted, expectedExit === 0);
+      assert.equal(server.inspect().active, false);
+      assert.equal(fixture.apiCalls.length, expectedCalls);
+      await inspectLedger(directory, expectedCalls);
+      if (expectedExit === 0) assert.equal(await observer.ready(), true);
+      else await assert.rejects(observer.ready());
+      assert.equal(fixture.apiCalls.length, expectedCalls);
     });
   });
 }

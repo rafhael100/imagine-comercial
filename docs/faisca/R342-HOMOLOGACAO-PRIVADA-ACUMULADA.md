@@ -5,7 +5,7 @@
 ## Seleção de revisão
 - R95 #570: `91951653fca999f26595cc8113fbaff151225a89` — [6/6 CI](https://github.com/rafhael100/imagine-comercial/actions/runs/44656914085).
 - R340 #821: `84f139c13cef53210d639669ee7338eb0f9fc349` — [CI de jornada privada, Chromium, axe e build](https://github.com/rafhael100/imagine-comercial/actions/runs/45460500059) e outros cinco workflows aprovados. Fixtures apenas.
-- R341 #822: `0aee338799671bd774575d5e35f09759f5a10a79` — acrescenta readiness do observador antes do negativo e antes do positivo; não adotar sem seis workflows aprovados e revisão independente.
+- R341 #822: `0aee338799671bd774575d5e35f09759f5a10a79` — acrescenta readiness do observador antes do negativo e antes do positivo; [CI 6/6](https://github.com/rafhael100/imagine-comercial/actions/runs/45471164078) aprovada em 24/11/2026. Revisão independente permanece obrigatória.
 
 Escolher uma única HEAD completa de revisão, após CI na SHA exata e revisão AppSec, LGPD, FinOps e editorial. Receber o pin por canal confiável independente; não usar o próprio HEAD como origem do pin. A SHA de R342 também precisa de CI se selecionada. O documento não concede autorização de infraestrutura, nem é evidência de operação.
 
@@ -52,7 +52,7 @@ O resultado esperado é `PRIVATE_SYNTHETIC_SEQUENCE_ENVELOPES_VERIFIED` e `local
 
 ## Evidência de aceitação complementar
 - Interface: túnel SSH local autorizado (sem publicar porta), navegador em `http://127.0.0.1:4336/__faisca_openai_private/review`. Testar separadamente, quando autorizado, uma pergunta fictícia geral; exigir resposta segura, sem dados de clientes, sem ação externa e sem alegação de acesso ao Portal/CRM/Sites. Essa interação pode consumir créditos adicionais, não faz parte das duas chamadas da sequência.
-- Encerrar o serviço normalmente e aguardar o drain/ACK antes de inspeção final. Encerrar túnel; retirar segredos das sessões conforme procedimento do custodiante.
+- Encerrar o serviço normalmente e aguardar o drain/ACK antes de inspeção final. Em revisão que incorpore R343 #824, exigir `PRIVATE_SHUTDOWN_LOCAL_DRAIN_VERIFIED` e exit 0. `PRIVATE_SHUTDOWN_RECONCILIATION_REQUIRED`, exit diferente de zero ou ausência de confirmação não constituem encerramento verificado; não iniciar novamente nem remover marcadores. A confirmação é local, não prova cobrança ou recebimento pelo navegador. Encerrar túnel; retirar segredos das sessões conforme procedimento do custodiante.
 - Custodiante: correlacionar janela de uso com projeto OpenAI autorizado e cobrança observada; não registrar conteúdo das perguntas, token, chave ou dados pessoais. Reserva estimada não equivale a fatura. Se janela não permitir atribuição independente, manter pendente, sem inferir custo.
 - Registrar por separado SHA revisada, CI, smoke, navegador, deltas locais, conciliação de uso e encerramento; se faltar evidência, marcar PENDENTE. GO privado é decisão própria. GO público permanece bloqueado; integração operacional Portal/Sites/CRM continua fora deste ensaio.
 
