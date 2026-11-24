@@ -30,7 +30,11 @@ const PROVIDER_DISPATCH_DATA = 'faisca.private-provider-dispatch-inflight.v1\n';
 const MAX_REQUESTS = 100;
 const MAX_MICROS = 10_000_000;
 const OPEN_LOCK = constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW;
-const READ_ONLY = constants.O_RDONLY | constants.O_NOFOLLOW;
+// A corrupt ledger entry can be a named pipe. O_RDONLY alone would wait for
+// a writer before fstat could reject it, stalling preflight or paid delivery.
+// Nonblocking opens preserve regular-file/directory reads and let the existing
+// shape, ownership and inode checks reject special files without waiting.
+const READ_ONLY = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
 
 /**
  * Private, single-host, fail-closed reservation ledger for estimated API costs.
