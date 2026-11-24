@@ -78,7 +78,7 @@ async function privateSourceMatchesIndex(cwd) {
 // A review must not execute these commands. Read only config key names, then
 // override each configured driver for the status subprocess. Unexpected names
 // fail closed; the private source is already compared as raw bytes.
-async function gitStatusWithoutFilters(cwd) {
+async function gitStatusWithoutFilters(cwd, rejectUntracked) {
   const keys = (await git(cwd, ['config', '--null', '--name-only', '--list'],
     2 * 1024 * 1024)).split('\0').filter(Boolean);
   const drivers = new Set();
@@ -93,11 +93,11 @@ async function gitStatusWithoutFilters(cwd) {
     '-c', 'filter.' + name + '.process=',
     '-c', 'filter.' + name + '.required=false'
   ]);
-  return git(cwd, [...overrides, 'status', '--porcelain', '--untracked-files=no',
+  return git(cwd, [...overrides, 'status', '--porcelain', rejectUntracked ? '--untracked-files=all' : '--untracked-files=no',
     '--ignore-submodules=all']);
 }
 
-export async function privateStagingCleanWorktree(cwd) {
+export async function privateStagingCleanWorktree(cwd, { rejectUntracked = false } = {}) {
   if (!await isCheckoutRoot(cwd)) return false;
   // git status can report a clean worktree for tracked files marked
   // assume-unchanged (lowercase) or skip-worktree (S). Reject such indexes
@@ -112,5 +112,5 @@ export async function privateStagingCleanWorktree(cwd) {
     .split('\0').filter(Boolean);
   if (stages.some(entry => entry.startsWith('160000 '))) return false;
   if (!await privateSourceMatchesIndex(cwd)) return false;
-  return (await gitStatusWithoutFilters(cwd)).trim() === '';
+  return (await gitStatusWithoutFilters(cwd, rejectUntracked)).trim() === '';
 }
