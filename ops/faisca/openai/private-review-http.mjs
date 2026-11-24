@@ -77,8 +77,8 @@ function privateBrowserAllowed(req, port) {
   return unambiguousPrivateHeaders(req) &&
     req.socket.remoteAddress === '127.0.0.1' &&
     req.headers.host === '127.0.0.1:' + port &&
-    (!req.headers.origin || req.headers.origin === 'http://127.0.0.1:' + port) &&
-    !req.headers.cookie && !req.headers['x-forwarded-for'];
+    (req.headers.origin === undefined || req.headers.origin === 'http://127.0.0.1:' + port) &&
+    req.headers.cookie === undefined;
 }
 
 function send(res, status, value) {
@@ -262,9 +262,8 @@ function authorized(req, token, hostPort) {
   return unambiguousPrivateHeaders(req) &&
     req.socket.remoteAddress === '127.0.0.1' &&
     req.headers.host === '127.0.0.1:' + hostPort &&
-    (!req.headers.origin || req.headers.origin === 'http://127.0.0.1:' + hostPort) &&
-    !req.headers.cookie &&
-    !req.headers['x-forwarded-for'] &&
+    (req.headers.origin === undefined || req.headers.origin === 'http://127.0.0.1:' + hostPort) &&
+    req.headers.cookie === undefined &&
     timingSafeEqual(a, b);
 }
 async function readRequest(req, conversation) {
@@ -276,8 +275,9 @@ async function readRequest(req, conversation) {
   // Reject transfer-encoding, compressed or ambiguous framing up front;
   // a streamed or oversized body must never reach the paid provider.
   const contentLength = req.headers['content-length'];
-  if (req.headers['transfer-encoding'] || req.headers['content-encoding'] ||
-      req.headers.trailer || req.headers.expect ||
+  // R316: prohibited header presence is a rejection, even with an empty value.
+  if (req.headers['transfer-encoding'] !== undefined || req.headers['content-encoding'] !== undefined ||
+      req.headers.trailer !== undefined || req.headers.expect !== undefined ||
       typeof contentLength !== 'string' ||
       !/^[1-9][0-9]{0,3}$/.test(contentLength) ||
       Number(contentLength) > maxBytes) return null;
