@@ -30,6 +30,23 @@ test('R305 private source is checked as raw bytes, not Git-normalized text', asy
   const { dir, git, source, path } = await fixture(t);
   assert.equal(await privateStagingCleanWorktree(dir), true);
   await writeFile(path, source.replaceAll('\n', '\r\n'));
+  const indexed = git('rev-parse', ':ops/faisca/fixture.mjs');
+  // Git versions can report a size change even when the clean hash agrees.
+  assert.equal(git('hash-object', 'ops/faisca/fixture.mjs'), indexed);
+  assert.notEqual(git('hash-object', '--no-filters', 'ops/faisca/fixture.mjs'), indexed);
+  assert.equal(await privateStagingCleanWorktree(dir), false);
+});
+
+test('R307 rejects same-size private source hidden by a clean filter', async t => {
+  const { dir, git, source, path } = await fixture(t);
+  git('config', 'filter.synthetic.clean', 'sed s/false/trueX/g');
+  await writeFile(join(dir, '.gitattributes'), '*.mjs text eol=lf filter=synthetic\n');
+  await writeFile(path, source.replace('true', 'trueX'));
+  git('add', '.');
+  git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+    '-c', 'commit.gpgsign=false', 'commit', '-qm', 'synthetic clean filter');
+  assert.equal(await privateStagingCleanWorktree(dir), true);
+  await writeFile(path, source.replace('true', 'false'));
   assert.equal(git('status', '--porcelain', '--untracked-files=no'), '');
   assert.equal(await privateStagingCleanWorktree(dir), false);
 });
