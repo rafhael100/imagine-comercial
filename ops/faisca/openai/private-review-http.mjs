@@ -638,6 +638,16 @@ export async function startFaiscaOpenAIPrivateReview({
       inFlight = false;
     }
   });
+  // Node otherwise sends 100 Continue automatically before our handler
+  // can reject Expect. The private protocol accepts no expectation or
+  // streaming negotiation; reply once and close without reading a body.
+  function rejectExpectation(res, status) {
+    res.shouldKeepAlive = false;
+    res.writeHead(status, { ...securityHeaders, Connection: 'close' });
+    res.end(JSON.stringify({ status: 'invalid_request' }) + '\n');
+  }
+  server.on('checkContinue', (_req, res) => rejectExpectation(res, 400));
+  server.on('checkExpectation', (_req, res) => rejectExpectation(res, 417));
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(port, '127.0.0.1', resolve);
