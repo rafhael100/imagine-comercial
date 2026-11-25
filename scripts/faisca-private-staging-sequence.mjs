@@ -16,8 +16,17 @@ const authorized = process.argv.length === 3 &&
   process.env.FAISCA_PRIVATE_SEQUENCE_ACK === 'YES_NEGATIVE_THEN_POSITIVE_UP_TO_TWO_MODEL_CALLS' &&
   process.env.FAISCA_PRIVATE_LEDGER_AUDIT_ACK === 'YES_LOCAL_READONLY_NO_PROVIDER_PROOF';
 
+// Match the existing private server and post-run observer exactly. An
+// operator typo must not cause a positive HTTP probe with a mismatched
+// local quota view. This is not a new cap or a provider billing limit.
+const limitsMatch = process.env.FAISCA_PRIVATE_LEDGER_MAX_REQUESTS === '100' &&
+  process.env.FAISCA_PRIVATE_LEDGER_MAX_BUDGET_USD === '10';
+
 if (!authorized) {
   console.error('R157 BLOCKED: non-CI bearer-only operator authorization and independent SHA required.');
+  process.exitCode = 2;
+} else if (!limitsMatch) {
+  console.error('R352 BLOCKED: observer limits must match the private server configuration.');
   process.exitCode = 2;
 } else {
   try {
@@ -36,8 +45,8 @@ if (!authorized) {
       // no ledger reset, mutation, API key lookup, retry or unverified bypass.
       const ledger = createFaiscaLocalReservationLedger({
         directory: process.env.FAISCA_PRIVATE_LEDGER_DIRECTORY,
-        maxRequests: Number(process.env.FAISCA_PRIVATE_LEDGER_MAX_REQUESTS),
-        maxBudgetUsd: Number(process.env.FAISCA_PRIVATE_LEDGER_MAX_BUDGET_USD)
+        maxRequests: 100,
+        maxBudgetUsd: 10
       });
       const result = await inspectFaiscaPrivateConversationSequence({
         enabled: true,
