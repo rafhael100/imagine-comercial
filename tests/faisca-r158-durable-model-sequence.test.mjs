@@ -11,6 +11,9 @@ import { startFaiscaOpenAIPrivateReview } from '../ops/faisca/openai/private-rev
 import { createFaiscaPrivateShutdown } from '../ops/faisca/openai/private-shutdown.mjs';
 import { inspectFaiscaPrivateConversationSequence } from '../ops/faisca/openai/private-staging-sequence.mjs';
 
+import { inspectFaiscaPrivatePostRunLedger } from '../ops/faisca/openai/private-post-run-ledger.mjs';
+import { compareFaiscaPrivateLedgerWindow } from '../ops/faisca/openai/private-ledger-window.mjs';
+
 const token = 'R158_PRIVATE_REVIEW_BEARER_SYNTHETIC_ONLY_2026';
 const fakeKey = 'sk-r158-local-fixture-not-a-real-provider-secret-2026';
 const safeAnswer = 'Uma landing page pode apresentar a programação de um evento e orientar as pessoas sobre como participar.';
@@ -328,6 +331,75 @@ for (const [name, failure, expectedCalls, expectedExit] of [
       if (expectedExit === 0) assert.equal(await observer.ready(), true);
       else await assert.rejects(observer.ready());
       assert.equal(fixture.apiCalls.length, expectedCalls);
+    });
+  });
+}
+
+  
+// R351: exercise the complete local acceptance chain using the exact
+// operator components, real loopback HTTP and independent durable reads.
+// A failed Terra call can have the same reservation count as success;
+// never infer a successful conversation from that count.
+for (const [name, failure, expectedCalls, success] of [
+  ['success', {}, 2, true],
+  ['Luna unavailable', { failLuna: true }, 1, false],
+  ['Terra unavailable', { failTerra: true }, 2, false]
+]) {
+  test('R351 complete private local acceptance chain: ' + name, async () => {
+    await withPrivateReview(failure, async (directory, fixture, server) => {
+      const observer = createFaiscaLocalReservationLedger({
+        directory, maxRequests: 2, maxBudgetUsd: 1
+      });
+      const before = await inspectFaiscaPrivatePostRunLedger({ ledger: observer });
+      assert.equal(before.status, 'PRIVATE_LOCAL_LEDGER_READONLY_READY');
+      assert.equal(before.requests, 0);
+
+      const sequence = await inspectFaiscaPrivateConversationSequence({
+        origin: server.address, reviewToken: token, enabled: true,
+        inspectLedger: () => observer.inspectReadOnly(),
+        inspectReadiness: () => observer.ready()
+      });
+      const receipts = [];
+      const stop = createFaiscaPrivateShutdown({
+        server, ledger: observer, report: status => receipts.push(status)
+      });
+      const exitCode = await stop();
+      assert.equal(server.inspect().active, false);
+      const after = await inspectFaiscaPrivatePostRunLedger({ ledger: observer });
+      const window = compareFaiscaPrivateLedgerWindow(before, after, 2);
+
+      assert.equal(fixture.apiCalls.length, expectedCalls);
+      assert.equal(after.requests, expectedCalls);
+      assert.equal(sequence.apiRequests, 2);
+      assert.equal(sequence.negativeInputRejected, true);
+      assert.equal(sequence.positiveEnvelopeAccepted, success);
+      assert.equal(sequence.localLedgerDeltasVerified, success);
+      assert.equal(exitCode, success ? 0 : 1);
+      assert.deepEqual(receipts, [success ? 'PRIVATE_SHUTDOWN_LOCAL_DRAIN_VERIFIED'
+        : 'PRIVATE_SHUTDOWN_RECONCILIATION_REQUIRED']);
+      assert.equal(after.localReadinessVerified, success);
+      assert.equal(window.localDeltaVerified, success);
+      if (success) {
+        assert.equal(window.requestDelta, 2);
+        assert.ok(window.reservedMicrosDelta >= 2);
+      } else {
+        assert.equal(sequence.failedPositiveReservedRequests, expectedCalls);
+        assert.equal(window.requestDelta, null);
+        assert.equal(window.reservedMicrosDelta, null);
+      }
+
+      // Counters and local HTTP envelopes are not evidence of provider
+      // charges or production readiness, even in the successful case.
+      for (const report of [before, sequence, after, window]) {
+        assert.equal(report.publicReady, false);
+        assert.equal(report.operationalEffects, false);
+        assert.equal(JSON.stringify(report).includes(fakeKey), false);
+        assert.equal(JSON.stringify(report).includes(token), false);
+        assert.equal(JSON.stringify(report).includes(safeAnswer), false);
+      }
+      assert.equal(window.providerUsageReconciled, false);
+      assert.equal(window.processExitVerified, false);
+      assert.equal(sequence.providerTransportVerified, false);
     });
   });
 }
