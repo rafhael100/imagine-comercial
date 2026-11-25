@@ -17,6 +17,8 @@ const observerEnv = { ...baseEnv,
   FAISCA_PRIVATE_SYNTHETIC_CONVERSATION: 'YES_SYNTHETIC_ONLY',
   FAISCA_PRIVATE_SEQUENCE_ACK: 'YES_NEGATIVE_THEN_POSITIVE_UP_TO_TWO_MODEL_CALLS',
   FAISCA_PRIVATE_LEDGER_AUDIT_ACK: 'YES_LOCAL_READONLY_NO_PROVIDER_PROOF',
+  FAISCA_PRIVATE_LEDGER_MAX_REQUESTS: '100',
+  FAISCA_PRIVATE_LEDGER_MAX_BUDGET_USD: '10',
   FAISCA_REVIEW_BEARER_TOKEN: 'R347_BEARER_FIXTURE_NOT_A_SECRET_2026' };
 
 async function fixture(fn) {
@@ -87,10 +89,13 @@ for (const [name, path] of [
 
 test('R347 observer refuses dirty tracked private source and wrong pin', async () => {
   await fixture(async ({ root, run }) => {
-    assert.equal(run({}, '0'.repeat(40)).status, 2);
+    const wrongPin = run({}, '0'.repeat(40));
+    assert.equal(wrongPin.status, 2);
+    assert.match(wrongPin.stderr, /fully clean SHA/);
     await appendFile(join(root, sequence), '// changed fixture\n');
     const result = run();
     assert.equal(result.status, 2);
     assert.equal(result.stdout, '');
+    assert.match(result.stderr, /fully clean SHA/);
   });
 });
